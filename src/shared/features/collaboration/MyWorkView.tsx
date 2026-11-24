@@ -40,6 +40,7 @@ import {
   type WorkOrderContext,
 } from './collaborationRules';
 import { PageContainer } from '@/shared/components/PageContainer';
+import { useTranslation } from '@/lib/i18n';
 
 interface MyWorkViewProps {
   currentUserId?: string | null;
@@ -59,6 +60,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   onShowToast,
 }) => {
   const { workspaceId, seriesId } = useParams();
+  const { t } = useTranslation('collaboration');
   const [searchParams, setSearchParams] = useSearchParams();
   const reviewer = isReviewerRole(workspaceRole);
 
@@ -107,7 +109,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         setMembers(memberList ?? []);
         setChapterId((current) => current || 'ALL_STUDIO');
       } catch (err) {
-        if (!cancelled) setError(errorMessage(err, 'Không thể tải danh sách chương.'));
+        if (!cancelled) setError(errorMessage(err, t('myWork.loadChaptersError')));
       } finally {
         if (!cancelled) setLoadingChapters(false);
       }
@@ -115,7 +117,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [seriesId, workspaceId]);
+  }, [seriesId, workspaceId, t]);
 
   const loadWork = useCallback(
     async (silent = false) => {
@@ -212,12 +214,12 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 return {
                   id: lot.id,
                   seriesId: seriesId || '',
-                  seriesTitle: 'Series hiện tại',
+                  seriesTitle: t('myWork.currentSeries'),
                   chapterId,
                   chapterNumber: chapMeta?.chapterNumber ?? 0,
                   chapterTitle: chapMeta?.title ?? null,
                   pipelineStageId: lot.pipelineStageId,
-                  stageName: stg?.name || 'Công đoạn',
+                  stageName: stg?.name || t('myWork.defaultStage'),
                   stageOrder: stg?.stageOrder ?? 0,
                   stageColorCode: null,
                   assignedRole: lot.assignedRole,
@@ -244,12 +246,12 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 return {
                   taskId: t.id,
                   seriesId: seriesId || '',
-                  seriesTitle: 'Series hiện tại',
+                  seriesTitle: t('myWork.currentSeries'),
                   chapterId,
                   chapterNumber: chapMeta?.chapterNumber ?? 0,
                   chapterTitle: chapMeta?.title ?? null,
                   pipelineStageId: t.pipelineStageId,
-                  stageName: stg?.name || 'Công đoạn',
+                  stageName: stg?.name || t('myWork.defaultStage'),
                   pageId: t.pageId,
                   pageNumber: t.pageId ? (pageMap.get(t.pageId) ?? null) : null,
                   status: t.status === 'UnderReview' ? 'UnderReview' : 'Submitted',
@@ -293,12 +295,12 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           }
         }
       } catch (err) {
-        setError(errorMessage(err, 'Không thể tải danh sách công việc.'));
+        setError(errorMessage(err, t('myWork.loadWorkError')));
       } finally {
         if (!silent) setLoadingWork(false);
       }
     },
-    [chapterId, workspaceId, seriesId, reviewer, currentUserId],
+    [chapterId, workspaceId, seriesId, reviewer, currentUserId, t],
   );
 
   useEffect(() => {
@@ -332,12 +334,12 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         );
         setStudioWork(legacyStudio || []);
       } catch (err) {
-        setError(errorMessage(err, 'Không thể tải việc toàn Studio.'));
+        setError(errorMessage(err, t('myWork.loadStudioError')));
       } finally {
         if (!silent) setLoadingStudio(false);
       }
     },
-    [workspaceId, currentUserId],
+    [workspaceId, currentUserId, t],
   );
 
   useEffect(() => {
@@ -397,14 +399,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       return `${order}${(a as any).stageName}`;
     }
     const s = stages.find((x) => x.id === id);
-    return s ? `${s.stageOrder}. ${s.name}` : 'Công đoạn';
+    return s ? `${s.stageOrder}. ${s.name}` : t('myWork.defaultStage');
   };
   const memberName = (userId: string) => {
     const m = members.find((x) => x.userId === userId);
     return m
       ? m.fullName || m.email.split('@')[0]
       : userId === currentUserId
-        ? 'Bạn'
+        ? t('myWork.you')
         : userId.slice(0, 8);
   };
 
@@ -529,7 +531,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         {
           sceneId: 'ALL',
           scene: null,
-          title: 'Tất cả công việc',
+          title: t('myWork.allTasks'),
           assignments: filteredAssignments,
         },
       ];
@@ -556,8 +558,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               {
                 sceneId: 'UNASSIGNED',
                 scene: null,
-                title: 'Toàn chương',
-                summary: 'Việc cấp chương (Script, Review) hoặc trang chưa gắn cảnh',
+                title: t('myWork.wholeChapter'),
+                summary: t('myWork.wholeChapterDesc'),
                 assignments: unassignedTasks,
               },
             ]
@@ -570,7 +572,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           {
             sceneId: sc.id,
             scene: sc,
-            title: `Cảnh ${sc.sceneNumber}${sc.heading ? `: ${sc.heading}` : ''}`,
+            title: `${t('myWork.scene', { number: sc.sceneNumber })}${sc.heading ? `: ${sc.heading}` : ''}`,
             summary: sc.summary,
             assignments: list,
           },
@@ -587,7 +589,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         groups.push({
           sceneId: sc.id,
           scene: sc,
-          title: `Cảnh ${sc.sceneNumber}${sc.heading ? `: ${sc.heading}` : ''}`,
+          title: `${t('myWork.scene', { number: sc.sceneNumber })}${sc.heading ? `: ${sc.heading}` : ''}`,
           summary: sc.summary,
           assignments: list,
         });
@@ -598,14 +600,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       groups.push({
         sceneId: 'UNASSIGNED',
         scene: null,
-        title: 'Toàn chương',
-        summary: 'Việc cấp chương (Script, Review) hoặc trang chưa gắn cảnh',
+        title: t('myWork.wholeChapter'),
+        summary: t('myWork.wholeChapterDesc'),
         assignments: unassignedTasks,
       });
     }
 
     return groups;
-  }, [chapterId, scenes, filteredAssignments, getAssignmentSceneInfo, selectedSceneId]);
+  }, [chapterId, scenes, filteredAssignments, getAssignmentSceneInfo, selectedSceneId, t]);
 
   // Với Reviewer (Editor / Producer):
   // 1. Tự động chuyển khỏi tab 'mine' nếu không có việc cá nhân (tránh màn hình trống 0 việc)
@@ -669,36 +671,36 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     ? [
         {
           key: 'review',
-          label: 'Chờ duyệt',
+          label: t('myWork.tabs.review'),
           icon: <CheckCircle2 className='w-3.5 h-3.5 text-amber-600' />,
-          tooltip: 'Các panel/artwork đang chờ review hoặc kiểm tra chất lượng',
+          tooltip: t('myWork.tabs.reviewTooltip'),
           badgeAlert: counts.review > 0,
         },
         {
           key: 'all',
-          label: 'Tất cả',
+          label: t('myWork.tabs.all'),
           icon: <Layers className='w-3.5 h-3.5' />,
-          tooltip: 'Tất cả công việc trong series hiện tại',
+          tooltip: t('myWork.tabs.allTooltip'),
         },
         {
           key: 'mine',
-          label: 'Của tôi',
+          label: t('myWork.tabs.mine'),
           icon: <User className='w-3.5 h-3.5' />,
-          tooltip: 'Công việc được giao cho bạn trong series này',
+          tooltip: t('myWork.tabs.mineTooltip'),
         },
       ]
     : [
         {
           key: 'mine',
-          label: 'Của tôi',
+          label: t('myWork.tabs.mine'),
           icon: <User className='w-3.5 h-3.5' />,
-          tooltip: 'Công việc được giao cho bạn trong series này',
+          tooltip: t('myWork.tabs.mineTooltip'),
         },
         {
           key: 'all',
-          label: 'Tất cả',
+          label: t('myWork.tabs.all'),
           icon: <Layers className='w-3.5 h-3.5' />,
-          tooltip: 'Tất cả công việc trong series hiện tại',
+          tooltip: t('myWork.tabs.allTooltip'),
         },
       ];
   const tabs: TabItem[] = workspaceId
@@ -706,9 +708,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         ...baseTabs,
         {
           key: 'studio' as Tab,
-          label: 'Toàn Studio',
+          label: t('myWork.tabs.studio'),
           icon: <Globe className='w-3.5 h-3.5' />,
-          tooltip: 'Công việc của bạn trên toàn bộ các series trong Studio',
+          tooltip: t('myWork.tabs.studioTooltip'),
         },
       ]
     : baseTabs;
@@ -719,7 +721,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       {/* Contextual Quick Breadcrumbs */}
       {workspaceId && seriesId && (
         <nav
-          aria-label='Đường dẫn ngữ cảnh'
+          aria-label={t('myWork.breadcrumbAria')}
           className='flex items-center gap-1.5 text-xs text-[#57534E] font-medium'
         >
           <Link
@@ -738,10 +740,12 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           <span className='text-[#D8D2C5]'>/</span>
           <span className='text-[#1C1917] font-bold'>
             {chapterId === 'ALL_STUDIO'
-              ? 'Toàn bộ Studio'
+              ? t('myWork.allStudioBreadcrumb')
               : chapters.find((c) => c.id === chapterId)
-                ? `Chương ${chapters.find((c) => c.id === chapterId)?.chapterNumber}`
-                : 'Công việc của tôi'}
+                ? t('myWork.chapterBreadcrumb', {
+                    number: chapters.find((c) => c.id === chapterId)?.chapterNumber ?? '',
+                  })
+                : t('myWork.title')}
           </span>
         </nav>
       )}
@@ -753,11 +757,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           </div>
           <div>
             <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#1C1917] tracking-tight'>
-              Công việc của tôi
+              {t('myWork.title')}
             </h1>
-            <p className='text-xs text-[#57534E]'>
-              Bắt đầu, tải artwork, nộp bài và xử lý yêu cầu sửa của từng chương.
-            </p>
+            <p className='text-xs text-[#57534E]'>{t('myWork.desc')}</p>
           </div>
         </div>
 
@@ -765,14 +767,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           <select
             value={chapterId}
             onChange={(e) => selectChapter(e.target.value)}
-            aria-label='Chọn chương'
+            aria-label={t('myWork.selectChapterAria')}
             disabled={loadingChapters && chapters.length === 0}
             className='px-4 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] shadow-xs focus:outline-none focus:border-[#F97316] cursor-pointer'
           >
-            <option value='ALL_STUDIO'>✨ Toàn bộ Studio (Tất cả các chương)</option>
+            <option value='ALL_STUDIO'>✨ {t('myWork.allStudioOption')}</option>
             {chapters.map((c) => (
               <option key={c.id} value={c.id}>
-                Chương {c.chapterNumber}
+                {t('myWork.chapterOption', { number: c.chapterNumber })}
                 {c.title ? `: ${c.title}` : ''}
               </option>
             ))}
@@ -780,7 +782,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           <button
             type='button'
             onClick={() => void (isStudioTab ? loadStudioWork() : loadWork())}
-            aria-label='Tải lại'
+            aria-label={t('myWork.reload')}
             className='p-2.5 rounded-xl border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] shadow-xs cursor-pointer transition-colors text-[#1C1917]'
           >
             <RefreshCw
@@ -790,34 +792,36 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         </div>
       </header>
 
-      <nav className='flex flex-wrap gap-2' aria-label='Bộ lọc việc'>
-        {tabs.map((t) => (
+      <nav className='flex flex-wrap gap-2' aria-label={t('myWork.filterAria')}>
+        {tabs.map((tabItem) => (
           <button
-            key={t.key}
+            key={tabItem.key}
             type='button'
-            onClick={() => setTab(t.key)}
-            title={t.tooltip}
-            aria-pressed={tab === t.key}
+            onClick={() => setTab(tabItem.key)}
+            title={tabItem.tooltip}
+            aria-pressed={tab === tabItem.key}
             className={`h-9 px-3.5 rounded-lg text-xs font-semibold border cursor-pointer inline-flex items-center gap-2 transition-all shadow-xs ${
-              tab === t.key
+              tab === tabItem.key
                 ? 'bg-[#FFF2E6] text-[#1C1917] border-[#C2410C]'
                 : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
             }`}
           >
-            <span className={tab === t.key ? 'text-[#C2410C]' : 'text-[#78716C]'}>{t.icon}</span>
-            <span>{t.label}</span>
+            <span className={tab === tabItem.key ? 'text-[#C2410C]' : 'text-[#78716C]'}>
+              {tabItem.icon}
+            </span>
+            <span>{tabItem.label}</span>
             <span
               className={`px-2 py-0.5 rounded-full text-xs font-mono font-medium leading-none ${
-                t.badgeAlert
-                  ? tab === t.key
+                tabItem.badgeAlert
+                  ? tab === tabItem.key
                     ? 'bg-[#F97316] text-white font-bold'
                     : 'bg-amber-100 text-amber-900 font-bold border border-amber-300'
-                  : tab === t.key
+                  : tab === tabItem.key
                     ? 'bg-[#F97316]/20 text-[#C2410C] font-semibold'
                     : 'bg-[#F3F0E9] text-[#78716C]'
               }`}
             >
-              {counts[t.key]}
+              {counts[tabItem.key]}
             </span>
           </button>
         ))}
@@ -828,7 +832,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         <div className='flex items-center gap-2 overflow-x-auto pb-1.5 pt-1 text-xs border-t border-[#D8D2C5]/60'>
           <span className='flex items-center gap-1 font-bold text-[#57534E] whitespace-nowrap text-xs uppercase tracking-wider shrink-0'>
             <Clapperboard className='w-3.5 h-3.5 text-[#F97316]' />
-            Phân cảnh:
+            {t('myWork.scenesLabel')}
           </span>
           <button
             type='button'
@@ -839,7 +843,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
             }`}
           >
-            <span>Tất cả các cảnh</span>
+            <span>{t('myWork.allScenes')}</span>
             <span
               className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                 selectedSceneId === 'ALL'
@@ -868,7 +872,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   }`}
                 >
                   <span>
-                    Cảnh {s.sceneNumber}
+                    {t('myWork.scene', { number: s.sceneNumber })}
                     {s.heading ? `: ${s.heading}` : ''}
                   </span>
                   <span
@@ -893,7 +897,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
               }`}
             >
-              <span>Toàn chương</span>
+              <span>{t('myWork.wholeChapter')}</span>
               <span
                 className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                   selectedSceneId === 'UNASSIGNED'
@@ -927,13 +931,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             className='p-3 rounded-xl bg-orange-50 border border-orange-200 text-orange-950 text-xs flex items-center justify-between gap-3'
           >
             <span>
-              Mục công việc này thuộc <strong>Lưới giao việc V3</strong> của chương.
+              {t('myWork.gridV3RedirectPrefix')} <strong>{t('myWork.gridV3Name')}</strong>{' '}
+              {t('myWork.gridV3RedirectSuffix')}
             </span>
             <Link
               to={`/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${encodeURIComponent(chapterId)}&board=grid-v3`}
               className='px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold shrink-0'
             >
-              Mở Lưới V3 →
+              {t('myWork.openGridV3Arrow')}
             </Link>
           </div>
         )}
@@ -942,14 +947,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         loadingStudio ? (
           <div className='py-12 text-center text-[#888888] text-xs'>
             <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
-            Đang tải việc toàn Studio...
+            {t('myWork.loadingStudio')}
           </div>
         ) : studioLots.length === 0 && studioWork.length === 0 ? (
           <div
             className='py-12 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E]'
             data-testid='studio-work-empty'
           >
-            Bạn chưa được giao việc nào trong Studio này.
+            {t('myWork.studioEmpty')}
           </div>
         ) : (
           <div className='space-y-3' data-testid='studio-work-list'>
@@ -969,7 +974,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             {sortedStudioWork.map((a) => (
               <div key={a.id} className='space-y-1'>
                 <p className='text-xs font-semibold text-[#57534E]'>
-                  Series: {a.seriesTitle} | Chương {a.chapterNumber}
+                  Series: {a.seriesTitle} | {t('myWork.chapterOption', { number: a.chapterNumber })}
                   {a.scopeLabel ? ` | ${a.scopeLabel}` : ''}
                 </p>
                 <AssignmentWorkCard
@@ -991,7 +996,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       ) : loadingChapters || loadingWork ? (
         <div className='py-12 text-center text-[#78716C] text-xs'>
           <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
-          Đang tải công việc...
+          {t('myWork.loadingWork')}
         </div>
       ) : visibleGridLots.length === 0 &&
         visibleGridReviews.length === 0 &&
@@ -1003,15 +1008,15 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           <p>
             {chapterId === 'ALL_STUDIO'
               ? tab === 'review'
-                ? 'Không có việc nào đang chờ duyệt trong toàn bộ Studio.'
+                ? t('myWork.emptyStudioReview')
                 : tab === 'mine'
-                  ? 'Bạn không có nhiệm vụ nào được phân công trong toàn bộ Studio.'
-                  : 'Chưa có công việc nào trong Studio.'
+                  ? t('myWork.emptyStudioMine')
+                  : t('myWork.emptyStudioAll')
               : tab === 'review'
-                ? 'Không có việc nào đang chờ duyệt trong chương này.'
+                ? t('myWork.emptyChapterReview')
                 : tab === 'mine'
-                  ? 'Bạn không có nhiệm vụ được phân công trực tiếp trong chương này.'
-                  : 'Chưa có công việc nào trong chương này.'}
+                  ? t('myWork.emptyChapterMine')
+                  : t('myWork.emptyChapterAll')}
           </p>
           {tab !== 'all' && counts.all > 0 && (
             <button
@@ -1019,7 +1024,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               onClick={() => setTab('all')}
               className='text-xs font-semibold text-[#C2410C] hover:underline cursor-pointer'
             >
-              Xem tất cả ({counts.all}) công việc trong chương →
+              {t('myWork.viewAllChapterTasks', { count: counts.all })}
             </button>
           )}
         </div>
@@ -1033,7 +1038,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   workspaceId={workspaceId}
                   item={item}
                   assigneeName={
-                    item.assigneeUserId ? memberName(item.assigneeUserId) : 'Chưa rõ người nộp'
+                    item.assigneeUserId
+                      ? memberName(item.assigneeUserId)
+                      : t('myWork.unknownSubmitter')
                   }
                   reviewerName={
                     item.reviewerName ??
@@ -1075,13 +1082,13 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           {visible.length > 0 &&
             (filteredAssignments.length === 0 ? (
               <div className='py-10 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E] space-y-2'>
-                <p>Không có công việc nào thuộc phân cảnh này trong mục đã chọn.</p>
+                <p>{t('myWork.emptyScene')}</p>
                 <button
                   type='button'
                   onClick={() => setSelectedSceneId('ALL')}
                   className='text-xs font-semibold text-[#C2410C] hover:underline cursor-pointer'
                 >
-                  Xem tất cả ({visible.length}) công việc trong chương →
+                  {t('myWork.viewAllChapterTasks', { count: visible.length })}
                 </button>
               </div>
             ) : chapterId === 'ALL_STUDIO' || scenes.length === 0 ? (
@@ -1092,7 +1099,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                       <div className='flex items-center gap-1.5 text-xs font-semibold text-[#C2410C] bg-[#FFF2E6] px-2.5 py-1 rounded-md border border-[#F97316]/30 w-fit'>
                         <span>Series: {(a as any).seriesTitle}</span>
                         <span className='text-[#F97316]'>|</span>
-                        <span>Chương {(a as any).chapterNumber}</span>
+                        <span>
+                          {t('myWork.chapterOption', { number: (a as any).chapterNumber })}
+                        </span>
                         {(a as any).scopeLabel && (
                           <>
                             <span className='text-[#F97316]'>|</span>
@@ -1149,7 +1158,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                                 {group.title}
                               </h2>
                               <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E]'>
-                                {group.assignments.length} công việc
+                                {t('myWork.tasksCount', { count: group.assignments.length })}
                               </span>
                             </div>
                             {group.summary && (
@@ -1161,7 +1170,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                         </div>
                         <div className='flex items-center gap-2 shrink-0'>
                           <span className='text-xs font-semibold text-[#57534E]'>
-                            {isCollapsed ? 'Mở rộng' : 'Thu gọn'}
+                            {isCollapsed ? t('myWork.expand') : t('myWork.collapse')}
                           </span>
                           <div className='p-1 rounded-md hover:bg-[#F3F0E9] text-[#78716C] hover:text-[#1C1917] transition-colors'>
                             {isCollapsed ? (
@@ -1181,7 +1190,11 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                                 <div className='flex items-center gap-1.5 text-xs font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
                                   <span>Series: {(a as any).seriesTitle}</span>
                                   <span className='text-orange-400'>|</span>
-                                  <span>Chương {(a as any).chapterNumber}</span>
+                                  <span>
+                                    {t('myWork.chapterOption', {
+                                      number: (a as any).chapterNumber,
+                                    })}
+                                  </span>
                                   {(a as any).scopeLabel && (
                                     <>
                                       <span className='text-orange-400'>|</span>

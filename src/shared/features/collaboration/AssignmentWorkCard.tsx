@@ -23,6 +23,7 @@ import {
 import { assignmentService } from '@/services/assignment.service';
 import { artworkService } from '@/services/artwork.service';
 import { panelService } from '@/services/panel.service';
+import { useTranslation } from '@/lib/i18n';
 import type {
   AssetReferenceDto,
   AssignmentDto,
@@ -65,30 +66,33 @@ interface AssignmentWorkCardProps {
   relatedAssignments?: Pick<AssignmentDto, 'id' | 'status'>[];
 }
 
-const STATUS_STYLE: Record<string, { label: string; className: string }> = {
-  Assigned: { label: 'Đã giao', className: 'bg-sky-50 text-sky-800 border-sky-300 font-semibold' },
+const STATUS_STYLE: Record<string, { labelKey: string; className: string }> = {
+  Assigned: {
+    labelKey: 'card.status.assigned',
+    className: 'bg-sky-50 text-sky-800 border-sky-300 font-semibold',
+  },
   InProgress: {
-    label: 'Đang làm',
+    labelKey: 'card.status.inProgress',
     className: 'bg-amber-50 text-amber-900 border-amber-300 font-semibold',
   },
   Submitted: {
-    label: 'Đã nộp, chờ duyệt',
+    labelKey: 'card.status.submitted',
     className: 'bg-violet-50 text-violet-900 border-violet-300 font-semibold',
   },
   UnderReview: {
-    label: 'Đang xét duyệt',
+    labelKey: 'card.status.underReview',
     className: 'bg-indigo-50 text-indigo-900 border-indigo-300 font-semibold',
   },
   Approved: {
-    label: 'Đã duyệt',
+    labelKey: 'card.status.approved',
     className: 'bg-emerald-50 text-emerald-900 border-emerald-300 font-semibold',
   },
   ReworkRequired: {
-    label: 'Cần sửa lại',
+    labelKey: 'card.status.reworkRequired',
     className: 'bg-rose-50 text-rose-900 border-rose-300 font-semibold',
   },
   Blocked: {
-    label: 'Bị chặn',
+    labelKey: 'card.status.blocked',
     className: 'bg-stone-100 text-stone-600 border-stone-200 font-semibold',
   },
 };
@@ -110,6 +114,8 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   onToast,
   relatedAssignments,
 }) => {
+  const { t, lang } = useTranslation('collaboration');
+  const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
   const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
@@ -212,7 +218,10 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
     } catch (err) {
       const { title, message } = describeError
         ? describeError(err)
-        : { title: 'Không thể thực hiện', message: errorMessage(err, 'Thao tác thất bại.') };
+        : {
+            title: t('card.cannotExecute'),
+            message: errorMessage(err, t('card.actionFailed')),
+          };
       setError(message);
       onToast?.(title, message);
       // 409: trạng thái trên máy đã cũ (vd. việc đã được bắt đầu) → nạp lại để hiện đúng trạng thái
@@ -224,13 +233,16 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
 
   const pendingDeps = pendingDependencyCount(assignment, relatedAssignments);
   const startLockedReason =
-    pendingDeps > 0 ? `Chờ ${pendingDeps} việc phụ thuộc được duyệt (Approved).` : null;
+    pendingDeps > 0 ? t('card.startLockedDeps', { count: pendingDeps }) : null;
 
   const status = String(assignment.status);
-  const style = STATUS_STYLE[status] ?? {
-    label: status,
-    className: 'bg-zinc-100 text-zinc-700 border-zinc-200',
-  };
+  const statusStyle = STATUS_STYLE[status];
+  const style = statusStyle
+    ? { label: t(statusStyle.labelKey), className: statusStyle.className }
+    : {
+        label: status,
+        className: 'bg-zinc-100 text-zinc-700 border-zinc-200',
+      };
   const openCrCount = changeRequests.filter((c) => String(c.status) === 'Open').length;
 
   return (
@@ -261,7 +273,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               className='px-2.5 py-1 rounded-full border text-xs font-semibold bg-amber-100 text-amber-900 border-amber-300 flex items-center gap-1'
             >
               <AlertTriangle className='w-3.5 h-3.5 text-amber-700' />
-              Cần kiểm tra ảnh hưởng
+              {t('card.impactReviewBadge')}
             </span>
           )}
           <span
@@ -283,15 +295,12 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         >
           <div className='flex items-center gap-2 font-bold text-amber-900'>
             <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0' />
-            <span>Công việc cần kiểm tra ảnh hưởng</span>
+            <span>{t('card.impactReviewTitle')}</span>
           </div>
           <p className='text-xs text-amber-900 leading-relaxed font-sans'>
-            <strong>Lý do:</strong> {assignment.impactReviewReason}
+            <strong>{t('card.impactReasonLabel')}</strong> {assignment.impactReviewReason}
           </p>
-          <p className='text-[11px] text-amber-800 italic'>
-            Đầu vào của công việc đã bị thay đổi hoặc mở lại. Nút nộp bị tạm khoá cho tới khi Editor
-            hoặc Producer quyết định giữ kết quả hay yêu cầu làm lại.
-          </p>
+          <p className='text-[11px] text-amber-800 italic'>{t('card.impactBannerDesc')}</p>
 
           {actions.isReviewer && !actions.isAssignee && (
             <div
@@ -307,16 +316,13 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   }}
                   className='px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer'
                 >
-                  Giữ kết quả
+                  {t('card.keepResult')}
                 </button>
                 <button
                   type='button'
                   onClick={() => {
                     if (status === 'Submitted' || status === 'UnderReview') {
-                      onToast?.(
-                        'Yêu cầu làm lại qua cổng duyệt',
-                        'Công việc đang chờ duyệt. Thực hiện qua cổng xét duyệt bên dưới.',
-                      );
+                      onToast?.(t('card.reworkViaGateTitle'), t('card.reworkViaGateDesc'));
                     } else {
                       setImpactDecision('Rework');
                       setImpactReason('');
@@ -324,7 +330,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   }}
                   className='px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer'
                 >
-                  Yêu cầu làm lại
+                  {t('card.requestRework')}
                 </button>
               </div>
 
@@ -332,13 +338,13 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                 <div className='p-3 bg-white rounded-xl border border-amber-300 space-y-2'>
                   <p className='text-xs font-bold text-stone-800'>
                     {impactDecision === 'Keep'
-                      ? 'Xác nhận giữ kết quả:'
-                      : 'Xác nhận yêu cầu làm lại:'}
+                      ? t('card.confirmKeepLabel')
+                      : t('card.confirmReworkLabel')}
                   </p>
                   <input
                     type='text'
-                    aria-label='Lý do xử lý ảnh hưởng'
-                    placeholder='Nhập lý do bắt buộc...'
+                    aria-label={t('card.impactReasonAria')}
+                    placeholder={t('card.impactReasonPlaceholder')}
                     value={impactReason}
                     onChange={(e) => setImpactReason(e.target.value)}
                     className='w-full px-2.5 py-1.5 text-xs border border-stone-300 rounded-lg'
@@ -349,7 +355,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                       onClick={() => setImpactDecision(null)}
                       className='px-2.5 py-1 text-xs text-stone-600 hover:text-stone-900 cursor-pointer'
                     >
-                      Huỷ
+                      {t('card.cancel')}
                     </button>
                     <button
                       type='button'
@@ -361,8 +367,8 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                               decision: impactDecision,
                               reason: impactReason.trim(),
                             }),
-                          impactDecision === 'Keep' ? 'Đã giữ kết quả' : 'Đã yêu cầu làm lại',
-                          `Đã cập nhật việc "${assignment.brief}".`,
+                          impactDecision === 'Keep' ? t('card.keptToast') : t('card.reworkToast'),
+                          t('card.updatedBriefToast', { brief: assignment.brief }),
                         ).then(() => {
                           setImpactDecision(null);
                           setImpactReason('');
@@ -370,7 +376,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                       }
                       className='px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg cursor-pointer'
                     >
-                      Xác nhận
+                      {t('card.confirm')}
                     </button>
                   </div>
                 </div>
@@ -384,16 +390,16 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         <div className='p-4 bg-rose-50/70 border border-rose-200 rounded-2xl text-xs text-rose-900 space-y-2 animate-in fade-in duration-150'>
           <div className='flex items-center gap-2 font-bold'>
             <AlertOctagon className='w-4 h-4 text-rose-600 shrink-0' />
-            <span>Yêu cầu sửa lại (Rework Required)</span>
+            <span>{t('card.reworkBannerTitle')}</span>
           </div>
           {assignment.lastFeedbackComment && (
             <p className='text-xs md:text-sm text-rose-900 leading-relaxed font-sans bg-white/80 p-3 rounded-xl border border-rose-200/60 shadow-2xs'>
-              <strong>Editor phản hồi:</strong> {assignment.lastFeedbackComment}
+              <strong>{t('card.editorFeedback')}</strong> {assignment.lastFeedbackComment}
             </p>
           )}
           {openCrCount > 0 && (
             <p className='text-xs font-semibold text-rose-800 font-medium'>
-              Có {openCrCount} yêu cầu sửa cần xử lý bên dưới trước khi nộp lại.
+              {t('card.openCrNotice', { count: openCrCount })}
             </p>
           )}
         </div>
@@ -402,13 +408,13 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
       <div className='flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs font-mono text-stone-500'>
         <span className='flex items-center gap-1.5'>
           <User className='w-3.5 h-3.5 text-[#F97316]' />
-          <strong className='text-stone-700'>Người làm:</strong> {assigneeName}
+          <strong className='text-stone-700'>{t('card.assigneeLabel')}</strong> {assigneeName}
         </span>
         {assignment.dueDate && (
           <span className='flex items-center gap-1.5 font-mono'>
             <Calendar className='w-3.5 h-3.5 text-stone-400' />
-            <strong className='text-stone-700'>Hạn:</strong>{' '}
-            {new Date(assignment.dueDate).toLocaleDateString('vi-VN')}
+            <strong className='text-stone-700'>{t('card.dueLabel')}</strong>{' '}
+            {new Date(assignment.dueDate).toLocaleDateString(dateLocale)}
           </span>
         )}
       </div>
@@ -430,7 +436,9 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               onClick={() =>
                 void run(
                   () => assignmentService.startAssignment(chapterId, assignment.id),
-                  status === 'ReworkRequired' ? 'Đã bắt đầu sửa' : 'Đã bắt đầu làm',
+                  status === 'ReworkRequired'
+                    ? t('card.startedReworkToast')
+                    : t('card.startedToast'),
                   stageName,
                   describeStartError,
                 )
@@ -442,7 +450,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               ) : (
                 <Play className='w-3.5 h-3.5 text-white' />
               )}
-              <span>{status === 'ReworkRequired' ? 'Bắt đầu sửa' : 'Bắt đầu làm'}</span>
+              <span>{status === 'ReworkRequired' ? t('card.startRework') : t('card.start')}</span>
             </button>
           )}
           {actions.canStart && startLockedReason && (
@@ -473,7 +481,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   className='h-9 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
                   <PenTool className='w-3.5 h-3.5 text-blue-600' />
-                  <span>Mở Script Editor</span>
+                  <span>{t('card.openScriptEditor')}</span>
                 </Link>
               )}
               {String(assignment.assignedRole).toUpperCase() === 'ARTIST' && (
@@ -492,7 +500,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   className='h-9 px-3.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
                   <Palette className='w-3.5 h-3.5 text-amber-600' />
-                  <span>Mở Bàn Vẽ</span>
+                  <span>{t('card.openArtistDesk')}</span>
                 </Link>
               )}
               {String(assignment.assignedRole).toUpperCase() === 'LETTERER' && (
@@ -512,7 +520,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   className='h-9 px-3.5 py-1.5 rounded-xl border border-pink-200 bg-pink-50 hover:bg-pink-100 text-pink-900 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
                   <Type className='w-3.5 h-3.5 text-pink-600' />
-                  <span>Mở Lettering Canvas</span>
+                  <span>{t('card.openLetteringCanvas')}</span>
                 </Link>
               )}
             </>
@@ -531,7 +539,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                 className='h-9 px-3.5 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-[#0c0a09] text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs transition-colors'
               >
                 <Eye className='w-3.5 h-3.5 text-[#F97316]' />
-                <span>Xem trước trang truyện</span>
+                <span>{t('card.previewPage')}</span>
               </button>
             )}
 
@@ -546,7 +554,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               className='h-9 px-3.5 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors'
             >
               <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
-              <span>Tham chiếu Bible</span>
+              <span>{t('card.bibleReference')}</span>
             </button>
           )}
 
@@ -554,12 +562,12 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
             <button
               type='button'
               disabled={busy || !detailsLoaded || !actions.canSubmit}
-              title={actions.submitBlockedReason ?? 'Nộp để Editor xét duyệt'}
+              title={actions.submitBlockedReason ?? t('card.submitTooltip')}
               onClick={() =>
                 void run(
                   () => assignmentService.submitAssignment(chapterId, assignment.id),
-                  'Đã nộp bài',
-                  `${stageName}: chờ xét duyệt.`,
+                  t('card.submittedToast'),
+                  t('card.submittedDesc', { stage: stageName }),
                 )
               }
               className='btn-cta-success'
@@ -569,7 +577,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               ) : (
                 <Send className='w-3.5 h-3.5' />
               )}
-              <span>Nộp bài</span>
+              <span>{t('card.submit')}</span>
             </button>
           )}
         </div>
@@ -581,8 +589,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           <div className='text-xs text-stone-600 bg-stone-50 border border-stone-200 p-3 rounded-xl flex items-start gap-2 leading-relaxed'>
             <Info className='w-3.5 h-3.5 text-stone-400 shrink-0 mt-0.5' />
             <span>
-              <strong>Cổng nộp Lettering:</strong> Đảm bảo mọi dòng thoại đã neo vào panel đều có
-              balloon/caption/SFX gắn dòng đó và đã xác nhận cảnh báo tràn chữ (nếu có).
+              <strong>{t('card.letteringGateTitle')}</strong> {t('card.letteringGateDesc')}
             </span>
           </div>
         )}
@@ -605,7 +612,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           className='h-9 px-3.5 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs w-fit'
         >
           <ScanSearch className='w-3.5 h-3.5 text-orange-600' />
-          <span>Mở kịch bản chương</span>
+          <span>{t('card.openChapterScript')}</span>
         </Link>
       )}
 
@@ -617,7 +624,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           className='h-9 px-3.5 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
         >
           <ScanSearch className='w-3.5 h-3.5 text-orange-600' />
-          <span>Mở Màn Duyệt (Review View)</span>
+          <span>{t('card.openReviewView')}</span>
         </Link>
       )}
 
@@ -703,7 +710,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           aria-expanded={expanded}
         >
           {expanded ? <ChevronDown className='w-3 h-3' /> : <ChevronRight className='w-3 h-3' />}
-          Lịch sử nộp ({submissions.length})
+          {t('card.history', { count: submissions.length })}
         </button>
         {expanded && (
           <div className='mt-2'>
@@ -729,8 +736,8 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
             setPreviewOpen(false);
             void run(
               () => assignmentService.submitAssignment(chapterId, assignment.id),
-              'Đã nộp bài',
-              `${stageName}: chờ xét duyệt.`,
+              t('card.submittedToast'),
+              t('card.submittedDesc', { stage: stageName }),
             );
           }}
         />

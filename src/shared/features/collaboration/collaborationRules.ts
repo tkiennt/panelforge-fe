@@ -7,6 +7,7 @@ import type {
   StageProgressDto,
   SubmissionDto,
 } from '@/types';
+import { translate } from '@/lib/i18n';
 
 /**
  * Luật hiển thị nút cho luồng cộng tác CF2/CF3. Đây chỉ là UX: Backend vẫn là nơi kiểm quyền và cổng thật
@@ -160,12 +161,15 @@ export const getWorkActions = (a: AssignmentDto, ctx: WorkContext): WorkActions 
   let submitBlockedReason: string | null = null;
   if (st === 'InProgress') {
     if (a.impactReviewReason) {
-      submitBlockedReason = `Công việc cần kiểm tra ảnh hưởng: ${a.impactReviewReason}. Chờ Editor hoặc Producer quyết định trước khi nộp.`;
+      submitBlockedReason = translate('collaboration.rules.submitBlockedImpact', {
+        reason: a.impactReviewReason,
+      });
     } else if (openCount > 0) {
-      submitBlockedReason = `Còn ${openCount} yêu cầu sửa chưa xử lý, hãy sửa và bấm "Đã sửa" trước khi nộp lại.`;
+      submitBlockedReason = translate('collaboration.rules.submitBlockedOpenCr', {
+        count: openCount,
+      });
     } else if (needsArtwork(a) && ctx.hasCurrentArtwork === false) {
-      submitBlockedReason =
-        'Chưa có artwork (hoặc chưa có bản mới sau lần bị trả về). Cần có ảnh cả trang hoặc tất cả các khung panel phải có ảnh riêng.';
+      submitBlockedReason = translate('collaboration.rules.submitBlockedNoArtwork');
     }
   }
 
@@ -185,7 +189,7 @@ export const getWorkActions = (a: AssignmentDto, ctx: WorkContext): WorkActions 
     canDecide: canReviewThis && underReview,
     approveBlockedReason:
       canReviewThis && underReview && unclosedCount > 0
-        ? `Còn ${unclosedCount} yêu cầu sửa chưa đóng (Open, hoặc Resolved chưa xác minh), hãy xác minh trước khi duyệt.`
+        ? translate('collaboration.rules.approveBlockedUnclosedCr', { count: unclosedCount })
         : null,
   };
 };
@@ -258,7 +262,12 @@ export const describeRegion = (regionJson?: string | null): string | null => {
   try {
     const { x, y, w, h } = JSON.parse(regionJson) as RegionPercent;
     const pct = (n: number) => `${Math.round(n * 1000) / 10}%`;
-    return `x ${pct(x)}, y ${pct(y)}, rộng ${pct(w)}, cao ${pct(h)}`;
+    return translate('collaboration.rules.regionDescription', {
+      x: pct(x),
+      y: pct(y),
+      w: pct(w),
+      h: pct(h),
+    });
   } catch {
     return null;
   }
@@ -323,14 +332,14 @@ export const pendingDependencyCount = (
  */
 export const describeStartError = (err: unknown): { title: string; message: string } => {
   const e = err as { code?: string; status?: number } | null;
-  const message = errorMessage(err, 'Không thể bắt đầu công việc.');
+  const message = errorMessage(err, translate('collaboration.rules.startErrorFallback'));
   if (e?.code === 'CHAPTER_READ_ONLY') {
     return {
-      title: 'Chương chỉ đọc',
-      message: message || 'Chương đã được duyệt hoặc phát hành nên không thể thay đổi (BR-12).',
+      title: translate('collaboration.rules.chapterReadOnlyTitle'),
+      message: message || translate('collaboration.rules.chapterReadOnlyMessage'),
     };
   }
-  return { title: 'Không thể bắt đầu', message };
+  return { title: translate('collaboration.rules.startErrorTitle'), message };
 };
 
 /**
@@ -442,9 +451,9 @@ export const isOverdue = (dueDate?: string | null, now: Date = new Date()): bool
 /** "vừa xong", "15 phút trước", "3 giờ trước", "2 ngày trước" cho danh sách thông báo. */
 export const formatRelativeTime = (iso: string, now: Date = new Date()): string => {
   const minutes = Math.floor((now.getTime() - new Date(iso).getTime()) / 60000);
-  if (minutes < 1) return 'vừa xong';
-  if (minutes < 60) return `${minutes} phút trước`;
+  if (minutes < 1) return translate('collaboration.rules.timeJustNow');
+  if (minutes < 60) return translate('collaboration.rules.timeMinutesAgo', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} giờ trước`;
-  return `${Math.floor(hours / 24)} ngày trước`;
+  if (hours < 24) return translate('collaboration.rules.timeHoursAgo', { count: hours });
+  return translate('collaboration.rules.timeDaysAgo', { count: Math.floor(hours / 24) });
 };

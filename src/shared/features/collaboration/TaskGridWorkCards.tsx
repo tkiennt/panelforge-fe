@@ -38,18 +38,26 @@ export interface MyTaskLotViewItem extends MyTaskLotDto {
   assigneeUserId?: string | null;
 }
 
-const CELL_STATUS_META: Record<string, { label: string; cls: string }> = {
-  Unassigned: { label: 'Chưa giao', cls: 'bg-stone-100 text-stone-600 border-stone-300' },
-  Assigned: { label: 'Đã giao', cls: 'bg-sky-50 text-sky-800 border-sky-300' },
-  InProgress: { label: 'Đang làm', cls: 'bg-amber-50 text-amber-900 border-amber-300' },
-  Submitted: { label: 'Chờ duyệt', cls: 'bg-violet-50 text-violet-900 border-violet-300' },
-  UnderReview: { label: 'Đang duyệt', cls: 'bg-indigo-50 text-indigo-900 border-indigo-300' },
-  Approved: { label: 'Đã duyệt', cls: 'bg-emerald-50 text-emerald-900 border-emerald-300' },
-  ReworkRequired: { label: 'Cần sửa lại', cls: 'bg-rose-50 text-rose-900 border-rose-300' },
+const CELL_STATUS_CLS: Record<string, string> = {
+  Unassigned: 'bg-stone-100 text-stone-600 border-stone-300',
+  Assigned: 'bg-sky-50 text-sky-800 border-sky-300',
+  InProgress: 'bg-amber-50 text-amber-900 border-amber-300',
+  Submitted: 'bg-violet-50 text-violet-900 border-violet-300',
+  UnderReview: 'bg-indigo-50 text-indigo-900 border-indigo-300',
+  Approved: 'bg-emerald-50 text-emerald-900 border-emerald-300',
+  ReworkRequired: 'bg-rose-50 text-rose-900 border-rose-300',
 };
 
-const cellScopeLabel = (pageNumber?: number | null) =>
-  pageNumber != null ? `Trang ${pageNumber}` : 'Toàn chương';
+type TranslateFn = (
+  key: string,
+  paramsOrFallback?: Record<string, string | number> | string,
+  fallback?: string,
+) => string;
+
+const cellScopeLabel = (pageNumber: number | null | undefined, t: TranslateFn) =>
+  pageNumber != null
+    ? t('collaboration.taskGrid.scopePage', { page: pageNumber })
+    : t('collaboration.taskGrid.scopeWholeChapter');
 
 interface TaskLotWorkCardProps {
   workspaceId?: string;
@@ -77,7 +85,8 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
   onCellsUpdated,
   onToast,
 }) => {
-  const { t } = useTranslation('pipeline');
+  const { t, lang } = useTranslation('pipeline');
+  const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reworkComments, setReworkComments] = useState<Record<string, string>>({});
@@ -111,8 +120,10 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
     try {
       const updated = await assignmentService.startStageTask(lot.chapterId, cell.id);
       onToast?.(
-        cell.status === 'ReworkRequired' ? 'Đã bắt đầu sửa' : 'Đã bắt đầu làm',
-        `${lot.stageName} · ${cellScopeLabel(cell.pageNumber)}`,
+        cell.status === 'ReworkRequired'
+          ? t('collaboration.taskGrid.startedReworkToast')
+          : t('collaboration.taskGrid.startedToast'),
+        `${lot.stageName} · ${cellScopeLabel(cell.pageNumber, t)}`,
       );
       if (onCellsUpdated) {
         onCellsUpdated(lot.chapterId, [
@@ -136,7 +147,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
     setError(null);
     try {
       const updated = await assignmentService.submitStageTasks(lot.chapterId, taskIds);
-      onToast?.('Đã nộp bài lên Lưới V3', `${lot.stageName} · ${scopeDesc}`);
+      onToast?.(t('collaboration.taskGrid.submittedGridToast'), `${lot.stageName} · ${scopeDesc}`);
       if (
         onCellsUpdated &&
         Array.isArray(updated) &&
@@ -156,9 +167,9 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
         onChanged();
       }
     } catch (err: any) {
-      const msg = errorMessage(err, 'Không thể nộp ô công việc.');
+      const msg = errorMessage(err, t('collaboration.taskGrid.submitCellError'));
       setError(msg);
-      onToast?.('Không thể nộp bài', msg);
+      onToast?.(t('collaboration.taskGrid.submitErrorTitle'), msg);
       if (err?.status === 409 || err?.response?.status === 409) {
         onChanged();
       }
@@ -174,7 +185,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
       const updated = await assignmentService.withdrawStageTask(lot.chapterId, cell.id);
       onToast?.(
         t('taskGridV3.withdrawSuccessTitle', 'Đã rút bài'),
-        `${lot.stageName} · ${cellScopeLabel(cell.pageNumber)}`,
+        `${lot.stageName} · ${cellScopeLabel(cell.pageNumber, t)}`,
       );
       if (onCellsUpdated) {
         onCellsUpdated(lot.chapterId, [
@@ -184,7 +195,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
         onChanged();
       }
     } catch (err: any) {
-      const msg = errorMessage(err, 'Không thể rút bài đã nộp.');
+      const msg = errorMessage(err, t('collaboration.taskGrid.withdrawError'));
       setError(msg);
       onToast?.(t('taskGridV3.withdrawErrorTitle', 'Không thể rút bài'), msg);
       if (err?.status === 409 || err?.response?.status === 409) {
@@ -215,7 +226,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
               <span>{lot.seriesTitle}</span>
               <span>·</span>
               <span>
-                Chương {lot.chapterNumber}
+                {t('collaboration.taskGrid.chapterLabel', { number: lot.chapterNumber })}
                 {lot.chapterTitle ? `: ${lot.chapterTitle}` : ''}
               </span>
             </div>
@@ -225,11 +236,14 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
               {lot.stageOrder}. {lot.stageName}
             </span>
             <span className='px-2 py-0.5 rounded-md bg-[#F3F0E9] border border-[#D8D2C5] text-xs font-mono font-semibold text-[#1C1917]'>
-              Đã duyệt {approvedCount}/{lot.tasks.length} ô
+              {t('collaboration.taskGrid.approvedCells', {
+                approved: approvedCount,
+                total: lot.tasks.length,
+              })}
             </span>
             {lot.isOverdue && (
               <span className='px-2 py-0.5 rounded-md bg-rose-100 border border-rose-300 text-rose-800 text-xs font-bold'>
-                Quá hạn
+                {t('collaboration.taskGrid.overdue')}
               </span>
             )}
           </div>
@@ -245,7 +259,9 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
               onClick={() =>
                 void handleSubmitCells(
                   inProgressCells.map((c) => c.id),
-                  `${inProgressCells.length} ô đang làm`,
+                  t('collaboration.taskGrid.inProgressCellsScope', {
+                    count: inProgressCells.length,
+                  }),
                 )
               }
               className='inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50'
@@ -270,7 +286,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
               className='h-8 px-3 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-semibold inline-flex items-center gap-1.5'
             >
               <PenTool className='w-3.5 h-3.5 text-blue-600' />
-              <span>Mở Script Editor</span>
+              <span>{t('collaboration.taskGrid.openScriptEditor')}</span>
             </Link>
           )}
           {isOwner && baseSeriesPath && roleUpper === 'ARTIST' && (
@@ -279,7 +295,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
               className='h-8 px-3 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold inline-flex items-center gap-1.5'
             >
               <Palette className='w-3.5 h-3.5 text-amber-600' />
-              <span>Mở Bàn Vẽ</span>
+              <span>{t('collaboration.taskGrid.openArtistDesk')}</span>
             </Link>
           )}
           {isOwner && baseSeriesPath && roleUpper === 'LETTERER' && (
@@ -288,7 +304,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
               className='h-8 px-3 rounded-xl border border-pink-200 bg-pink-50 hover:bg-pink-100 text-pink-900 text-xs font-semibold inline-flex items-center gap-1.5'
             >
               <Type className='w-3.5 h-3.5 text-pink-600' />
-              <span>Mở Lettering Canvas</span>
+              <span>{t('collaboration.taskGrid.openLetteringCanvas')}</span>
             </Link>
           )}
           {baseSeriesPath && (
@@ -296,7 +312,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
               to={`${baseSeriesPath}/workspace?chapterId=${encodeURIComponent(lot.chapterId)}&board=grid-v3`}
               className='h-8 px-3 rounded-xl border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] text-xs font-semibold inline-flex items-center gap-1'
             >
-              <span>Mở Lưới V3</span>
+              <span>{t('collaboration.taskGrid.openGridV3')}</span>
               <ArrowUpRight className='w-3.5 h-3.5' />
             </Link>
           )}
@@ -307,13 +323,15 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
         {assigneeName && (
           <span className='inline-flex items-center gap-1'>
             <User className='w-3.5 h-3.5 text-[#F97316]' />
-            <strong>Người nhận:</strong> {assigneeName} ({lot.assignedRole})
+            <strong>{t('collaboration.taskGrid.assigneeLabel')}</strong> {assigneeName} (
+            {lot.assignedRole})
           </span>
         )}
         {lot.dueDate && (
           <span className='inline-flex items-center gap-1'>
             <Calendar className='w-3.5 h-3.5 text-stone-400' />
-            <strong>Hạn:</strong> {new Date(lot.dueDate).toLocaleDateString('vi-VN')}
+            <strong>{t('collaboration.taskGrid.dueLabel')}</strong>{' '}
+            {new Date(lot.dueDate).toLocaleDateString(dateLocale)}
           </span>
         )}
       </div>
@@ -342,10 +360,9 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
 
       <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1'>
         {lot.tasks.map((cell) => {
-          const meta = CELL_STATUS_META[cell.status] ?? {
-            label: cell.status,
-            cls: 'bg-stone-100 text-stone-700 border-stone-300',
-          };
+          const metaCls =
+            CELL_STATUS_CLS[cell.status] ?? 'bg-stone-100 text-stone-700 border-stone-300';
+          const metaLabel = t(`collaboration.taskGrid.status.${cell.status}`, cell.status);
           const canStart =
             isOwner && (cell.status === 'Assigned' || cell.status === 'ReworkRequired');
           const canSubmit = isOwner && cell.status === 'InProgress';
@@ -374,7 +391,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
               <div className='space-y-1'>
                 <div className='flex items-center justify-between gap-2 flex-wrap'>
                   <span className='font-bold text-[#1C1917]'>
-                    {cellScopeLabel(cell.pageNumber)}
+                    {cellScopeLabel(cell.pageNumber, t)}
                   </span>
                   <div className='flex items-center gap-1'>
                     {attemptCount > 0 && (
@@ -389,9 +406,9 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                       </span>
                     )}
                     <span
-                      className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${meta.cls}`}
+                      className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${metaCls}`}
                     >
-                      {meta.label}
+                      {metaLabel}
                     </span>
                   </div>
                 </div>
@@ -427,15 +444,17 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
 
                 {cell.isInputOutdated && (
                   <div className='rounded-lg bg-amber-50 border border-amber-300 px-2 py-1 text-[11px] text-amber-900'>
-                    <span className='font-semibold'>Đầu vào lỗi thời:</span>{' '}
-                    {cell.outdatedReason || 'Chờ Producer xử lý Impact Review'}
+                    <span className='font-semibold'>
+                      {t('collaboration.taskGrid.inputOutdatedLabel')}
+                    </span>{' '}
+                    {cell.outdatedReason || t('collaboration.taskGrid.inputOutdatedDefault')}
                   </div>
                 )}
 
                 {canStart && !cell.isStartable && (
                   <p className='text-[11px] text-stone-500 flex items-center gap-1'>
                     <Lock className='w-3 h-3 text-amber-600 shrink-0' />
-                    <span>Chờ công đoạn tiền đề được duyệt</span>
+                    <span>{t('collaboration.taskGrid.waitingPrerequisite')}</span>
                   </p>
                 )}
               </div>
@@ -455,7 +474,11 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                       ) : (
                         <Play className='w-3 h-3 text-[#F97316]' />
                       )}
-                      <span>{cell.status === 'ReworkRequired' ? 'Bắt đầu sửa' : 'Bắt đầu'}</span>
+                      <span>
+                        {cell.status === 'ReworkRequired'
+                          ? t('collaboration.taskGrid.startRework')
+                          : t('collaboration.taskGrid.startShort')}
+                      </span>
                     </button>
                   )}
                   {canSubmit && (
@@ -464,7 +487,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                       data-testid={`submit-lot-cell-${cell.id}`}
                       disabled={cell.isInputOutdated || busyKey !== null}
                       onClick={() =>
-                        void handleSubmitCells([cell.id], cellScopeLabel(cell.pageNumber))
+                        void handleSubmitCells([cell.id], cellScopeLabel(cell.pageNumber, t))
                       }
                       className='inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'
                     >
@@ -473,7 +496,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                       ) : (
                         <Send className='w-3 h-3' />
                       )}
-                      <span>Nộp</span>
+                      <span>{t('collaboration.taskGrid.submitShort')}</span>
                     </button>
                   )}
                   {canWithdraw && (
@@ -525,7 +548,8 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
   onChanged,
   onToast,
 }) => {
-  const { t } = useTranslation('pipeline');
+  const { t, lang } = useTranslation('pipeline');
+  const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
   const [busy, setBusy] = useState<'approve' | 'reject' | 'release' | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [comment, setComment] = useState('');
@@ -544,20 +568,21 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
     item.reviewerName ||
     reviewerName ||
     (item.reviewerUserId ? item.reviewerUserId.slice(0, 8) : 'Editor');
-  const scope = cellScopeLabel(item.pageNumber);
-  const meta = CELL_STATUS_META[item.status] ?? CELL_STATUS_META.Submitted;
+  const scope = cellScopeLabel(item.pageNumber, t);
+  const metaCls = CELL_STATUS_CLS[item.status] ?? CELL_STATUS_CLS.Submitted;
+  const metaLabel = t(`collaboration.taskGrid.status.${item.status}`, item.status);
 
   const handleApprove = async () => {
     setBusy('approve');
     setError(null);
     try {
       await assignmentService.approveStageTask(item.chapterId, item.taskId);
-      onToast?.('Đã duyệt ô công việc', `${item.stageName} · ${scope}`);
+      onToast?.(t('collaboration.taskGrid.approvedCellToast'), `${item.stageName} · ${scope}`);
       onChanged();
     } catch (err: any) {
-      const msg = errorMessage(err, 'Không thể duyệt ô công việc.');
+      const msg = errorMessage(err, t('collaboration.taskGrid.approveCellError'));
       setError(msg);
-      onToast?.('Không thể duyệt', msg);
+      onToast?.(t('collaboration.taskGrid.approveErrorTitle'), msg);
       if (err?.status === 409 || err?.response?.status === 409) onChanged();
     } finally {
       setBusy(null);
@@ -573,12 +598,12 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
       await assignmentService.requestStageTaskChanges(item.chapterId, item.taskId, trimmed);
       setRejectOpen(false);
       setComment('');
-      onToast?.('Đã yêu cầu sửa lại', `${item.stageName} · ${scope}`);
+      onToast?.(t('collaboration.taskGrid.reworkRequestedToast'), `${item.stageName} · ${scope}`);
       onChanged();
     } catch (err: any) {
-      const msg = errorMessage(err, 'Không thể gửi yêu cầu sửa.');
+      const msg = errorMessage(err, t('collaboration.taskGrid.requestChangesError'));
       setError(msg);
-      onToast?.('Không thể yêu cầu sửa', msg);
+      onToast?.(t('collaboration.taskGrid.requestChangesErrorTitle'), msg);
       if (err?.status === 409 || err?.response?.status === 409) onChanged();
     } finally {
       setBusy(null);
@@ -596,9 +621,9 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
       );
       onChanged();
     } catch (err: any) {
-      const msg = errorMessage(err, 'Không thể nhả khoá duyệt ô công việc.');
+      const msg = errorMessage(err, t('collaboration.taskGrid.releaseReviewError'));
       setError(msg);
-      onToast?.('Không thể nhả khoá duyệt', msg);
+      onToast?.(t('collaboration.taskGrid.releaseReviewErrorTitle'), msg);
       if (err?.status === 409 || err?.response?.status === 409) onChanged();
     } finally {
       setBusy(null);
@@ -614,7 +639,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
         const list = await assignmentService.getStageTaskSubmissions(item.chapterId, item.taskId);
         setSubmissions(list);
       } catch (err) {
-        setError(errorMessage(err, 'Không thể tải lịch sử nộp.'));
+        setError(errorMessage(err, t('collaboration.taskGrid.loadHistoryError')));
       } finally {
         setLoadingHistory(false);
       }
@@ -635,7 +660,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             <span>{item.seriesTitle}</span>
             <span>·</span>
             <span>
-              Chương {item.chapterNumber}
+              {t('collaboration.taskGrid.chapterLabel', { number: item.chapterNumber })}
               {item.chapterTitle ? `: ${item.chapterTitle}` : ''}
             </span>
           </div>
@@ -646,8 +671,8 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             <span className='px-2 py-0.5 rounded-md bg-stone-100 border border-stone-300 text-xs font-semibold text-stone-800'>
               {scope}
             </span>
-            <span className={`px-2 py-0.5 rounded-full border text-xs font-semibold ${meta.cls}`}>
-              {meta.label}
+            <span className={`px-2 py-0.5 rounded-full border text-xs font-semibold ${metaCls}`}>
+              {metaLabel}
             </span>
             {item.isInputOutdated && (
               <span
@@ -660,7 +685,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             )}
             {item.attemptNumber != null && (
               <span className='text-xs font-mono text-[#57534E]'>
-                Lần nộp #{item.attemptNumber}
+                {t('collaboration.taskGrid.attemptNumber', { attempt: item.attemptNumber })}
               </span>
             )}
           </div>
@@ -671,7 +696,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             to={`/workspaces/${workspaceId}/series/${item.seriesId}/workspace?chapterId=${encodeURIComponent(item.chapterId)}&board=grid-v3`}
             className='h-8 px-3 rounded-xl border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] text-xs font-semibold inline-flex items-center gap-1'
           >
-            <span>Xem &amp; đối chiếu trên Lưới V3</span>
+            <span>{t('collaboration.taskGrid.viewOnGridV3')}</span>
             <ArrowUpRight className='w-3.5 h-3.5' />
           </Link>
         )}
@@ -680,12 +705,13 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
       <div className='flex flex-wrap items-center gap-4 text-xs text-[#57534E] font-mono'>
         <span className='inline-flex items-center gap-1'>
           <User className='w-3.5 h-3.5 text-[#F97316]' />
-          <strong>Người nộp:</strong> {assigneeName}
+          <strong>{t('collaboration.taskGrid.submitterLabel')}</strong> {assigneeName}
         </span>
         {item.submittedAt && (
           <span className='inline-flex items-center gap-1'>
             <Calendar className='w-3.5 h-3.5 text-stone-400' />
-            <strong>Nộp lúc:</strong> {new Date(item.submittedAt).toLocaleString('vi-VN')}
+            <strong>{t('collaboration.taskGrid.submittedAtLabel')}</strong>{' '}
+            {new Date(item.submittedAt).toLocaleString(dateLocale)}
           </span>
         )}
       </div>
@@ -752,7 +778,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             className='inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900'
           >
             <Lock className='w-3.5 h-3.5 text-amber-600' />
-            <span>Không thể tự duyệt bài của mình (BR-06)</span>
+            <span>{t('collaboration.taskGrid.selfReviewLocked')}</span>
           </span>
         ) : (
           <>
@@ -768,7 +794,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
               ) : (
                 <Check className='w-3.5 h-3.5' />
               )}
-              <span>Duyệt</span>
+              <span>{t('collaboration.taskGrid.approveBtn')}</span>
             </button>
             <button
               type='button'
@@ -778,7 +804,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
               className='inline-flex items-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
             >
               <RotateCcw className='w-3.5 h-3.5' />
-              <span>Yêu cầu sửa</span>
+              <span>{t('collaboration.taskGrid.requestChangesBtn')}</span>
             </button>
             {item.status === 'UnderReview' &&
               Boolean(currentUserId && item.reviewerUserId === currentUserId) && (
@@ -822,7 +848,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
           className='inline-flex items-center gap-1.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 px-3 py-1.5 text-xs font-semibold cursor-pointer'
         >
           <History className='w-3.5 h-3.5' />
-          <span>Lịch sử nộp</span>
+          <span>{t('collaboration.taskGrid.historyBtn')}</span>
         </button>
       </div>
 
@@ -832,8 +858,8 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             rows={2}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder='Nhập nhận xét yêu cầu sửa bắt buộc (BR-06)...'
-            aria-label='Nhận xét yêu cầu sửa'
+            placeholder={t('collaboration.taskGrid.rejectCommentPlaceholder')}
+            aria-label={t('collaboration.taskGrid.rejectCommentAria')}
             className='w-full rounded-lg border border-rose-300 bg-white px-2.5 py-1.5 text-xs text-stone-900'
           />
           <div className='flex items-center justify-end gap-2'>
@@ -845,7 +871,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
               }}
               className='px-2.5 py-1 rounded-lg border border-stone-300 bg-white text-xs font-semibold text-stone-700 cursor-pointer'
             >
-              Huỷ
+              {t('collaboration.taskGrid.cancel')}
             </button>
             <button
               type='button'
@@ -855,7 +881,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
               className='inline-flex items-center gap-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 text-xs font-semibold cursor-pointer disabled:opacity-50'
             >
               {busy === 'reject' && <Loader2 className='w-3 h-3 animate-spin' />}
-              <span>Gửi yêu cầu sửa</span>
+              <span>{t('collaboration.taskGrid.sendChangesBtn')}</span>
             </button>
           </div>
         </div>
@@ -866,10 +892,10 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
           {loadingHistory ? (
             <div className='flex items-center gap-1.5 text-stone-500'>
               <Loader2 className='w-3.5 h-3.5 animate-spin' />
-              <span>Đang tải lịch sử nộp...</span>
+              <span>{t('collaboration.taskGrid.loadingHistory')}</span>
             </div>
           ) : !submissions || submissions.length === 0 ? (
-            <p className='text-stone-500'>Chưa có bản ghi lịch sử nộp.</p>
+            <p className='text-stone-500'>{t('collaboration.taskGrid.emptyHistory')}</p>
           ) : (
             submissions.map((sub) => {
               const panelCount = parseStageTaskPanelLayout(sub.panelLayoutJson).length;
@@ -880,10 +906,15 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
                 >
                   <div className='flex items-center justify-between gap-2 font-semibold'>
                     <span>
-                      Lần #{sub.attemptNumber} · {sub.status}
+                      {t('collaboration.taskGrid.attemptLine', {
+                        attempt: sub.attemptNumber,
+                        status: sub.status,
+                      })}
                     </span>
                     <span className='text-[11px] font-mono text-stone-500'>
-                      {sub.artworkReferenceIds?.length ?? 0} ảnh
+                      {t('collaboration.taskGrid.artworkCount', {
+                        count: sub.artworkReferenceIds?.length ?? 0,
+                      })}
                       {panelCount > 0 ? ` · ${panelCount} panel` : ''}
                     </span>
                   </div>

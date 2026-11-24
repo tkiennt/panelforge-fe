@@ -61,9 +61,9 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
       setItems([]);
       onChanged(updated);
     } catch (err) {
-      const msg = errorMessage(err, 'Thao tác thất bại.');
+      const msg = errorMessage(err, t('collaboration.reviewDecision.actionFailed'));
       setError(msg);
-      onToast?.('Không thể thực hiện', msg);
+      onToast?.(t('collaboration.reviewDecision.cannotExecute'), msg);
     } finally {
       setBusy(false);
     }
@@ -83,7 +83,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
     >
       <div className='text-[11px] font-bold text-indigo-900 flex items-center gap-1.5'>
         <Search className='w-3.5 h-3.5' />
-        {t('title', 'Xét duyệt công đoạn')}
+        {t('title')}
       </div>
 
       {error && (
@@ -99,14 +99,14 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
           onClick={() =>
             void run(
               () => assignmentService.openReview(chapterId, assignment.id),
-              t('submission.openedToast', 'Đã mở xét duyệt'),
-              'Việc chuyển sang UnderReview.',
+              t('submission.openedToast'),
+              t('collaboration.reviewDecision.movedToUnderReview'),
             )
           }
           className='px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer'
         >
           {busy ? <Loader2 className='w-3 h-3 animate-spin' /> : <Search className='w-3 h-3' />}
-          {t('submission.openReview', 'Mở xét duyệt')}
+          {t('submission.openReview')}
         </button>
       )}
 
@@ -122,12 +122,14 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
             <button
               type='button'
               disabled={busy || !!actions.approveBlockedReason}
-              title={actions.approveBlockedReason ?? 'Duyệt cổng, mở công đoạn kế tiếp'}
+              title={
+                actions.approveBlockedReason ?? t('collaboration.reviewDecision.approveTooltip')
+              }
               onClick={() =>
                 void run(
                   () => assignmentService.approveAssignment(chapterId, assignment.id),
-                  t('submission.approvedToast', 'Đã duyệt'),
-                  'Công đoạn kế tiếp của các Panel này đã mở.',
+                  t('submission.approvedToast'),
+                  t('collaboration.reviewDecision.nextStageUnlocked'),
                 )
               }
               className='btn-cta-success'
@@ -137,7 +139,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
               ) : (
                 <CheckCircle2 className='w-3.5 h-3.5' />
               )}
-              <span>{t('submission.approveAction', 'Duyệt công đoạn')}</span>
+              <span>{t('submission.approveAction')}</span>
             </button>
             <button
               type='button'
@@ -146,7 +148,7 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
               className='btn-cta-danger'
             >
               <RotateCcw className='w-3.5 h-3.5' />
-              <span>{t('submission.rejectAction', 'Trả về để sửa')}</span>
+              <span>{t('submission.rejectAction')}</span>
             </button>
           </div>
         </div>
@@ -158,8 +160,8 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             rows={2}
-            aria-label='Lý do trả về'
-            placeholder={t('submission.returnReasonPlaceholder', 'Lý do trả về (bắt buộc)')}
+            aria-label={t('collaboration.reviewDecision.returnReasonAria')}
+            placeholder={t('submission.returnReasonPlaceholder')}
             className='w-full p-2 border border-[#E7E7E7] rounded-lg text-[11px] bg-white focus:outline-none focus:border-[#F97316]'
           />
 
@@ -172,13 +174,17 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
                 <input
                   value={item.description}
                   onChange={(e) => updateItem(item.key, { description: e.target.value })}
-                  aria-label={`Mô tả yêu cầu sửa ${index + 1}`}
-                  placeholder={`Yêu cầu sửa ${index + 1}: cần sửa gì?`}
+                  aria-label={t('collaboration.reviewDecision.itemDescAria', { index: index + 1 })}
+                  placeholder={t('collaboration.reviewDecision.itemDescPlaceholder', {
+                    index: index + 1,
+                  })}
                   className='flex-1 px-2 py-1 border border-[#E7E7E7] rounded text-[11px]'
                 />
                 <button
                   type='button'
-                  aria-label={`Xoá yêu cầu sửa ${index + 1}`}
+                  aria-label={t('collaboration.reviewDecision.deleteItemAria', {
+                    index: index + 1,
+                  })}
                   onClick={() => setItems((prev) => prev.filter((i) => i.key !== item.key))}
                   className='p-1 text-zinc-500 hover:text-red-600 cursor-pointer'
                 >
@@ -186,31 +192,33 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
                 </button>
               </div>
               <div className='flex flex-wrap items-center gap-1.5 text-[10px] text-[#737373] font-mono'>
-                <span>Vùng (% ảnh, tuỳ chọn):</span>
+                <span>{t('collaboration.reviewDecision.regionLabel')}</span>
                 {(['x', 'y', 'w', 'h'] as const).map((field) => (
                   <input
                     key={field}
                     value={item[field]}
                     onChange={(e) => updateItem(item.key, { [field]: e.target.value })}
-                    aria-label={`Vùng ${field} của yêu cầu sửa ${index + 1}`}
+                    aria-label={t('collaboration.reviewDecision.regionFieldAria', {
+                      field,
+                      index: index + 1,
+                    })}
                     placeholder={field}
                     inputMode='decimal'
                     className='w-12 px-1.5 py-0.5 border border-[#E7E7E7] rounded text-center'
                   />
                 ))}
-                <span>Hạn:</span>
+                <span>{t('collaboration.reviewDecision.dueDateLabel')}</span>
                 <input
                   type='date'
                   value={item.dueDate}
                   onChange={(e) => updateItem(item.key, { dueDate: e.target.value })}
-                  aria-label={`Hạn của yêu cầu sửa ${index + 1}`}
+                  aria-label={t('collaboration.reviewDecision.dueDateAria', { index: index + 1 })}
                   className='px-1.5 py-0.5 border border-[#E7E7E7] rounded'
                 />
               </div>
               {item.description.trim() !== '' && !isRegionInputValid(item) && (
                 <p className='text-[10px] text-red-600'>
-                  Vùng phải nhập đủ x, y, rộng, cao (0–100), rộng và cao &gt; 0, không vượt khỏi
-                  ảnh.
+                  {t('collaboration.reviewDecision.invalidRegionError')}
                 </p>
               )}
             </div>
@@ -225,10 +233,10 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
             className='px-2.5 py-1 rounded-lg border border-dashed border-zinc-400 text-[11px] font-semibold flex items-center gap-1 hover:bg-white cursor-pointer'
           >
             <Plus className='w-3 h-3' />
-            {t('changeRequest.addSpecific', 'Thêm yêu cầu sửa cụ thể')}
+            {t('changeRequest.addSpecific')}
           </button>
           <p className='text-[10px] text-[#888888]'>
-            Không thêm yêu cầu nào thì hệ thống tạo một yêu cầu sửa từ chính lý do trả về.
+            {t('collaboration.reviewDecision.defaultChangeHint')}
           </p>
 
           <div className='flex gap-2'>
@@ -242,21 +250,21 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
                       comment: comment.trim(),
                       changes: buildChanges(items).length > 0 ? buildChanges(items) : undefined,
                     }),
-                  t('submission.returnedToast', 'Đã trả về để sửa'),
-                  'Người nhận sẽ nhận được thông báo.',
+                  t('submission.returnedToast'),
+                  t('collaboration.reviewDecision.assigneeNotified'),
                 )
               }
               className='px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
             >
               {busy && <Loader2 className='w-3 h-3 animate-spin' />}
-              {t('submission.sendReturn', 'Gửi trả về')}
+              {t('submission.sendReturn')}
             </button>
             <button
               type='button'
               onClick={() => setReturning(false)}
               className='px-3 py-1.5 rounded-lg border border-[#E7E7E7] bg-white text-[11px] font-semibold cursor-pointer'
             >
-              {t('common.actions.cancel', 'Huỷ')}
+              {t('common.actions.cancel')}
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Alert } from '@/shared/ui';
 import { AlertTriangle, CheckCircle2, Eye, Loader2, MessageSquareWarning } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
+import { useTranslation } from '@/lib/i18n';
 import type { AssetReferenceDto, ChangeRequestDto, PanelDto, SubmissionDto } from '@/types';
 import { describeRegion, errorMessage, isOverdue, isReviewerRole } from './collaborationRules';
 
@@ -20,35 +21,42 @@ interface ChangeRequestPanelProps {
 
 type Form = { id: string; kind: 'resolve' | 'reopen' | 'reject' };
 
-const STATUS_STYLE: Record<string, { label: string; className: string }> = {
-  Open: { label: 'Cần sửa', className: 'bg-red-50 text-red-700 border-red-200' },
+const STATUS_STYLE: Record<string, { labelKey: string; className: string }> = {
+  Open: {
+    labelKey: 'changeRequest.status.Open',
+    className: 'bg-red-50 text-red-700 border-red-200',
+  },
   Resolved: {
-    label: 'Đã sửa, chờ xác minh',
+    labelKey: 'changeRequest.status.Resolved',
     className: 'bg-amber-50 text-amber-700 border-amber-200',
   },
   Verified: {
-    label: 'Đã xác minh',
+    labelKey: 'changeRequest.status.Verified',
     className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   },
   Rejected: {
-    label: 'Đã đóng (không sửa)',
+    labelKey: 'changeRequest.status.Rejected',
     className: 'bg-zinc-100 text-zinc-600 border-zinc-200',
   },
 };
 
 const FORM_LABEL: Record<
   Form['kind'],
-  { placeholder: string; confirm: string; required: boolean }
+  { placeholderKey: string; confirmKey: string; required: boolean }
 > = {
   resolve: {
-    placeholder: 'Ghi chú đã sửa gì (tuỳ chọn)',
-    confirm: 'Xác nhận đã sửa',
+    placeholderKey: 'changeRequest.form.resolvePlaceholder',
+    confirmKey: 'changeRequest.form.resolveConfirm',
     required: false,
   },
-  reopen: { placeholder: 'Vì sao chưa đạt? (bắt buộc)', confirm: 'Mở lại', required: true },
+  reopen: {
+    placeholderKey: 'changeRequest.form.reopenPlaceholder',
+    confirmKey: 'changeRequest.form.reopenConfirm',
+    required: true,
+  },
   reject: {
-    placeholder: 'Lý do chấp nhận phản đối, không sửa (bắt buộc)',
-    confirm: 'Đóng yêu cầu',
+    placeholderKey: 'changeRequest.form.rejectPlaceholder',
+    confirmKey: 'changeRequest.form.rejectConfirm',
     required: true,
   },
 };
@@ -69,6 +77,8 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
   onChanged,
   onToast,
 }) => {
+  const { t, lang } = useTranslation('collaboration');
+  const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
   const [form, setForm] = useState<Form | null>(null);
   const [text, setText] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -88,9 +98,9 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
       setText('');
       onChanged();
     } catch (err) {
-      const msg = errorMessage(err, 'Thao tác thất bại.');
+      const msg = errorMessage(err, t('changeRequest.actionFailed'));
       setError(msg);
-      onToast?.('Không thể thực hiện', msg);
+      onToast?.(t('changeRequest.cannotExecute'), msg);
     } finally {
       setBusyId(null);
     }
@@ -109,18 +119,18 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
       return run(
         cr,
         () => assignmentService.resolveChangeRequest(chapterId, cr.id, value || undefined),
-        'Đã báo sửa xong',
+        t('changeRequest.resolvedToast'),
       );
     if (form.kind === 'reopen')
       return run(
         cr,
         () => assignmentService.reopenChangeRequest(chapterId, cr.id, value),
-        'Đã mở lại yêu cầu',
+        t('changeRequest.reopenedToast'),
       );
     return run(
       cr,
       () => assignmentService.rejectChangeRequest(chapterId, cr.id, value),
-      'Đã đóng yêu cầu',
+      t('changeRequest.rejectedToast'),
     );
   };
 
@@ -128,7 +138,7 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
     <div className='space-y-2' data-testid='change-request-panel'>
       <div className='flex items-center gap-1.5 text-[11px] font-bold text-[#171717]'>
         <MessageSquareWarning className='w-3.5 h-3.5 text-[#F97316]' />
-        <span>Yêu cầu sửa ({changeRequests.length})</span>
+        <span>{t('changeRequest.title', { count: changeRequests.length })}</span>
       </div>
 
       {error && (
@@ -173,7 +183,7 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
                         data-testid={`cr-version-badge-${cr.id}`}
                         className='px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold'
                       >
-                        Vùng khoanh trên v{targetVersion}
+                        {t('changeRequest.regionOnVersion', { version: targetVersion })}
                       </span>
                     )}
                     {matchedPanel && (
@@ -181,7 +191,7 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
                         data-testid={`cr-panel-badge-${cr.id}`}
                         className='px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-semibold'
                       >
-                        Khung #{matchedPanel.panelNumber}
+                        {t('changeRequest.panelBadge', { number: matchedPanel.panelNumber })}
                       </span>
                     )}
                   </div>
@@ -193,27 +203,29 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
                       data-testid={`view-cr-on-artwork-${cr.id}`}
                       onClick={() => onSelectChangeRequest(cr)}
                       className='px-2 py-0.5 rounded bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition-colors'
-                      title='Mở phiên bản và cuộn tới vùng khoanh'
+                      title={t('changeRequest.viewOnArtworkTooltip')}
                     >
                       <Eye className='w-3 h-3' />
-                      <span>Xem trên ảnh</span>
+                      <span>{t('changeRequest.viewOnArtwork')}</span>
                     </button>
                   )}
                   <span
                     className={`px-1.5 py-0.5 rounded border font-semibold text-[10px] shrink-0 ${style.className}`}
                   >
-                    {style.label}
+                    {t(style.labelKey)}
                   </span>
                 </div>
               </div>
 
               {(region || cr.dueDate) && (
                 <div className='flex flex-wrap gap-x-3 text-[#737373] font-mono'>
-                  {region && <span>Vùng: {region}</span>}
+                  {region && <span>{t('changeRequest.regionLabel', { region })}</span>}
                   {cr.dueDate && (
                     <span className={overdue ? 'text-red-600 font-bold' : ''}>
-                      Hạn {new Date(cr.dueDate).toLocaleDateString('vi-VN')}
-                      {overdue ? ' (quá hạn)' : ''}
+                      {t('changeRequest.dueLabel', {
+                        date: new Date(cr.dueDate).toLocaleDateString(dateLocale),
+                      })}
+                      {overdue ? t('changeRequest.overdueSuffix') : ''}
                     </span>
                   )}
                 </div>
@@ -221,12 +233,12 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
 
               {cr.resolutionNote && (
                 <p className='text-[#555555]'>
-                  <strong>Ghi chú sửa:</strong> {cr.resolutionNote}
+                  <strong>{t('changeRequest.resolutionNote')}</strong> {cr.resolutionNote}
                 </p>
               )}
               {cr.reviewerComment && (
                 <p className='text-[#555555]'>
-                  <strong>Phản hồi của Editor:</strong> {cr.reviewerComment}
+                  <strong>{t('changeRequest.reviewerComment')}</strong> {cr.reviewerComment}
                 </p>
               )}
 
@@ -235,9 +247,9 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
                   <textarea
                     value={text}
                     onChange={(e) => setText(e.target.value)}
-                    placeholder={FORM_LABEL[active.kind].placeholder}
+                    placeholder={t(FORM_LABEL[active.kind].placeholderKey)}
                     rows={2}
-                    aria-label={FORM_LABEL[active.kind].placeholder}
+                    aria-label={t(FORM_LABEL[active.kind].placeholderKey)}
                     className='w-full p-2 border border-[#E7E7E7] rounded-lg text-[11px] focus:outline-none focus:border-[#F97316]'
                   />
                   <div className='flex gap-2'>
@@ -250,14 +262,14 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
                       className='px-2.5 py-1 rounded-lg bg-[#171717] text-white font-semibold disabled:opacity-40 cursor-pointer flex items-center gap-1'
                     >
                       {busyId === cr.id && <Loader2 className='w-3 h-3 animate-spin' />}
-                      {FORM_LABEL[active.kind].confirm}
+                      {t(FORM_LABEL[active.kind].confirmKey)}
                     </button>
                     <button
                       type='button'
                       onClick={() => setForm(null)}
                       className='px-2.5 py-1 rounded-lg border border-[#E7E7E7] font-semibold cursor-pointer'
                     >
-                      Huỷ
+                      {t('changeRequest.cancel')}
                     </button>
                   </div>
                 </div>
@@ -270,7 +282,7 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
                       className='px-2.5 py-1 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white font-semibold flex items-center gap-1 cursor-pointer'
                     >
                       <CheckCircle2 className='w-3 h-3' />
-                      Đã sửa
+                      {t('changeRequest.markFixed')}
                     </button>
                   )}
                   {st === 'Resolved' && canReview && (
@@ -282,19 +294,19 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
                           void run(
                             cr,
                             () => assignmentService.verifyChangeRequest(chapterId, cr.id),
-                            'Đã xác minh',
+                            t('changeRequest.verifiedToast'),
                           )
                         }
                         className='px-2.5 py-1 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white font-semibold disabled:opacity-50 cursor-pointer'
                       >
-                        Xác minh đạt
+                        {t('changeRequest.verifyPass')}
                       </button>
                       <button
                         type='button'
                         onClick={() => openForm(cr.id, 'reopen')}
                         className='px-2.5 py-1 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 font-semibold cursor-pointer'
                       >
-                        Chưa đạt, mở lại
+                        {t('changeRequest.reopenBtn')}
                       </button>
                     </>
                   )}
@@ -304,7 +316,7 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
                       onClick={() => openForm(cr.id, 'reject')}
                       className='px-2.5 py-1 rounded-lg border border-[#E7E7E7] hover:bg-zinc-50 font-semibold cursor-pointer'
                     >
-                      Chấp nhận phản đối
+                      {t('changeRequest.acceptObjection')}
                     </button>
                   )}
                 </div>

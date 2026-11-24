@@ -1,24 +1,40 @@
 import React from 'react';
 import { History } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import type { SubmissionDto } from '@/types';
 
 interface SubmissionHistoryProps {
   submissions: SubmissionDto[];
 }
 
-const STATUS_STYLE: Record<string, { label: string; className: string }> = {
-  Pending: { label: 'Chờ duyệt', className: 'bg-purple-50 text-purple-700 border-purple-200' },
-  Approved: { label: 'Đã duyệt', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  Rejected: { label: 'Bị trả về', className: 'bg-red-50 text-red-700 border-red-200' },
-  Superseded: { label: 'Đã thay thế', className: 'bg-zinc-100 text-zinc-600 border-zinc-200' },
+const STATUS_STYLE: Record<string, { labelKey: string; className: string }> = {
+  Pending: {
+    labelKey: 'submissionHistory.status.Pending',
+    className: 'bg-purple-50 text-purple-700 border-purple-200',
+  },
+  Approved: {
+    labelKey: 'submissionHistory.status.Approved',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  Rejected: {
+    labelKey: 'submissionHistory.status.Rejected',
+    className: 'bg-red-50 text-red-700 border-red-200',
+  },
+  Superseded: {
+    labelKey: 'submissionHistory.status.Superseded',
+    className: 'bg-zinc-100 text-zinc-600 border-zinc-200',
+  },
 };
 
 /** Lịch sử các lần nộp của một việc (CF3, UC-09): lần nào bị trả về kèm lý do, lần nào được duyệt. */
 export const SubmissionHistory: React.FC<SubmissionHistoryProps> = ({ submissions }) => {
+  const { t, lang } = useTranslation('collaboration');
+  const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
+
   if (submissions.length === 0) {
     return (
       <p className='text-[11px] text-[#888888]' data-testid='submission-history-empty'>
-        Chưa có lần nộp nào.
+        {t('submissionHistory.empty')}
       </p>
     );
   }
@@ -27,7 +43,7 @@ export const SubmissionHistory: React.FC<SubmissionHistoryProps> = ({ submission
     <div className='space-y-2' data-testid='submission-history'>
       <div className='flex items-center gap-1.5 text-[11px] font-bold text-[#171717]'>
         <History className='w-3.5 h-3.5 text-[#F97316]' />
-        <span>Lịch sử nộp ({submissions.length})</span>
+        <span>{t('submissionHistory.title', { count: submissions.length })}</span>
       </div>
       <ol className='space-y-1.5'>
         {submissions.map((s) => {
@@ -38,20 +54,32 @@ export const SubmissionHistory: React.FC<SubmissionHistoryProps> = ({ submission
               className='p-2 rounded-lg bg-[#FAF8F5] border border-[#F0ECE1] text-[11px] space-y-1'
             >
               <div className='flex items-center justify-between gap-2'>
-                <span className='font-mono font-semibold'>Lần {s.attemptNumber}</span>
+                <span className='font-mono font-semibold'>
+                  {t('submissionHistory.attempt', { attempt: s.attemptNumber })}
+                </span>
                 <span
                   className={`px-1.5 py-0.5 rounded border font-semibold text-[10px] ${style.className}`}
                 >
-                  {style.label}
+                  {t(style.labelKey)}
                 </span>
               </div>
               <div className='text-[#737373] font-mono'>
-                Nộp {new Date(s.submittedAt).toLocaleString('vi-VN')}
-                {s.decidedAt && <> · Quyết định {new Date(s.decidedAt).toLocaleString('vi-VN')}</>}
+                {t('submissionHistory.submittedAt', {
+                  date: new Date(s.submittedAt).toLocaleString(dateLocale),
+                })}
+                {s.decidedAt && (
+                  <>
+                    {' '}
+                    ·{' '}
+                    {t('submissionHistory.decidedAt', {
+                      date: new Date(s.decidedAt).toLocaleString(dateLocale),
+                    })}
+                  </>
+                )}
               </div>
               {s.decisionComment && (
                 <div className='text-[#333333]'>
-                  <strong>Lý do trả về:</strong> {s.decisionComment}
+                  <strong>{t('submissionHistory.returnReason')}</strong> {s.decisionComment}
                 </div>
               )}
               {s.scriptRevisionIds && s.scriptRevisionIds.length > 0 && (
@@ -59,7 +87,7 @@ export const SubmissionHistory: React.FC<SubmissionHistoryProps> = ({ submission
                   className='flex items-center gap-1.5 flex-wrap text-[10px] text-stone-600 pt-0.5'
                   data-testid='submission-script-revisions'
                 >
-                  <span className='font-semibold'>Revisions kịch bản:</span>
+                  <span className='font-semibold'>{t('submissionHistory.scriptRevisions')}</span>
                   {s.scriptRevisionIds.map((revId) => (
                     <span
                       key={revId}

@@ -29,6 +29,13 @@ import {
 } from '@/services/artwork.service';
 import { errorMessage, parseRegionBox } from './collaborationRules';
 import { parseBoundingBox } from '@/shared/utils/panelBoundingBox';
+import { useTranslation } from '@/lib/i18n';
+
+type TranslateFn = (
+  key: string,
+  paramsOrFallback?: Record<string, string | number> | string,
+  fallback?: string,
+) => string;
 
 /** Kiểm tra xem tên file có phải là chuỗi GUID/UUID ngẫu nhiên kỹ thuật không */
 const isUuidString = (str: string) =>
@@ -39,42 +46,48 @@ const isUuidString = (str: string) =>
 /** Lấy tên hiển thị thân thiện, chuyển chuỗi UUID dài vào chi tiết và dùng fallback trung thực */
 const getDisplayArtworkTitle = (
   art: AssetReferenceDto,
-  matchedPanel?: PanelDto | null,
-  isDeletedPanel?: boolean,
+  matchedPanel: PanelDto | null | undefined,
+  isDeletedPanel: boolean | undefined,
+  t: TranslateFn,
 ) => {
   if (!isUuidString(art.fileName)) {
     return art.fileName;
   }
   if (isDeletedPanel) {
-    return `Ảnh của khung đã xóa (v${art.versionNumber})`;
+    return t('artworkPanel.deletedPanelTitle', { version: art.versionNumber });
   }
   if (matchedPanel) {
-    return `Bản vẽ Khung #${matchedPanel.panelNumber} (v${art.versionNumber})`;
+    return t('artworkPanel.panelArtworkTitle', {
+      number: matchedPanel.panelNumber,
+      version: art.versionNumber,
+    });
   }
-  return `Bản vẽ cả trang (v${art.versionNumber})`;
+  return t('artworkPanel.fullPageArtworkTitle', { version: art.versionNumber });
 };
 
 /** Phạm vi của một phiên bản: ảnh cả trang, ảnh của khung đang có, hay ảnh của khung đã bị xoá. */
 const ScopeBadge: React.FC<{ art: AssetReferenceDto; matchedPanelNumber?: number }> = ({
   art,
   matchedPanelNumber,
-}) =>
-  !art.panelId ? (
+}) => {
+  const { t } = useTranslation('collaboration');
+  return !art.panelId ? (
     <span className='px-1.5 py-0.5 rounded border text-xs font-bold bg-zinc-100 text-zinc-700 border-zinc-200'>
-      Cả trang
+      {t('artworkPanel.scopeFullPage')}
     </span>
   ) : matchedPanelNumber != null ? (
     <span className='px-1.5 py-0.5 rounded border text-xs font-bold bg-indigo-50 text-indigo-700 border-indigo-200'>
-      Khung #{matchedPanelNumber}
+      {t('artworkPanel.scopePanel', { number: matchedPanelNumber })}
     </span>
   ) : (
     <span
       className='px-1.5 py-0.5 rounded border text-xs font-semibold bg-stone-100 text-stone-600 border-stone-300'
-      title='Khung này đã bị xoá; ảnh vẫn giữ trong lịch sử (append-only)'
+      title={t('artworkPanel.scopeDeletedPanelTooltip')}
     >
-      Khung đã xoá
+      {t('artworkPanel.scopeDeletedPanel')}
     </span>
   );
+};
 
 interface ZoomedArtworkState {
   src: string;
@@ -110,6 +123,7 @@ const ArtworkPreviewCard: React.FC<ArtworkPreviewCardProps> = ({
   onClose,
   renderOverlay,
 }) => {
+  const { t } = useTranslation('collaboration');
   const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   const [isRetrying, setIsRetrying] = useState(false);
   const zoomTriggerRef = useRef<HTMLButtonElement>(null);
@@ -137,7 +151,7 @@ const ArtworkPreviewCard: React.FC<ArtworkPreviewCardProps> = ({
           <button
             type='button'
             ref={zoomTriggerRef}
-            title='Mở lớn để kiểm tra chi tiết'
+            title={t('artworkPanel.openLargeTooltip')}
             onClick={() =>
               onOpenZoom({
                 src,
@@ -152,16 +166,16 @@ const ArtworkPreviewCard: React.FC<ArtworkPreviewCardProps> = ({
             className='px-2 py-1 rounded-md border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
           >
             <Maximize2 className='w-3 h-3 text-[#F97316]' />
-            <span>Mở lớn</span>
+            <span>{t('artworkPanel.openLarge')}</span>
           </button>
           <button
             type='button'
-            title='Ẩn xem nhanh'
+            title={t('artworkPanel.hidePreviewTooltip')}
             onClick={onClose}
             className='px-2 py-1 rounded-md border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
           >
             <EyeOff className='w-3 h-3' />
-            <span>Ẩn</span>
+            <span>{t('artworkPanel.hide')}</span>
           </button>
         </div>
       </div>
@@ -170,16 +184,14 @@ const ArtworkPreviewCard: React.FC<ArtworkPreviewCardProps> = ({
         {imageStatus === 'loading' && (
           <div className='flex flex-col items-center justify-center gap-2 py-8 text-stone-500 text-xs'>
             <Loader2 className='w-5 h-5 animate-spin text-[#F97316]' />
-            <span>Đang tải hình ảnh…</span>
+            <span>{t('artworkPanel.loadingImage')}</span>
           </div>
         )}
 
         {imageStatus === 'error' && (
           <div className='flex flex-col items-center justify-center gap-2 py-6 px-4 text-center'>
             <AlertTriangle className='w-5 h-5 text-amber-600' />
-            <p className='text-xs text-stone-700 font-medium'>
-              Không thể tải ảnh (link tạm thời có thể đã hết hạn).
-            </p>
+            <p className='text-xs text-stone-700 font-medium'>{t('artworkPanel.loadImageError')}</p>
             <button
               type='button'
               disabled={isRetrying}
@@ -200,7 +212,7 @@ const ArtworkPreviewCard: React.FC<ArtworkPreviewCardProps> = ({
               ) : (
                 <RefreshCw className='w-3 h-3 text-[#F97316]' />
               )}
-              <span>Thử tải lại</span>
+              <span>{t('artworkPanel.retryLoad')}</span>
             </button>
           </div>
         )}
@@ -208,7 +220,7 @@ const ArtworkPreviewCard: React.FC<ArtworkPreviewCardProps> = ({
         <div className={`relative max-w-full ${imageStatus === 'loaded' ? 'block' : 'hidden'}`}>
           <button
             type='button'
-            title='Bấm để phóng to'
+            title={t('artworkPanel.clickToZoom')}
             onClick={() =>
               onOpenZoom({
                 src,
@@ -249,6 +261,7 @@ const ArtworkLightboxModal: React.FC<ArtworkLightboxModalProps> = ({
   onClose,
   renderBoundingBoxes,
 }) => {
+  const { t } = useTranslation('collaboration');
   const [zoomMode, setZoomMode] = useState<'fit' | 'custom'>('fit');
   const [scale, setScale] = useState<number>(1);
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
@@ -331,7 +344,7 @@ const ArtworkLightboxModal: React.FC<ArtworkLightboxModalProps> = ({
           <div className='flex items-center bg-stone-800 rounded-lg p-0.5 border border-stone-700 text-xs'>
             <button
               type='button'
-              title='Thu nhỏ (-)'
+              title={t('artworkPanel.zoomOutTooltip')}
               onClick={handleZoomOut}
               disabled={scale <= 0.25}
               className='p-1.5 rounded-md hover:bg-stone-700 disabled:opacity-40 cursor-pointer transition-colors'
@@ -339,11 +352,11 @@ const ArtworkLightboxModal: React.FC<ArtworkLightboxModalProps> = ({
               <ZoomOut className='w-3.5 h-3.5' />
             </button>
             <span className='px-2 font-mono text-[11px] text-stone-300 min-w-[54px] text-center'>
-              {zoomMode === 'fit' ? 'Vừa khung' : `${Math.round(scale * 100)}%`}
+              {zoomMode === 'fit' ? t('artworkPanel.fitFrame') : `${Math.round(scale * 100)}%`}
             </span>
             <button
               type='button'
-              title='Phóng to (+)'
+              title={t('artworkPanel.zoomInTooltip')}
               onClick={handleZoomIn}
               disabled={scale >= 4}
               className='p-1.5 rounded-md hover:bg-stone-700 disabled:opacity-40 cursor-pointer transition-colors'
@@ -354,7 +367,7 @@ const ArtworkLightboxModal: React.FC<ArtworkLightboxModalProps> = ({
 
           <button
             type='button'
-            title='Vừa khung hình'
+            title={t('artworkPanel.fitFrameTooltip')}
             onClick={handleResetFit}
             className={`px-2 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors hidden sm:flex items-center gap-1 ${
               zoomMode === 'fit'
@@ -363,12 +376,12 @@ const ArtworkLightboxModal: React.FC<ArtworkLightboxModalProps> = ({
             }`}
           >
             <RotateCcw className='w-3 h-3' />
-            <span>Vừa khung</span>
+            <span>{t('artworkPanel.fitFrame')}</span>
           </button>
 
           <button
             type='button'
-            title='Kích thước gốc (100%)'
+            title={t('artworkPanel.originalSizeTooltip')}
             onClick={handleReset100}
             className={`px-2 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors hidden sm:inline-block ${
               zoomMode === 'custom' && scale === 1
@@ -381,7 +394,7 @@ const ArtworkLightboxModal: React.FC<ArtworkLightboxModalProps> = ({
 
           <button
             type='button'
-            aria-label='Đóng'
+            aria-label={t('artworkPanel.close')}
             onClick={onClose}
             className='p-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-white cursor-pointer ml-1 transition-colors border border-stone-700'
           >
@@ -506,6 +519,8 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
   onToast,
   onOpenBible,
 }) => {
+  const { t, lang } = useTranslation('collaboration');
+  const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
   const assignedPanelObj = assignedPanelId ? panels.find((p) => p.id === assignedPanelId) : null;
   const fileInput = useRef<HTMLInputElement>(null);
   const panelFileInput = useRef<HTMLInputElement>(null);
@@ -543,11 +558,11 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
     setError(null);
 
     if (!ACCEPTED.includes(file.type)) {
-      setError('Chỉ nhận ảnh PNG, JPEG hoặc WebP.');
+      setError(t('artworkPanel.invalidFormatError'));
       return;
     }
     if (file.size > MAX_BYTES) {
-      setError('File vượt giới hạn 25 MB.');
+      setError(t('artworkPanel.fileTooLargeError'));
       return;
     }
 
@@ -566,18 +581,23 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
         effectivePanelId,
       );
       const targetPanel = panels.find((p) => p.id === effectivePanelId);
-      const scopeDesc = targetPanel ? `khung #${targetPanel.panelNumber}` : 'cả trang';
+      const scopeDesc = targetPanel
+        ? t('artworkPanel.scopePanelLower', { number: targetPanel.panelNumber })
+        : t('artworkPanel.scopeFullPageLower');
       onToast?.(
-        `Đã tải artwork v${result.versionNumber} cho ${scopeDesc}`,
+        t('artworkPanel.uploadSuccessToast', {
+          version: result.versionNumber,
+          scope: scopeDesc,
+        }),
         result.reused
-          ? 'Nội dung đã có trong Workspace nên không tốn thêm dung lượng.'
+          ? t('artworkPanel.uploadReusedDesc')
           : `${result.fileName} (${formatSize(result.sizeBytes)})`,
       );
       onChanged();
     } catch (err) {
-      const msg = errorMessage(err, 'Không thể tải artwork lên.');
+      const msg = errorMessage(err, t('artworkPanel.uploadError'));
       setError(msg);
-      onToast?.('Tải artwork thất bại', msg);
+      onToast?.(t('artworkPanel.uploadFailedToast'), msg);
     } finally {
       setPhase('idle');
       if (fileInput.current) fileInput.current.value = '';
@@ -609,7 +629,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       }
     } catch (err) {
       if (activePreviewRequests.current[art.id] === reqId) {
-        setError(errorMessage(err, 'Không thể xin link xem artwork.'));
+        setError(errorMessage(err, t('artworkPanel.accessLinkError')));
       }
     } finally {
       if (activePreviewRequests.current[art.id] === reqId) {
@@ -685,7 +705,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
     const isLatestInScope = scopeArts.length > 0 && scopeArts[scopeArts.length - 1].id === art.id;
     if (isLatestInScope) {
       badges.push({
-        label: 'Mới nhất',
+        label: t('artworkPanel.badgeLatest'),
         cls: 'bg-violet-100 text-violet-900 border-violet-300 font-bold',
       });
     }
@@ -704,17 +724,17 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       );
       if (isPending) {
         badges.push({
-          label: 'Đang duyệt',
+          label: t('artworkPanel.badgePending'),
           cls: 'bg-amber-100 text-amber-900 border-amber-300 font-semibold',
         });
       } else if (isApproved) {
         badges.push({
-          label: 'Đã duyệt',
+          label: t('artworkPanel.badgeApproved'),
           cls: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-semibold',
         });
       } else if (isRejected) {
         badges.push({
-          label: 'Bị trả về',
+          label: t('artworkPanel.badgeRejected'),
           cls: 'bg-rose-100 text-rose-900 border-rose-300 font-semibold',
         });
       }
@@ -823,15 +843,17 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       <div className='flex items-center justify-between gap-2 flex-wrap'>
         <span className='flex items-center gap-1.5 text-xs font-bold text-[#171717]'>
           <ImageIcon className='w-3.5 h-3.5 text-[#F97316]' />
-          Artwork của trang ({mine.length} phiên bản)
+          {t('artworkPanel.headerTitle', { count: mine.length })}
           {mine.length > 0 && (
             <span
               className='font-normal text-zinc-500'
               data-testid='artwork-version-breakdown'
-              title='Mỗi phạm vi (cả trang / từng khung) đánh số phiên bản riêng'
+              title={t('artworkPanel.breakdownTooltip')}
             >
-              · {fullPageArts.length} cả trang · {panelScopedArts.length} theo khung
-              {deletedPanelArts.length > 0 && ` · ${deletedPanelArts.length} của khung đã xoá`}
+              · {t('artworkPanel.breakdownFullPage', { count: fullPageArts.length })} ·{' '}
+              {t('artworkPanel.breakdownPanel', { count: panelScopedArts.length })}
+              {deletedPanelArts.length > 0 &&
+                ` · ${t('artworkPanel.breakdownDeleted', { count: deletedPanelArts.length })}`}
             </span>
           )}
         </span>
@@ -862,10 +884,10 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   )}
                   <span>
                     {phase === 'hashing'
-                      ? 'Đang chuẩn bị ảnh…'
+                      ? t('artworkPanel.phaseHashing')
                       : phase === 'uploading'
-                        ? 'Đang tải lên…'
-                        : 'Tải artwork lên'}
+                        ? t('artworkPanel.phaseUploading')
+                        : t('artworkPanel.uploadBtn')}
                   </span>
                 </button>
               </>
@@ -887,10 +909,12 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                 )}
                 <span>
                   {phase === 'hashing'
-                    ? 'Đang chuẩn bị ảnh…'
+                    ? t('artworkPanel.phaseHashing')
                     : phase === 'uploading'
-                      ? 'Đang tải lên…'
-                      : `Tải ảnh cho khung${assignedPanelObj ? ` #${assignedPanelObj.panelNumber}` : ''}`}
+                      ? t('artworkPanel.phaseUploading')
+                      : t('artworkPanel.uploadForPanelBtn', {
+                          suffix: assignedPanelObj ? ` #${assignedPanelObj.panelNumber}` : '',
+                        })}
                 </span>
               </button>
             )}
@@ -912,9 +936,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       </div>
 
       {!pageId && canUpload && (
-        <p className='text-xs text-amber-700'>
-          Chưa xác định được trang của việc này (việc cấp Panel cần có Panel đã bắt đầu).
-        </p>
+        <p className='text-xs text-amber-700'>{t('artworkPanel.missingPageHint')}</p>
       )}
 
       {error && (
@@ -931,10 +953,10 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
           <div className='flex items-center justify-between text-xs font-bold text-[#171717]'>
             <span className='flex items-center gap-1.5'>
               <LayoutTemplate className='w-3.5 h-3.5 text-blue-600' />
-              <span>Ảnh theo từng khung ({panels.length} Panels)</span>
+              <span>{t('artworkPanel.panelSectionTitle', { count: panels.length })}</span>
             </span>
             <span className='text-xs text-zinc-500 font-normal'>
-              Mỗi khung quản lý bản hiện tại và lịch sử riêng biệt
+              {t('artworkPanel.panelSectionDesc')}
             </span>
           </div>
 
@@ -953,9 +975,11 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   <div className='flex items-center justify-between gap-2 flex-wrap'>
                     <div className='flex items-center gap-2 flex-wrap min-w-0'>
                       <span className='font-mono font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 text-xs border border-zinc-200'>
-                        Khung #{p.panelNumber}
+                        {t('artworkPanel.scopePanel', { number: p.panelNumber })}
                       </span>
-                      <span className='text-zinc-500 font-mono text-xs'>Đọc #{p.readingOrder}</span>
+                      <span className='text-zinc-500 font-mono text-xs'>
+                        {t('artworkPanel.readingOrder', { order: p.readingOrder })}
+                      </span>
                       {latestPanelArt ? (
                         <div className='flex items-center gap-1.5 flex-wrap'>
                           <span className='font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-xs'>
@@ -963,7 +987,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           </span>
                           <span className='inline-flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-xs'>
                             <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' />
-                            Bản hiện tại
+                            {t('artworkPanel.currentVersion')}
                           </span>
                           <span
                             className='text-zinc-700 font-medium text-xs truncate max-w-[200px]'
@@ -987,12 +1011,16 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         <span
                           data-testid={`panel-uses-page-art-${p.id}`}
                           className='font-semibold text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded text-xs'
-                          title='Khung chưa có ảnh riêng; đang dùng phần tương ứng của ảnh cả trang'
+                          title={t('artworkPanel.usesFullPageTooltip')}
                         >
-                          Dùng ảnh cả trang v{latestPageArt.versionNumber}
+                          {t('artworkPanel.usesFullPageBadge', {
+                            version: latestPageArt.versionNumber,
+                          })}
                         </span>
                       ) : (
-                        <span className='text-zinc-400 italic text-xs'>Chưa có ảnh</span>
+                        <span className='text-zinc-400 italic text-xs'>
+                          {t('artworkPanel.noImage')}
+                        </span>
                       )}
                     </div>
 
@@ -1010,7 +1038,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           ) : (
                             <ChevronDown className='w-3 h-3 text-zinc-500' />
                           )}
-                          <span>{olderPanelArts.length} bản cũ</span>
+                          <span>
+                            {t('artworkPanel.olderCount', { count: olderPanelArts.length })}
+                          </span>
                         </button>
                       )}
                       {latestPanelArt && (
@@ -1022,8 +1052,8 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           <Eye className='w-3 h-3' />
                           <span>
                             {openPreviewIds[latestPanelArt.id] && previews[latestPanelArt.id]
-                              ? 'Ẩn'
-                              : 'Xem'}
+                              ? t('artworkPanel.hide')
+                              : t('artworkPanel.view')}
                           </span>
                         </button>
                       )}
@@ -1037,8 +1067,8 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           <Eye className='w-3 h-3' />
                           <span>
                             {openPreviewIds[latestPageArt.id] && previews[latestPageArt.id]
-                              ? 'Ẩn'
-                              : 'Xem'}
+                              ? t('artworkPanel.hide')
+                              : t('artworkPanel.view')}
                           </span>
                         </button>
                       )}
@@ -1047,7 +1077,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           type='button'
                           onClick={() => onOpenBible(p.id, p.panelNumber)}
                           data-testid={`panel-bible-btn-${p.id}`}
-                          title='Xem tham chiếu thiết kế nhân vật trong khung tranh này'
+                          title={t('artworkPanel.panelBibleTooltip')}
                           className='px-2.5 py-1 rounded-md border border-orange-300 bg-orange-50 hover:bg-orange-100 text-xs font-semibold text-orange-900 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
                         >
                           <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
@@ -1066,7 +1096,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           className='px-2.5 py-1 rounded-md bg-stone-900 text-white hover:bg-stone-800 border border-stone-900 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs'
                         >
                           <Upload className='w-3.5 h-3.5' />
-                          <span>Tải ảnh cho khung</span>
+                          <span>{t('artworkPanel.uploadPanelBtn')}</span>
                         </button>
                       )}
                     </div>
@@ -1078,9 +1108,15 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                       <ArtworkPreviewCard
                         art={latestPanelArt}
                         src={previews[latestPanelArt.id]}
-                        alt={`Artwork v${latestPanelArt.versionNumber} của khung #${p.panelNumber}`}
-                        friendlyTitle={getDisplayArtworkTitle(latestPanelArt, p, false)}
-                        contextTitle={`Khung #${p.panelNumber} (Đọc #${p.readingOrder})`}
+                        alt={t('artworkPanel.panelArtworkAlt', {
+                          version: latestPanelArt.versionNumber,
+                          number: p.panelNumber,
+                        })}
+                        friendlyTitle={getDisplayArtworkTitle(latestPanelArt, p, false, t)}
+                        contextTitle={t('artworkPanel.panelContextTitle', {
+                          number: p.panelNumber,
+                          order: p.readingOrder,
+                        })}
                         onOpenZoom={(zoomData) => setZoomed(zoomData)}
                         onRetry={() => handleRetryPreview(latestPanelArt)}
                         onClose={() => handleTogglePreview(latestPanelArt)}
@@ -1092,7 +1128,10 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                     <PageArtCrop
                       src={previews[latestPageArt.id]}
                       boundingBox={p.boundingBox}
-                      alt={`Khung #${p.panelNumber} cắt từ ảnh cả trang v${latestPageArt.versionNumber}`}
+                      alt={t('artworkPanel.panelCropAlt', {
+                        number: p.panelNumber,
+                        version: latestPageArt.versionNumber,
+                      })}
                       testId={`panel-page-art-crop-${p.id}`}
                     />
                   )}
@@ -1100,8 +1139,10 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   {olderPanelArts.length > 0 && isHistoryOpen && (
                     <div className='mt-2 pt-2 border-t border-dashed border-zinc-200 space-y-1.5 pl-2 border-l-2 border-l-amber-400'>
                       <p className='text-xs font-semibold text-zinc-500 uppercase tracking-wider'>
-                        Lịch sử bản vẽ cũ của Khung #{p.panelNumber} ({olderPanelArts.length} bản
-                        cũ):
+                        {t('artworkPanel.panelHistoryHeading', {
+                          number: p.panelNumber,
+                          count: olderPanelArts.length,
+                        })}
                       </p>
                       {olderPanelArts.map((art) => (
                         <div
@@ -1111,20 +1152,20 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           <div className='flex items-center justify-between gap-2 flex-wrap'>
                             <div className='flex items-center gap-2 flex-wrap min-w-0'>
                               <span className='font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-700 text-xs'>
-                                v{art.versionNumber} (Bản cũ)
+                                {t('artworkPanel.oldVersionTag', { version: art.versionNumber })}
                               </span>
                               <span
                                 className='text-zinc-700 font-medium text-xs truncate max-w-[200px]'
                                 title={art.fileName}
                               >
-                                {getDisplayArtworkTitle(art, p, false)}
+                                {getDisplayArtworkTitle(art, p, false, t)}
                               </span>
                               <strong className='font-mono font-bold text-zinc-600 text-xs'>
                                 (v{art.versionNumber})
                               </strong>
                               <span className='text-xs text-zinc-500 font-mono'>
                                 {formatSize(art.sizeBytes)} ·{' '}
-                                {new Date(art.createdAt).toLocaleString('vi-VN')}
+                                {new Date(art.createdAt).toLocaleString(dateLocale)}
                               </span>
                               {getStatusBadges(art).map((b) => (
                                 <span
@@ -1147,7 +1188,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                 className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
                               >
                                 <Info className='w-3 h-3' />
-                                {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
+                                {detailsExpanded[art.id]
+                                  ? t('artworkPanel.hideDetails')
+                                  : t('artworkPanel.details')}
                               </button>
                               <button
                                 type='button'
@@ -1156,7 +1199,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               >
                                 <Eye className='w-3 h-3' />
                                 <span>
-                                  {openPreviewIds[art.id] && previews[art.id] ? 'Ẩn' : 'Xem bản cũ'}
+                                  {openPreviewIds[art.id] && previews[art.id]
+                                    ? t('artworkPanel.hide')
+                                    : t('artworkPanel.viewOld')}
                                 </span>
                               </button>
                             </div>
@@ -1167,24 +1212,25 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               className='p-2 rounded bg-white border border-zinc-200 text-xs font-mono text-zinc-600 space-y-0.5'
                             >
                               <div>
-                                Tên file:{' '}
+                                {t('artworkPanel.detailFileName')}{' '}
                                 <span className='text-zinc-900 font-medium'>{art.fileName}</span>
                               </div>
                               <div>
-                                Dung lượng: {formatSize(art.sizeBytes)} (
+                                {t('artworkPanel.detailSize')} {formatSize(art.sizeBytes)} (
                                 {art.sizeBytes.toLocaleString()} bytes)
                               </div>
                               <div>
-                                Trạng thái bảo chứng:{' '}
+                                {t('artworkPanel.detailIntegrityStatus')}{' '}
                                 <span className='text-emerald-700 font-medium'>
-                                  Đã niêm phong an toàn
+                                  {t('artworkPanel.detailSealed')}
                                 </span>
                               </div>
                               <div className='truncate text-[11px] text-zinc-500'>
-                                Mã toàn vẹn: {art.sha256}
+                                {t('artworkPanel.detailIntegrityHash')} {art.sha256}
                               </div>
                               <div>
-                                Thời gian tải: {new Date(art.createdAt).toLocaleString('vi-VN')}
+                                {t('artworkPanel.detailUploadedAt')}{' '}
+                                {new Date(art.createdAt).toLocaleString(dateLocale)}
                               </div>
                             </div>
                           )}
@@ -1192,9 +1238,15 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                             <ArtworkPreviewCard
                               art={art}
                               src={previews[art.id]}
-                              alt={`Artwork v${art.versionNumber} của khung #${p.panelNumber}`}
-                              friendlyTitle={getDisplayArtworkTitle(art, p, false)}
-                              contextTitle={`Khung #${p.panelNumber} • Bản cũ v${art.versionNumber}`}
+                              alt={t('artworkPanel.panelArtworkAlt', {
+                                version: art.versionNumber,
+                                number: p.panelNumber,
+                              })}
+                              friendlyTitle={getDisplayArtworkTitle(art, p, false, t)}
+                              contextTitle={t('artworkPanel.panelOldContextTitle', {
+                                number: p.panelNumber,
+                                version: art.versionNumber,
+                              })}
                               onOpenZoom={(zoomData) => setZoomed(zoomData)}
                               onRetry={() => handleRetryPreview(art)}
                               onClose={() => handleTogglePreview(art)}
@@ -1213,13 +1265,13 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       )}
 
       {mine.length === 0 ? (
-        <p className='text-xs text-[#888888]'>Chưa có artwork nào ở công đoạn này.</p>
+        <p className='text-xs text-[#888888]'>{t('artworkPanel.emptyStageArtwork')}</p>
       ) : fullPageArts.length > 0 ? (
         <div className='space-y-2'>
           {panels.length > 0 && (
             <p className='text-xs font-bold text-zinc-800 flex items-center gap-1.5'>
               <ImageIcon className='w-3.5 h-3.5 text-orange-600' />
-              <span>Ảnh artwork cả trang ({fullPageArts.length} phiên bản)</span>
+              <span>{t('artworkPanel.fullPageSectionTitle', { count: fullPageArts.length })}</span>
             </p>
           )}
           <ul className='space-y-2'>
@@ -1249,7 +1301,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               : 'bg-zinc-200 text-zinc-700'
                           }`}
                         >
-                          {isCurrent ? 'Bản hiện tại' : 'Bản cũ'}
+                          {isCurrent
+                            ? t('artworkPanel.currentVersion')
+                            : t('artworkPanel.oldVersion')}
                         </span>
                         <span className='truncate font-semibold text-zinc-900'>{art.fileName}</span>
                         <strong className='font-mono font-bold text-emerald-800 text-xs'>
@@ -1274,11 +1328,13 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
                         >
                           <Info className='w-3 h-3' />
-                          {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
+                          {detailsExpanded[art.id]
+                            ? t('artworkPanel.hideDetails')
+                            : t('artworkPanel.details')}
                         </button>
                         <span className='text-xs text-zinc-500 font-mono'>
                           {formatSize(art.sizeBytes)} ·{' '}
-                          {new Date(art.createdAt).toLocaleString('vi-VN')}
+                          {new Date(art.createdAt).toLocaleString(dateLocale)}
                         </span>
                       </div>
                     </div>
@@ -1293,7 +1349,11 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                       ) : (
                         <Eye className='w-3 h-3' />
                       )}
-                      <span>{openPreviewIds[art.id] && previews[art.id] ? 'Ẩn' : 'Xem'}</span>
+                      <span>
+                        {openPreviewIds[art.id] && previews[art.id]
+                          ? t('artworkPanel.hide')
+                          : t('artworkPanel.view')}
+                      </span>
                     </button>
                   </div>
                   {detailsExpanded[art.id] && (
@@ -1302,32 +1362,41 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                       className='mt-1 p-2 rounded-lg bg-white border border-zinc-200 text-xs font-mono text-zinc-600 space-y-0.5'
                     >
                       <div>
-                        Tên file: <span className='text-zinc-900 font-medium'>{art.fileName}</span>
+                        {t('artworkPanel.detailFileName')}{' '}
+                        <span className='text-zinc-900 font-medium'>{art.fileName}</span>
                       </div>
                       <div>
-                        Dung lượng: {formatSize(art.sizeBytes)} ({art.sizeBytes.toLocaleString()}{' '}
-                        bytes)
+                        {t('artworkPanel.detailSize')} {formatSize(art.sizeBytes)} (
+                        {art.sizeBytes.toLocaleString()} bytes)
                       </div>
                       <div>
-                        Trạng thái bảo chứng:{' '}
-                        <span className='text-emerald-700 font-medium'>Đã niêm phong an toàn</span>
+                        {t('artworkPanel.detailIntegrityStatus')}{' '}
+                        <span className='text-emerald-700 font-medium'>
+                          {t('artworkPanel.detailSealed')}
+                        </span>
                       </div>
                       <div className='truncate text-[11px] text-zinc-500'>
-                        Mã toàn vẹn: {art.sha256}
+                        {t('artworkPanel.detailIntegrityHash')} {art.sha256}
                       </div>
-                      <div>Thời gian tải: {new Date(art.createdAt).toLocaleString('vi-VN')}</div>
+                      <div>
+                        {t('artworkPanel.detailUploadedAt')}{' '}
+                        {new Date(art.createdAt).toLocaleString(dateLocale)}
+                      </div>
                     </div>
                   )}
                   {openPreviewIds[art.id] && previews[art.id] && (
                     <ArtworkPreviewCard
                       art={art}
                       src={previews[art.id]}
-                      alt={`Artwork v${art.versionNumber} của ${getDisplayArtworkTitle(art, matchedPanel, false)}`}
-                      friendlyTitle={getDisplayArtworkTitle(art, matchedPanel, false)}
+                      alt={t('artworkPanel.artworkOfAlt', {
+                        version: art.versionNumber,
+                        title: getDisplayArtworkTitle(art, matchedPanel, false, t),
+                      })}
+                      friendlyTitle={getDisplayArtworkTitle(art, matchedPanel, false, t)}
                       contextTitle={
                         isCurrent
-                          ? 'Bản vẽ cả trang (Hiện tại)'
-                          : `Bản vẽ cả trang (Bản cũ v${art.versionNumber})`
+                          ? t('artworkPanel.fullPageCurrentContext')
+                          : t('artworkPanel.fullPageOldContext', { version: art.versionNumber })
                       }
                       onOpenZoom={(zoomData) => setZoomed(zoomData)}
                       onRetry={() => handleRetryPreview(art)}
@@ -1352,7 +1421,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                 <ChevronDown className='w-3.5 h-3.5' />
               )}
               <span>
-                {showOlder ? 'Thu gọn phiên bản cũ' : `Xem ${olderArts.length} phiên bản cũ`}
+                {showOlder
+                  ? t('artworkPanel.collapseOlder')
+                  : t('artworkPanel.showOlder', { count: olderArts.length })}
               </span>
             </button>
           )}
@@ -1372,14 +1443,14 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
             )}
             <span>
               {showOlder
-                ? 'Thu gọn danh sách tất cả phiên bản'
-                : `Xem toàn bộ lịch sử (${mine.length} bản ghi)`}
+                ? t('artworkPanel.collapseAllVersions')
+                : t('artworkPanel.showAllHistory', { count: mine.length })}
             </span>
           </button>
           {showOlder && (
             <div className='mt-2 space-y-2'>
               <p className='text-xs font-semibold text-zinc-500 uppercase tracking-wider'>
-                Lịch sử tải lên toàn trang ({mine.length} bản ghi):
+                {t('artworkPanel.fullPageUploadHistoryHeading', { count: mine.length })}
               </p>
               <ul className='space-y-2'>
                 {[...mine].reverse().map((art) => {
@@ -1410,7 +1481,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                   : 'bg-zinc-200 text-zinc-700'
                               }`}
                             >
-                              {isCurrent ? 'Bản hiện tại' : 'Bản cũ'}
+                              {isCurrent
+                                ? t('artworkPanel.currentVersion')
+                                : t('artworkPanel.oldVersion')}
                             </span>
                             <span className='truncate font-semibold text-zinc-900'>
                               {art.fileName}
@@ -1437,11 +1510,13 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
                             >
                               <Info className='w-3 h-3' />
-                              {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
+                              {detailsExpanded[art.id]
+                                ? t('artworkPanel.hideDetails')
+                                : t('artworkPanel.details')}
                             </button>
                             <span className='text-xs text-zinc-500 font-mono'>
                               {formatSize(art.sizeBytes)} ·{' '}
-                              {new Date(art.createdAt).toLocaleString('vi-VN')}
+                              {new Date(art.createdAt).toLocaleString(dateLocale)}
                             </span>
                           </div>
                         </div>
@@ -1456,7 +1531,11 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           ) : (
                             <Eye className='w-3 h-3' />
                           )}
-                          <span>{openPreviewIds[art.id] && previews[art.id] ? 'Ẩn' : 'Xem'}</span>
+                          <span>
+                            {openPreviewIds[art.id] && previews[art.id]
+                              ? t('artworkPanel.hide')
+                              : t('artworkPanel.view')}
+                          </span>
                         </button>
                       </div>
                       {detailsExpanded[art.id] && (
@@ -1465,16 +1544,17 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           className='p-2 rounded-lg bg-white border border-zinc-200 text-xs font-mono text-zinc-600 space-y-0.5'
                         >
                           <div>
-                            Tên file:{' '}
+                            {t('artworkPanel.detailFileName')}{' '}
                             <span className='text-zinc-900 font-medium'>{art.fileName}</span>
                           </div>
                           <div>
-                            Dung lượng: {formatSize(art.sizeBytes)} (
+                            {t('artworkPanel.detailSize')} {formatSize(art.sizeBytes)} (
                             {art.sizeBytes.toLocaleString()} bytes)
                           </div>
                           <div className='truncate'>SHA-256: {art.sha256}</div>
                           <div>
-                            Thời gian tải: {new Date(art.createdAt).toLocaleString('vi-VN')}
+                            {t('artworkPanel.detailUploadedAt')}{' '}
+                            {new Date(art.createdAt).toLocaleString(dateLocale)}
                           </div>
                         </div>
                       )}
@@ -1482,18 +1562,27 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         <ArtworkPreviewCard
                           art={art}
                           src={previews[art.id]}
-                          alt={`Artwork v${art.versionNumber} của ${getDisplayArtworkTitle(art, matchedPanel, !matchedPanel && Boolean(art.panelId))}`}
+                          alt={t('artworkPanel.artworkOfAlt', {
+                            version: art.versionNumber,
+                            title: getDisplayArtworkTitle(
+                              art,
+                              matchedPanel,
+                              !matchedPanel && Boolean(art.panelId),
+                              t,
+                            ),
+                          })}
                           friendlyTitle={getDisplayArtworkTitle(
                             art,
                             matchedPanel,
                             !matchedPanel && Boolean(art.panelId),
+                            t,
                           )}
                           contextTitle={
                             matchedPanel
-                              ? `Khung #${matchedPanel.panelNumber}`
+                              ? t('artworkPanel.scopePanel', { number: matchedPanel.panelNumber })
                               : art.panelId
-                                ? 'Khung trước đây'
-                                : 'Cả trang'
+                                ? t('artworkPanel.previousPanel')
+                                : t('artworkPanel.scopeFullPage')
                           }
                           onOpenZoom={(zoomData) => setZoomed(zoomData)}
                           onRetry={() => handleRetryPreview(art)}
@@ -1525,8 +1614,10 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
               <ChevronDown className='w-3.5 h-3.5' />
             )}
             <span>
-              {showDeletedPanelArts ? 'Ẩn' : 'Xem'} {deletedPanelArts.length} phiên bản của khung đã
-              xoá
+              {t('artworkPanel.deletedPanelToggle', {
+                action: showDeletedPanelArts ? t('artworkPanel.hide') : t('artworkPanel.view'),
+                count: deletedPanelArts.length,
+              })}
             </span>
           </button>
           {showDeletedPanelArts && (
@@ -1540,8 +1631,10 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                     <span className='font-semibold flex items-center gap-1.5 text-stone-800'>
                       <span className='w-1.5 h-1.5 rounded-full bg-stone-400' />
                       <span>
-                        Khung trước đây {deletedPanelGroups.length > 1 ? `#${groupIdx + 1}` : ''} (
-                        {group.arts.length} phiên bản)
+                        {t('artworkPanel.previousPanelGroupTitle', {
+                          suffix: deletedPanelGroups.length > 1 ? `#${groupIdx + 1} ` : '',
+                          count: group.arts.length,
+                        })}
                       </span>
                     </span>
                     <span className='font-mono text-[11px] text-stone-400'>
@@ -1553,7 +1646,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                     {group.arts.map((art) => {
                       const isLatestInGroup = art.id === group.latestArt.id;
                       const isPreviewOpen = Boolean(openPreviewIds[art.id] && previews[art.id]);
-                      const friendlyTitle = getDisplayArtworkTitle(art, null, true);
+                      const friendlyTitle = getDisplayArtworkTitle(art, null, true, t);
 
                       return (
                         <li
@@ -1572,7 +1665,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                     : 'bg-stone-100 text-stone-600'
                                 }`}
                               >
-                                {isLatestInGroup ? 'Bản cuối của khung' : 'Bản cũ'}
+                                {isLatestInGroup
+                                  ? t('artworkPanel.lastOfPanel')
+                                  : t('artworkPanel.oldVersion')}
                               </span>
                               <ScopeBadge art={art} />
                               <span
@@ -1583,7 +1678,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               </span>
                               <span className='font-mono text-stone-500 text-[11px]'>
                                 {formatSize(art.sizeBytes)} ·{' '}
-                                {new Date(art.createdAt).toLocaleString('vi-VN')}
+                                {new Date(art.createdAt).toLocaleString(dateLocale)}
                               </span>
                             </div>
 
@@ -1599,7 +1694,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                 className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
                               >
                                 <Info className='w-3 h-3' />
-                                {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
+                                {detailsExpanded[art.id]
+                                  ? t('artworkPanel.hideDetails')
+                                  : t('artworkPanel.details')}
                               </button>
                               <button
                                 type='button'
@@ -1612,7 +1709,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                 ) : (
                                   <Eye className='w-3 h-3' />
                                 )}
-                                <span>{isPreviewOpen ? 'Ẩn' : 'Xem'}</span>
+                                <span>
+                                  {isPreviewOpen ? t('artworkPanel.hide') : t('artworkPanel.view')}
+                                </span>
                               </button>
                             </div>
                           </div>
@@ -1623,18 +1722,23 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               className='p-2 rounded-lg bg-stone-50 border border-stone-200 text-xs font-mono text-stone-600 space-y-0.5'
                             >
                               <div>
-                                Tên file:{' '}
+                                {t('artworkPanel.detailFileName')}{' '}
                                 <span className='text-zinc-900 font-medium'>{art.fileName}</span>
                               </div>
                               <div>
-                                Dung lượng: {formatSize(art.sizeBytes)} (
+                                {t('artworkPanel.detailSize')} {formatSize(art.sizeBytes)} (
                                 {art.sizeBytes.toLocaleString()} bytes)
                               </div>
                               <div className='truncate'>SHA-256: {art.sha256}</div>
                               <div>
-                                Thời gian tải: {new Date(art.createdAt).toLocaleString('vi-VN')}
+                                {t('artworkPanel.detailUploadedAt')}{' '}
+                                {new Date(art.createdAt).toLocaleString(dateLocale)}
                               </div>
-                              {art.panelId && <div>Mã khung (panelId): {art.panelId}</div>}
+                              {art.panelId && (
+                                <div>
+                                  {t('artworkPanel.detailPanelId')} {art.panelId}
+                                </div>
+                              )}
                             </div>
                           )}
 
@@ -1642,9 +1746,13 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                             <ArtworkPreviewCard
                               art={art}
                               src={previews[art.id]}
-                              alt={`Artwork v${art.versionNumber} của khung đã xoá`}
+                              alt={t('artworkPanel.deletedPanelArtworkAlt', {
+                                version: art.versionNumber,
+                              })}
                               friendlyTitle={friendlyTitle}
-                              contextTitle={`Khung trước đây (ID: ${group.panelId.slice(0, 8)}…)`}
+                              contextTitle={t('artworkPanel.previousPanelContext', {
+                                id: group.panelId.slice(0, 8),
+                              })}
                               onOpenZoom={(zoomData) => setZoomed(zoomData)}
                               onRetry={() => handleRetryPreview(art)}
                               onClose={() => handleTogglePreview(art)}

@@ -6,6 +6,7 @@ import { elementService, type ElementSnapshotDto } from '@/services/element.serv
 import { buildPageComposite } from '@/shared/utils/compositePageRenderer';
 import { panelArtworkCoverage } from './collaborationRules';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 interface SubmitPreviewModalProps {
   chapterId: string;
@@ -41,6 +42,7 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
   onClose,
   onConfirm,
 }) => {
+  const { t } = useTranslation('collaboration');
   const [loading, setLoading] = useState(true);
   const [dataUrl, setDataUrl] = useState('');
   const [mode, setMode] = useState<'page' | 'panels' | 'empty'>('empty');
@@ -92,21 +94,21 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
     <Modal
       isOpen
       onClose={onClose}
-      closeLabel='Đóng'
+      closeLabel={t('submitPreview.close')}
       size='lg'
-      title='Xem trước trang truyện'
+      title={t('submitPreview.title')}
       data-testid='submit-preview-modal'
     >
       <div className='bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden'>
         <div className='flex items-center justify-between px-5 py-3 border-b border-[#E7E7E7]'>
           <div>
-            <h2 className='font-bold text-sm text-[#171717]'>Xem trước trang truyện</h2>
+            <h2 className='font-bold text-sm text-[#171717]'>{t('submitPreview.title')}</h2>
             <p className='text-[11px] text-[#737373]'>{stageName}</p>
           </div>
           <button
             type='button'
             onClick={onClose}
-            aria-label='Đóng'
+            aria-label={t('submitPreview.close')}
             className='p-1.5 rounded-lg hover:bg-zinc-100 cursor-pointer'
           >
             <X className='w-4 h-4' />
@@ -116,19 +118,19 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
         <div className='flex-1 overflow-y-auto overflow-x-hidden bg-zinc-100 p-4 flex justify-center'>
           {loading ? (
             <div className='flex items-center gap-2 text-xs text-zinc-500 py-20'>
-              <Loader2 className='w-4 h-4 animate-spin' /> Đang ghép trang…
+              <Loader2 className='w-4 h-4 animate-spin' /> {t('submitPreview.building')}
             </div>
           ) : dataUrl ? (
             <img
               src={dataUrl}
-              alt='Trang ghép hoàn chỉnh'
+              alt={t('submitPreview.compositeAlt')}
               data-testid='submit-preview-image'
               className='bg-white shadow-md block w-auto h-auto max-w-full object-contain'
               style={{ maxHeight: 'calc(92vh - 230px)' }}
             />
           ) : (
             <p className='text-xs text-zinc-500 py-20' data-testid='submit-preview-empty'>
-              Chưa có ảnh nào để xem trước ở stage này.
+              {t('submitPreview.empty')}
             </p>
           )}
         </div>
@@ -146,17 +148,18 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
               <AlertTriangle className='w-3.5 h-3.5' />
             )}
             {coverage.hasFullPage
-              ? 'Đã có ảnh cả trang ở stage này.'
-              : `Panel đã có ảnh: ${coverage.covered}/${coverage.total}`}
+              ? t('submitPreview.hasFullPage')
+              : t('submitPreview.panelCoverage', {
+                  covered: coverage.covered,
+                  total: coverage.total,
+                })}
           </div>
           {mode === 'page' && (
-            <p className='text-[10px] text-zinc-500'>
-              Hiển thị ảnh cả trang (không ghép từng Panel).
-            </p>
+            <p className='text-[10px] text-zinc-500'>{t('submitPreview.fullPageModeHint')}</p>
           )}
           {failedImages > 0 && (
             <p className='text-[10px] text-amber-700' data-testid='submit-preview-failed'>
-              {failedImages} ảnh không tải được và đã được bỏ qua trong bản xem trước.
+              {t('submitPreview.failedImages', { count: failedImages })}
             </p>
           )}
           {!canSubmit && submitBlockedReason && (
@@ -168,7 +171,7 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
               onClick={onClose}
               className='px-3 py-1.5 rounded-lg border border-[#E7E7E7] text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 cursor-pointer'
             >
-              <ArrowLeft className='w-3 h-3' /> Quay lại sửa
+              <ArrowLeft className='w-3 h-3' /> {t('submitPreview.backToEdit')}
             </button>
             <button
               type='button'
@@ -178,7 +181,7 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
               className='px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
             >
               {busy ? <Loader2 className='w-3 h-3 animate-spin' /> : <Send className='w-3 h-3' />}
-              Xác nhận &amp; Nộp bài
+              {t('submitPreview.confirmSubmit')}
             </button>
           </div>
         </div>

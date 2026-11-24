@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationService } from '@/services/notification.service';
+import { useTranslation } from '@/lib/i18n';
 import type { NotificationDto } from '@/types';
 import { formatRelativeTime } from './collaborationRules';
 import { getNotificationBadge, resolveNotificationTargetPath } from './notificationBadge';
@@ -14,24 +15,24 @@ interface NotificationBellProps {
   pollIntervalMs?: number;
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  AssignmentAssigned: 'Việc mới',
-  AssignmentUnassigned: 'Rút việc',
-  AssignmentUpdated: 'Cập nhật việc',
-  AssignmentSubmitted: 'Chờ duyệt',
-  AssignmentApproved: 'Đã duyệt',
-  AssignmentChangesRequested: 'Trả về sửa',
-  ChangeRequestResolved: 'Đã sửa xong',
-  ChangeRequestReopened: 'Mở lại yêu cầu',
-  ChapterReadyForPublication: 'Chờ duyệt xuất bản',
-  ChapterReopened: 'Chương bị mở lại',
-  ChapterPublished: 'Chương đã xuất bản',
-  AssignmentDueSoon: 'Sắp đến hạn',
-  AssignmentOverdue: 'Đã quá hạn',
-  ChangeRequestDueSoon: 'Sửa sắp đến hạn',
-  ChangeRequestOverdue: 'Sửa đã quá hạn',
-  AssignmentReady: 'Đến lượt bạn',
-};
+const KNOWN_NOTIFICATION_TYPES = new Set<string>([
+  'AssignmentAssigned',
+  'AssignmentUnassigned',
+  'AssignmentUpdated',
+  'AssignmentSubmitted',
+  'AssignmentApproved',
+  'AssignmentChangesRequested',
+  'ChangeRequestResolved',
+  'ChangeRequestReopened',
+  'ChapterReadyForPublication',
+  'ChapterReopened',
+  'ChapterPublished',
+  'AssignmentDueSoon',
+  'AssignmentOverdue',
+  'ChangeRequestDueSoon',
+  'ChangeRequestOverdue',
+  'AssignmentReady',
+]);
 
 /**
  * Chuông thông báo chuẩn Lucian UX/UI Element #074 kết hợp logic Backend thực tế (UC-14).
@@ -42,6 +43,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   seriesId,
   pollIntervalMs = 30_000,
 }) => {
+  const { t } = useTranslation('collaboration');
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
@@ -150,7 +152,11 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
         ref={bellRef}
         type='button'
         onClick={handleToggle}
-        aria-label={unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : 'Thông báo'}
+        aria-label={
+          unreadCount > 0
+            ? t('notifications.bellAriaUnread', { count: unreadCount })
+            : t('notifications.bellAria')
+        }
         aria-expanded={open}
         data-testid='notification-bell'
         className={`u074-bell ${isRinging ? 'ring' : ''}`}
@@ -194,7 +200,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
             aria-selected={activeTab === 'all'}
             onClick={() => setActiveTab('all')}
           >
-            Tất cả
+            {t('notifications.tabAll')}
           </button>
           <button
             className='u074-tab'
@@ -203,7 +209,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
             aria-selected={activeTab === 'unread'}
             onClick={() => setActiveTab('unread')}
           >
-            Chưa đọc ({unreadCount})
+            {t('notifications.tabUnread', { count: unreadCount })}
           </button>
           <button
             className='u074-all'
@@ -211,7 +217,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
             disabled={unreadCount === 0}
             onClick={() => void handleReadAll()}
           >
-            Đánh dấu đã đọc tất cả
+            {t('notifications.markAllRead')}
           </button>
         </div>
 
@@ -219,7 +225,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
         <ul className='u074-list' aria-live='polite' style={{ maxHeight: '380px' }}>
           {filteredItems.length === 0 ? (
             <li className='p-6 text-center text-xs text-[#888888] font-medium'>
-              Chưa có thông báo nào.
+              {t('notifications.empty')}
             </li>
           ) : (
             filteredItems.map((n) => {
@@ -267,7 +273,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                             {isDueSoon && (
                               <span className='w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0' />
                             )}
-                            {TYPE_LABEL[String(n.type)] ?? 'Thông báo'}
+                            {KNOWN_NOTIFICATION_TYPES.has(String(n.type))
+                              ? t(`notifications.types.${String(n.type)}`)
+                              : t('notifications.defaultLabel')}
                           </span>
                           <small className='font-mono text-[10.5px] text-[#8E8A97]'>
                             {formatRelativeTime(n.createdAt)}

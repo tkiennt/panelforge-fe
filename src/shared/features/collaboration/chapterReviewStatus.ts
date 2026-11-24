@@ -3,6 +3,7 @@
 
 import type { PipelineStageDto } from '@/services/pipeline.service';
 import type { AssignmentDto, StageProgressDto } from '@/types';
+import { translate } from '@/lib/i18n';
 
 export type PageStageStatus =
   'Approved' | 'InReview' | 'InProgress' | 'ChangesRequested' | 'NotStarted';
@@ -15,27 +16,37 @@ export interface StageStatusStyle {
 
 export const STAGE_STATUS_CONFIG: Record<PageStageStatus, StageStatusStyle> = {
   Approved: {
-    label: 'Đã duyệt',
+    get label() {
+      return translate('collaboration.stageStatus.Approved');
+    },
     dotColor: '#10B981', // green
     badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-300 font-semibold',
   },
   InReview: {
-    label: 'Chờ duyệt',
+    get label() {
+      return translate('collaboration.stageStatus.InReview');
+    },
     dotColor: '#F59E0B', // amber/yellow
     badgeClass: 'bg-amber-50 text-amber-700 border-amber-300 font-medium',
   },
   InProgress: {
-    label: 'Đang làm',
+    get label() {
+      return translate('collaboration.stageStatus.InProgress');
+    },
     dotColor: '#3B82F6', // blue
     badgeClass: 'bg-blue-50 text-blue-700 border-blue-300 font-medium',
   },
   ChangesRequested: {
-    label: 'Cần làm lại',
+    get label() {
+      return translate('collaboration.stageStatus.ChangesRequested');
+    },
     dotColor: '#EF4444', // red
     badgeClass: 'bg-rose-50 text-rose-700 border-rose-300 font-semibold',
   },
   NotStarted: {
-    label: 'Chưa làm',
+    get label() {
+      return translate('collaboration.stageStatus.NotStarted');
+    },
     dotColor: '#9CA3AF', // gray
     badgeClass: 'bg-zinc-100 text-zinc-500 border-zinc-200',
   },
@@ -210,7 +221,11 @@ export function computePageProgressSummary(
 
   const panelCount = pagePanelIds.length;
   const totalActiveStages = activeStages.length;
-  const summaryText = `${panelCount} khung · đủ ${approvedStageCount}/${totalActiveStages} công đoạn`;
+  const summaryText = translate('collaboration.stageStatus.pageProgressSummary', {
+    panelCount,
+    approved: approvedStageCount,
+    total: totalActiveStages,
+  });
 
   return {
     panelCount,
@@ -277,5 +292,8 @@ export function computeUnfinishedPagesWarning(
 
 /** Định dạng chuỗi cảnh báo cho UI, vd "Trang 2 chưa xong: Pencil, Ink, Color, Letter". */
 export function formatUnfinishedWarningText(item: UnfinishedPageItem): string {
-  return `Trang ${item.pageNumber} chưa xong: ${item.incompleteStageNames.join(', ')}`;
+  return translate('collaboration.stageStatus.unfinishedPageWarning', {
+    page: item.pageNumber,
+    stages: item.incompleteStageNames.join(', '),
+  });
 }
