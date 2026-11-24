@@ -17,6 +17,420 @@
     "totalUsers": "Tổng người dùng",
     "registeredUsers": "Người dùng thường",
     "activeWorkspaces": "Workspace đang hoạt động",
-    "storageUsed": "Dung lượng lưu trữ"
+    "storageUsed": "Dung lượng lưu trữ",
+    "refresh": "Làm mới",
+    "retry": "Thử lại",
+    "admins": "Quản trị viên",
+    "studios": "Studio",
+    "membersCount": "{count} thành viên",
+    "actionsTitle": "Tác vụ quản trị",
+    "shortcuts": {
+      "users": {
+        "label": "Người dùng & quyền",
+        "desc": "Cấp hoặc thu hồi quyền tạo Studio"
+      },
+      "aiConfig": {
+        "label": "Cấu hình AI",
+        "desc": "Model, quota và lịch sử sử dụng AI"
+      },
+      "storage": {
+        "label": "Lưu trữ & quota",
+        "desc": "Dung lượng và hạn mức từng Studio"
+      },
+      "sessionPolicy": {
+        "label": "Chính sách phiên",
+        "desc": "Thời hạn phiên, idle timeout, số thiết bị"
+      },
+      "audit": {
+        "label": "Nhật ký hệ thống",
+        "desc": "Tra cứu và xuất lịch sử thao tác"
+      },
+      "analytics": {
+        "label": "Thống kê độc giả",
+        "desc": "Lượt đọc và độc giả các bộ truyện"
+      }
+    }
+  },
+  "ui": {
+    "pagination": {
+      "showing": "Hiển thị",
+      "ariaLabel": "Phân trang",
+      "prevPage": "Trang trước",
+      "nextPage": "Trang sau",
+      "pageOf": "Trang {page} / {totalPages}"
+    },
+    "modal": {
+      "close": "Đóng"
+    },
+    "toast": {
+      "close": "Đóng thông báo"
+    }
+  },
+  "nav": {
+    "subtitle": "Quản trị hệ thống",
+    "ariaLabel": "Điều hướng quản trị",
+    "logout": "Đăng xuất",
+    "openMenu": "Mở menu điều hướng",
+    "expandSidebar": "Mở rộng thanh bên",
+    "collapseSidebar": "Thu gọn thanh bên",
+    "breadcrumbRoot": "Quản trị",
+    "groups": {
+      "overview": "Tổng quan",
+      "config": "Cấu hình",
+      "monitoring": "Giám sát"
+    },
+    "items": {
+      "dashboard": "Tổng quan",
+      "users": "Người dùng & quyền",
+      "aiConfig": "Cấu hình AI",
+      "storage": "Lưu trữ & quota",
+      "sessionPolicy": "Chính sách phiên",
+      "audit": "Nhật ký hệ thống",
+      "analytics": "Thống kê độc giả"
+    }
+  },
+  "users": {
+    "title": "Người dùng & quyền",
+    "description": "Cấp quyền tạo Studio cho người dùng cần mở dự án mới.",
+    "refresh": "Làm mới",
+    "searchPlaceholder": "Tìm theo tên, email, số điện thoại",
+    "searchAriaLabel": "Tìm người dùng",
+    "roleFilterAriaLabel": "Lọc theo vai trò",
+    "filter2faOnly": "Chỉ tài khoản đã bật 2FA",
+    "roles": {
+      "all": "Tất cả",
+      "admin": "Quản trị viên",
+      "producer": "Có quyền tạo Studio",
+      "user": "Người dùng"
+    },
+    "toast": {
+      "producerGranted": "Đã cấp quyền tạo Studio.",
+      "roleUpdated": "Đã cập nhật vai trò thành {role}.",
+      "updateFailed": "Không thể cập nhật vai trò người dùng."
+    },
+    "table": {
+      "loading": "Đang tải người dùng…",
+      "loadError": "Không tải được danh sách người dùng.",
+      "retry": "Thử lại",
+      "noResults": "Không có người dùng phù hợp bộ lọc.",
+      "noResultsHint": "Bộ lọc áp dụng cho trang hiện tại.",
+      "empty": "Chưa có người dùng nào.",
+      "unnamed": "Chưa đặt tên",
+      "twoFactorEnabled": "Đã bật",
+      "twoFactorDisabled": "Chưa bật",
+      "emailVerified": "Đã xác thực",
+      "emailUnverified": "Chưa xác thực",
+      "assignRole": "Phân quyền",
+      "details": "Chi tiết",
+      "colUser": "Người dùng",
+      "colRole": "Vai trò",
+      "col2fa": "2FA",
+      "colEmail": "Email",
+      "colRegisteredAt": "Ngày đăng ký",
+      "colActions": "Thao tác",
+      "unit": "tài khoản"
+    },
+    "assignModal": {
+      "title": "Phân quyền tài khoản",
+      "currentRolePrefix": "Hiện tại:",
+      "cancel": "Hủy",
+      "save": "Lưu thay đổi",
+      "systemPermission": "Quyền hệ thống",
+      "producerLabel": "Có quyền tạo Studio",
+      "producerDesc": "Có thể tạo Studio và quản lý dự án của mình.",
+      "userLabel": "Người dùng",
+      "userDesc": "Chỉ tham gia các Studio được mời.",
+      "projectRolesNote": "Vai trò trong từng dự án (Writer, Artist, Editor…) do Producer của Studio quản lý."
+    },
+    "detailsModal": {
+      "title": "Chi tiết tài khoản",
+      "close": "Đóng",
+      "fullName": "Họ và tên",
+      "email": "Email",
+      "phoneNumber": "Số điện thoại",
+      "role": "Vai trò",
+      "twoFactor": "Xác thực 2 lớp",
+      "emailVerification": "Xác thực email",
+      "createdAt": "Ngày tạo",
+      "accountId": "Mã tài khoản"
+    }
+  },
+  "auditLog": {
+    "title": "Nhật ký hệ thống",
+    "description": "Lịch sử thao tác thay đổi dữ liệu trên toàn hệ thống.",
+    "refresh": "Làm mới",
+    "exportCsv": "Xuất CSV",
+    "exporting": "Đang xuất…",
+    "exportTitle": "Xuất tối đa 10.000 dòng theo bộ lọc hiện tại",
+    "filterAriaLabel": "Bộ lọc nhật ký",
+    "systemActor": "Hệ thống",
+    "studioPrefix": "Studio: {name}",
+    "errors": {
+      "dateRange": "“Đến ngày” phải sau hoặc bằng “Từ ngày”.",
+      "loadFailed": "Không thể tải nhật ký hệ thống.",
+      "exportFailed": "Không xuất được file CSV."
+    },
+    "toast": {
+      "exportTruncated": "Đã tải {count} dòng. File chỉ gồm 10.000 dòng mới nhất.",
+      "exportSuccess": "Đã xuất {count} dòng."
+    },
+    "fields": {
+      "actorEmail": "Email người thực hiện",
+      "entity": "Đối tượng",
+      "action": "Hành động",
+      "fromDate": "Từ ngày",
+      "toDate": "Đến ngày",
+      "entityId": "Mã đối tượng",
+      "entityIdPlaceholder": "Nhập mã cần tra cứu",
+      "hideSystem": "Ẩn hoạt động hệ thống",
+      "hideSystemTitle": "Ẩn các bản ghi tự động của hệ thống (chỉ hiển thị thao tác do người dùng thực hiện)",
+      "resetFilter": "Xóa bộ lọc",
+      "applyFilter": "Áp dụng",
+      "pageSize": "Số dòng mỗi trang"
+    },
+    "entities": {
+      "all": "Tất cả đối tượng",
+      "session": "Phiên đăng nhập (Session)",
+      "user": "Người dùng (User)",
+      "series": "Bộ truyện (Series)",
+      "bibleEntry": "Series Bible",
+      "pipelineStage": "Công đoạn sản xuất",
+      "workspace": "Studio"
+    },
+    "actions": {
+      "all": "Tất cả hành động",
+      "login": "Đăng nhập (LOGIN)",
+      "logout": "Đăng xuất (LOGOUT)",
+      "sessionsRevoked": "Thu hồi phiên hàng loạt (SESSIONS_REVOKED)",
+      "revokeSession": "Thu hồi phiên (REVOKE_SESSION)",
+      "create": "Tạo mới (CREATE)",
+      "update": "Chỉnh sửa (UPDATE)",
+      "delete": "Xóa (DELETE)",
+      "assignProducer": "Cấp quyền tạo Studio"
+    },
+    "table": {
+      "colTime": "Thời gian",
+      "colActor": "Người thực hiện",
+      "colAction": "Hành động",
+      "colEntity": "Đối tượng",
+      "colDescription": "Mô tả",
+      "colView": "Xem",
+      "loading": "Đang tải nhật ký…",
+      "loadError": "Không tải được nhật ký.",
+      "retry": "Thử lại",
+      "noResults": "Không có bản ghi phù hợp bộ lọc.",
+      "empty": "Chưa có bản ghi nào.",
+      "unit": "bản ghi"
+    },
+    "detailModal": {
+      "title": "Chi tiết bản ghi",
+      "close": "Đóng",
+      "time": "Thời gian",
+      "actor": "Người thực hiện",
+      "action": "Hành động",
+      "entity": "Đối tượng",
+      "entityId": "Mã đối tượng",
+      "studio": "Studio",
+      "ipAddress": "Địa chỉ IP",
+      "description": "Mô tả",
+      "changesData": "Dữ liệu thay đổi",
+      "noChanges": "Bản ghi này không có dữ liệu thay đổi."
+    }
+  },
+  "storageBackup": {
+    "title": "Lưu trữ & quota",
+    "description": "Dung lượng đã dùng và hạn mức lưu trữ của từng Studio.",
+    "refresh": "Làm mới",
+    "stats": {
+      "studios": "Studio",
+      "usedStorage": "Dung lượng đã dùng",
+      "totalQuota": "Tổng hạn mức đã cấp"
+    },
+    "searchPlaceholder": "Tìm Studio hoặc chủ sở hữu",
+    "searchAriaLabel": "Tìm Studio",
+    "studioCount": "{filtered} / {total} Studio",
+    "unlimited": "Không giới hạn",
+    "unlimitedLower": "không giới hạn",
+    "table": {
+      "colStudio": "Studio",
+      "colOwner": "Chủ sở hữu",
+      "colMembers": "Thành viên",
+      "colSeries": "Series",
+      "colStorage": "Dung lượng",
+      "colActions": "Thao tác",
+      "loading": "Đang tải Studio…",
+      "loadError": "Không tải được danh sách Studio.",
+      "retry": "Thử lại",
+      "empty": "Chưa có Studio nào.",
+      "noResults": "Không có Studio phù hợp.",
+      "clearSearch": "Xóa tìm kiếm",
+      "createdAt": "Tạo {date}",
+      "progressAria": "{name}: đã dùng {percent}%",
+      "percentUsed": "{percent}% đã dùng",
+      "almostFull": " · sắp đầy",
+      "editQuota": "Sửa hạn mức"
+    },
+    "modal": {
+      "title": "Sửa hạn mức lưu trữ",
+      "usedSuffix": "đã dùng",
+      "cancel": "Hủy",
+      "save": "Lưu hạn mức",
+      "newQuotaLabel": "Hạn mức mới (GB)",
+      "newQuotaHint": "Nhập 0 để không giới hạn.",
+      "presetsAria": "Giá trị gợi ý",
+      "overUsedWarning": "Hạn mức thấp hơn dung lượng đã dùng. Studio sẽ không tải lên thêm được cho đến khi giải phóng dung lượng hoặc được cấp thêm.",
+      "invalidQuota": "Nhập dung lượng từ 0 GB trở lên.",
+      "updateSuccess": "Đã cập nhật hạn mức “{name}” thành {value}.",
+      "updateFailed": "Không cập nhật được hạn mức."
+    }
+  },
+  "sessionPolicy": {
+    "title": "Chính sách phiên",
+    "description": "Giới hạn thời gian đăng nhập và số thiết bị cho thành viên của từng Studio.",
+    "refresh": "Làm mới",
+    "empty": "Chưa có Studio nào để cấu hình.",
+    "reload": "Tải lại",
+    "cardTitle": "Giới hạn phiên",
+    "selectStudioAria": "Chọn Studio",
+    "loadingOption": "Đang tải…",
+    "loadingPolicy": "Đang tải chính sách…",
+    "loadPolicyError": "Không tải được chính sách của Studio này.",
+    "retry": "Thử lại",
+    "unlimited": "Không giới hạn",
+    "presetsAria": "Giá trị gợi ý",
+    "strictestNote": "Người dùng thuộc nhiều Studio sẽ áp dụng giới hạn chặt nhất.",
+    "reset": "Hoàn tác",
+    "save": "Lưu chính sách",
+    "toast": {
+      "loadStudiosFailed": "Không tải được danh sách Studio: {message}",
+      "saveSuccess": "Đã lưu chính sách phiên. Áp dụng từ lần đăng nhập tiếp theo.",
+      "saveFailed": "Không lưu được chính sách phiên."
+    },
+    "errors": {
+      "lifetimeRange": "Nhập từ 5 đến 43.200 phút (30 ngày).",
+      "idleMin": "Nhập từ 1 phút trở lên.",
+      "idleExceedsLifetime": "Không được lớn hơn thời hạn phiên.",
+      "maxRange": "Nhập từ 1 đến 100."
+    },
+    "lifetime": {
+      "title": "Thời hạn phiên tối đa",
+      "description": "Sau thời gian này kể từ lúc đăng nhập, người dùng phải đăng nhập lại.",
+      "unit": "phút",
+      "approxHours": "≈ {hours} giờ"
+    },
+    "idle": {
+      "title": "Tự đăng xuất khi không hoạt động",
+      "description": "Phiên bị thu hồi nếu người dùng không thao tác trong khoảng này.",
+      "unit": "phút",
+      "delayNote": "Giá trị dưới 30 phút có thể chậm tối đa 30 phút mới có hiệu lực."
+    },
+    "maxSessions": {
+      "title": "Số thiết bị đăng nhập cùng lúc",
+      "description": "Khi vượt giới hạn, phiên đăng nhập cũ nhất sẽ bị đăng xuất.",
+      "unit": "thiết bị"
+    },
+    "presets": {
+      "m15": "15 phút",
+      "m30": "30 phút",
+      "h1": "1 giờ",
+      "h2": "2 giờ",
+      "h8": "8 giờ",
+      "d1": "1 ngày",
+      "d7": "7 ngày",
+      "d30": "30 ngày"
+    }
+  },
+  "aiConfig": {
+    "title": "Cấu hình AI",
+    "description": "Nhà cung cấp, model và quota AI của từng Studio.",
+    "refresh": "Làm mới",
+    "tabs": {
+      "ariaLabel": "Cấu hình AI",
+      "credentials": "Cấu hình",
+      "reports": "Báo cáo sử dụng"
+    },
+    "status": {
+      "all": "Tất cả",
+      "succeeded": "Thành công",
+      "failed": "Thất bại",
+      "quotaExceeded": "Vượt quota",
+      "providerUnavailable": "Nhà cung cấp lỗi",
+      "disabled": "AI đang tắt"
+    },
+    "studio": {
+      "cardTitle": "Cấu hình theo Studio",
+      "selectStudioAria": "Chọn Studio",
+      "loadStudiosError": "Không tải được danh sách Studio.",
+      "retry": "Thử lại",
+      "emptyStudios": "Chưa có Studio nào để cấu hình AI.",
+      "loadingConfig": "Đang tải cấu hình…",
+      "loadConfigError": "Không tải được cấu hình AI của Studio này.",
+      "enableTitle": "Bật AI cho Studio",
+      "enableDesc": "Khi tắt, mọi yêu cầu AI của Studio sẽ bị từ chối.",
+      "keyStatusLabel": "Trạng thái key:",
+      "keyMissing": "Chưa có API key",
+      "keyUnusable": "Key không đọc được, hãy nhập lại",
+      "keyPresent": "Đã có API key",
+      "providerLabel": "Nhà cung cấp",
+      "apiKeyLabel": "API key",
+      "apiKeyHintExisting": "Nhập key mới để thay thế, AI dùng key mới ngay sau khi lưu. Để trống nếu giữ nguyên.",
+      "apiKeyHintNew": "Key được kiểm tra với Google trước khi lưu.",
+      "apiKeyPlaceholder": "Nhập API key",
+      "tokenQuotaLabel": "Quota token mỗi tháng",
+      "imageQuotaLabel": "Quota sinh ảnh mỗi tháng",
+      "zeroUnlimited": "0 = không giới hạn",
+      "nonNegativeIntError": "Nhập số nguyên không âm.",
+      "allowedModels": "Model được phép",
+      "allowedModelsNote": "Không chọn model nào thì giữ nguyên danh sách hiện tại.",
+      "reset": "Hoàn tác",
+      "save": "Lưu cấu hình",
+      "saveSuccess": "Đã lưu cấu hình AI.",
+      "saveFailed": "Không lưu được cấu hình AI."
+    },
+    "summary": {
+      "title": "Tháng này",
+      "status": "Trạng thái",
+      "aiEnabled": "AI đang bật",
+      "aiDisabled": "AI đang tắt",
+      "tokensUsed": "Token đã dùng",
+      "imagesGenerated": "Ảnh đã sinh",
+      "unlimited": "không giới hạn",
+      "lastReset": "Đặt lại gần nhất"
+    },
+    "reports": {
+      "dateRangeError": "“Đến ngày” phải sau hoặc bằng “Từ ngày”.",
+      "loadFailed": "Không thể tải lịch sử gọi AI.",
+      "exportFailed": "Không xuất được file CSV.",
+      "exportTruncated": "Đã tải {count} bản ghi. File chỉ gồm 10.000 dòng mới nhất.",
+      "exportSuccess": "Đã xuất {count} bản ghi.",
+      "statCalls": "Lượt gọi AI",
+      "statCallsHint": "{count} thành công",
+      "statTokens": "Token đã dùng",
+      "statCost": "Chi phí ước tính",
+      "statCostHint": "Theo bảng giá nhà cung cấp",
+      "statBlockedFailed": "Bị chặn / lỗi",
+      "filterAriaLabel": "Bộ lọc lịch sử AI",
+      "featureLabel": "Tính năng",
+      "featurePlaceholder": "Ví dụ: BibleGrounding",
+      "statusLabel": "Trạng thái",
+      "fromDateLabel": "Từ ngày",
+      "toDateLabel": "Đến ngày",
+      "resetFilter": "Xóa bộ lọc",
+      "exportCsv": "Xuất CSV",
+      "applyFilter": "Áp dụng",
+      "colTime": "Thời gian",
+      "colFeature": "Tính năng",
+      "colProviderModel": "Nhà cung cấp / Model",
+      "colTokens": "Token",
+      "colCost": "Chi phí",
+      "colStatus": "Trạng thái",
+      "loading": "Đang tải lịch sử…",
+      "loadError": "Không tải được lịch sử gọi AI.",
+      "retry": "Thử lại",
+      "noResults": "Không có lượt gọi phù hợp bộ lọc.",
+      "empty": "Chưa có lượt gọi AI nào.",
+      "tokensBreakdown": "{prompt} vào · {completion} ra",
+      "unit": "lượt gọi"
+    }
   }
 }

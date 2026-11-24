@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { RefreshCw, Search } from 'lucide-react';
 import { adminService, AdminWorkspaceDto } from '@/services/admin.service';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 import {
   AdminButton,
   AdminField,
@@ -28,6 +29,8 @@ function bytesToGb(bytes: number): number {
 const COLS = 6;
 
 export const StorageBackupSettings: React.FC = () => {
+  const { t, lang } = useTranslation();
+  const locale = lang === 'en' ? 'en-US' : 'vi-VN';
   const [workspaces, setWorkspaces] = useState<AdminWorkspaceDto[]>([]);
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -44,7 +47,7 @@ export const StorageBackupSettings: React.FC = () => {
     try {
       setWorkspaces(await adminService.getWorkspaces());
     } catch (err: any) {
-      console.error('Lỗi tải danh sách Workspace:', err);
+      console.error('Failed to load workspaces:', err);
       setLoadError(true);
     } finally {
       setLoadingWorkspaces(false);
@@ -67,7 +70,7 @@ export const StorageBackupSettings: React.FC = () => {
 
     const gbVal = parseFloat(newQuotaGb);
     if (isNaN(gbVal) || gbVal < 0) {
-      setQuotaError('Nhập dung lượng từ 0 GB trở lên.');
+      setQuotaError(t('admin.storageBackup.modal.invalidQuota'));
       return;
     }
     setQuotaError(null);
@@ -79,10 +82,13 @@ export const StorageBackupSettings: React.FC = () => {
       setWorkspaces((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
       setEditingWorkspace(null);
       showToast(
-        `Đã cập nhật hạn mức “${updated.name}” thành ${gbVal === 0 ? 'không giới hạn' : `${gbVal} GB`}.`,
+        t('admin.storageBackup.modal.updateSuccess', {
+          name: updated.name,
+          value: gbVal === 0 ? t('admin.storageBackup.unlimitedLower') : `${gbVal} GB`,
+        }),
       );
     } catch (err: any) {
-      setQuotaError(err.message || 'Không cập nhật được hạn mức.');
+      setQuotaError(err.message || t('admin.storageBackup.modal.updateFailed'));
     } finally {
       setUpdatingQuota(false);
     }
@@ -113,23 +119,32 @@ export const StorageBackupSettings: React.FC = () => {
       <AdminToast toast={toast} onClose={clearToast} />
 
       <AdminPageHeader
-        title='Lưu trữ & quota'
-        description='Dung lượng đã dùng và hạn mức lưu trữ của từng Studio.'
+        title={t('admin.storageBackup.title')}
+        description={t('admin.storageBackup.description')}
         actions={
           <AdminButton
             onClick={loadWorkspaces}
             isLoading={loadingWorkspaces}
             icon={<RefreshCw className='w-4 h-4' />}
           >
-            Làm mới
+            {t('admin.storageBackup.refresh')}
           </AdminButton>
         }
       />
 
       <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
-        <AdminStat label='Studio' value={workspaces.length.toLocaleString('vi-VN')} />
-        <AdminStat label='Dung lượng đã dùng' value={formatStorage(totalUsedBytes)} />
-        <AdminStat label='Tổng hạn mức đã cấp' value={formatStorage(totalQuotaBytes)} />
+        <AdminStat
+          label={t('admin.storageBackup.stats.studios')}
+          value={workspaces.length.toLocaleString(locale)}
+        />
+        <AdminStat
+          label={t('admin.storageBackup.stats.usedStorage')}
+          value={formatStorage(totalUsedBytes)}
+        />
+        <AdminStat
+          label={t('admin.storageBackup.stats.totalQuota')}
+          value={formatStorage(totalQuotaBytes)}
+        />
       </div>
 
       <div className='bg-admin-card rounded-2xl border border-admin-line overflow-hidden'>
@@ -143,51 +158,70 @@ export const StorageBackupSettings: React.FC = () => {
               type='search'
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder='Tìm Studio hoặc chủ sở hữu'
-              aria-label='Tìm Studio'
+              placeholder={t('admin.storageBackup.searchPlaceholder')}
+              aria-label={t('admin.storageBackup.searchAriaLabel')}
               className={cn(adminFieldClass, 'pl-9')}
             />
           </div>
           <span className='text-sm text-admin-muted sm:ml-auto tabular-nums'>
-            {filtered.length} / {workspaces.length} Studio
+            {t('admin.storageBackup.studioCount', {
+              filtered: filtered.length,
+              total: workspaces.length,
+            })}
           </span>
         </div>
         <div className={adminTable.wrap}>
           <table className={adminTable.table}>
             <thead className={adminTable.thead}>
               <tr>
-                <th className={adminTable.th}>Studio</th>
-                <th className={adminTable.th}>Chủ sở hữu</th>
-                <th className={`${adminTable.th} text-right`}>Thành viên</th>
-                <th className={`${adminTable.th} text-right`}>Series</th>
-                <th className={`${adminTable.th} min-w-[220px]`}>Dung lượng</th>
-                <th className={`${adminTable.th} text-right`}>Thao tác</th>
+                <th className={adminTable.th}>{t('admin.storageBackup.table.colStudio')}</th>
+                <th className={adminTable.th}>{t('admin.storageBackup.table.colOwner')}</th>
+                <th className={`${adminTable.th} text-right`}>
+                  {t('admin.storageBackup.table.colMembers')}
+                </th>
+                <th className={`${adminTable.th} text-right`}>
+                  {t('admin.storageBackup.table.colSeries')}
+                </th>
+                <th className={`${adminTable.th} min-w-[220px]`}>
+                  {t('admin.storageBackup.table.colStorage')}
+                </th>
+                <th className={`${adminTable.th} text-right`}>
+                  {t('admin.storageBackup.table.colActions')}
+                </th>
               </tr>
             </thead>
             <tbody className={adminTable.tbody}>
               {loadingWorkspaces ? (
-                <AdminTableState colSpan={COLS} kind='loading' message='Đang tải Studio…' />
+                <AdminTableState
+                  colSpan={COLS}
+                  kind='loading'
+                  message={t('admin.storageBackup.table.loading')}
+                />
               ) : loadError ? (
                 <AdminTableState
                   colSpan={COLS}
                   kind='error'
-                  message='Không tải được danh sách Studio.'
+                  message={t('admin.storageBackup.table.loadError')}
                   action={
                     <AdminButton size='sm' onClick={loadWorkspaces}>
-                      Thử lại
+                      {t('admin.storageBackup.table.retry')}
                     </AdminButton>
                   }
                 />
               ) : workspaces.length === 0 ? (
-                <AdminTableState colSpan={COLS} kind='empty' message='Chưa có Studio nào.' />
+                <AdminTableState
+                  colSpan={COLS}
+                  kind='empty'
+                  message={t('admin.storageBackup.table.empty')}
+                />
               ) : filtered.length === 0 ? (
                 <AdminTableState
                   colSpan={COLS}
                   kind='no-results'
-                  message='Không có Studio phù hợp.'
+                  message={t('admin.storageBackup.table.noResults')}
                   action={
                     <AdminButton size='sm' onClick={() => setSearch('')}>
-                      Xóa tìm kiếm
+                      {t('admin.storageBackup.table.clearSearch')}
                     </AdminButton>
                   }
                 />
@@ -210,7 +244,9 @@ export const StorageBackupSettings: React.FC = () => {
                           {ws.name}
                         </div>
                         <div className='text-xs text-admin-muted tabular-nums'>
-                          Tạo {new Date(ws.createdAt).toLocaleDateString('vi-VN')}
+                          {t('admin.storageBackup.table.createdAt', {
+                            date: new Date(ws.createdAt).toLocaleDateString(locale),
+                          })}
                         </div>
                       </td>
                       <td className={adminTable.td}>
@@ -227,7 +263,9 @@ export const StorageBackupSettings: React.FC = () => {
                         <div className='flex items-baseline justify-between gap-2 text-sm tabular-nums'>
                           <span className='font-medium'>{formatStorage(usedBytes)}</span>
                           <span className='text-admin-muted'>
-                            {quotaBytes > 0 ? formatStorage(quotaBytes) : 'Không giới hạn'}
+                            {quotaBytes > 0
+                              ? formatStorage(quotaBytes)
+                              : t('admin.storageBackup.unlimited')}
                           </span>
                         </div>
                         {quotaBytes > 0 && (
@@ -238,7 +276,10 @@ export const StorageBackupSettings: React.FC = () => {
                               aria-valuenow={percentUsed}
                               aria-valuemin={0}
                               aria-valuemax={100}
-                              aria-label={`${ws.name}: đã dùng ${percentUsed}%`}
+                              aria-label={t('admin.storageBackup.table.progressAria', {
+                                name: ws.name,
+                                percent: percentUsed,
+                              })}
                             >
                               <div
                                 className={`h-full rounded-full ${barTone}`}
@@ -251,14 +292,17 @@ export const StorageBackupSettings: React.FC = () => {
                                 percentUsed >= 90 ? 'text-red-700 font-medium' : 'text-admin-muted',
                               )}
                             >
-                              {percentUsed}% đã dùng{percentUsed >= 90 ? ' · sắp đầy' : ''}
+                              {t('admin.storageBackup.table.percentUsed', {
+                                percent: percentUsed,
+                              })}
+                              {percentUsed >= 90 ? t('admin.storageBackup.table.almostFull') : ''}
                             </div>
                           </>
                         )}
                       </td>
                       <td className={`${adminTable.td} text-right`}>
                         <AdminButton size='sm' onClick={() => handleOpenEditQuota(ws)}>
-                          Sửa hạn mức
+                          {t('admin.storageBackup.table.editQuota')}
                         </AdminButton>
                       </td>
                     </tr>
@@ -272,10 +316,10 @@ export const StorageBackupSettings: React.FC = () => {
 
       {editingWorkspace && (
         <AdminModal
-          title='Sửa hạn mức lưu trữ'
+          title={t('admin.storageBackup.modal.title')}
           description={
             <>
-              {editingWorkspace.name} · đã dùng{' '}
+              {editingWorkspace.name} · {t('admin.storageBackup.modal.usedSuffix')}{' '}
               <span className='tabular-nums'>
                 {formatStorage(editingWorkspace.usedStorageBytes)}
               </span>
@@ -285,7 +329,7 @@ export const StorageBackupSettings: React.FC = () => {
           footer={
             <>
               <AdminButton onClick={() => setEditingWorkspace(null)} disabled={updatingQuota}>
-                Hủy
+                {t('admin.storageBackup.modal.cancel')}
               </AdminButton>
               <AdminButton
                 type='submit'
@@ -293,17 +337,17 @@ export const StorageBackupSettings: React.FC = () => {
                 variant='primary'
                 isLoading={updatingQuota}
               >
-                Lưu hạn mức
+                {t('admin.storageBackup.modal.save')}
               </AdminButton>
             </>
           }
         >
           <form id='admin-quota-form' noValidate onSubmit={handleUpdateQuota} className='space-y-3'>
             <AdminField
-              label='Hạn mức mới (GB)'
+              label={t('admin.storageBackup.modal.newQuotaLabel')}
               htmlFor='quota-gb'
               required
-              hint='Nhập 0 để không giới hạn.'
+              hint={t('admin.storageBackup.modal.newQuotaHint')}
               error={quotaError}
             >
               <input
@@ -318,20 +362,23 @@ export const StorageBackupSettings: React.FC = () => {
                 required
               />
             </AdminField>
-            <div className='flex flex-wrap gap-1.5' role='group' aria-label='Giá trị gợi ý'>
+            <div
+              className='flex flex-wrap gap-1.5'
+              role='group'
+              aria-label={t('admin.storageBackup.modal.presetsAria')}
+            >
               {[5, 10, 20, 50, 100].map((gb) => (
                 <AdminButton key={gb} size='sm' onClick={() => setNewQuotaGb(gb.toString())}>
                   {gb} GB
                 </AdminButton>
               ))}
               <AdminButton size='sm' onClick={() => setNewQuotaGb('0')}>
-                Không giới hạn
+                {t('admin.storageBackup.unlimited')}
               </AdminButton>
             </div>
             {editingUsedOver && (
               <p className='p-3 rounded-xl border border-amber-200 bg-amber-50 text-sm text-amber-900'>
-                Hạn mức thấp hơn dung lượng đã dùng. Studio sẽ không tải lên thêm được cho đến khi
-                giải phóng dung lượng hoặc được cấp thêm.
+                {t('admin.storageBackup.modal.overUsedWarning')}
               </p>
             )}
           </form>

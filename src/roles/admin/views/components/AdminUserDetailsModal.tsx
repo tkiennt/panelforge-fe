@@ -1,5 +1,6 @@
 import React from 'react';
 import { AdminUserItem } from '@/services/admin.service';
+import { useTranslation } from '@/lib/i18n';
 import { AdminButton, AdminModal } from './AdminUi';
 
 interface AdminUserDetailsModalProps {
@@ -19,37 +20,48 @@ export const AdminUserDetailsModal: React.FC<AdminUserDetailsModalProps> = ({
   user,
   onClose,
   renderProjectRoles,
-}) => (
-  <AdminModal
-    title='Chi tiết tài khoản'
-    onClose={onClose}
-    footer={<AdminButton onClick={onClose}>Đóng</AdminButton>}
-  >
-    <dl className='divide-y divide-admin-line/70'>
-      <Row label='Họ và tên'>{user.fullName || '—'}</Row>
-      <Row label='Email'>
-        <span className='break-all'>{user.email}</span>
-      </Row>
-      <Row label='Số điện thoại'>
-        <span className='tabular-nums'>{user.phoneNumber || '—'}</span>
-      </Row>
-      <Row label='Vai trò'>{renderProjectRoles(user)}</Row>
-      <Row label='Xác thực 2 lớp'>
-        {user.twoFactorEnabled ? (
-          <span className='text-emerald-800 font-medium'>Đã bật</span>
-        ) : (
-          'Chưa bật'
-        )}
-      </Row>
-      <Row label='Xác thực email'>{user.isEmailConfirmed ? 'Đã xác thực' : 'Chưa xác thực'}</Row>
-      <Row label='Ngày tạo'>
-        <span className='tabular-nums'>
-          {user.createdAt ? new Date(user.createdAt).toLocaleString('vi-VN') : '—'}
-        </span>
-      </Row>
-      <Row label='Mã tài khoản'>
-        <span className='font-mono text-xs break-all select-all'>{user.id}</span>
-      </Row>
-    </dl>
-  </AdminModal>
-);
+}) => {
+  const { t, lang } = useTranslation();
+  const locale = lang === 'en' ? 'en-US' : 'vi-VN';
+
+  return (
+    <AdminModal
+      title={t('admin.users.detailsModal.title')}
+      onClose={onClose}
+      footer={<AdminButton onClick={onClose}>{t('admin.users.detailsModal.close')}</AdminButton>}
+    >
+      <dl className='divide-y divide-admin-line/70'>
+        <Row label={t('admin.users.detailsModal.fullName')}>{user.fullName || '—'}</Row>
+        <Row label={t('admin.users.detailsModal.email')}>
+          <span className='break-all'>{user.email}</span>
+        </Row>
+        <Row label={t('admin.users.detailsModal.phoneNumber')}>
+          <span className='tabular-nums'>{user.phoneNumber || '—'}</span>
+        </Row>
+        <Row label={t('admin.users.detailsModal.role')}>{renderProjectRoles(user)}</Row>
+        <Row label={t('admin.users.detailsModal.twoFactor')}>
+          {user.twoFactorEnabled ? (
+            <span className='text-emerald-800 font-medium'>
+              {t('admin.users.table.twoFactorEnabled')}
+            </span>
+          ) : (
+            t('admin.users.table.twoFactorDisabled')
+          )}
+        </Row>
+        <Row label={t('admin.users.detailsModal.emailVerification')}>
+          {user.isEmailConfirmed
+            ? t('admin.users.table.emailVerified')
+            : t('admin.users.table.emailUnverified')}
+        </Row>
+        <Row label={t('admin.users.detailsModal.createdAt')}>
+          <span className='tabular-nums'>
+            {user.createdAt ? new Date(user.createdAt).toLocaleString(locale) : '—'}
+          </span>
+        </Row>
+        <Row label={t('admin.users.detailsModal.accountId')}>
+          <span className='font-mono text-xs break-all select-all'>{user.id}</span>
+        </Row>
+      </dl>
+    </AdminModal>
+  );
+};

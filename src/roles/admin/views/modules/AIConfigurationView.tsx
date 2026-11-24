@@ -10,6 +10,7 @@ import {
   downloadBlob,
 } from '@/services/admin.service';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 import {
   AdminBadge,
   AdminButton,
@@ -29,13 +30,17 @@ import {
   useAdminToast,
 } from '../components/adminUiStyles';
 
-const STATUS_OPTIONS: { value: string; label: string; tone: AdminTone }[] = [
-  { value: '', label: 'Tất cả', tone: 'neutral' },
-  { value: 'Succeeded', label: 'Thành công', tone: 'success' },
-  { value: 'Failed', label: 'Thất bại', tone: 'danger' },
-  { value: 'QuotaExceeded', label: 'Vượt quota', tone: 'warning' },
-  { value: 'ProviderUnavailable', label: 'Nhà cung cấp lỗi', tone: 'danger' },
-  { value: 'Disabled', label: 'AI đang tắt', tone: 'neutral' },
+const STATUS_OPTIONS: { value: string; labelKey: string; tone: AdminTone }[] = [
+  { value: '', labelKey: 'admin.aiConfig.status.all', tone: 'neutral' },
+  { value: 'Succeeded', labelKey: 'admin.aiConfig.status.succeeded', tone: 'success' },
+  { value: 'Failed', labelKey: 'admin.aiConfig.status.failed', tone: 'danger' },
+  { value: 'QuotaExceeded', labelKey: 'admin.aiConfig.status.quotaExceeded', tone: 'warning' },
+  {
+    value: 'ProviderUnavailable',
+    labelKey: 'admin.aiConfig.status.providerUnavailable',
+    tone: 'danger',
+  },
+  { value: 'Disabled', labelKey: 'admin.aiConfig.status.disabled', tone: 'neutral' },
 ];
 
 const AI_PROVIDER = 'Google Gemini';
@@ -48,13 +53,14 @@ const KNOWN_MODELS = [
   'gemini-2.5-flash-image',
 ];
 
-const fmt = (n?: number | null) => (n ?? 0).toLocaleString('vi-VN');
-
 type ShowToast = (m: string, t?: 'success' | 'warning' | 'error') => void;
 
 /* ---------- Per-Studio AI configuration (GET/PUT ai-config) ---------- */
 
 const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) => {
+  const { t, lang } = useTranslation();
+  const locale = lang === 'en' ? 'en-US' : 'vi-VN';
+  const fmt = (n?: number | null) => (n ?? 0).toLocaleString(locale);
   const [workspaces, setWorkspaces] = useState<AdminWorkspaceDto[]>([]);
   const [loadingWs, setLoadingWs] = useState(true);
   const [wsError, setWsError] = useState(false);
@@ -126,8 +132,8 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
     const token = parseQuota(tokenQuota);
     const image = parseQuota(imageQuota);
     setErrors({
-      token: token === null ? 'Nhập số nguyên không âm.' : undefined,
-      image: image === null ? 'Nhập số nguyên không âm.' : undefined,
+      token: token === null ? t('admin.aiConfig.studio.nonNegativeIntError') : undefined,
+      image: image === null ? t('admin.aiConfig.studio.nonNegativeIntError') : undefined,
     });
     if (token === null || image === null) return;
 
@@ -142,9 +148,9 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
         allowedModels: models,
       });
       applyConfig(updated);
-      showToast('Đã lưu cấu hình AI.');
+      showToast(t('admin.aiConfig.studio.saveSuccess'));
     } catch (err: any) {
-      showToast(err.message || 'Không lưu được cấu hình AI.', 'error');
+      showToast(err.message || t('admin.aiConfig.studio.saveFailed'), 'error');
     } finally {
       setSaving(false);
     }
@@ -152,18 +158,18 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
 
   const modelOptions = Array.from(new Set([...KNOWN_MODELS, ...(config?.allowedModels || [])]));
   const keyState = !config?.hasApiKey
-    ? { label: 'Chưa có API key', tone: 'warning' as AdminTone }
+    ? { label: t('admin.aiConfig.studio.keyMissing'), tone: 'warning' as AdminTone }
     : config.apiKeyUsable === false
-      ? { label: 'Key không đọc được, hãy nhập lại', tone: 'danger' as AdminTone }
-      : { label: 'Đã có API key', tone: 'success' as AdminTone };
+      ? { label: t('admin.aiConfig.studio.keyUnusable'), tone: 'danger' as AdminTone }
+      : { label: t('admin.aiConfig.studio.keyPresent'), tone: 'success' as AdminTone };
 
   if (wsError)
     return (
       <AdminCard>
         <div className='flex flex-wrap items-center justify-between gap-3 text-sm text-red-700'>
-          Không tải được danh sách Studio.
+          {t('admin.aiConfig.studio.loadStudiosError')}
           <AdminButton size='sm' onClick={loadWorkspaces}>
-            Thử lại
+            {t('admin.aiConfig.studio.retry')}
           </AdminButton>
         </div>
       </AdminCard>
@@ -172,7 +178,7 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
   if (!loadingWs && workspaces.length === 0)
     return (
       <AdminCard>
-        <p className='text-sm text-admin-muted'>Chưa có Studio nào để cấu hình AI.</p>
+        <p className='text-sm text-admin-muted'>{t('admin.aiConfig.studio.emptyStudios')}</p>
       </AdminCard>
     );
 
@@ -183,13 +189,13 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
       className='grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start'
     >
       <AdminCard
-        title='Cấu hình theo Studio'
+        title={t('admin.aiConfig.studio.cardTitle')}
         actions={
           <select
             value={workspaceId}
             onChange={(e) => setWorkspaceId(e.target.value)}
             disabled={loadingWs || saving}
-            aria-label='Chọn Studio'
+            aria-label={t('admin.aiConfig.studio.selectStudioAria')}
             className={cn(adminFieldClass, 'w-auto min-w-[220px] max-w-full')}
           >
             {workspaces.map((ws) => (
@@ -201,12 +207,14 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
         }
       >
         {loadingConfig || loadingWs ? (
-          <p className='text-sm text-admin-muted py-6 text-center'>Đang tải cấu hình…</p>
+          <p className='text-sm text-admin-muted py-6 text-center'>
+            {t('admin.aiConfig.studio.loadingConfig')}
+          </p>
         ) : configError ? (
           <div className='flex flex-wrap items-center justify-between gap-3 text-sm text-red-700'>
-            Không tải được cấu hình AI của Studio này.
+            {t('admin.aiConfig.studio.loadConfigError')}
             <AdminButton size='sm' onClick={() => loadConfig(workspaceId)}>
-              Thử lại
+              {t('admin.aiConfig.studio.retry')}
             </AdminButton>
           </div>
         ) : (
@@ -220,10 +228,10 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
               />
               <span>
                 <span className='block text-sm font-semibold text-admin-ink'>
-                  Bật AI cho Studio
+                  {t('admin.aiConfig.studio.enableTitle')}
                 </span>
                 <span className='block text-sm text-admin-muted'>
-                  Khi tắt, mọi yêu cầu AI của Studio sẽ bị từ chối.
+                  {t('admin.aiConfig.studio.enableDesc')}
                 </span>
               </span>
             </label>
@@ -232,20 +240,21 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
               className='flex items-center gap-2 text-sm text-admin-muted'
               data-testid='ai-key-status'
             >
-              Trạng thái key: <AdminBadge tone={keyState.tone}>{keyState.label}</AdminBadge>
+              {t('admin.aiConfig.studio.keyStatusLabel')}{' '}
+              <AdminBadge tone={keyState.tone}>{keyState.label}</AdminBadge>
             </div>
 
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <AdminField label='Nhà cung cấp' htmlFor='ai-provider'>
+              <AdminField label={t('admin.aiConfig.studio.providerLabel')} htmlFor='ai-provider'>
                 <input id='ai-provider' value={AI_PROVIDER} readOnly className={adminFieldClass} />
               </AdminField>
               <AdminField
-                label='API key'
+                label={t('admin.aiConfig.studio.apiKeyLabel')}
                 htmlFor='ai-key'
                 hint={
                   config?.hasApiKey
-                    ? 'Nhập key mới để thay thế, AI dùng key mới ngay sau khi lưu. Để trống nếu giữ nguyên.'
-                    : 'Key được kiểm tra với Google trước khi lưu.'
+                    ? t('admin.aiConfig.studio.apiKeyHintExisting')
+                    : t('admin.aiConfig.studio.apiKeyHintNew')
                 }
               >
                 <input
@@ -254,15 +263,17 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
                   autoComplete='off'
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder={config?.hasApiKey ? '••••••••' : 'Nhập API key'}
+                  placeholder={
+                    config?.hasApiKey ? '••••••••' : t('admin.aiConfig.studio.apiKeyPlaceholder')
+                  }
                   className={cn(adminFieldClass, 'font-mono')}
                 />
               </AdminField>
               <AdminField
-                label='Quota token mỗi tháng'
+                label={t('admin.aiConfig.studio.tokenQuotaLabel')}
                 htmlFor='ai-token-quota'
                 required
-                hint='0 = không giới hạn'
+                hint={t('admin.aiConfig.studio.zeroUnlimited')}
                 error={errors.token}
               >
                 <input
@@ -277,10 +288,10 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
                 />
               </AdminField>
               <AdminField
-                label='Quota sinh ảnh mỗi tháng'
+                label={t('admin.aiConfig.studio.imageQuotaLabel')}
                 htmlFor='ai-image-quota'
                 required
-                hint='0 = không giới hạn'
+                hint={t('admin.aiConfig.studio.zeroUnlimited')}
                 error={errors.image}
               >
                 <input
@@ -297,7 +308,9 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
             </div>
 
             <fieldset>
-              <legend className='text-sm font-semibold text-admin-ink mb-2'>Model được phép</legend>
+              <legend className='text-sm font-semibold text-admin-ink mb-2'>
+                {t('admin.aiConfig.studio.allowedModels')}
+              </legend>
               <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
                 {modelOptions.map((m) => {
                   const checked = models.includes(m);
@@ -328,7 +341,7 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
                 })}
               </div>
               <p className='mt-2 text-xs text-admin-muted'>
-                Không chọn model nào thì giữ nguyên danh sách hiện tại.
+                {t('admin.aiConfig.studio.allowedModelsNote')}
               </p>
             </fieldset>
 
@@ -337,56 +350,66 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
                 onClick={() => config && applyConfig(config)}
                 disabled={saving || !config}
               >
-                Hoàn tác
+                {t('admin.aiConfig.studio.reset')}
               </AdminButton>
               <AdminButton type='submit' variant='primary' isLoading={saving}>
-                Lưu cấu hình
+                {t('admin.aiConfig.studio.save')}
               </AdminButton>
             </div>
           </div>
         )}
       </AdminCard>
 
-      <AdminCard title='Tháng này'>
+      <AdminCard title={t('admin.aiConfig.summary.title')}>
         {config && !loadingConfig ? (
           <dl className='space-y-4 text-sm'>
             <div>
-              <dt className='text-admin-muted'>Trạng thái</dt>
+              <dt className='text-admin-muted'>{t('admin.aiConfig.summary.status')}</dt>
               <dd className='mt-1 flex flex-wrap gap-1.5'>
                 <AdminBadge tone={config.isEnabled ? 'success' : 'neutral'}>
-                  {config.isEnabled ? 'AI đang bật' : 'AI đang tắt'}
+                  {config.isEnabled
+                    ? t('admin.aiConfig.summary.aiEnabled')
+                    : t('admin.aiConfig.summary.aiDisabled')}
                 </AdminBadge>
                 <AdminBadge tone={config.hasApiKey ? 'success' : 'warning'}>
                   <KeyRound className='w-3 h-3' aria-hidden />
-                  {config.hasApiKey ? 'Đã có API key' : 'Chưa có API key'}
+                  {config.hasApiKey
+                    ? t('admin.aiConfig.studio.keyPresent')
+                    : t('admin.aiConfig.studio.keyMissing')}
                 </AdminBadge>
               </dd>
             </div>
             <div>
-              <dt className='text-admin-muted'>Token đã dùng</dt>
+              <dt className='text-admin-muted'>{t('admin.aiConfig.summary.tokensUsed')}</dt>
               <dd className='text-lg font-semibold text-admin-ink-strong tabular-nums'>
                 {fmt(config.usedTokensCurrentMonth)}
                 <span className='text-sm font-normal text-admin-muted'>
                   {' '}
-                  / {config.monthlyTokenQuota ? fmt(config.monthlyTokenQuota) : 'không giới hạn'}
+                  /{' '}
+                  {config.monthlyTokenQuota
+                    ? fmt(config.monthlyTokenQuota)
+                    : t('admin.aiConfig.summary.unlimited')}
                 </span>
               </dd>
             </div>
             <div>
-              <dt className='text-admin-muted'>Ảnh đã sinh</dt>
+              <dt className='text-admin-muted'>{t('admin.aiConfig.summary.imagesGenerated')}</dt>
               <dd className='text-lg font-semibold text-admin-ink-strong tabular-nums'>
                 {fmt(config.usedImagesCurrentMonth)}
                 <span className='text-sm font-normal text-admin-muted'>
                   {' '}
-                  / {config.monthlyImageQuota ? fmt(config.monthlyImageQuota) : 'không giới hạn'}
+                  /{' '}
+                  {config.monthlyImageQuota
+                    ? fmt(config.monthlyImageQuota)
+                    : t('admin.aiConfig.summary.unlimited')}
                 </span>
               </dd>
             </div>
             {config.lastResetAt && (
               <div>
-                <dt className='text-admin-muted'>Đặt lại gần nhất</dt>
+                <dt className='text-admin-muted'>{t('admin.aiConfig.summary.lastReset')}</dt>
                 <dd className='tabular-nums'>
-                  {new Date(config.lastResetAt).toLocaleDateString('vi-VN')}
+                  {new Date(config.lastResetAt).toLocaleDateString(locale)}
                 </dd>
               </div>
             )}
@@ -402,6 +425,9 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
 /* ---------- Usage reports & call records ---------- */
 
 const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) => {
+  const { t, lang } = useTranslation();
+  const locale = lang === 'en' ? 'en-US' : 'vi-VN';
+  const fmt = (n?: number | null) => (n ?? 0).toLocaleString(locale);
   const [reports, setReports] = useState<AiUsageReportItemDto[]>([]);
   const [records, setRecords] = useState<AiUsageRecordDto[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -424,7 +450,7 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
     if (filterFrom) fromIso = new Date(`${filterFrom}T00:00:00Z`).toISOString();
     if (filterTo) toIso = new Date(`${filterTo}T23:59:59Z`).toISOString();
     if (fromIso && toIso && fromIso > toIso) {
-      setDateError('“Đến ngày” phải sau hoặc bằng “Từ ngày”.');
+      setDateError(t('admin.aiConfig.reports.dateRangeError'));
       return null;
     }
     const params: AiUsageRecordsFilterParams = { page, pageSize };
@@ -433,7 +459,7 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
     if (fromIso) params.from = fromIso;
     if (toIso) params.to = toIso;
     return params;
-  }, [page, pageSize, filterFeature, filterStatus, filterFrom, filterTo]);
+  }, [page, pageSize, filterFeature, filterStatus, filterFrom, filterTo, t]);
 
   const fetchReports = useCallback(async () => {
     try {
@@ -459,11 +485,11 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
       setTotalRecords(res.totalCount || 0);
     } catch (err: any) {
       setRecordsError(true);
-      showToast(err.message || 'Không thể tải lịch sử gọi AI.', 'error');
+      showToast(err.message || t('admin.aiConfig.reports.loadFailed'), 'error');
     } finally {
       setLoadingRecords(false);
     }
-  }, [buildFilterParams, showToast]);
+  }, [buildFilterParams, showToast, t]);
 
   useEffect(() => {
     fetchReports();
@@ -497,12 +523,12 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
       downloadBlob(result.blob, result.fileName);
       showToast(
         result.isTruncated
-          ? `Đã tải ${fmt(result.rowCount)} bản ghi. File chỉ gồm 10.000 dòng mới nhất.`
-          : `Đã xuất ${fmt(result.rowCount)} bản ghi.`,
+          ? t('admin.aiConfig.reports.exportTruncated', { count: fmt(result.rowCount) })
+          : t('admin.aiConfig.reports.exportSuccess', { count: fmt(result.rowCount) }),
         result.isTruncated ? 'warning' : 'success',
       );
     } catch (err: any) {
-      showToast(err.message || 'Không xuất được file CSV.', 'error');
+      showToast(err.message || t('admin.aiConfig.reports.exportFailed'), 'error');
     } finally {
       setExportingCsv(false);
     }
@@ -517,18 +543,18 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
     <>
       <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
         <AdminStat
-          label='Lượt gọi AI'
+          label={t('admin.aiConfig.reports.statCalls')}
           value={fmt(sum('callCount'))}
-          hint={`${fmt(sum('succeededCount'))} thành công`}
+          hint={t('admin.aiConfig.reports.statCallsHint', { count: fmt(sum('succeededCount')) })}
         />
-        <AdminStat label='Token đã dùng' value={fmt(sum('totalTokens'))} />
+        <AdminStat label={t('admin.aiConfig.reports.statTokens')} value={fmt(sum('totalTokens'))} />
         <AdminStat
-          label='Chi phí ước tính'
+          label={t('admin.aiConfig.reports.statCost')}
           value={`$${sum('totalCostUsd').toFixed(4)}`}
-          hint='Theo bảng giá nhà cung cấp'
+          hint={t('admin.aiConfig.reports.statCostHint')}
         />
         <AdminStat
-          label='Bị chặn / lỗi'
+          label={t('admin.aiConfig.reports.statBlockedFailed')}
           value={`${fmt(sum('blockedCount'))} / ${fmt(sum('failedCount'))}`}
         />
       </div>
@@ -536,20 +562,20 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
       <form
         onSubmit={handleApplyFilter}
         className='bg-admin-card border border-admin-line rounded-2xl p-5 space-y-4'
-        aria-label='Bộ lọc lịch sử AI'
+        aria-label={t('admin.aiConfig.reports.filterAriaLabel')}
       >
         <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
-          <AdminField label='Tính năng' htmlFor='ai-f-feature'>
+          <AdminField label={t('admin.aiConfig.reports.featureLabel')} htmlFor='ai-f-feature'>
             <input
               id='ai-f-feature'
               type='text'
-              placeholder='Ví dụ: BibleGrounding'
+              placeholder={t('admin.aiConfig.reports.featurePlaceholder')}
               value={filterFeature}
               onChange={(e) => setFilterFeature(e.target.value)}
               className={adminFieldClass}
             />
           </AdminField>
-          <AdminField label='Trạng thái' htmlFor='ai-f-status'>
+          <AdminField label={t('admin.aiConfig.reports.statusLabel')} htmlFor='ai-f-status'>
             <select
               id='ai-f-status'
               value={filterStatus}
@@ -558,12 +584,12 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </option>
               ))}
             </select>
           </AdminField>
-          <AdminField label='Từ ngày' htmlFor='ai-f-from'>
+          <AdminField label={t('admin.aiConfig.reports.fromDateLabel')} htmlFor='ai-f-from'>
             <input
               id='ai-f-from'
               type='date'
@@ -572,7 +598,11 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
               className={adminFieldClass}
             />
           </AdminField>
-          <AdminField label='Đến ngày' htmlFor='ai-f-to' error={dateError}>
+          <AdminField
+            label={t('admin.aiConfig.reports.toDateLabel')}
+            htmlFor='ai-f-to'
+            error={dateError}
+          >
             <input
               id='ai-f-to'
               type='date'
@@ -585,7 +615,7 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
         </div>
         <div className='flex flex-wrap justify-end gap-2'>
           <AdminButton variant='ghost' onClick={handleResetFilter} disabled={!isFiltered}>
-            Xóa bộ lọc
+            {t('admin.aiConfig.reports.resetFilter')}
           </AdminButton>
           <AdminButton
             onClick={handleExportCsv}
@@ -593,10 +623,10 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
             disabled={loadingRecords}
             icon={<Download className='w-4 h-4' />}
           >
-            Xuất CSV
+            {t('admin.aiConfig.reports.exportCsv')}
           </AdminButton>
           <AdminButton type='submit' variant='primary'>
-            Áp dụng
+            {t('admin.aiConfig.reports.applyFilter')}
           </AdminButton>
         </div>
       </form>
@@ -606,25 +636,33 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
           <table className={adminTable.table}>
             <thead className={adminTable.thead}>
               <tr>
-                <th className={adminTable.th}>Thời gian</th>
-                <th className={adminTable.th}>Tính năng</th>
-                <th className={adminTable.th}>Nhà cung cấp / Model</th>
-                <th className={`${adminTable.th} text-right`}>Token</th>
-                <th className={`${adminTable.th} text-right`}>Chi phí</th>
-                <th className={adminTable.th}>Trạng thái</th>
+                <th className={adminTable.th}>{t('admin.aiConfig.reports.colTime')}</th>
+                <th className={adminTable.th}>{t('admin.aiConfig.reports.colFeature')}</th>
+                <th className={adminTable.th}>{t('admin.aiConfig.reports.colProviderModel')}</th>
+                <th className={`${adminTable.th} text-right`}>
+                  {t('admin.aiConfig.reports.colTokens')}
+                </th>
+                <th className={`${adminTable.th} text-right`}>
+                  {t('admin.aiConfig.reports.colCost')}
+                </th>
+                <th className={adminTable.th}>{t('admin.aiConfig.reports.colStatus')}</th>
               </tr>
             </thead>
             <tbody className={adminTable.tbody}>
               {loadingRecords ? (
-                <AdminTableState colSpan={COLS} kind='loading' message='Đang tải lịch sử…' />
+                <AdminTableState
+                  colSpan={COLS}
+                  kind='loading'
+                  message={t('admin.aiConfig.reports.loading')}
+                />
               ) : recordsError ? (
                 <AdminTableState
                   colSpan={COLS}
                   kind='error'
-                  message='Không tải được lịch sử gọi AI.'
+                  message={t('admin.aiConfig.reports.loadError')}
                   action={
                     <AdminButton size='sm' onClick={fetchRecords}>
-                      Thử lại
+                      {t('admin.aiConfig.reports.retry')}
                     </AdminButton>
                   }
                 />
@@ -633,10 +671,14 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
                   <AdminTableState
                     colSpan={COLS}
                     kind='no-results'
-                    message='Không có lượt gọi phù hợp bộ lọc.'
+                    message={t('admin.aiConfig.reports.noResults')}
                   />
                 ) : (
-                  <AdminTableState colSpan={COLS} kind='empty' message='Chưa có lượt gọi AI nào.' />
+                  <AdminTableState
+                    colSpan={COLS}
+                    kind='empty'
+                    message={t('admin.aiConfig.reports.empty')}
+                  />
                 )
               ) : (
                 records.map((rec) => {
@@ -645,10 +687,10 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
                     <tr key={rec.id} className={adminTable.tr}>
                       <td className={`${adminTable.td} whitespace-nowrap tabular-nums`}>
                         <div className='font-medium text-admin-ink-strong'>
-                          {new Date(rec.occurredAtUtc).toLocaleTimeString('vi-VN')}
+                          {new Date(rec.occurredAtUtc).toLocaleTimeString(locale)}
                         </div>
                         <div className='text-xs text-admin-muted'>
-                          {new Date(rec.occurredAtUtc).toLocaleDateString('vi-VN')}
+                          {new Date(rec.occurredAtUtc).toLocaleDateString(locale)}
                         </div>
                       </td>
                       <td className={adminTable.td}>
@@ -669,7 +711,10 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
                       <td className={`${adminTable.td} text-right tabular-nums whitespace-nowrap`}>
                         <div className='font-medium'>{fmt(rec.totalTokens)}</div>
                         <div className='text-xs text-admin-muted'>
-                          {fmt(rec.promptTokens)} vào · {fmt(rec.completionTokens)} ra
+                          {t('admin.aiConfig.reports.tokensBreakdown', {
+                            prompt: fmt(rec.promptTokens),
+                            completion: fmt(rec.completionTokens),
+                          })}
                         </div>
                       </td>
                       <td className={`${adminTable.td} text-right tabular-nums whitespace-nowrap`}>
@@ -680,7 +725,7 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
                       </td>
                       <td className={adminTable.td}>
                         <AdminBadge tone={st?.tone ?? 'neutral'}>
-                          {st?.label ?? rec.status}
+                          {st ? t(st.labelKey) : rec.status}
                         </AdminBadge>
                         {rec.errorMessage && (
                           <div
@@ -703,7 +748,7 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
           totalPages={totalPages}
           shown={records.length}
           total={totalRecords}
-          unit='lượt gọi'
+          unit={t('admin.aiConfig.reports.unit')}
           disabled={loadingRecords}
           onPageChange={setPage}
         />
@@ -713,34 +758,35 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
 };
 
 export const AIConfigurationView: React.FC = () => {
+  const { t } = useTranslation();
   const [activeSubTab, setActiveSubTab] = useState<'credentials' | 'reports'>('credentials');
   const { toast, show: showToast, clear: clearToast } = useAdminToast();
   const [reloadKey, setReloadKey] = useState(0);
 
   const tabs = [
-    { id: 'credentials' as const, label: 'Cấu hình' },
-    { id: 'reports' as const, label: 'Báo cáo sử dụng' },
+    { id: 'credentials' as const, label: t('admin.aiConfig.tabs.credentials') },
+    { id: 'reports' as const, label: t('admin.aiConfig.tabs.reports') },
   ];
 
   return (
     <>
       <AdminToast toast={toast} onClose={clearToast} />
       <AdminPageHeader
-        title='Cấu hình AI'
-        description='Nhà cung cấp, model và quota AI của từng Studio.'
+        title={t('admin.aiConfig.title')}
+        description={t('admin.aiConfig.description')}
         actions={
           <AdminButton
             onClick={() => setReloadKey((k) => k + 1)}
             icon={<RefreshCw className='w-4 h-4' />}
           >
-            Làm mới
+            {t('admin.aiConfig.refresh')}
           </AdminButton>
         }
       />
 
       <div
         role='tablist'
-        aria-label='Cấu hình AI'
+        aria-label={t('admin.aiConfig.tabs.ariaLabel')}
         className='inline-flex gap-1 p-1 rounded-xl border border-admin-line bg-admin-card'
       >
         {tabs.map((t) => {

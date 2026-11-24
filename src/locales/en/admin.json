@@ -17,6 +17,420 @@
     "totalUsers": "Total Users",
     "registeredUsers": "Standard Users",
     "activeWorkspaces": "Active Workspaces",
-    "storageUsed": "Storage Used"
+    "storageUsed": "Storage Used",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "admins": "Administrators",
+    "studios": "Studios",
+    "membersCount": "{count} members",
+    "actionsTitle": "Admin Actions",
+    "shortcuts": {
+      "users": {
+        "label": "Users & Roles",
+        "desc": "Grant or revoke Studio creation permission"
+      },
+      "aiConfig": {
+        "label": "AI Configuration",
+        "desc": "Models, quotas, and AI usage history"
+      },
+      "storage": {
+        "label": "Storage & Quota",
+        "desc": "Storage usage and quotas per Studio"
+      },
+      "sessionPolicy": {
+        "label": "Session Policy",
+        "desc": "Session lifetime, idle timeout, device limits"
+      },
+      "audit": {
+        "label": "Audit Logs",
+        "desc": "Search and export activity history"
+      },
+      "analytics": {
+        "label": "Reader Analytics",
+        "desc": "Reads and readers across series"
+      }
+    }
+  },
+  "ui": {
+    "pagination": {
+      "showing": "Showing",
+      "ariaLabel": "Pagination",
+      "prevPage": "Previous page",
+      "nextPage": "Next page",
+      "pageOf": "Page {page} / {totalPages}"
+    },
+    "modal": {
+      "close": "Close"
+    },
+    "toast": {
+      "close": "Close notification"
+    }
+  },
+  "nav": {
+    "subtitle": "System Administration",
+    "ariaLabel": "Admin navigation",
+    "logout": "Log out",
+    "openMenu": "Open navigation menu",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "breadcrumbRoot": "Admin",
+    "groups": {
+      "overview": "Overview",
+      "config": "Configuration",
+      "monitoring": "Monitoring"
+    },
+    "items": {
+      "dashboard": "Overview",
+      "users": "Users & Roles",
+      "aiConfig": "AI Configuration",
+      "storage": "Storage & Quota",
+      "sessionPolicy": "Session Policy",
+      "audit": "Audit Logs",
+      "analytics": "Reader Analytics"
+    }
+  },
+  "users": {
+    "title": "Users & Roles",
+    "description": "Grant Studio creation permission to users who need to start new projects.",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search by name, email, or phone",
+    "searchAriaLabel": "Search users",
+    "roleFilterAriaLabel": "Filter by role",
+    "filter2faOnly": "2FA enabled accounts only",
+    "roles": {
+      "all": "All",
+      "admin": "Administrator",
+      "producer": "Can create Studio",
+      "user": "User"
+    },
+    "toast": {
+      "producerGranted": "Studio creation permission granted.",
+      "roleUpdated": "Role updated to {role}.",
+      "updateFailed": "Failed to update user role."
+    },
+    "table": {
+      "loading": "Loading users…",
+      "loadError": "Failed to load users.",
+      "retry": "Retry",
+      "noResults": "No users match the current filters.",
+      "noResultsHint": "Filters apply to the current page.",
+      "empty": "No users yet.",
+      "unnamed": "Unnamed",
+      "twoFactorEnabled": "Enabled",
+      "twoFactorDisabled": "Disabled",
+      "emailVerified": "Verified",
+      "emailUnverified": "Unverified",
+      "assignRole": "Assign role",
+      "details": "Details",
+      "colUser": "User",
+      "colRole": "Role",
+      "col2fa": "2FA",
+      "colEmail": "Email",
+      "colRegisteredAt": "Registered",
+      "colActions": "Actions",
+      "unit": "accounts"
+    },
+    "assignModal": {
+      "title": "Assign Account Role",
+      "currentRolePrefix": "Current:",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "systemPermission": "System permission",
+      "producerLabel": "Can create Studio",
+      "producerDesc": "Can create Studios and manage their own projects.",
+      "userLabel": "User",
+      "userDesc": "Can only join Studios they are invited to.",
+      "projectRolesNote": "Per-project roles (Writer, Artist, Editor…) are managed by the Studio Producer."
+    },
+    "detailsModal": {
+      "title": "Account Details",
+      "close": "Close",
+      "fullName": "Full name",
+      "email": "Email",
+      "phoneNumber": "Phone number",
+      "role": "Role",
+      "twoFactor": "Two-factor auth",
+      "emailVerification": "Email verification",
+      "createdAt": "Created at",
+      "accountId": "Account ID"
+    }
+  },
+  "auditLog": {
+    "title": "System Audit Logs",
+    "description": "History of data changes across the entire system.",
+    "refresh": "Refresh",
+    "exportCsv": "Export CSV",
+    "exporting": "Exporting…",
+    "exportTitle": "Export up to 10,000 rows matching current filters",
+    "filterAriaLabel": "Audit log filters",
+    "systemActor": "System",
+    "studioPrefix": "Studio: {name}",
+    "errors": {
+      "dateRange": "\"To date\" must be on or after \"From date\".",
+      "loadFailed": "Failed to load audit logs.",
+      "exportFailed": "Failed to export CSV file."
+    },
+    "toast": {
+      "exportTruncated": "Downloaded {count} rows. File includes only the latest 10,000 rows.",
+      "exportSuccess": "Exported {count} rows."
+    },
+    "fields": {
+      "actorEmail": "Actor email",
+      "entity": "Entity",
+      "action": "Action",
+      "fromDate": "From date",
+      "toDate": "To date",
+      "entityId": "Entity ID",
+      "entityIdPlaceholder": "Enter ID to search",
+      "hideSystem": "Hide system activity",
+      "hideSystemTitle": "Hide automated system records (show user-initiated actions only)",
+      "resetFilter": "Reset filters",
+      "applyFilter": "Apply",
+      "pageSize": "Rows per page"
+    },
+    "entities": {
+      "all": "All entities",
+      "session": "Login Session (Session)",
+      "user": "User (User)",
+      "series": "Series (Series)",
+      "bibleEntry": "Series Bible",
+      "pipelineStage": "Production Stage",
+      "workspace": "Studio"
+    },
+    "actions": {
+      "all": "All actions",
+      "login": "Sign in (LOGIN)",
+      "logout": "Sign out (LOGOUT)",
+      "sessionsRevoked": "Bulk revoke sessions (SESSIONS_REVOKED)",
+      "revokeSession": "Revoke session (REVOKE_SESSION)",
+      "create": "Create (CREATE)",
+      "update": "Update (UPDATE)",
+      "delete": "Delete (DELETE)",
+      "assignProducer": "Grant Studio creation permission"
+    },
+    "table": {
+      "colTime": "Time",
+      "colActor": "Actor",
+      "colAction": "Action",
+      "colEntity": "Entity",
+      "colDescription": "Description",
+      "colView": "View",
+      "loading": "Loading audit logs…",
+      "loadError": "Failed to load audit logs.",
+      "retry": "Retry",
+      "noResults": "No records match the filters.",
+      "empty": "No records yet.",
+      "unit": "records"
+    },
+    "detailModal": {
+      "title": "Record Details",
+      "close": "Close",
+      "time": "Time",
+      "actor": "Actor",
+      "action": "Action",
+      "entity": "Entity",
+      "entityId": "Entity ID",
+      "studio": "Studio",
+      "ipAddress": "IP address",
+      "description": "Description",
+      "changesData": "Change data",
+      "noChanges": "This record has no change data."
+    }
+  },
+  "storageBackup": {
+    "title": "Storage & Quota",
+    "description": "Storage usage and quotas for each Studio.",
+    "refresh": "Refresh",
+    "stats": {
+      "studios": "Studios",
+      "usedStorage": "Storage used",
+      "totalQuota": "Total allocated quota"
+    },
+    "searchPlaceholder": "Search Studio or owner",
+    "searchAriaLabel": "Search Studio",
+    "studioCount": "{filtered} / {total} Studios",
+    "unlimited": "Unlimited",
+    "unlimitedLower": "unlimited",
+    "table": {
+      "colStudio": "Studio",
+      "colOwner": "Owner",
+      "colMembers": "Members",
+      "colSeries": "Series",
+      "colStorage": "Storage",
+      "colActions": "Actions",
+      "loading": "Loading Studios…",
+      "loadError": "Failed to load Studios.",
+      "retry": "Retry",
+      "empty": "No Studios yet.",
+      "noResults": "No matching Studios.",
+      "clearSearch": "Clear search",
+      "createdAt": "Created {date}",
+      "progressAria": "{name}: {percent}% used",
+      "percentUsed": "{percent}% used",
+      "almostFull": " · almost full",
+      "editQuota": "Edit quota"
+    },
+    "modal": {
+      "title": "Edit Storage Quota",
+      "usedSuffix": "used",
+      "cancel": "Cancel",
+      "save": "Save quota",
+      "newQuotaLabel": "New quota (GB)",
+      "newQuotaHint": "Enter 0 for unlimited.",
+      "presetsAria": "Suggested values",
+      "overUsedWarning": "Quota is lower than currently used storage. The Studio will not be able to upload more files until space is freed or more quota is granted.",
+      "invalidQuota": "Enter a storage value of 0 GB or higher.",
+      "updateSuccess": "Updated quota for \"{name}\" to {value}.",
+      "updateFailed": "Failed to update quota."
+    }
+  },
+  "sessionPolicy": {
+    "title": "Session Policy",
+    "description": "Limit login duration and concurrent devices for members of each Studio.",
+    "refresh": "Refresh",
+    "empty": "No Studios available to configure.",
+    "reload": "Reload",
+    "cardTitle": "Session Limits",
+    "selectStudioAria": "Select Studio",
+    "loadingOption": "Loading…",
+    "loadingPolicy": "Loading policy…",
+    "loadPolicyError": "Failed to load policy for this Studio.",
+    "retry": "Retry",
+    "unlimited": "Unlimited",
+    "presetsAria": "Suggested values",
+    "strictestNote": "Users belonging to multiple Studios are subject to the strictest limit.",
+    "reset": "Reset",
+    "save": "Save policy",
+    "toast": {
+      "loadStudiosFailed": "Failed to load Studios: {message}",
+      "saveSuccess": "Session policy saved. Applies from the next sign-in.",
+      "saveFailed": "Failed to save session policy."
+    },
+    "errors": {
+      "lifetimeRange": "Enter between 5 and 43,200 minutes (30 days).",
+      "idleMin": "Enter 1 minute or more.",
+      "idleExceedsLifetime": "Cannot exceed session lifetime.",
+      "maxRange": "Enter between 1 and 100."
+    },
+    "lifetime": {
+      "title": "Maximum session lifetime",
+      "description": "After this period since signing in, users must sign in again.",
+      "unit": "minutes",
+      "approxHours": "≈ {hours} hours"
+    },
+    "idle": {
+      "title": "Idle timeout auto sign-out",
+      "description": "Sessions are revoked if the user is inactive for this duration.",
+      "unit": "minutes",
+      "delayNote": "Values under 30 minutes may take up to 30 minutes to take effect."
+    },
+    "maxSessions": {
+      "title": "Concurrent signed-in devices",
+      "description": "When exceeded, the oldest session is signed out.",
+      "unit": "devices"
+    },
+    "presets": {
+      "m15": "15 min",
+      "m30": "30 min",
+      "h1": "1 hour",
+      "h2": "2 hours",
+      "h8": "8 hours",
+      "d1": "1 day",
+      "d7": "7 days",
+      "d30": "30 days"
+    }
+  },
+  "aiConfig": {
+    "title": "AI Configuration",
+    "description": "AI provider, models, and quotas per Studio.",
+    "refresh": "Refresh",
+    "tabs": {
+      "ariaLabel": "AI Configuration",
+      "credentials": "Configuration",
+      "reports": "Usage Reports"
+    },
+    "status": {
+      "all": "All",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "quotaExceeded": "Quota exceeded",
+      "providerUnavailable": "Provider unavailable",
+      "disabled": "AI disabled"
+    },
+    "studio": {
+      "cardTitle": "Studio Configuration",
+      "selectStudioAria": "Select Studio",
+      "loadStudiosError": "Failed to load Studios.",
+      "retry": "Retry",
+      "emptyStudios": "No Studios available for AI configuration.",
+      "loadingConfig": "Loading configuration…",
+      "loadConfigError": "Failed to load AI configuration for this Studio.",
+      "enableTitle": "Enable AI for Studio",
+      "enableDesc": "When disabled, all AI requests from this Studio will be rejected.",
+      "keyStatusLabel": "Key status:",
+      "keyMissing": "No API key",
+      "keyUnusable": "Key unreadable, please re-enter",
+      "keyPresent": "API key configured",
+      "providerLabel": "Provider",
+      "apiKeyLabel": "API key",
+      "apiKeyHintExisting": "Enter a new key to replace it; AI uses the new key immediately after saving. Leave blank to keep current.",
+      "apiKeyHintNew": "Key is validated with Google before saving.",
+      "apiKeyPlaceholder": "Enter API key",
+      "tokenQuotaLabel": "Monthly token quota",
+      "imageQuotaLabel": "Monthly image quota",
+      "zeroUnlimited": "0 = unlimited",
+      "nonNegativeIntError": "Enter a non-negative integer.",
+      "allowedModels": "Allowed models",
+      "allowedModelsNote": "Selecting no models keeps the current list.",
+      "reset": "Reset",
+      "save": "Save configuration",
+      "saveSuccess": "AI configuration saved.",
+      "saveFailed": "Failed to save AI configuration."
+    },
+    "summary": {
+      "title": "This Month",
+      "status": "Status",
+      "aiEnabled": "AI enabled",
+      "aiDisabled": "AI disabled",
+      "tokensUsed": "Tokens used",
+      "imagesGenerated": "Images generated",
+      "unlimited": "unlimited",
+      "lastReset": "Last reset"
+    },
+    "reports": {
+      "dateRangeError": "\"To date\" must be on or after \"From date\".",
+      "loadFailed": "Failed to load AI call history.",
+      "exportFailed": "Failed to export CSV file.",
+      "exportTruncated": "Downloaded {count} records. File includes only the latest 10,000 rows.",
+      "exportSuccess": "Exported {count} records.",
+      "statCalls": "AI calls",
+      "statCallsHint": "{count} succeeded",
+      "statTokens": "Tokens used",
+      "statCost": "Estimated cost",
+      "statCostHint": "Based on provider pricing",
+      "statBlockedFailed": "Blocked / failed",
+      "filterAriaLabel": "AI history filters",
+      "featureLabel": "Feature",
+      "featurePlaceholder": "e.g. BibleGrounding",
+      "statusLabel": "Status",
+      "fromDateLabel": "From date",
+      "toDateLabel": "To date",
+      "resetFilter": "Reset filters",
+      "exportCsv": "Export CSV",
+      "applyFilter": "Apply",
+      "colTime": "Time",
+      "colFeature": "Feature",
+      "colProviderModel": "Provider / Model",
+      "colTokens": "Tokens",
+      "colCost": "Cost",
+      "colStatus": "Status",
+      "loading": "Loading history…",
+      "loadError": "Failed to load AI call history.",
+      "retry": "Retry",
+      "noResults": "No calls match the filters.",
+      "empty": "No AI calls yet.",
+      "tokensBreakdown": "{prompt} in · {completion} out",
+      "unit": "calls"
+    }
   }
 }

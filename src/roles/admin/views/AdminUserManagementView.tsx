@@ -3,18 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Shield, RefreshCw } from 'lucide-react';
 import { adminService, AdminUserItem } from '@/services/admin.service';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 import { AdminUserTable } from './components/AdminUserTable';
 import { AdminAssignRoleModal } from './components/AdminAssignRoleModal';
 import { AdminUserDetailsModal } from './components/AdminUserDetailsModal';
 import { AdminBadge, AdminButton, AdminPageHeader, AdminToast } from './components/AdminUi';
 import { adminFieldClass, adminFocusRing, useAdminToast } from './components/adminUiStyles';
-
-const ROLE_FILTERS = [
-  { value: 'ALL', label: 'Tất cả' },
-  { value: 'Admin', label: 'Quản trị viên' },
-  { value: 'Producer', label: 'Có quyền tạo Studio' },
-  { value: 'User', label: 'Người dùng' },
-];
 
 const isAdminRole = (role: string) =>
   ['admin', 'administrator'].includes((role || '').toLowerCase());
@@ -22,7 +16,15 @@ const isProducer = (user: AdminUserItem) =>
   user.canCreateStudio === true && !isAdminRole(user.role);
 
 export const AdminUserManagementView: React.FC = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
+
+  const roleFilters = [
+    { value: 'ALL', label: t('admin.users.roles.all') },
+    { value: 'Admin', label: t('admin.users.roles.admin') },
+    { value: 'Producer', label: t('admin.users.roles.producer') },
+    { value: 'User', label: t('admin.users.roles.user') },
+  ];
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
 
@@ -51,13 +53,13 @@ export const AdminUserManagementView: React.FC = () => {
       showToast(
         result.message ||
           (result.canCreateStudio
-            ? 'Đã cấp quyền tạo Studio.'
-            : `Đã cập nhật vai trò thành ${result.newRole || variables.newRole}.`),
+            ? t('admin.users.toast.producerGranted')
+            : t('admin.users.toast.roleUpdated', { role: result.newRole || variables.newRole })),
       );
       setAssigningUser(null);
     },
     onError: (err: any) => {
-      showToast(err.message || 'Không thể cập nhật vai trò người dùng.', 'error');
+      showToast(err.message || t('admin.users.toast.updateFailed'), 'error');
     },
   });
 
@@ -109,9 +111,12 @@ export const AdminUserManagementView: React.FC = () => {
       );
     }
     // BR-07: User có canCreateStudio = true được hiển thị là có quyền tạo Studio
-    if (isProducer(user)) return <AdminBadge tone='accent'>Có quyền tạo Studio</AdminBadge>;
-    if (isAdminRole(user.role)) return <AdminBadge tone='info'>Quản trị viên</AdminBadge>;
-    if (user.role.toLowerCase() === 'user') return <AdminBadge>Người dùng</AdminBadge>;
+    if (isProducer(user))
+      return <AdminBadge tone='accent'>{t('admin.users.roles.producer')}</AdminBadge>;
+    if (isAdminRole(user.role))
+      return <AdminBadge tone='info'>{t('admin.users.roles.admin')}</AdminBadge>;
+    if (user.role.toLowerCase() === 'user')
+      return <AdminBadge>{t('admin.users.roles.user')}</AdminBadge>;
     return <AdminBadge>{user.role}</AdminBadge>;
   };
 
@@ -120,15 +125,15 @@ export const AdminUserManagementView: React.FC = () => {
       <AdminToast toast={toast} onClose={clearToast} />
 
       <AdminPageHeader
-        title='Người dùng & quyền'
-        description='Cấp quyền tạo Studio cho người dùng cần mở dự án mới.'
+        title={t('admin.users.title')}
+        description={t('admin.users.description')}
         actions={
           <AdminButton
             onClick={() => refetch()}
             isLoading={isFetching}
             icon={<RefreshCw className='w-4 h-4' />}
           >
-            Làm mới
+            {t('admin.users.refresh')}
           </AdminButton>
         }
       />
@@ -143,17 +148,17 @@ export const AdminUserManagementView: React.FC = () => {
             type='search'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder='Tìm theo tên, email, số điện thoại'
-            aria-label='Tìm người dùng'
+            placeholder={t('admin.users.searchPlaceholder')}
+            aria-label={t('admin.users.searchAriaLabel')}
             className={cn(adminFieldClass, 'pl-9')}
           />
         </div>
         <div
           className='flex items-center gap-1 p-1 max-w-full overflow-x-auto rounded-xl border border-admin-line bg-admin-card'
           role='group'
-          aria-label='Lọc theo vai trò'
+          aria-label={t('admin.users.roleFilterAriaLabel')}
         >
-          {ROLE_FILTERS.map((r) => {
+          {roleFilters.map((r) => {
             const active = selectedRoleFilter === r.value;
             return (
               <button
@@ -182,7 +187,7 @@ export const AdminUserManagementView: React.FC = () => {
             className='w-4 h-4 accent-[#F97316]'
           />
           <Shield className='w-4 h-4 text-admin-muted' aria-hidden />
-          Chỉ tài khoản đã bật 2FA
+          {t('admin.users.filter2faOnly')}
         </label>
       </div>
 

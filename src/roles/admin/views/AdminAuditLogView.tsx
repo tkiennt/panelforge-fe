@@ -7,6 +7,7 @@ import {
   downloadBlob,
 } from '@/services/admin.service';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 import { formatActionLabel, formatEntityLabel, getActionTone } from '@/shared/utils/auditLogUtils';
 import {
   AdminBadge,
@@ -22,25 +23,25 @@ import {
 import { adminFieldClass, adminTable, useAdminToast } from './components/adminUiStyles';
 
 const ENTITY_OPTIONS = [
-  { value: '', label: 'Tất cả đối tượng' },
-  { value: 'Session', label: 'Phiên đăng nhập (Session)' },
-  { value: 'User', label: 'Người dùng (User)' },
-  { value: 'Series', label: 'Bộ truyện (Series)' },
-  { value: 'BibleEntry', label: 'Series Bible' },
-  { value: 'PipelineStage', label: 'Công đoạn sản xuất' },
-  { value: 'Workspace', label: 'Studio' },
+  { value: '', labelKey: 'admin.auditLog.entities.all' },
+  { value: 'Session', labelKey: 'admin.auditLog.entities.session' },
+  { value: 'User', labelKey: 'admin.auditLog.entities.user' },
+  { value: 'Series', labelKey: 'admin.auditLog.entities.series' },
+  { value: 'BibleEntry', labelKey: 'admin.auditLog.entities.bibleEntry' },
+  { value: 'PipelineStage', labelKey: 'admin.auditLog.entities.pipelineStage' },
+  { value: 'Workspace', labelKey: 'admin.auditLog.entities.workspace' },
 ];
 
 const ACTION_OPTIONS = [
-  { value: '', label: 'Tất cả hành động' },
-  { value: 'LOGIN', label: 'Đăng nhập (LOGIN)' },
-  { value: 'LOGOUT', label: 'Đăng xuất (LOGOUT)' },
-  { value: 'SESSIONS_REVOKED', label: 'Thu hồi phiên hàng loạt (SESSIONS_REVOKED)' },
-  { value: 'REVOKE_SESSION', label: 'Thu hồi phiên (REVOKE_SESSION)' },
-  { value: 'CREATE', label: 'Tạo mới (CREATE)' },
-  { value: 'UPDATE', label: 'Chỉnh sửa (UPDATE)' },
-  { value: 'DELETE', label: 'Xóa (DELETE)' },
-  { value: 'ASSIGN_PRODUCER', label: 'Cấp quyền tạo Studio' },
+  { value: '', labelKey: 'admin.auditLog.actions.all' },
+  { value: 'LOGIN', labelKey: 'admin.auditLog.actions.login' },
+  { value: 'LOGOUT', labelKey: 'admin.auditLog.actions.logout' },
+  { value: 'SESSIONS_REVOKED', labelKey: 'admin.auditLog.actions.sessionsRevoked' },
+  { value: 'REVOKE_SESSION', labelKey: 'admin.auditLog.actions.revokeSession' },
+  { value: 'CREATE', labelKey: 'admin.auditLog.actions.create' },
+  { value: 'UPDATE', labelKey: 'admin.auditLog.actions.update' },
+  { value: 'DELETE', labelKey: 'admin.auditLog.actions.delete' },
+  { value: 'ASSIGN_PRODUCER', labelKey: 'admin.auditLog.actions.assignProducer' },
 ];
 
 const actionTone = (act: string): AdminTone => getActionTone(act);
@@ -57,6 +58,8 @@ const formatJson = (raw?: string | null) => {
 };
 
 export const AdminAuditLogView: React.FC = () => {
+  const { t, lang } = useTranslation();
+  const locale = lang === 'en' ? 'en-US' : 'vi-VN';
   const [logs, setLogs] = useState<AuditLogDto[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -87,7 +90,7 @@ export const AdminAuditLogView: React.FC = () => {
     if (toDate) toIso = new Date(`${toDate}T23:59:59Z`).toISOString();
 
     if (fromIso && toIso && fromIso > toIso) {
-      setDateError('“Đến ngày” phải sau hoặc bằng “Từ ngày”.');
+      setDateError(t('admin.auditLog.errors.dateRange'));
       return null;
     }
 
@@ -99,7 +102,7 @@ export const AdminAuditLogView: React.FC = () => {
     if (fromIso) params.from = fromIso;
     if (toIso) params.to = toIso;
     return params;
-  }, [page, pageSize, userEmail, entityName, entityId, action, fromDate, toDate]);
+  }, [page, pageSize, userEmail, entityName, entityId, action, fromDate, toDate, t]);
 
   const fetchLogs = useCallback(async () => {
     const params = buildFilterParams();
@@ -113,11 +116,11 @@ export const AdminAuditLogView: React.FC = () => {
       setTotalCount(res.totalCount || 0);
     } catch (err: any) {
       setLoadError(true);
-      showToast(err.message || 'Không thể tải nhật ký hệ thống.', 'error');
+      showToast(err.message || t('admin.auditLog.errors.loadFailed'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [buildFilterParams, showToast]);
+  }, [buildFilterParams, showToast, t]);
 
   useEffect(() => {
     fetchLogs();
@@ -166,14 +169,21 @@ export const AdminAuditLogView: React.FC = () => {
       downloadBlob(result.blob, result.fileName);
       if (result.isTruncated) {
         showToast(
-          `Đã tải ${result.rowCount.toLocaleString('vi-VN')} dòng. File chỉ gồm 10.000 dòng mới nhất.`,
+          t('admin.auditLog.toast.exportTruncated', {
+            count: result.rowCount.toLocaleString(locale),
+          }),
           'warning',
         );
       } else {
-        showToast(`Đã xuất ${result.rowCount.toLocaleString('vi-VN')} dòng.`, 'success');
+        showToast(
+          t('admin.auditLog.toast.exportSuccess', {
+            count: result.rowCount.toLocaleString(locale),
+          }),
+          'success',
+        );
       }
     } catch (err: any) {
-      showToast(err.message || 'Không xuất được file CSV.', 'error');
+      showToast(err.message || t('admin.auditLog.errors.exportFailed'), 'error');
     } finally {
       setExporting(false);
     }
@@ -183,15 +193,16 @@ export const AdminAuditLogView: React.FC = () => {
   const COLS = 6;
 
   const actor = (item: AuditLogDto) =>
-    item.userEmail || (item.userId ? `ID ${item.userId.substring(0, 8)}…` : 'Hệ thống');
+    item.userEmail ||
+    (item.userId ? `ID ${item.userId.substring(0, 8)}…` : t('admin.auditLog.systemActor'));
 
   return (
     <>
       <AdminToast toast={toast} onClose={clearToast} />
 
       <AdminPageHeader
-        title='Nhật ký hệ thống'
-        description='Lịch sử thao tác thay đổi dữ liệu trên toàn hệ thống.'
+        title={t('admin.auditLog.title')}
+        description={t('admin.auditLog.description')}
         actions={
           <>
             <AdminButton
@@ -199,7 +210,7 @@ export const AdminAuditLogView: React.FC = () => {
               isLoading={loading}
               icon={<RefreshCw className='w-4 h-4' />}
             >
-              Làm mới
+              {t('admin.auditLog.refresh')}
             </AdminButton>
             <AdminButton
               variant='primary'
@@ -207,9 +218,9 @@ export const AdminAuditLogView: React.FC = () => {
               isLoading={exporting}
               disabled={loading}
               icon={<Download className='w-4 h-4' />}
-              title='Xuất tối đa 10.000 dòng theo bộ lọc hiện tại'
+              title={t('admin.auditLog.exportTitle')}
             >
-              {exporting ? 'Đang xuất…' : 'Xuất CSV'}
+              {exporting ? t('admin.auditLog.exporting') : t('admin.auditLog.exportCsv')}
             </AdminButton>
           </>
         }
@@ -218,10 +229,14 @@ export const AdminAuditLogView: React.FC = () => {
       <form
         onSubmit={handleApplyFilter}
         className='bg-admin-card border border-admin-line rounded-2xl p-5 space-y-4'
-        aria-label='Bộ lọc nhật ký'
+        aria-label={t('admin.auditLog.filterAriaLabel')}
       >
         <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4'>
-          <AdminField label='Email người thực hiện' htmlFor='audit-email' className='xl:col-span-2'>
+          <AdminField
+            label={t('admin.auditLog.fields.actorEmail')}
+            htmlFor='audit-email'
+            className='xl:col-span-2'
+          >
             <div className='relative'>
               <Search
                 className='w-4 h-4 text-admin-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none'
@@ -237,7 +252,7 @@ export const AdminAuditLogView: React.FC = () => {
               />
             </div>
           </AdminField>
-          <AdminField label='Đối tượng' htmlFor='audit-entity'>
+          <AdminField label={t('admin.auditLog.fields.entity')} htmlFor='audit-entity'>
             <select
               id='audit-entity'
               value={entityName}
@@ -246,12 +261,12 @@ export const AdminAuditLogView: React.FC = () => {
             >
               {ENTITY_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </option>
               ))}
             </select>
           </AdminField>
-          <AdminField label='Hành động' htmlFor='audit-action'>
+          <AdminField label={t('admin.auditLog.fields.action')} htmlFor='audit-action'>
             <select
               id='audit-action'
               value={action}
@@ -260,12 +275,12 @@ export const AdminAuditLogView: React.FC = () => {
             >
               {ACTION_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </option>
               ))}
             </select>
           </AdminField>
-          <AdminField label='Từ ngày' htmlFor='audit-from'>
+          <AdminField label={t('admin.auditLog.fields.fromDate')} htmlFor='audit-from'>
             <input
               id='audit-from'
               type='date'
@@ -274,7 +289,11 @@ export const AdminAuditLogView: React.FC = () => {
               className={adminFieldClass}
             />
           </AdminField>
-          <AdminField label='Đến ngày' htmlFor='audit-to' error={dateError}>
+          <AdminField
+            label={t('admin.auditLog.fields.toDate')}
+            htmlFor='audit-to'
+            error={dateError}
+          >
             <input
               id='audit-to'
               type='date'
@@ -284,11 +303,15 @@ export const AdminAuditLogView: React.FC = () => {
               className={cn(adminFieldClass, dateError && 'border-red-400')}
             />
           </AdminField>
-          <AdminField label='Mã đối tượng' htmlFor='audit-entity-id' className='xl:col-span-2'>
+          <AdminField
+            label={t('admin.auditLog.fields.entityId')}
+            htmlFor='audit-entity-id'
+            className='xl:col-span-2'
+          >
             <input
               id='audit-entity-id'
               type='text'
-              placeholder='Nhập mã cần tra cứu'
+              placeholder={t('admin.auditLog.fields.entityIdPlaceholder')}
               value={entityId}
               onChange={(e) => setEntityId(e.target.value)}
               className={cn(adminFieldClass, 'font-mono')}
@@ -299,7 +322,7 @@ export const AdminAuditLogView: React.FC = () => {
           <label
             htmlFor='audit-hide-system'
             className='inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-admin-muted hover:text-admin-ink select-none'
-            title='Ẩn các bản ghi tự động của hệ thống (chỉ hiển thị thao tác do người dùng thực hiện)'
+            title={t('admin.auditLog.fields.hideSystemTitle')}
           >
             <input
               id='audit-hide-system'
@@ -308,14 +331,14 @@ export const AdminAuditLogView: React.FC = () => {
               onChange={(e) => setHideSystemLogs(e.target.checked)}
               className='w-4 h-4 rounded border-admin-line text-amber-600 focus:ring-amber-500'
             />
-            <span>Ẩn hoạt động hệ thống</span>
+            <span>{t('admin.auditLog.fields.hideSystem')}</span>
           </label>
           <div className='flex flex-wrap justify-end gap-2'>
             <AdminButton variant='ghost' onClick={handleResetFilter} disabled={!isFiltered}>
-              Xóa bộ lọc
+              {t('admin.auditLog.fields.resetFilter')}
             </AdminButton>
             <AdminButton type='submit' variant='primary'>
-              Áp dụng
+              {t('admin.auditLog.fields.applyFilter')}
             </AdminButton>
           </div>
         </div>
@@ -323,7 +346,7 @@ export const AdminAuditLogView: React.FC = () => {
 
       <div className='bg-admin-card border border-admin-line rounded-2xl overflow-hidden'>
         <div className='flex flex-wrap items-center justify-end gap-2 px-5 py-3 border-b border-admin-line text-sm text-admin-muted'>
-          <label htmlFor='audit-page-size'>Số dòng mỗi trang</label>
+          <label htmlFor='audit-page-size'>{t('admin.auditLog.fields.pageSize')}</label>
           <select
             id='audit-page-size'
             value={pageSize}
@@ -344,27 +367,31 @@ export const AdminAuditLogView: React.FC = () => {
           <table className={adminTable.table}>
             <thead className={adminTable.thead}>
               <tr>
-                <th className={adminTable.th}>Thời gian</th>
-                <th className={adminTable.th}>Người thực hiện</th>
-                <th className={adminTable.th}>Hành động</th>
-                <th className={adminTable.th}>Đối tượng</th>
-                <th className={adminTable.th}>Mô tả</th>
+                <th className={adminTable.th}>{t('admin.auditLog.table.colTime')}</th>
+                <th className={adminTable.th}>{t('admin.auditLog.table.colActor')}</th>
+                <th className={adminTable.th}>{t('admin.auditLog.table.colAction')}</th>
+                <th className={adminTable.th}>{t('admin.auditLog.table.colEntity')}</th>
+                <th className={adminTable.th}>{t('admin.auditLog.table.colDescription')}</th>
                 <th className={`${adminTable.th} text-right`}>
-                  <span className='sr-only'>Xem</span>
+                  <span className='sr-only'>{t('admin.auditLog.table.colView')}</span>
                 </th>
               </tr>
             </thead>
             <tbody className={adminTable.tbody}>
               {loading ? (
-                <AdminTableState colSpan={COLS} kind='loading' message='Đang tải nhật ký…' />
+                <AdminTableState
+                  colSpan={COLS}
+                  kind='loading'
+                  message={t('admin.auditLog.table.loading')}
+                />
               ) : loadError ? (
                 <AdminTableState
                   colSpan={COLS}
                   kind='error'
-                  message='Không tải được nhật ký.'
+                  message={t('admin.auditLog.table.loadError')}
                   action={
                     <AdminButton size='sm' onClick={fetchLogs}>
-                      Thử lại
+                      {t('admin.auditLog.table.retry')}
                     </AdminButton>
                   }
                 />
@@ -373,25 +400,29 @@ export const AdminAuditLogView: React.FC = () => {
                   <AdminTableState
                     colSpan={COLS}
                     kind='no-results'
-                    message='Không có bản ghi phù hợp bộ lọc.'
+                    message={t('admin.auditLog.table.noResults')}
                     action={
                       <AdminButton size='sm' onClick={handleResetFilter}>
-                        Xóa bộ lọc
+                        {t('admin.auditLog.fields.resetFilter')}
                       </AdminButton>
                     }
                   />
                 ) : (
-                  <AdminTableState colSpan={COLS} kind='empty' message='Chưa có bản ghi nào.' />
+                  <AdminTableState
+                    colSpan={COLS}
+                    kind='empty'
+                    message={t('admin.auditLog.table.empty')}
+                  />
                 )
               ) : (
                 displayedLogs.map((item) => (
                   <tr key={item.id} className={adminTable.tr}>
                     <td className={`${adminTable.td} whitespace-nowrap tabular-nums`}>
                       <div className='font-medium text-admin-ink-strong'>
-                        {logTime(item).toLocaleTimeString('vi-VN')}
+                        {logTime(item).toLocaleTimeString(locale)}
                       </div>
                       <div className='text-xs text-admin-muted'>
-                        {logTime(item).toLocaleDateString('vi-VN')}
+                        {logTime(item).toLocaleDateString(locale)}
                       </div>
                     </td>
                     <td className={adminTable.td}>
@@ -399,7 +430,9 @@ export const AdminAuditLogView: React.FC = () => {
                         {actor(item)}
                       </div>
                       {item.workspaceName && (
-                        <div className='text-xs text-admin-muted'>Studio: {item.workspaceName}</div>
+                        <div className='text-xs text-admin-muted'>
+                          {t('admin.auditLog.studioPrefix', { name: item.workspaceName })}
+                        </div>
                       )}
                     </td>
                     <td className={adminTable.td}>
@@ -423,7 +456,7 @@ export const AdminAuditLogView: React.FC = () => {
                     </td>
                     <td className={`${adminTable.td} text-right`}>
                       <AdminButton size='sm' variant='ghost' onClick={() => setInspectLog(item)}>
-                        Xem
+                        {t('admin.auditLog.table.colView')}
                       </AdminButton>
                     </td>
                   </tr>
@@ -437,7 +470,7 @@ export const AdminAuditLogView: React.FC = () => {
           totalPages={totalPages}
           shown={displayedLogs.length}
           total={totalCount}
-          unit='bản ghi'
+          unit={t('admin.auditLog.table.unit')}
           disabled={loading}
           onPageChange={setPage}
         />
@@ -446,23 +479,33 @@ export const AdminAuditLogView: React.FC = () => {
       {inspectLog && (
         <AdminModal
           size='lg'
-          title='Chi tiết bản ghi'
+          title={t('admin.auditLog.detailModal.title')}
           description={`${formatActionLabel(inspectLog.action)} (${inspectLog.action}) · ${formatEntityLabel(inspectLog.entityName)}`}
           onClose={() => setInspectLog(null)}
-          footer={<AdminButton onClick={() => setInspectLog(null)}>Đóng</AdminButton>}
+          footer={
+            <AdminButton onClick={() => setInspectLog(null)}>
+              {t('admin.auditLog.detailModal.close')}
+            </AdminButton>
+          }
         >
           <dl className='grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm'>
             {[
-              ['Thời gian', logTime(inspectLog).toLocaleString('vi-VN')],
-              ['Người thực hiện', inspectLog.userEmail || inspectLog.userId || 'Hệ thống'],
-              ['Hành động', `${formatActionLabel(inspectLog.action)} (${inspectLog.action})`],
+              [t('admin.auditLog.detailModal.time'), logTime(inspectLog).toLocaleString(locale)],
               [
-                'Đối tượng',
+                t('admin.auditLog.detailModal.actor'),
+                inspectLog.userEmail || inspectLog.userId || t('admin.auditLog.systemActor'),
+              ],
+              [
+                t('admin.auditLog.detailModal.action'),
+                `${formatActionLabel(inspectLog.action)} (${inspectLog.action})`,
+              ],
+              [
+                t('admin.auditLog.detailModal.entity'),
                 `${formatEntityLabel(inspectLog.entityName)} (${inspectLog.entityName})`,
               ],
-              ['Mã đối tượng', inspectLog.entityId],
-              ['Studio', inspectLog.workspaceName || '—'],
-              ['Địa chỉ IP', inspectLog.ipAddress || '—'],
+              [t('admin.auditLog.detailModal.entityId'), inspectLog.entityId],
+              [t('admin.auditLog.detailModal.studio'), inspectLog.workspaceName || '—'],
+              [t('admin.auditLog.detailModal.ipAddress'), inspectLog.ipAddress || '—'],
             ].map(([label, val]) => (
               <div key={label} className='min-w-0'>
                 <dt className='text-admin-muted'>{label}</dt>
@@ -470,14 +513,16 @@ export const AdminAuditLogView: React.FC = () => {
               </div>
             ))}
             <div className='sm:col-span-2'>
-              <dt className='text-admin-muted'>Mô tả</dt>
+              <dt className='text-admin-muted'>{t('admin.auditLog.detailModal.description')}</dt>
               <dd className='text-admin-ink break-words whitespace-pre-wrap'>
                 {inspectLog.details || '—'}
               </dd>
             </div>
           </dl>
           <div className='mt-4'>
-            <div className='text-sm font-semibold text-admin-ink mb-1.5'>Dữ liệu thay đổi</div>
+            <div className='text-sm font-semibold text-admin-ink mb-1.5'>
+              {t('admin.auditLog.detailModal.changesData')}
+            </div>
             {inspectLog.changesJson ? (
               <pre className='p-4 bg-admin-subtle border border-admin-line text-admin-ink font-mono text-xs rounded-xl overflow-auto max-h-[50vh] leading-relaxed'>
                 {formatJson(inspectLog.changesJson)}
@@ -485,7 +530,7 @@ export const AdminAuditLogView: React.FC = () => {
             ) : (
               <p className='flex items-center gap-2 text-sm text-admin-muted'>
                 <AlertCircle className='w-4 h-4' aria-hidden />
-                Bản ghi này không có dữ liệu thay đổi.
+                {t('admin.auditLog.detailModal.noChanges')}
               </p>
             )}
           </div>

@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 import { adminFocusRing, type AdminToastState } from './adminUiStyles';
 import { Modal, Toast } from '@/shared/ui';
 
@@ -237,38 +238,43 @@ export const AdminPagination: React.FC<{
   unit: string;
   disabled?: boolean;
   onPageChange: (page: number) => void;
-}> = ({ page, totalPages, shown, total, unit, disabled, onPageChange }) => (
-  <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-5 py-3 border-t border-admin-line text-sm text-admin-muted'>
-    <div>
-      Hiển thị <span className='font-semibold text-admin-ink tabular-nums'>{shown}</span> /{' '}
-      <span className='font-semibold text-admin-ink tabular-nums'>
-        {total.toLocaleString('vi-VN')}
-      </span>{' '}
-      {unit}
+}> = ({ page, totalPages, shown, total, unit, disabled, onPageChange }) => {
+  const { t, lang } = useTranslation();
+  const locale = lang === 'en' ? 'en-US' : 'vi-VN';
+  return (
+    <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-5 py-3 border-t border-admin-line text-sm text-admin-muted'>
+      <div>
+        {t('admin.ui.pagination.showing')}{' '}
+        <span className='font-semibold text-admin-ink tabular-nums'>{shown}</span> /{' '}
+        <span className='font-semibold text-admin-ink tabular-nums'>
+          {total.toLocaleString(locale)}
+        </span>{' '}
+        {unit}
+      </div>
+      <nav className='flex items-center gap-2' aria-label={t('admin.ui.pagination.ariaLabel')}>
+        <AdminButton
+          size='icon'
+          variant='secondary'
+          aria-label={t('admin.ui.pagination.prevPage')}
+          disabled={disabled || page <= 1}
+          onClick={() => onPageChange(page - 1)}
+          icon={<ChevronLeft className='w-4 h-4' />}
+        />
+        <span className='px-2 font-medium text-admin-ink tabular-nums'>
+          {t('admin.ui.pagination.pageOf', { page, totalPages: Math.max(1, totalPages) })}
+        </span>
+        <AdminButton
+          size='icon'
+          variant='secondary'
+          aria-label={t('admin.ui.pagination.nextPage')}
+          disabled={disabled || page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+          icon={<ChevronRight className='w-4 h-4' />}
+        />
+      </nav>
     </div>
-    <nav className='flex items-center gap-2' aria-label='Phân trang'>
-      <AdminButton
-        size='icon'
-        variant='secondary'
-        aria-label='Trang trước'
-        disabled={disabled || page <= 1}
-        onClick={() => onPageChange(page - 1)}
-        icon={<ChevronLeft className='w-4 h-4' />}
-      />
-      <span className='px-2 font-medium text-admin-ink tabular-nums'>
-        Trang {page} / {Math.max(1, totalPages)}
-      </span>
-      <AdminButton
-        size='icon'
-        variant='secondary'
-        aria-label='Trang sau'
-        disabled={disabled || page >= totalPages}
-        onClick={() => onPageChange(page + 1)}
-        icon={<ChevronRight className='w-4 h-4' />}
-      />
-    </nav>
-  </div>
-);
+  );
+};
 
 export const AdminModal: React.FC<{
   title: string;
@@ -278,6 +284,7 @@ export const AdminModal: React.FC<{
   size?: 'md' | 'lg';
   children: React.ReactNode;
 }> = ({ title, description, onClose, footer, size = 'md', children }) => {
+  const { t } = useTranslation();
   return (
     <Modal
       isOpen={true}
@@ -286,7 +293,7 @@ export const AdminModal: React.FC<{
       onClose={onClose}
       footer={footer}
       size={size === 'lg' ? 'lg' : 'md'}
-      closeLabel='Đóng'
+      closeLabel={t('admin.ui.modal.close')}
       className='bg-admin-field border-admin-line text-admin-ink'
     >
       {children}
@@ -298,6 +305,7 @@ export const AdminToast: React.FC<{ toast: AdminToastState; onClose: () => void 
   toast,
   onClose,
 }) => {
+  const { t } = useTranslation();
   if (!toast) return null;
   return createPortal(
     <div className='fixed bottom-5 right-5 z-[var(--studio-z-toast)] max-w-sm'>
@@ -308,7 +316,7 @@ export const AdminToast: React.FC<{ toast: AdminToastState; onClose: () => void 
           description: '',
           tone: toast.type === 'error' ? 'danger' : toast.type,
         }}
-        closeLabel='Đóng thông báo'
+        closeLabel={t('admin.ui.toast.close')}
         onClose={onClose}
       />
     </div>,

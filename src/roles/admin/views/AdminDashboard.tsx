@@ -18,6 +18,7 @@ import {
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 import { BrandMark } from '@/shared/components/BrandMark';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 import { AdminDashboardView } from './AdminDashboardView';
 import { AdminUserManagementView } from './AdminUserManagementView';
 import { AdminAuditLogView } from './AdminAuditLogView';
@@ -46,33 +47,35 @@ interface AdminDashboardProps {
   };
 }
 
-const NAV_GROUPS: { label: string; items: { id: AdminTab; label: string; icon: LucideIcon }[] }[] =
-  [
-    {
-      label: 'Tổng quan',
-      items: [
-        { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
-        { id: 'users', label: 'Người dùng & quyền', icon: Users },
-      ],
-    },
-    {
-      label: 'Cấu hình',
-      items: [
-        { id: 'ai-config', label: 'Cấu hình AI', icon: Cpu },
-        { id: 'storage', label: 'Lưu trữ & quota', icon: HardDrive },
-        { id: 'session-policy', label: 'Chính sách phiên', icon: Shield },
-        // ponytail: 'master-data' hidden — MasterDataSettings is local mock data only;
-        // re-add once wired to /api/Admin/pipeline-templates, element-types, export-presets.
-      ],
-    },
-    {
-      label: 'Giám sát',
-      items: [
-        { id: 'audit', label: 'Nhật ký hệ thống', icon: List },
-        { id: 'analytics', label: 'Thống kê độc giả', icon: Eye },
-      ],
-    },
-  ];
+const NAV_GROUPS: {
+  labelKey: string;
+  items: { id: AdminTab; labelKey: string; icon: LucideIcon }[];
+}[] = [
+  {
+    labelKey: 'admin.nav.groups.overview',
+    items: [
+      { id: 'dashboard', labelKey: 'admin.nav.items.dashboard', icon: LayoutDashboard },
+      { id: 'users', labelKey: 'admin.nav.items.users', icon: Users },
+    ],
+  },
+  {
+    labelKey: 'admin.nav.groups.config',
+    items: [
+      { id: 'ai-config', labelKey: 'admin.nav.items.aiConfig', icon: Cpu },
+      { id: 'storage', labelKey: 'admin.nav.items.storage', icon: HardDrive },
+      { id: 'session-policy', labelKey: 'admin.nav.items.sessionPolicy', icon: Shield },
+      // ponytail: 'master-data' hidden — MasterDataSettings is local mock data only;
+      // re-add once wired to /api/Admin/pipeline-templates, element-types, export-presets.
+    ],
+  },
+  {
+    labelKey: 'admin.nav.groups.monitoring',
+    items: [
+      { id: 'audit', labelKey: 'admin.nav.items.audit', icon: List },
+      { id: 'analytics', labelKey: 'admin.nav.items.analytics', icon: Eye },
+    ],
+  },
+];
 
 const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
@@ -88,6 +91,7 @@ const VALID_TABS: AdminTab[] = [
 ];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentUser }) => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as AdminTab | null;
   const initialTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'dashboard';
@@ -103,7 +107,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
     }
   }, [tabParam]);
 
-  const activeLabel = NAV_ITEMS.find((i) => i.id === activeTab)?.label ?? '';
+  const activeItem = NAV_ITEMS.find((i) => i.id === activeTab);
+  const activeLabel = activeItem ? t(activeItem.labelKey) : '';
   const displayName = currentUser?.name || 'Administrator';
   const initial = (currentUser?.name || currentUser?.email || 'A').charAt(0).toUpperCase();
 
@@ -151,63 +156,67 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
               <div className='font-serif font-bold text-base text-admin-ink-strong leading-tight'>
                 PanelForge
               </div>
-              <div className='text-xs text-admin-muted'>Quản trị hệ thống</div>
+              <div className='text-xs text-admin-muted'>{t('admin.nav.subtitle')}</div>
             </div>
           )}
         </div>
 
         <nav
           className='flex-1 overflow-y-auto px-3 py-4 space-y-5'
-          aria-label='Điều hướng quản trị'
+          aria-label={t('admin.nav.ariaLabel')}
         >
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label} className='space-y-1'>
-              {compact ? (
-                <div className='mx-3 mb-2 border-t border-admin-line' aria-hidden />
-              ) : (
-                <div className='px-3 pb-1 text-xs font-semibold text-admin-muted'>
-                  {group.label}
-                </div>
-              )}
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type='button'
-                    onClick={() => go(item.id)}
-                    title={compact ? item.label : undefined}
-                    aria-label={compact ? item.label : undefined}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={cn(
-                      'relative w-full min-h-11 flex items-center gap-3 rounded-xl text-sm transition-colors cursor-pointer',
-                      adminFocusRing,
-                      compact ? 'justify-center px-0' : 'px-3',
-                      isActive
-                        ? 'bg-admin-accent-soft text-admin-ink-strong font-semibold'
-                        : 'text-admin-ink hover:bg-admin-hover',
-                    )}
-                  >
-                    {isActive && (
-                      <span
-                        className='absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-admin-accent'
+          {NAV_GROUPS.map((group) => {
+            const groupLabel = t(group.labelKey);
+            return (
+              <div key={group.labelKey} className='space-y-1'>
+                {compact ? (
+                  <div className='mx-3 mb-2 border-t border-admin-line' aria-hidden />
+                ) : (
+                  <div className='px-3 pb-1 text-xs font-semibold text-admin-muted'>
+                    {groupLabel}
+                  </div>
+                )}
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  const itemLabel = t(item.labelKey);
+                  return (
+                    <button
+                      key={item.id}
+                      type='button'
+                      onClick={() => go(item.id)}
+                      title={compact ? itemLabel : undefined}
+                      aria-label={compact ? itemLabel : undefined}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={cn(
+                        'relative w-full min-h-11 flex items-center gap-3 rounded-xl text-sm transition-colors cursor-pointer',
+                        adminFocusRing,
+                        compact ? 'justify-center px-0' : 'px-3',
+                        isActive
+                          ? 'bg-admin-accent-soft text-admin-ink-strong font-semibold'
+                          : 'text-admin-ink hover:bg-admin-hover',
+                      )}
+                    >
+                      {isActive && (
+                        <span
+                          className='absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-admin-accent'
+                          aria-hidden
+                        />
+                      )}
+                      <Icon
+                        className={cn(
+                          'w-[18px] h-[18px] shrink-0',
+                          isActive ? 'text-admin-accent-text' : 'text-admin-muted',
+                        )}
                         aria-hidden
                       />
-                    )}
-                    <Icon
-                      className={cn(
-                        'w-[18px] h-[18px] shrink-0',
-                        isActive ? 'text-admin-accent-text' : 'text-admin-muted',
-                      )}
-                      aria-hidden
-                    />
-                    {!compact && <span className='truncate'>{item.label}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+                      {!compact && <span className='truncate'>{itemLabel}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })}
         </nav>
 
         <div className='border-t border-admin-line p-3 space-y-2 shrink-0'>
@@ -239,8 +248,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
                 setIsMobileDrawerOpen(false);
                 onLogout();
               }}
-              title={compact ? 'Đăng xuất' : undefined}
-              aria-label='Đăng xuất'
+              title={compact ? t('admin.nav.logout') : undefined}
+              aria-label={t('admin.nav.logout')}
               className={cn(
                 'w-full min-h-11 flex items-center gap-2 rounded-xl text-sm font-medium text-admin-ink hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer',
                 adminFocusRing,
@@ -248,7 +257,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
               )}
             >
               <LogOut className='w-4 h-4 shrink-0' aria-hidden />
-              {!compact && <span>Đăng xuất</span>}
+              {!compact && <span>{t('admin.nav.logout')}</span>}
             </button>
           )}
         </div>
@@ -261,7 +270,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
       <SidebarDrawer
         isOpen={isMobileDrawerOpen}
         onClose={() => setIsMobileDrawerOpen(false)}
-        title='Điều hướng quản trị'
+        title={t('admin.nav.ariaLabel')}
       >
         {renderSidebar(true)}
       </SidebarDrawer>
@@ -273,7 +282,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
           <button
             type='button'
             onClick={() => setIsMobileDrawerOpen(true)}
-            aria-label='Mở menu điều hướng'
+            aria-label={t('admin.nav.openMenu')}
             aria-expanded={isMobileDrawerOpen}
             className={cn(
               'md:hidden h-11 w-11 -ml-2 inline-flex items-center justify-center rounded-xl text-admin-ink hover:bg-admin-hover cursor-pointer',
@@ -286,8 +295,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
           <button
             type='button'
             onClick={() => setIsCollapsed((v) => !v)}
-            aria-label={isCollapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
-            title={isCollapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
+            aria-label={isCollapsed ? t('admin.nav.expandSidebar') : t('admin.nav.collapseSidebar')}
+            title={isCollapsed ? t('admin.nav.expandSidebar') : t('admin.nav.collapseSidebar')}
             className={cn(
               'hidden md:inline-flex h-11 w-11 -ml-2 items-center justify-center rounded-xl text-admin-muted hover:text-admin-ink hover:bg-admin-hover cursor-pointer',
               adminFocusRing,
@@ -302,7 +311,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
           </button>
           <nav aria-label='Breadcrumb' className='min-w-0'>
             <ol className='flex items-center gap-1.5 text-sm'>
-              <li className='text-admin-muted'>Quản trị</li>
+              <li className='text-admin-muted'>{t('admin.nav.breadcrumbRoot')}</li>
               <li aria-hidden>
                 <ChevronRight className='w-4 h-4 text-admin-muted' />
               </li>

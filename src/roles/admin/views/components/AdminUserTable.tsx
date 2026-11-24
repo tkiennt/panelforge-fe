@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, AlertCircle, Shield } from 'lucide-react';
 import { AdminUserItem } from '@/services/admin.service';
+import { useTranslation } from '@/lib/i18n';
 import { AdminBadge, AdminButton, AdminPagination, AdminTableState } from './AdminUi';
 import { adminTable } from './adminUiStyles';
 
@@ -37,21 +38,25 @@ export const AdminUserTable: React.FC<AdminUserTableProps> = ({
   setInspectUser,
   renderProjectRoles,
 }) => {
+  const { t, lang } = useTranslation();
+  const locale = lang === 'en' ? 'en-US' : 'vi-VN';
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const body = () => {
     if (loading)
-      return <AdminTableState colSpan={COLS} kind='loading' message='Đang tải người dùng…' />;
+      return (
+        <AdminTableState colSpan={COLS} kind='loading' message={t('admin.users.table.loading')} />
+      );
     if (isError)
       return (
         <AdminTableState
           colSpan={COLS}
           kind='error'
-          message='Không tải được danh sách người dùng.'
+          message={t('admin.users.table.loadError')}
           action={
             onRetry && (
               <AdminButton size='sm' onClick={onRetry}>
-                Thử lại
+                {t('admin.users.table.retry')}
               </AdminButton>
             )
           }
@@ -62,11 +67,11 @@ export const AdminUserTable: React.FC<AdminUserTableProps> = ({
         <AdminTableState
           colSpan={COLS}
           kind='no-results'
-          message='Không có người dùng phù hợp bộ lọc.'
-          hint='Bộ lọc áp dụng cho trang hiện tại.'
+          message={t('admin.users.table.noResults')}
+          hint={t('admin.users.table.noResultsHint')}
         />
       ) : (
-        <AdminTableState colSpan={COLS} kind='empty' message='Chưa có người dùng nào.' />
+        <AdminTableState colSpan={COLS} kind='empty' message={t('admin.users.table.empty')} />
       );
 
     return filteredUsers.map((user) => (
@@ -82,7 +87,9 @@ export const AdminUserTable: React.FC<AdminUserTableProps> = ({
             <div className='min-w-0'>
               <div className='font-semibold text-admin-ink-strong break-words'>
                 {user.fullName || (
-                  <span className='text-admin-muted font-normal'>Chưa đặt tên</span>
+                  <span className='text-admin-muted font-normal'>
+                    {t('admin.users.table.unnamed')}
+                  </span>
                 )}
               </div>
               <div className='text-admin-muted break-all'>{user.email}</div>
@@ -94,25 +101,27 @@ export const AdminUserTable: React.FC<AdminUserTableProps> = ({
           {user.twoFactorEnabled ? (
             <AdminBadge tone='success'>
               <Shield className='w-3 h-3' aria-hidden />
-              Đã bật
+              {t('admin.users.table.twoFactorEnabled')}
             </AdminBadge>
           ) : (
-            <AdminBadge>Chưa bật</AdminBadge>
+            <AdminBadge>{t('admin.users.table.twoFactorDisabled')}</AdminBadge>
           )}
         </td>
         <td className={adminTable.td}>
           {user.isEmailConfirmed ? (
             <span className='inline-flex items-center gap-1 whitespace-nowrap text-emerald-800'>
-              <CheckCircle2 className='w-4 h-4' aria-hidden /> Đã xác thực
+              <CheckCircle2 className='w-4 h-4' aria-hidden />{' '}
+              {t('admin.users.table.emailVerified')}
             </span>
           ) : (
             <span className='inline-flex items-center gap-1 whitespace-nowrap text-amber-800'>
-              <AlertCircle className='w-4 h-4' aria-hidden /> Chưa xác thực
+              <AlertCircle className='w-4 h-4' aria-hidden />{' '}
+              {t('admin.users.table.emailUnverified')}
             </span>
           )}
         </td>
         <td className={`${adminTable.td} whitespace-nowrap tabular-nums text-admin-muted`}>
-          {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : '—'}
+          {user.createdAt ? new Date(user.createdAt).toLocaleDateString(locale) : '—'}
         </td>
         <td className={`${adminTable.td} text-right`}>
           <div className='flex justify-end gap-1'>
@@ -127,10 +136,10 @@ export const AdminUserTable: React.FC<AdminUserTableProps> = ({
                 );
               }}
             >
-              Phân quyền
+              {t('admin.users.table.assignRole')}
             </AdminButton>
             <AdminButton size='sm' variant='ghost' onClick={() => setInspectUser(user)}>
-              Chi tiết
+              {t('admin.users.table.details')}
             </AdminButton>
           </div>
         </td>
@@ -144,12 +153,12 @@ export const AdminUserTable: React.FC<AdminUserTableProps> = ({
         <table className={adminTable.table}>
           <thead className={adminTable.thead}>
             <tr>
-              <th className={adminTable.th}>Người dùng</th>
-              <th className={adminTable.th}>Vai trò</th>
-              <th className={adminTable.th}>2FA</th>
-              <th className={adminTable.th}>Email</th>
-              <th className={adminTable.th}>Ngày đăng ký</th>
-              <th className={`${adminTable.th} text-right`}>Thao tác</th>
+              <th className={adminTable.th}>{t('admin.users.table.colUser')}</th>
+              <th className={adminTable.th}>{t('admin.users.table.colRole')}</th>
+              <th className={adminTable.th}>{t('admin.users.table.col2fa')}</th>
+              <th className={adminTable.th}>{t('admin.users.table.colEmail')}</th>
+              <th className={adminTable.th}>{t('admin.users.table.colRegisteredAt')}</th>
+              <th className={`${adminTable.th} text-right`}>{t('admin.users.table.colActions')}</th>
             </tr>
           </thead>
           <tbody className={adminTable.tbody}>{body()}</tbody>
@@ -160,7 +169,7 @@ export const AdminUserTable: React.FC<AdminUserTableProps> = ({
         totalPages={totalPages}
         shown={filteredUsers.length}
         total={total}
-        unit='tài khoản'
+        unit={t('admin.users.table.unit')}
         disabled={loading}
         onPageChange={setPage}
       />

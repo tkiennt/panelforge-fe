@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { adminService, SystemStatsResponse } from '@/services/admin.service';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 import { AdminButton, AdminCard, AdminPageHeader, AdminStat } from './components/AdminUi';
 import { adminFocusRing } from './components/adminUiStyles';
 
@@ -34,6 +35,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   onNavigateToStorage,
   onNavigateToAnalytics,
 }) => {
+  const { t, lang } = useTranslation();
+  const locale = lang === 'en' ? 'en-US' : 'vi-VN';
   const [stats, setStats] = useState<SystemStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -47,7 +50,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       setStats(data);
       setLastRefreshed(new Date());
     } catch (err) {
-      console.error('Lỗi khi tải thống kê admin:', err);
+      console.error('Failed to load admin stats:', err);
       setError(true);
     } finally {
       setLoading(false);
@@ -58,42 +61,42 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     fetchStats();
   }, [fetchStats]);
 
-  const value = (n?: number) => (stats ? (n ?? 0).toLocaleString('vi-VN') : loading ? '…' : '—');
+  const value = (n?: number) => (stats ? (n ?? 0).toLocaleString(locale) : loading ? '…' : '—');
 
   const shortcuts = [
     {
-      label: 'Người dùng & quyền',
-      desc: 'Cấp hoặc thu hồi quyền tạo Studio',
+      label: t('admin.overview.shortcuts.users.label'),
+      desc: t('admin.overview.shortcuts.users.desc'),
       icon: Users,
       onClick: onNavigateToUsers,
     },
     {
-      label: 'Cấu hình AI',
-      desc: 'Model, quota và lịch sử sử dụng AI',
+      label: t('admin.overview.shortcuts.aiConfig.label'),
+      desc: t('admin.overview.shortcuts.aiConfig.desc'),
       icon: Cpu,
       onClick: onNavigateToSettings,
     },
     {
-      label: 'Lưu trữ & quota',
-      desc: 'Dung lượng và hạn mức từng Studio',
+      label: t('admin.overview.shortcuts.storage.label'),
+      desc: t('admin.overview.shortcuts.storage.desc'),
       icon: HardDrive,
       onClick: onNavigateToStorage,
     },
     {
-      label: 'Chính sách phiên',
-      desc: 'Thời hạn phiên, idle timeout, số thiết bị',
+      label: t('admin.overview.shortcuts.sessionPolicy.label'),
+      desc: t('admin.overview.shortcuts.sessionPolicy.desc'),
       icon: Shield,
       onClick: onNavigateToSessionPolicy,
     },
     {
-      label: 'Nhật ký hệ thống',
-      desc: 'Tra cứu và xuất lịch sử thao tác',
+      label: t('admin.overview.shortcuts.audit.label'),
+      desc: t('admin.overview.shortcuts.audit.desc'),
       icon: List,
       onClick: onNavigateToAudit,
     },
     {
-      label: 'Thống kê độc giả',
-      desc: 'Lượt đọc và độc giả các bộ truyện',
+      label: t('admin.overview.shortcuts.analytics.label'),
+      desc: t('admin.overview.shortcuts.analytics.desc'),
       icon: Eye,
       onClick: onNavigateToAnalytics,
     },
@@ -102,12 +105,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   return (
     <>
       <AdminPageHeader
-        title='Tổng quan hệ thống'
+        title={t('admin.overview.title')}
         actions={
           <>
             {lastRefreshed && (
               <span className='text-xs text-admin-muted tabular-nums'>
-                Cập nhật lúc {lastRefreshed.toLocaleTimeString('vi-VN')}
+                {t('admin.overview.updatedAt', { time: lastRefreshed.toLocaleTimeString(locale) })}
               </span>
             )}
             <AdminButton
@@ -115,7 +118,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               isLoading={loading}
               icon={<RefreshCw className='w-4 h-4' />}
             >
-              Làm mới
+              {t('admin.overview.refresh')}
             </AdminButton>
           </>
         }
@@ -128,41 +131,45 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         >
           <span className='flex items-center gap-2'>
             <AlertCircle className='w-4 h-4 shrink-0' aria-hidden />
-            Không tải được số liệu hệ thống.
+            {t('admin.overview.errorLoading')}
           </span>
           <AdminButton size='sm' variant='danger' onClick={fetchStats}>
-            Thử lại
+            {t('admin.overview.retry')}
           </AdminButton>
         </div>
       )}
 
       <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
         <AdminStat
-          label='Tổng người dùng'
+          label={t('admin.overview.totalUsers')}
           value={value(stats?.totalUsers)}
           icon={<Users className='w-5 h-5' />}
         />
         <AdminStat
-          label='Người dùng thường'
+          label={t('admin.overview.registeredUsers')}
           value={value(stats?.registeredUsers)}
           icon={<UserCheck className='w-5 h-5' />}
         />
         <AdminStat
-          label='Quản trị viên'
+          label={t('admin.overview.admins')}
           value={value(stats?.admins)}
           icon={<Shield className='w-5 h-5' />}
         />
         <AdminStat
-          label='Studio'
+          label={t('admin.overview.studios')}
           value={value(stats?.totalWorkspaces)}
           hint={
-            stats ? `${stats.totalWorkspaceMembers.toLocaleString('vi-VN')} thành viên` : undefined
+            stats
+              ? t('admin.overview.membersCount', {
+                  count: stats.totalWorkspaceMembers.toLocaleString(locale),
+                })
+              : undefined
           }
           icon={<Layers className='w-5 h-5' />}
         />
       </div>
 
-      <AdminCard title='Tác vụ quản trị' bodyClassName='p-2'>
+      <AdminCard title={t('admin.overview.actionsTitle')} bodyClassName='p-2'>
         <ul className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-1'>
           {shortcuts.map((s) => {
             const Icon = s.icon;
