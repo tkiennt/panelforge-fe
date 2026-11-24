@@ -20,6 +20,7 @@ import {
 } from '@/services/catalog.service';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 interface PublicCatalogViewProps {
   onBackToWorkspaces?: () => void;
@@ -30,6 +31,8 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
   onBackToWorkspaces,
   onOpenLogin,
 }) => {
+  const { t, lang } = useTranslation();
+  const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
   const [seriesList, setSeriesList] = useState<PublicSeriesDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -44,7 +47,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
   const [readingChapterId, setReadingChapterId] = useState<string | null>(null);
 
   const genres = [
-    'Tất cả',
+    '',
     'Action / Sci-Fi',
     'Fantasy / Isekai',
     'Mystery / Detective',
@@ -57,14 +60,14 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
     try {
       const res = await catalogService.getPublicSeries({
         search: search.trim() || undefined,
-        genre: selectedGenre === 'Tất cả' || !selectedGenre ? undefined : selectedGenre,
+        genre: selectedGenre || undefined,
         pageIndex,
         pageSize: 20,
       });
       setSeriesList(res.items || []);
       setTotalCount(res.totalCount || 0);
     } catch (err: any) {
-      console.warn('Lỗi tải danh mục catalog công khai:', err);
+      console.warn('Public catalog fetch error:', err);
       setSeriesList([]);
     } finally {
       setLoading(false);
@@ -90,7 +93,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
       const detail = await catalogService.getPublicSeriesDetail(seriesId);
       setSelectedSeries(detail);
     } catch (err: any) {
-      setDetailError(err.message || 'Không thể tải chi tiết bộ truyện.');
+      setDetailError(err.message || t('workspace.reader.catalog.detailLoadError'));
     } finally {
       setDetailLoading(false);
     }
@@ -106,7 +109,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
               <button
                 onClick={onBackToWorkspaces}
                 className='p-2 rounded-full border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#EFECE6] transition-colors cursor-pointer text-[#57534E] hover:text-[#1C1917]'
-                title='Quay lại Workspace'
+                title={t('workspace.reader.catalog.backToWorkspaces')}
               >
                 <ArrowLeft className='w-4 h-4' />
               </button>
@@ -124,7 +127,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                     PUBLIC CATALOG
                   </span>
                 </div>
-                <p className='text-xs text-[#57534E]'>Danh mục tác phẩm phát hành chính thức</p>
+                <p className='text-xs text-[#57534E]'>{t('workspace.reader.catalog.subtitle')}</p>
               </div>
             </div>
           </div>
@@ -134,7 +137,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
               onClick={fetchCatalog}
               disabled={loading}
               className='p-2 text-[#57534E] hover:text-[#1C1917] hover:bg-[#EFECE6] bg-[#FCFBF8] border border-[#D8D2C5] rounded-full transition-all cursor-pointer'
-              title='Làm mới danh mục'
+              title={t('workspace.reader.catalog.refreshTitle')}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -143,7 +146,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                 onClick={onOpenLogin}
                 className='px-4 py-2 rounded-full bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer'
               >
-                Đăng Nhập Studio
+                {t('workspace.reader.catalog.loginStudio')}
               </button>
             )}
           </div>
@@ -156,11 +159,10 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
           <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
             <div>
               <h1 className='text-3xl font-serif font-bold tracking-tight text-[#1C1917]'>
-                Thư Viện Tác Phẩm Xuất Bản
+                {t('workspace.reader.catalog.heroTitle')}
               </h1>
               <p className='text-xs text-[#57534E] mt-1'>
-                Khám phá các tác phẩm Manga, Webtoon và Comic chất lượng cao được sản xuất trên nền
-                tảng PanelForge.
+                {t('workspace.reader.catalog.heroDesc')}
               </p>
             </div>
 
@@ -170,7 +172,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                 <Search className='w-4 h-4 text-[#57534E] absolute left-3.5 top-1/2 -translate-y-1/2' />
                 <input
                   type='text'
-                  placeholder='Tìm kiếm theo tên truyện, tóm tắt...'
+                  placeholder={t('workspace.reader.catalog.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className='w-full pl-10 pr-4 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-full text-xs text-[#1C1917] placeholder:text-[#57534E]/60 focus:outline-none focus:border-[#F97316] shadow-xs'
@@ -180,7 +182,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                 type='submit'
                 className='px-5 py-2 bg-[#1C1917] hover:bg-[#292524] text-white text-xs font-semibold rounded-full transition-colors cursor-pointer shadow-xs'
               >
-                Tìm
+                {t('workspace.reader.catalog.searchBtn')}
               </button>
             </form>
           </div>
@@ -188,13 +190,13 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
           {/* Genre Chips */}
           <div className='flex items-center gap-2 overflow-x-auto pb-1 pt-1 custom-scrollbar'>
             {genres.map((g) => {
-              const isSelected = selectedGenre === g || (g === 'Tất cả' && !selectedGenre);
+              const isSelected = selectedGenre === g;
               return (
                 <button
-                  key={g}
+                  key={g || 'all'}
                   type='button'
                   onClick={() => {
-                    setSelectedGenre(g === 'Tất cả' ? '' : g);
+                    setSelectedGenre(g);
                     setPageIndex(1);
                   }}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shadow-xs cursor-pointer ${
@@ -203,7 +205,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                       : 'bg-[#FCFBF8] text-[#57534E] hover:text-[#1C1917] hover:bg-[#EFECE6] border border-[#D8D2C5]'
                   }`}
                 >
-                  {g}
+                  {g || t('workspace.reader.catalog.genreAll')}
                 </button>
               );
             })}
@@ -216,7 +218,9 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
         {loading ? (
           <div className='py-24 text-center space-y-3'>
             <RefreshCw className='w-8 h-8 text-[#F97316] animate-spin mx-auto' />
-            <div className='text-xs font-mono text-[#57534E]'>Đang tải danh mục xuất bản...</div>
+            <div className='text-xs font-mono text-[#57534E]'>
+              {t('workspace.reader.catalog.loading')}
+            </div>
           </div>
         ) : seriesList.length === 0 ? (
           /* Empty state required by BR-23 / HANDOFF */
@@ -226,12 +230,10 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
             </div>
             <div className='space-y-1.5'>
               <h3 className='text-lg font-serif font-bold text-[#1C1917]'>
-                Chưa có Series nào được phát hành công khai
+                {t('workspace.reader.catalog.emptyTitle')}
               </h3>
               <p className='text-xs text-[#57534E] max-w-md mx-auto leading-relaxed'>
-                Hiện tại các dự án truyện tranh đang trong giai đoạn sản xuất tại Studio Desk. Sau
-                khi các chương được Biên tập viên duyệt (Approved) và xuất bản chính thức
-                (Published), chúng sẽ xuất hiện tại đây cho độc giả thưởng thức.
+                {t('workspace.reader.catalog.emptyDesc')}
               </p>
             </div>
             {onBackToWorkspaces && (
@@ -240,7 +242,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                 className='inline-flex items-center gap-1.5 px-4 py-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-full shadow-xs transition-all cursor-pointer'
               >
                 <Compass className='w-3.5 h-3.5' />
-                <span>Trở Về Studio Workspace</span>
+                <span>{t('workspace.reader.catalog.backToStudio')}</span>
               </button>
             )}
           </div>
@@ -268,7 +270,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                   </h3>
 
                   <p className='text-xs text-[#57534E] line-clamp-3 leading-relaxed'>
-                    {item.synopsis || 'Chưa có mô tả tóm tắt cho bộ truyện này.'}
+                    {item.synopsis || t('workspace.reader.catalog.noSynopsis')}
                   </p>
                 </div>
 
@@ -278,15 +280,17 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                     <span className='font-semibold text-[#1C1917]'>{item.studioName}</span>
                   </div>
                   <div className='flex items-center justify-between'>
-                    <span>Số chương phát hành:</span>
+                    <span>{t('workspace.reader.catalog.publishedChaptersLabel')}</span>
                     <span className='px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-medium border border-emerald-200'>
-                      {item.publishedChapterCount} chương
+                      {t('workspace.reader.catalog.publishedChaptersCount', {
+                        count: item.publishedChapterCount,
+                      })}
                     </span>
                   </div>
                   {item.latestPublishedAt && (
                     <div className='flex items-center justify-between text-xs text-[#57534E]/70'>
-                      <span>Mới nhất:</span>
-                      <span>{new Date(item.latestPublishedAt).toLocaleDateString('vi-VN')}</span>
+                      <span>{t('workspace.reader.catalog.latestLabel')}</span>
+                      <span>{new Date(item.latestPublishedAt).toLocaleDateString(dateLocale)}</span>
                     </div>
                   )}
                 </div>
@@ -320,31 +324,35 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
             ? `Studio: ${selectedSeries.studioName} • ${selectedSeries.format}`
             : undefined
         }
-        closeLabel='Đóng'
+        closeLabel={t('workspace.reader.catalog.close')}
         footer={
           <button
             onClick={() => setSelectedSeries(null)}
             className='px-4 py-1.5 rounded-full bg-[#1C1917] hover:bg-[#292524] text-white text-xs font-semibold cursor-pointer transition-colors'
           >
-            Đóng
+            {t('workspace.reader.catalog.close')}
           </button>
         }
       >
         {selectedSeries && (
           <div className='space-y-4'>
             <p className='text-xs text-[#57534E] leading-relaxed'>
-              {selectedSeries.synopsis || 'Chưa có thông tin tóm tắt.'}
+              {selectedSeries.synopsis || t('workspace.reader.catalog.noSynopsisShort')}
             </p>
 
             <div className='space-y-2 border border-[#D8D2C5] rounded-xl p-3.5 bg-[#F8F6F0]'>
               <div className='text-xs font-semibold text-[#1C1917] flex items-center gap-1.5'>
                 <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
-                <span>Danh Sách Chương Đã Phát Hành ({selectedSeries.chapters.length})</span>
+                <span>
+                  {t('workspace.reader.catalog.publishedChaptersHeading', {
+                    count: selectedSeries.chapters.length,
+                  })}
+                </span>
               </div>
 
               {selectedSeries.chapters.length === 0 ? (
                 <div className='text-xs text-[#57534E] py-4 text-center'>
-                  Chưa có chương nào sẵn sàng đọc.
+                  {t('workspace.reader.catalog.noChaptersReady')}
                 </div>
               ) : (
                 <div className='space-y-1.5'>
@@ -353,20 +361,22 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                       key={chap.id}
                       onClick={() => setReadingChapterId(chap.id)}
                       className='p-2.5 bg-[#FCFBF8] rounded-lg border border-[#D8D2C5] flex items-center justify-between text-xs hover:border-[#F97316] transition-all cursor-pointer group hover:bg-[#FFF2E6]/30'
-                      title='Bấm để đọc trực tuyến'
+                      title={t('workspace.reader.catalog.readOnlineTitle')}
                     >
                       <div className='flex items-center gap-2.5 min-w-0'>
                         {chap.coverUrl ? (
                           <img
                             src={resolveCatalogImageUrl(chap.coverUrl)}
-                            alt={`Bìa chương ${chap.chapterNumber}`}
+                            alt={t('workspace.reader.catalog.chapterCoverAlt', {
+                              number: chap.chapterNumber,
+                            })}
                             className='w-8 h-11 object-cover rounded border border-[#D8D2C5] shadow-2xs shrink-0 bg-stone-100'
                             loading='lazy'
                           />
                         ) : (
                           <div className='w-8 h-11 rounded bg-[#F0EDE6] border border-[#D8D2C5] flex flex-col items-center justify-center shrink-0 text-center font-mono shadow-2xs'>
                             <span className='text-[7px] text-stone-400 font-bold uppercase leading-none'>
-                              TẬP
+                              {t('workspace.reader.catalog.chapterShortBadge')}
                             </span>
                             <span className='text-[11px] font-bold text-[#F97316] leading-none mt-0.5'>
                               {chap.chapterNumber}
@@ -376,10 +386,12 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                         <div className='min-w-0'>
                           <div className='flex items-center gap-1.5 flex-wrap'>
                             <span className='font-mono font-bold text-[#F97316] shrink-0'>
-                              Chương {chap.chapterNumber}:
+                              {t('workspace.reader.catalog.chapterLabel', {
+                                number: chap.chapterNumber,
+                              })}
                             </span>
                             <span className='font-semibold text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
-                              {chap.title || 'Không tiêu đề'}
+                              {chap.title || t('workspace.reader.catalog.untitled')}
                             </span>
                           </div>
                         </div>
@@ -387,11 +399,11 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                       <div className='flex items-center gap-2'>
                         {chap.publishedAt && (
                           <span className='text-[10px] text-[#57534E]/70 font-mono'>
-                            {new Date(chap.publishedAt).toLocaleDateString('vi-VN')}
+                            {new Date(chap.publishedAt).toLocaleDateString(dateLocale)}
                           </span>
                         )}
                         <span className='px-2 py-0.5 rounded bg-orange-50 text-orange-600 text-[10px] font-bold border border-orange-200 group-hover:bg-[#F97316] group-hover:text-white transition-colors flex items-center gap-1'>
-                          <span>Đọc</span>
+                          <span>{t('workspace.reader.catalog.readBtn')}</span>
                           <span>→</span>
                         </span>
                       </div>

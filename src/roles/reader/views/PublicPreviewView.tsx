@@ -29,6 +29,7 @@ import {
   FileImage,
 } from 'lucide-react';
 import { ReviewHandoffModal } from '@/shared/modals/ReviewHandoffModal';
+import { useTranslation } from '@/lib/i18n';
 
 interface SentFeedback {
   id: string;
@@ -38,6 +39,8 @@ interface SentFeedback {
 }
 
 export const PublicPreviewView: React.FC = () => {
+  const { t, lang } = useTranslation();
+  const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
   const { token } = useParams<{ token: string }>();
 
   // Dữ liệu bản xem thử (Chỉ lưu trong React State, TUYỆT ĐỐI KHÔNG lưu vào localStorage lâu dài)
@@ -70,7 +73,7 @@ export const PublicPreviewView: React.FC = () => {
 
   const fetchChapter = useCallback(async () => {
     if (!token) {
-      setErrorMsg('Thiếu mã token truy cập bản xem thử.');
+      setErrorMsg(t('workspace.reader.preview.missingToken'));
       setLoading(false);
       return;
     }
@@ -83,12 +86,12 @@ export const PublicPreviewView: React.FC = () => {
       const msg =
         err?.response?.data?.error ||
         err?.response?.data?.message ||
-        'Link xem thử không hợp lệ, đã hết hạn hoặc đã bị thu hồi.';
+        t('workspace.reader.preview.invalidOrExpired');
       setErrorMsg(msg);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, t]);
 
   useEffect(() => {
     fetchChapter();
@@ -171,10 +174,13 @@ export const PublicPreviewView: React.FC = () => {
 
       const label =
         feedbackScope === 'chapter'
-          ? 'Toàn chương'
+          ? t('workspace.reader.preview.scopeWholeChapter')
           : feedbackScope === 'panel' && selectedPanel
-            ? `Trang ${currentPageIndex + 1} · Khung #${selectedPanel.panelNumber}`
-            : `Trang ${currentPageIndex + 1}`;
+            ? t('workspace.reader.preview.scopePagePanel', {
+                page: currentPageIndex + 1,
+                panel: selectedPanel.panelNumber,
+              })
+            : t('workspace.reader.preview.scopePageOnly', { page: currentPageIndex + 1 });
       setSentFeedback((prev) => [
         {
           id: created?.id ?? String(Date.now()),
@@ -193,7 +199,7 @@ export const PublicPreviewView: React.FC = () => {
       const msg =
         err?.response?.data?.error ||
         err?.response?.data?.message ||
-        'Không thể gửi phản hồi. Vui lòng thử lại.';
+        t('workspace.reader.preview.feedbackSubmitError');
       setFeedbackError(msg);
     } finally {
       setSubmittingFeedback(false);
@@ -218,8 +224,12 @@ export const PublicPreviewView: React.FC = () => {
         data-testid='preview-loading-screen'
       >
         <Loader2 className='w-8 h-8 animate-spin text-[#F97316] mb-3' />
-        <h2 className='text-sm font-semibold text-neutral-300'>Đang mở bản xem thử bảo mật...</h2>
-        <p className='text-xs text-neutral-500 mt-1 font-mono'>Xác thực chữ ký số công khai</p>
+        <h2 className='text-sm font-semibold text-neutral-300'>
+          {t('workspace.reader.preview.loadingTitle')}
+        </h2>
+        <p className='text-xs text-neutral-500 mt-1 font-mono'>
+          {t('workspace.reader.preview.loadingSubtitle')}
+        </p>
       </div>
     );
   }
@@ -237,22 +247,19 @@ export const PublicPreviewView: React.FC = () => {
           </div>
           <div>
             <h1 className='text-lg font-bold text-white'>
-              Liên kết bản thảo đã hết hạn hoặc bị thu hồi
+              {t('workspace.reader.preview.errorHeading')}
             </h1>
             <p className='text-xs text-red-300 mt-2 bg-red-950/40 p-2.5 rounded-lg border border-red-900/40'>
-              {errorMsg || 'Link xem thử không hợp lệ, đã hết hạn hoặc đã bị thu hồi.'}
+              {errorMsg || t('workspace.reader.preview.invalidOrExpired')}
             </p>
           </div>
-          <p className='text-xs text-neutral-400'>
-            Liên kết này chỉ có hiệu lực tạm thời hoặc đã bị Studio thu hồi để bảo vệ bản quyền tác
-            phẩm. Vui lòng liên hệ người gửi để được cấp liên kết mới.
-          </p>
+          <p className='text-xs text-neutral-400'>{t('workspace.reader.preview.errorDesc')}</p>
           <div className='pt-2'>
             <Link
               to='/'
               className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs font-semibold text-neutral-200 transition-colors'
             >
-              Về Trang Chủ PanelForge
+              {t('workspace.reader.preview.backHome')}
             </Link>
           </div>
         </div>
@@ -269,7 +276,7 @@ export const PublicPreviewView: React.FC = () => {
       <img
         key={`${page.pageId}-${imageReloadCount}`}
         src={resolvePreviewImageUrl(page.imageUrl)}
-        alt={`Trang ${page.pageNumber}`}
+        alt={t('workspace.reader.preview.pageAlt', { number: page.pageNumber })}
         onError={handleImageError}
         className='w-full h-full object-contain pointer-events-auto'
         data-testid='preview-page-image'
@@ -300,7 +307,7 @@ export const PublicPreviewView: React.FC = () => {
                   ? 'border-orange-500 bg-orange-500/20 shadow-lg'
                   : 'border-transparent hover:border-orange-400/80 hover:bg-orange-400/10'
               }`}
-              title={`Bấm để gửi phản hồi cho Khung #${p.panelNumber}`}
+              title={t('workspace.reader.preview.panelTooltip', { number: p.panelNumber })}
               data-testid={`preview-panel-box-${p.panelId}`}
             >
               <span
@@ -310,7 +317,7 @@ export const PublicPreviewView: React.FC = () => {
                     : 'bg-black/70 text-orange-300 opacity-0 group-hover:opacity-100'
                 }`}
               >
-                Khung #{p.panelNumber}
+                {t('workspace.reader.preview.panelBadge', { number: p.panelNumber })}
               </span>
             </div>
           );
@@ -351,12 +358,15 @@ export const PublicPreviewView: React.FC = () => {
                 {chapterData.seriesTitle}
               </h1>
               <span className='px-1.5 py-0.5 rounded bg-orange-950/80 text-orange-400 border border-orange-800 text-xs font-mono shrink-0'>
-                {isRTL ? 'Manga (RTL: Phải qua Trái)' : 'Comic (LTR: Trái qua Phải)'}
+                {isRTL
+                  ? t('workspace.reader.preview.rtlBadge')
+                  : t('workspace.reader.preview.ltrBadge')}
               </span>
             </div>
             <div className='text-xs text-neutral-400 font-mono truncate'>
-              Chương #{chapterData.chapterNumber}
-              {chapterData.chapterTitle ? `: ${chapterData.chapterTitle}` : ''} • Người nhận:{' '}
+              {t('workspace.reader.preview.chapterMeta', { number: chapterData.chapterNumber })}
+              {chapterData.chapterTitle ? `: ${chapterData.chapterTitle}` : ''} •{' '}
+              {t('workspace.reader.preview.recipientLabel')}{' '}
               <span className='text-neutral-300'>{chapterData.recipientEmail}</span>
             </div>
           </div>
@@ -365,9 +375,9 @@ export const PublicPreviewView: React.FC = () => {
         {/* Right actions */}
         <div className='flex items-center gap-2 shrink-0'>
           <div className='hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-neutral-900 border border-neutral-800 text-xs font-mono text-neutral-400'>
-            <span>Hạn:</span>
+            <span>{t('workspace.reader.preview.expiresLabel')}</span>
             <span className='text-amber-400 font-semibold'>
-              {new Date(chapterData.expiresAt).toLocaleString('vi-VN')}
+              {new Date(chapterData.expiresAt).toLocaleString(dateLocale)}
             </span>
           </div>
 
@@ -376,7 +386,7 @@ export const PublicPreviewView: React.FC = () => {
             data-testid='watermark-badge'
           >
             <ShieldCheck className='w-3.5 h-3.5' />
-            BẢO MẬT &amp; ĐỘC QUYỀN (WATERMARKED)
+            {t('workspace.reader.preview.watermarkBadge')}
           </span>
 
           <button
@@ -384,10 +394,10 @@ export const PublicPreviewView: React.FC = () => {
             onClick={() => setShowHandoff(true)}
             className='px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 cursor-pointer'
             data-testid='open-handoff-btn'
-            title='Mở trên App / Quét QR bằng Tablet'
+            title={t('workspace.reader.preview.handoffTitle')}
           >
             <Smartphone className='w-3.5 h-3.5' />
-            <span className='hidden sm:inline'>Mở trên App / Quét QR</span>
+            <span className='hidden sm:inline'>{t('workspace.reader.preview.handoffLabel')}</span>
           </button>
 
           <button
@@ -399,17 +409,21 @@ export const PublicPreviewView: React.FC = () => {
                 : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700'
             }`}
             data-testid='toggle-feedback-panel'
-            title='Mở biểu mẫu đóng góp phản hồi'
+            title={t('workspace.reader.preview.feedbackToggleTitle')}
           >
             <MessageSquare className='w-3.5 h-3.5' />
-            <span>Phản Hồi</span>
+            <span>{t('workspace.reader.preview.feedbackToggleLabel')}</span>
           </button>
 
           <button
             type='button'
             onClick={toggleFullscreen}
             className='p-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer hidden sm:flex'
-            title={isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
+            title={
+              isFullscreen
+                ? t('workspace.reader.preview.exitFullscreen')
+                : t('workspace.reader.preview.enterFullscreen')
+            }
           >
             {isFullscreen ? <Minimize2 className='w-4 h-4' /> : <Maximize2 className='w-4 h-4' />}
           </button>
@@ -423,12 +437,16 @@ export const PublicPreviewView: React.FC = () => {
           {/* Navigation Controls Bar */}
           <div className='w-full max-w-4xl flex items-center justify-between mb-2 text-xs font-mono text-neutral-400 px-2'>
             <div className='flex items-center gap-1.5'>
-              <span>Trang:</span>
+              <span>{t('workspace.reader.preview.pageLabel')}</span>
               <span className='text-white font-bold text-sm'>
                 {currentPageIndex + 1} / {totalPages}
               </span>
               {currentPage && (
-                <span className='text-xs text-neutral-500'>(Bản v{currentPage.versionNumber})</span>
+                <span className='text-xs text-neutral-500'>
+                  {t('workspace.reader.preview.versionBadge', {
+                    version: currentPage.versionNumber,
+                  })}
+                </span>
               )}
             </div>
 
@@ -436,7 +454,7 @@ export const PublicPreviewView: React.FC = () => {
               <div
                 className='flex rounded-lg border border-neutral-800 overflow-hidden'
                 role='group'
-                aria-label='Chế độ xem'
+                aria-label={t('workspace.reader.preview.viewModeAria')}
               >
                 <button
                   type='button'
@@ -446,7 +464,9 @@ export const PublicPreviewView: React.FC = () => {
                   data-testid='view-mode-single'
                 >
                   <FileImage className='w-3.5 h-3.5' />
-                  <span className='hidden sm:inline'>Từng trang</span>
+                  <span className='hidden sm:inline'>
+                    {t('workspace.reader.preview.viewModeSingle')}
+                  </span>
                 </button>
                 <button
                   type='button'
@@ -456,7 +476,9 @@ export const PublicPreviewView: React.FC = () => {
                   data-testid='view-mode-scroll'
                 >
                   <Rows3 className='w-3.5 h-3.5' />
-                  <span className='hidden sm:inline'>Cuộn dọc</span>
+                  <span className='hidden sm:inline'>
+                    {t('workspace.reader.preview.viewModeScroll')}
+                  </span>
                 </button>
               </div>
               {/* Lật trang theo hướng đọc */}
@@ -466,10 +488,18 @@ export const PublicPreviewView: React.FC = () => {
                 disabled={isRTL ? currentPageIndex >= totalPages - 1 : currentPageIndex <= 0}
                 className='px-2.5 py-1 rounded bg-neutral-800 hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center gap-1 transition-colors cursor-pointer'
                 data-testid='nav-prev-btn'
-                title={isRTL ? 'Trang tiếp (RTL)' : 'Trang trước'}
+                title={
+                  isRTL
+                    ? t('workspace.reader.preview.nextPageRtlTitle')
+                    : t('workspace.reader.preview.prevPageTitle')
+                }
               >
                 <ChevronLeft className='w-3.5 h-3.5' />
-                <span>{isRTL ? 'Tiếp (RTL)' : 'Trước'}</span>
+                <span>
+                  {isRTL
+                    ? t('workspace.reader.preview.nextPageRtl')
+                    : t('workspace.reader.preview.prevPage')}
+                </span>
               </button>
 
               <button
@@ -478,9 +508,17 @@ export const PublicPreviewView: React.FC = () => {
                 disabled={isRTL ? currentPageIndex <= 0 : currentPageIndex >= totalPages - 1}
                 className='px-2.5 py-1 rounded bg-neutral-800 hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center gap-1 transition-colors cursor-pointer'
                 data-testid='nav-next-btn'
-                title={isRTL ? 'Trang trước (RTL)' : 'Trang tiếp'}
+                title={
+                  isRTL
+                    ? t('workspace.reader.preview.prevPageRtlTitle')
+                    : t('workspace.reader.preview.nextPageTitle')
+                }
               >
-                <span>{isRTL ? 'Trước (RTL)' : 'Tiếp'}</span>
+                <span>
+                  {isRTL
+                    ? t('workspace.reader.preview.prevPageRtl')
+                    : t('workspace.reader.preview.nextPage')}
+                </span>
                 <ChevronRight className='w-3.5 h-3.5' />
               </button>
             </div>
@@ -500,15 +538,14 @@ export const PublicPreviewView: React.FC = () => {
             ) : (
               <div className='py-20 text-center text-neutral-500'>
                 <Info className='w-8 h-8 mx-auto mb-2 text-neutral-600' />
-                <p className='text-xs'>Chương xem thử không có nội dung trang.</p>
+                <p className='text-xs'>{t('workspace.reader.preview.emptyChapter')}</p>
               </div>
             )}
           </div>
 
           {/* Reading hint */}
           <div className='mt-2 text-xs text-neutral-500 font-mono text-center'>
-            💡 Dùng phím mũi tên ← → trên bàn phím để lật trang. Bấm vào khung tranh để khoanh vùng
-            phản hồi.
+            {t('workspace.reader.preview.readingHint')}
           </div>
         </main>
 
@@ -522,7 +559,7 @@ export const PublicPreviewView: React.FC = () => {
               <div className='flex items-center gap-2'>
                 <MessageSquare className='w-4 h-4 text-[#F97316]' />
                 <h2 className='text-xs font-bold text-white uppercase tracking-wider'>
-                  Đóng Góp Ý Kiến
+                  {t('workspace.reader.preview.feedbackHeading')}
                 </h2>
               </div>
               <button
@@ -537,7 +574,7 @@ export const PublicPreviewView: React.FC = () => {
             {/* Scope selector */}
             <div className='mb-3'>
               <label className='block text-xs font-semibold text-neutral-300 mb-1.5'>
-                Phạm vi nhận xét:
+                {t('workspace.reader.preview.scopeLabel')}
               </label>
               <div className='grid grid-cols-3 gap-1 bg-neutral-900 p-1 rounded-lg border border-neutral-800 text-xs font-mono'>
                 <button
@@ -553,7 +590,7 @@ export const PublicPreviewView: React.FC = () => {
                   }`}
                   data-testid='scope-chapter-btn'
                 >
-                  Toàn Chương
+                  {t('workspace.reader.preview.scopeBtnChapter')}
                 </button>
                 <button
                   type='button'
@@ -568,7 +605,7 @@ export const PublicPreviewView: React.FC = () => {
                   }`}
                   data-testid='scope-page-btn'
                 >
-                  Trang #{currentPageIndex + 1}
+                  {t('workspace.reader.preview.scopeBtnPage', { number: currentPageIndex + 1 })}
                 </button>
                 <button
                   type='button'
@@ -580,7 +617,11 @@ export const PublicPreviewView: React.FC = () => {
                   }`}
                   data-testid='scope-panel-btn'
                 >
-                  {selectedPanel ? `Khung #${selectedPanel.panelNumber}` : 'Khung Tranh'}
+                  {selectedPanel
+                    ? t('workspace.reader.preview.scopeBtnPanel', {
+                        number: selectedPanel.panelNumber,
+                      })
+                    : t('workspace.reader.preview.scopeBtnPanelEmpty')}
                 </button>
               </div>
             </div>
@@ -590,24 +631,38 @@ export const PublicPreviewView: React.FC = () => {
               <Sparkles className='w-3.5 h-3.5 text-[#F97316] shrink-0 mt-0.5' />
               <div>
                 {feedbackScope === 'chapter' && (
-                  <span>Ý kiến chung cho toàn bộ cốt truyện và nét vẽ của cả chương.</span>
+                  <span>{t('workspace.reader.preview.scopeHintChapter')}</span>
                 )}
                 {feedbackScope === 'page' && (
                   <span>
-                    Gắn phản hồi vào <strong>Trang {currentPageIndex + 1}</strong> (Bản v
-                    {currentPage?.versionNumber}).
+                    {t('workspace.reader.preview.scopeHintPagePrefix')}{' '}
+                    <strong>
+                      {t('workspace.reader.preview.scopeHintPageName', {
+                        number: currentPageIndex + 1,
+                      })}
+                    </strong>{' '}
+                    {t('workspace.reader.preview.scopeHintPageVersion', {
+                      version: currentPage?.versionNumber ?? '',
+                    })}
                   </span>
                 )}
                 {feedbackScope === 'panel' && (
                   <span>
                     {selectedPanel ? (
                       <>
-                        Gắn phản hồi vào <strong>Khung #{selectedPanel.panelNumber}</strong> của
-                        Trang {currentPageIndex + 1}.
+                        {t('workspace.reader.preview.scopeHintPanelPrefix')}{' '}
+                        <strong>
+                          {t('workspace.reader.preview.scopeHintPanelName', {
+                            panel: selectedPanel.panelNumber,
+                          })}
+                        </strong>{' '}
+                        {t('workspace.reader.preview.scopeHintPanelPage', {
+                          page: currentPageIndex + 1,
+                        })}
                       </>
                     ) : (
                       <span className='text-amber-400'>
-                        Vui lòng nhấp trực tiếp vào một khung tranh trên trang để chọn.
+                        {t('workspace.reader.preview.scopeHintPanelSelect')}
                       </span>
                     )}
                   </span>
@@ -622,7 +677,7 @@ export const PublicPreviewView: React.FC = () => {
                 data-testid='feedback-success-banner'
               >
                 <CheckCircle2 className='w-4 h-4 shrink-0 text-emerald-400' />
-                <span>Đã gửi phản hồi thành công! Cảm ơn ý kiến của bạn.</span>
+                <span>{t('workspace.reader.preview.feedbackSuccess')}</span>
               </div>
             )}
 
@@ -641,14 +696,14 @@ export const PublicPreviewView: React.FC = () => {
                   htmlFor='reviewer-name'
                   className='block text-xs font-semibold text-neutral-300 mb-1'
                 >
-                  Tên người nhận xét (không bắt buộc):
+                  {t('workspace.reader.preview.reviewerNameLabel')}
                 </label>
                 <input
                   id='reviewer-name'
                   value={reviewerName}
                   maxLength={80}
                   onChange={(e) => setReviewerName(e.target.value)}
-                  placeholder='Ví dụ: Cố vấn Minh'
+                  placeholder={t('workspace.reader.preview.reviewerNamePlaceholder')}
                   className='w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#F97316]'
                   data-testid='reviewer-name-input'
                 />
@@ -659,7 +714,7 @@ export const PublicPreviewView: React.FC = () => {
                     htmlFor='feedback-page'
                     className='block text-xs font-semibold text-neutral-300 mb-1'
                   >
-                    Trang số:
+                    {t('workspace.reader.preview.feedbackPageLabel')}
                   </label>
                   <select
                     id='feedback-page'
@@ -673,7 +728,9 @@ export const PublicPreviewView: React.FC = () => {
                   >
                     {chapterData.pages.map((p, idx) => (
                       <option key={p.pageId} value={idx}>
-                        Trang {p.pageNumber}
+                        {t('workspace.reader.preview.feedbackPageOption', {
+                          number: p.pageNumber,
+                        })}
                       </option>
                     ))}
                   </select>
@@ -681,19 +738,19 @@ export const PublicPreviewView: React.FC = () => {
               )}
               <div className='flex-1 flex flex-col'>
                 <label className='block text-xs font-semibold text-neutral-300 mb-1'>
-                  Nội dung nhận xét (tối đa 2.000 ký tự):
+                  {t('workspace.reader.preview.feedbackMessageLabel')}
                 </label>
                 <textarea
                   required
                   maxLength={2000}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder='Ví dụ: Nét vẽ biểu cảm nhân vật rất tốt; Khung này thoại nên đặt góc trên bên phải...'
+                  placeholder={t('workspace.reader.preview.feedbackMessagePlaceholder')}
                   className='w-full flex-1 min-h-[160px] p-3 bg-neutral-900 border border-neutral-800 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#F97316] resize-none custom-scrollbar'
                   data-testid='feedback-message-input'
                 />
                 <div className='text-right text-xs text-neutral-500 font-mono mt-1'>
-                  {message.length} / 2000 ký tự
+                  {t('workspace.reader.preview.charCount', { count: message.length })}
                 </div>
               </div>
 
@@ -712,7 +769,7 @@ export const PublicPreviewView: React.FC = () => {
                 ) : (
                   <Send className='w-4 h-4' />
                 )}
-                <span>Gửi Nhận Xét</span>
+                <span>{t('workspace.reader.preview.submitFeedback')}</span>
               </button>
             </form>
 
@@ -722,7 +779,7 @@ export const PublicPreviewView: React.FC = () => {
                 data-testid='sent-feedback-list'
               >
                 <h3 className='text-xs font-bold text-neutral-300 mb-2'>
-                  Đã gửi trong phiên này ({sentFeedback.length}) — Studio đã nhận
+                  {t('workspace.reader.preview.sentFeedbackTitle', { count: sentFeedback.length })}
                 </h3>
                 <ul className='space-y-2 max-h-48 overflow-y-auto custom-scrollbar'>
                   {sentFeedback.map((fb) => (
@@ -735,7 +792,7 @@ export const PublicPreviewView: React.FC = () => {
                           <CheckCircle2 className='w-3 h-3' />
                           {fb.label}
                         </span>
-                        <span>{new Date(fb.createdAt).toLocaleTimeString('vi-VN')}</span>
+                        <span>{new Date(fb.createdAt).toLocaleTimeString(dateLocale)}</span>
                       </div>
                       <p className='mt-1 text-neutral-200 whitespace-pre-wrap break-words'>
                         {fb.message}
