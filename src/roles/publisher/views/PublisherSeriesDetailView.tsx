@@ -50,7 +50,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
 }) => {
   const { seriesId } = useParams<{ seriesId: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation('publisher');
 
   const [detail, setDetail] = useState<PublisherSeriesDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,11 +78,11 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
       const data = await publisherService.getSeriesDetail(seriesId);
       setDetail(data);
     } catch (err: any) {
-      onShowToast?.('Lỗi', err.message || 'Không thể tải chi tiết bộ truyện.');
+      onShowToast?.(t('shared.errorTitle'), err.message || t('detail.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [seriesId, onShowToast]);
+  }, [seriesId, onShowToast, t]);
 
   useEffect(() => {
     fetchDetail();
@@ -98,7 +98,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
       const data = await bibleService.getSeriesBible(seriesId);
       setBibleData(data);
     } catch (err: any) {
-      onShowToast?.('Series Bible', err.message || 'Không thể tải dữ liệu Bible.');
+      onShowToast?.('Series Bible', err.message || t('detail.bibleLoadError'));
     } finally {
       setBibleLoading(false);
     }
@@ -157,9 +157,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
     return (
       <div className='min-h-full bg-[#F3F0E9] p-12 flex flex-col items-center justify-center space-y-3'>
         <RefreshCw className='w-7 h-7 animate-spin text-[#EA580C]' />
-        <p className='text-xs font-semibold text-stone-600'>
-          Đang tải thông tin chi tiết bộ truyện...
-        </p>
+        <p className='text-xs font-semibold text-stone-600'>{t('detail.loading')}</p>
       </div>
     );
   }
@@ -168,14 +166,12 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
     return (
       <div className='min-h-full bg-[#F3F0E9] p-12 text-center space-y-4'>
         <BookOpen className='w-10 h-10 text-stone-300 mx-auto' />
-        <p className='text-stone-700 font-serif font-bold text-base'>
-          Không tìm thấy thông tin bộ truyện này.
-        </p>
+        <p className='text-stone-700 font-serif font-bold text-base'>{t('detail.notFound')}</p>
         <button
           onClick={() => navigate('/publisher/series')}
           className='px-4 py-2 bg-stone-900 text-white text-xs font-semibold rounded-xl hover:bg-stone-800 transition-colors'
         >
-          {t('publisher.detail.backToSeries', 'Quay lại danh sách bộ truyện')}
+          {t('publisher.detail.backToSeries')}
         </button>
       </div>
     );
@@ -203,7 +199,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
             className='px-3.5 py-1.5 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#EFECE5] text-xs font-semibold text-stone-600 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
           >
             <RefreshCw className='w-3.5 h-3.5' />
-            <span>Làm mới</span>
+            <span>{t('shared.refresh')}</span>
           </button>
         </div>
       </div>
@@ -292,7 +288,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
 
             {/* Thể loại */}
             <div className='flex items-center gap-1.5 flex-wrap pt-1'>
-              <span className='text-xs font-bold text-stone-500'>Thể loại:</span>
+              <span className='text-xs font-bold text-stone-500'>{t('detail.genres')}:</span>
               {detail.genres && detail.genres.length > 0 ? (
                 detail.genres.map((g, idx) => (
                   <span
@@ -314,7 +310,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
               <div className='p-3.5 rounded-xl bg-[#FFF2E6] border border-[#FDBA74] text-xs text-[#9A3412] leading-relaxed space-y-1'>
                 <div className='font-bold flex items-center gap-1.5'>
                   <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' />
-                  <span>Logline Cốt Truyện</span>
+                  <span>{t('detail.loglineTitle')}</span>
                 </div>
                 <p className='text-stone-800'>{detail.logline}</p>
               </div>
@@ -438,7 +434,9 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                   <div className='flex items-start sm:items-center gap-3.5 min-w-0 flex-1'>
                     {/* Chapter Number Badge */}
                     <div className='w-14 h-12 rounded-xl bg-[#F8F6F0] border border-[#D8D2C5] font-mono font-bold text-sm text-[#1C1917] flex flex-col items-center justify-center shrink-0 shadow-2xs'>
-                      <span className='text-[10px] text-stone-400 font-sans font-normal'>Tập</span>
+                      <span className='text-[10px] text-stone-400 font-sans font-normal'>
+                        {t('detail.chapterShort')}
+                      </span>
                       <span>#{chap.chapterNumber}</span>
                     </div>
 
@@ -446,8 +444,11 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                       <div className='flex items-center gap-2.5 flex-wrap'>
                         <h3 className='font-bold text-sm sm:text-base text-[#1C1917] truncate'>
                           {chap.title
-                            ? `Chương #${chap.chapterNumber}: ${chap.title}`
-                            : `Chương #${chap.chapterNumber} (Bản hoàn chỉnh)`}
+                            ? t('detail.chapterTitleWithName', {
+                                number: chap.chapterNumber,
+                                title: chap.title,
+                              })
+                            : t('detail.chapterTitleDefault', { number: chap.chapterNumber })}
                         </h3>
 
                         <ChapterPriceBadge
@@ -460,7 +461,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                         {chap.status === 'ChapterApproved' && (
                           <span className='px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1 shadow-2xs'>
                             <Clock className='w-3 h-3 text-[#EA580C]' />
-                            <span>Chờ Publisher duyệt</span>
+                            <span>{t('detail.statusPendingPublisher')}</span>
                           </span>
                         )}
 
@@ -468,7 +469,11 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                           <span className='px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 flex items-center gap-1 shadow-2xs'>
                             <Calendar className='w-3 h-3 text-indigo-600' />
                             <span>
-                              Hẹn giờ: {new Date(chap.publishAt!).toLocaleString('vi-VN')}
+                              {t('detail.statusScheduledAt', {
+                                date: new Date(chap.publishAt!).toLocaleString(
+                                  lang === 'en' ? 'en-US' : 'vi-VN',
+                                ),
+                              })}
                             </span>
                           </span>
                         )}
@@ -477,10 +482,13 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                           <span className='px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1 shadow-2xs'>
                             <CheckCircle2 className='w-3 h-3 text-emerald-600' />
                             <span>
-                              Đã phát hành{' '}
                               {chap.publishAt
-                                ? `(${new Date(chap.publishAt).toLocaleDateString('vi-VN')})`
-                                : ''}
+                                ? t('detail.statusPublishedAt', {
+                                    date: new Date(chap.publishAt).toLocaleDateString(
+                                      lang === 'en' ? 'en-US' : 'vi-VN',
+                                    ),
+                                  })
+                                : t('detail.statusPublished')}
                             </span>
                           </span>
                         )}
@@ -490,14 +498,14 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                       <div className='text-xs text-stone-500 flex items-center gap-3.5 flex-wrap'>
                         <span className='flex items-center gap-1 font-medium'>
                           <FileText className='w-3.5 h-3.5 text-stone-400' />
-                          <span>{chap.pageCount} trang</span>
+                          <span>{t('detail.pageCount', { count: chap.pageCount })}</span>
                         </span>
 
                         {chap.approvedBy && (
                           <span className='flex items-center gap-1'>
                             <User className='w-3.5 h-3.5 text-stone-400' />
                             <span>
-                              Producer duyệt: <strong>{chap.approvedBy}</strong>
+                              {t('detail.approvedByProducer')}: <strong>{chap.approvedBy}</strong>
                             </span>
                           </span>
                         )}
@@ -505,7 +513,11 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                         {chap.approvedAt && (
                           <span className='flex items-center gap-1 font-mono text-[11px]'>
                             <Calendar className='w-3.5 h-3.5 text-stone-400' />
-                            <span>{new Date(chap.approvedAt).toLocaleString('vi-VN')}</span>
+                            <span>
+                              {new Date(chap.approvedAt).toLocaleString(
+                                lang === 'en' ? 'en-US' : 'vi-VN',
+                              )}
+                            </span>
                           </span>
                         )}
                       </div>
@@ -521,10 +533,10 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                         type='button'
                         onClick={() => setReadingChapter(chap)}
                         className='px-2.5 py-1.5 rounded-lg hover:bg-white text-xs font-semibold text-stone-700 hover:text-stone-900 flex items-center gap-1.5 transition-colors cursor-pointer'
-                        title='Đọc thử trên trình đọc Manga Reader'
+                        title={t('detail.readPreviewTooltip')}
                       >
                         <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
-                        <span>{t('publisher.detail.readPreview', 'Đọc thử')}</span>
+                        <span>{t('publisher.detail.readPreview')}</span>
                       </button>
 
                       {/* Bản duyệt (Manifest) */}
@@ -532,10 +544,10 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                         type='button'
                         onClick={() => setSnapshotChapter(chap)}
                         className='px-2.5 py-1.5 rounded-lg hover:bg-white text-xs font-semibold text-stone-700 hover:text-stone-900 flex items-center gap-1.5 transition-colors cursor-pointer'
-                        title='Xem manifest ChapterSnapshot đã đóng băng bởi Producer'
+                        title={t('detail.viewManifestTooltip')}
                       >
                         <FileStack className='w-3.5 h-3.5 text-stone-500' />
-                        <span>{t('publisher.detail.viewManifest', 'Bản duyệt')}</span>
+                        <span>{t('publisher.detail.viewManifest')}</span>
                       </button>
 
                       {/* Lịch sử review */}
@@ -543,10 +555,10 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                         type='button'
                         onClick={() => setReviewingChapter(chap)}
                         className='px-2.5 py-1.5 rounded-lg hover:bg-white text-xs font-semibold text-stone-700 hover:text-stone-900 flex items-center gap-1.5 transition-colors cursor-pointer'
-                        title='Lịch sử phê duyệt và biên bản họp'
+                        title={t('detail.reviewHistoryTooltip')}
                       >
                         <History className='w-3.5 h-3.5 text-stone-500' />
-                        <span>{t('publisher.detail.reviewHistory', 'Lịch sử')}</span>
+                        <span>{t('publisher.detail.reviewHistory')}</span>
                       </button>
                     </div>
 
@@ -557,12 +569,10 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                           type='button'
                           onClick={() => setPublishingChapter(chap)}
                           className='px-4 py-1.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-soft-sm active:scale-95'
-                          title='Phát hành ngay hoặc lên lịch hẹn giờ'
+                          title={t('detail.publishScheduleTooltip')}
                         >
                           <Send className='w-3.5 h-3.5' />
-                          <span>
-                            {t('publisher.detail.publishSchedule', 'Xuất bản / Lên lịch')}
-                          </span>
+                          <span>{t('publisher.detail.publishSchedule')}</span>
                         </button>
                       </div>
                     )}
@@ -572,17 +582,17 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                         type='button'
                         onClick={() => setPublishingChapter(chap)}
                         className='px-3.5 py-1.5 rounded-xl border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
-                        title='Đổi lịch phát hành'
+                        title={t('detail.rescheduleTooltip')}
                       >
                         <Calendar className='w-3.5 h-3.5 text-indigo-600' />
-                        <span>Đổi lịch</span>
+                        <span>{t('detail.reschedule')}</span>
                       </button>
                     )}
 
                     {isOfficialReleased && (
                       <span className='px-3.5 py-1.5 rounded-xl bg-stone-100 text-stone-600 border border-stone-200 text-xs font-semibold flex items-center gap-1.5 select-none'>
                         <Lock className='w-3.5 h-3.5 text-stone-500' />
-                        <span>{t('publisher.detail.lockedOfficial', 'Bản chính thức')}</span>
+                        <span>{t('publisher.detail.lockedOfficial')}</span>
                       </span>
                     )}
                   </div>
@@ -598,9 +608,9 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
         isOpen={isBibleOpen}
         onClose={() => setIsBibleOpen(false)}
         size='xl'
-        title='Series Bible // Thiết Lập Thế Giới & Nhân Vật'
-        description={`Tra cứu toàn bộ thiết lập nhân vật, bối cảnh, đạo cụ của ${detail.title}`}
-        closeLabel={t('common.actions.close', 'Đóng')}
+        title={t('detail.bibleModalTitle')}
+        description={t('detail.bibleModalDesc', { title: detail.title })}
+        closeLabel={t('common.actions.close')}
       >
         <div className='space-y-4'>
           {/* Filter by Category */}
@@ -617,19 +627,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                       : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                   }`}
                 >
-                  {cat === 'all'
-                    ? 'Tất cả'
-                    : cat === 'Character'
-                      ? 'Nhân vật'
-                      : cat === 'Location'
-                        ? 'Địa điểm'
-                        : cat === 'Prop'
-                          ? 'Đạo cụ'
-                          : cat === 'Terminology'
-                            ? 'Thuật ngữ'
-                            : cat === 'StyleRule'
-                              ? 'Quy chuẩn vẽ'
-                              : 'Tình tiết cốt truyện'}
+                  {t(`detail.bibleCategories.${cat}`)}
                 </button>
               ),
             )}
@@ -639,12 +637,12 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
           {bibleLoading ? (
             <div className='py-16 text-center text-stone-500 flex flex-col items-center justify-center space-y-2'>
               <RefreshCw className='w-6 h-6 animate-spin text-orange-600' />
-              <p className='text-xs font-semibold'>Đang tải dữ liệu Series Bible...</p>
+              <p className='text-xs font-semibold'>{t('detail.bibleLoading')}</p>
             </div>
           ) : filteredBibleEntries.length === 0 ? (
             <div className='py-12 text-center text-stone-500 space-y-2'>
               <BookOpen className='w-8 h-8 text-stone-300 mx-auto' />
-              <p className='text-xs'>Không tìm thấy mục thiết lập nào trong phân loại này.</p>
+              <p className='text-xs'>{t('detail.bibleEmpty')}</p>
             </div>
           ) : (
             <div className='grid grid-cols-1 md:grid-cols-2 gap-3.5'>

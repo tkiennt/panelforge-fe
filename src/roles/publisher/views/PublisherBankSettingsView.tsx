@@ -283,7 +283,7 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
             <div className='p-5 rounded-2xl bg-white border border-[#E7E7E7] space-y-4 shadow-xs'>
               <h2 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
                 <Building2 className='w-4 h-4 text-[#F97316]' />
-                <span>Thông tin tài khoản</span>
+                <span>{t('publisher.bank.accountInfo')}</span>
               </h2>
 
               {/* Ngân hàng */}
@@ -472,7 +472,7 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
                   }}
                   className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800 hover:bg-amber-100 cursor-pointer'
                 >
-                  <span>Đang lọc theo 1 bộ truyện · Xem tất cả (gồm Nạp Ví & VIP)</span>
+                  <span>{t('publisher.bank.filteredBySeriesClear')}</span>
                   <X className='w-3.5 h-3.5' />
                 </button>
               )}

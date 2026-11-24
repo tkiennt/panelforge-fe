@@ -26,7 +26,7 @@ export const PublisherRevenueView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fmt = (n: number) => n.toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN');
-  const vnd = (n: number) => `${fmt(n)}đ`;
+  const vnd = (n: number) => t('publisher.currency.vnd', { amount: fmt(n) });
 
   useEffect(() => {
     publisherService
@@ -75,7 +75,10 @@ export const PublisherRevenueView: React.FC = () => {
             value={vnd(s.totalRevenueVnd)}
             sub={
               (s.vipRevenueVnd ?? 0) > 0 || (s.topupRevenueVnd ?? 0) > 0
-                ? `VIP: ${vnd(s.vipRevenueVnd ?? 0)} · Nạp Ví: ${vnd(s.topupRevenueVnd ?? 0)}`
+                ? t('publisher.revenue.vipTopupBreakdown', {
+                    vip: vnd(s.vipRevenueVnd ?? 0),
+                    topup: vnd(s.topupRevenueVnd ?? 0),
+                  })
                 : undefined
             }
             highlight

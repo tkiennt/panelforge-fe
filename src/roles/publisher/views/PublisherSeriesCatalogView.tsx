@@ -23,6 +23,7 @@ import {
   PublisherWorkspaceDto,
 } from '@/services/publisher.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
+import { useTranslation } from '@/lib/i18n';
 
 interface PublisherSeriesCatalogViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -35,6 +36,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
   onShowToast,
 }) => {
   const navigate = useNavigate();
+  const { t, lang } = useTranslation('publisher');
 
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -64,11 +66,11 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
       });
       setSeriesList(data || []);
     } catch (err: any) {
-      onShowToast?.('Không thể tải danh mục bộ truyện', err.message || 'Lỗi kết nối máy chủ');
+      onShowToast?.(t('catalog.loadErrorTitle'), err.message || t('shared.serverConnectionError'));
     } finally {
       setLoading(false);
     }
-  }, [activeTab, selectedWorkspaceId, searchQuery, sortBy, onShowToast]);
+  }, [activeTab, selectedWorkspaceId, searchQuery, sortBy, onShowToast, t]);
 
   useEffect(() => {
     fetchSeries();
@@ -94,16 +96,13 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
           <div>
             <div className='flex items-center gap-2 flex-wrap'>
               <h1 className='text-xl sm:text-2xl font-serif font-bold text-[#1C1917]'>
-                Quản Lý Bộ Truyện Xuất Bản
+                {t('catalog.title')}
               </h1>
               <span className='px-2.5 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-mono font-bold'>
                 PUBLISHER PORTAL
               </span>
             </div>
-            <p className='text-xs text-[#57534E] mt-1'>
-              Giám sát tiến độ xuất bản toàn hệ thống: duyệt chương hoàn chỉnh từ các Studio, kiểm
-              soát lịch phát hành và xem Series Bible.
-            </p>
+            <p className='text-xs text-[#57534E] mt-1'>{t('catalog.subtitle')}</p>
           </div>
         </div>
 
@@ -115,7 +114,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
             className='px-3.5 py-2 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] text-xs font-semibold text-[#57534E] hover:text-[#1C1917] rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Làm mới</span>
+            <span>{t('shared.refresh')}</span>
           </button>
           <button
             type='button'
@@ -123,7 +122,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
             className='px-3.5 py-2 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] text-xs font-semibold text-[#57534E] hover:text-[#1C1917] rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
           >
             <BookOpen className='w-3.5 h-3.5 text-stone-500' />
-            <span>Danh mục công khai</span>
+            <span>{t('catalog.publicCatalog')}</span>
           </button>
         </div>
       </div>
@@ -142,7 +141,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
             }`}
           >
             <Layers className='w-3.5 h-3.5' />
-            <span>Tất cả bộ truyện</span>
+            <span>{t('catalog.tabAll')}</span>
           </button>
 
           <button
@@ -155,7 +154,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
             }`}
           >
             <Flame className='w-3.5 h-3.5 text-amber-300' />
-            <span>Có chương chờ duyệt</span>
+            <span>{t('catalog.tabNeedsReview')}</span>
             {totalApprovedChapters > 0 && (
               <span
                 className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
@@ -179,7 +178,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
             }`}
           >
             <Calendar className='w-3.5 h-3.5' />
-            <span>Đang lên lịch</span>
+            <span>{t('catalog.tabScheduled')}</span>
           </button>
         </div>
 
@@ -193,7 +192,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                 type='text'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder='Tìm kiếm theo tên bộ truyện hoặc Studio...'
+                placeholder={t('catalog.searchPlaceholder')}
                 className='w-full text-xs bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl pl-9 pr-8 py-2 text-[#1C1917] placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#F97316]/30'
               />
               {searchQuery && (
@@ -215,10 +214,10 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                 onChange={(e) => setSelectedWorkspaceId(e.target.value)}
                 className='text-xs font-medium bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl px-3 py-2 text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#F97316]/30 cursor-pointer min-w-[170px]'
               >
-                <option value=''>Tất cả Studio</option>
+                <option value=''>{t('desk.studioFilter')}</option>
                 {workspaces.map((ws) => (
                   <option key={ws.id} value={ws.id}>
-                    {ws.name} ({ws.seriesCount} truyện)
+                    {t('catalog.studioOption', { name: ws.name, count: ws.seriesCount })}
                   </option>
                 ))}
               </select>
@@ -232,8 +231,8 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
                 className='text-xs font-medium bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl px-3 py-2 text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#F97316]/30 cursor-pointer min-w-[140px]'
               >
-                <option value='latest'>Mới cập nhật</option>
-                <option value='az'>Tên A - Z</option>
+                <option value='latest'>{t('catalog.sortLatest')}</option>
+                <option value='az'>{t('catalog.sortAZ')}</option>
               </select>
             </div>
 
@@ -247,7 +246,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                 className='px-2.5 py-1.5 rounded-xl border border-stone-300 hover:bg-stone-200 text-xs font-semibold text-stone-600 flex items-center gap-1 transition-colors cursor-pointer'
               >
                 <X className='w-3.5 h-3.5' />
-                <span>Xóa lọc</span>
+                <span>{t('shared.clearFilter')}</span>
               </button>
             )}
           </div>
@@ -258,20 +257,20 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
       {loading ? (
         <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-16 text-center text-[#57534E] space-y-3 shadow-2xs'>
           <RefreshCw className='w-8 h-8 text-[#EA580C] animate-spin mx-auto' />
-          <p className='text-xs font-semibold'>Đang tải danh sách bộ truyện...</p>
+          <p className='text-xs font-semibold'>{t('catalog.loading')}</p>
         </div>
       ) : seriesList.length === 0 ? (
         <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-16 text-center text-[#57534E] space-y-3 shadow-2xs'>
           <BookOpen className='w-10 h-10 text-[#D8D2C5] mx-auto' />
           <div className='font-serif font-bold text-base text-[#1C1917]'>
-            Không tìm thấy bộ truyện nào
+            {t('catalog.emptyTitle')}
           </div>
           <p className='text-xs text-[#57534E] max-w-md mx-auto'>
             {activeTab === 'needs_review'
-              ? 'Hiện tại không có bộ truyện nào đang có chương chờ duyệt xuất bản.'
+              ? t('catalog.emptyNeedsReview')
               : activeTab === 'scheduled'
-                ? 'Không có bộ truyện nào đang có chương hẹn giờ phát hành.'
-                : 'Chưa có bộ truyện nào phù hợp với điều kiện tìm kiếm. Hãy thử xóa bộ lọc.'}
+                ? t('catalog.emptyScheduled')
+                : t('catalog.emptyAll')}
           </p>
         </div>
       ) : (
@@ -318,7 +317,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                     {s.approvedChaptersCount > 0 && (
                       <div className='absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md bg-[#EA580C] text-white font-bold text-[10px] tracking-wide shadow-md flex items-center gap-1 backdrop-blur-xs'>
                         <Clock className='w-3 h-3' />
-                        <span>{s.approvedChaptersCount} chờ duyệt</span>
+                        <span>{t('catalog.pendingBadge', { count: s.approvedChaptersCount })}</span>
                       </div>
                     )}
                   </div>
@@ -337,7 +336,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
 
                       <span className='px-2 py-0.5 rounded-full text-[10.5px] font-bold font-mono bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1'>
                         <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' />
-                        <span>{s.status === 'Ongoing' ? 'Đang sản xuất' : s.status}</span>
+                        <span>{s.status === 'Ongoing' ? t('detail.ongoing') : s.status}</span>
                       </span>
                     </div>
 
@@ -386,15 +385,15 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                     <div className='flex items-center justify-between text-xs text-stone-600'>
                       <div className='flex items-center gap-1.5'>
                         <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                        <span>Đã xuất bản:</span>
+                        <span>{t('catalog.publishedLabel')}</span>
                         <strong className='text-stone-900 font-bold'>
-                          {s.publishedChaptersCount} chương
+                          {t('catalog.chapterCount', { count: s.publishedChaptersCount })}
                         </strong>
                       </div>
 
                       <div className='flex items-center gap-1.5'>
                         <Clock className='w-3.5 h-3.5 text-[#C2410C]' />
-                        <span>Chờ duyệt:</span>
+                        <span>{t('catalog.pendingLabel')}</span>
                         <strong
                           className={
                             s.approvedChaptersCount > 0
@@ -402,7 +401,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                               : 'text-stone-700 font-semibold'
                           }
                         >
-                          {s.approvedChaptersCount} chương
+                          {t('catalog.chapterCount', { count: s.approvedChaptersCount })}
                         </strong>
                       </div>
                     </div>
@@ -415,7 +414,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                             #{s.latestChapter.chapterNumber}
                           </span>
                           <span className='font-medium text-stone-700 truncate text-[11.5px]'>
-                            {s.latestChapter.title || 'Bản hoàn chỉnh'}
+                            {s.latestChapter.title || t('catalog.finalVersion')}
                           </span>
                           <span
                             className={`px-1.5 py-0.2 rounded text-[10px] font-bold shrink-0 ${
@@ -427,21 +426,23 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                             }`}
                           >
                             {s.latestChapter.status === 'ChapterApproved'
-                              ? 'Chờ duyệt'
+                              ? t('catalog.statusPending')
                               : s.latestChapter.status === 'HandedOffAndPublished'
-                                ? 'Đã phát hành'
+                                ? t('catalog.statusPublished')
                                 : s.latestChapter.status}
                           </span>
                         </div>
                         {s.latestChapter.updatedAt && (
                           <span className='text-[10.5px] text-stone-400 shrink-0 font-mono'>
-                            {new Date(s.latestChapter.updatedAt).toLocaleDateString('vi-VN')}
+                            {new Date(s.latestChapter.updatedAt).toLocaleDateString(
+                              lang === 'en' ? 'en-US' : 'vi-VN',
+                            )}
                           </span>
                         )}
                       </div>
                     ) : (
                       <div className='text-[11px] text-stone-400 italic py-1'>
-                        Chưa có chương nào
+                        {t('catalog.noChaptersYet')}
                       </div>
                     )}
 
@@ -452,7 +453,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                         onClick={() => navigate(`/publisher/series/${seriesTargetId}`)}
                         className='px-3.5 py-1.5 bg-stone-100 hover:bg-[#FFF2E6] hover:text-[#C2410C] border border-stone-200 hover:border-[#FDBA74] text-xs font-semibold text-stone-700 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs group'
                       >
-                        <span>Quản lý & Duyệt chương</span>
+                        <span>{t('catalog.manageAndReview')}</span>
                         <ChevronRight className='w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform' />
                       </button>
                     </div>

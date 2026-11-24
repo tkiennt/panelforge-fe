@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Send, Calendar, Clock, Loader2, Sparkles } from 'lucide-react';
 import { chapterService } from '@/services/chapter.service';
 import { Modal } from '@/shared/ui';
+import { useTranslation } from '@/lib/i18n';
 
 interface PublishScheduleModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
   onSuccess,
   onShowToast,
 }) => {
+  const { t, lang } = useTranslation('publisher');
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now');
   const [scheduleDate, setScheduleDate] = useState(() => {
     // Default to tomorrow at 09:00 AM
@@ -44,12 +46,12 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
       if (publishMode === 'schedule') {
         const selected = new Date(scheduleDate);
         if (isNaN(selected.getTime())) {
-          setError('Thời gian hẹn giờ không hợp lệ.');
+          setError(t('scheduleModal.invalidTime'));
           setLoading(false);
           return;
         }
         if (selected.getTime() <= Date.now() + 60000) {
-          setError('Thời gian lên lịch phát hành phải ở tương lai (tối thiểu 1 phút).');
+          setError(t('scheduleModal.futureTimeRequired'));
           setLoading(false);
           return;
         }
@@ -60,20 +62,23 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
 
       if (publishMode === 'now') {
         onShowToast?.(
-          'Xuất bản thành công!',
-          `Chương ${chapterNumber} đã được phát hành chính thức tới độc giả.`,
+          t('scheduleModal.publishSuccessTitle'),
+          t('scheduleModal.publishSuccessDesc', { chapterNumber }),
         );
       } else {
         onShowToast?.(
-          'Lên lịch thành công!',
-          `Chương ${chapterNumber} đã được lên lịch phát hành vào ${new Date(scheduleDate).toLocaleString('vi-VN')}.`,
+          t('scheduleModal.scheduleSuccessTitle'),
+          t('scheduleModal.scheduleSuccessDesc', {
+            chapterNumber,
+            date: new Date(scheduleDate).toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN'),
+          }),
         );
       }
 
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Không thể xuất bản chương.');
+      setError(err.message || t('scheduleModal.publishError'));
     } finally {
       setLoading(false);
     }
@@ -84,9 +89,12 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size='md'
-      title='Xuất Bản & Lên Lịch Phát Hành'
-      description={`Chương ${chapterNumber}: ${chapterTitle || 'Không tiêu đề'}`}
-      closeLabel='Đóng'
+      title={t('scheduleModal.title')}
+      description={t('scheduleModal.description', {
+        chapterNumber,
+        title: chapterTitle || t('scheduleModal.untitled'),
+      })}
+      closeLabel={t('common.actions.close')}
     >
       <form onSubmit={handleSubmit} className='space-y-4'>
         {error && (
@@ -96,7 +104,9 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
         )}
 
         <div className='space-y-2'>
-          <label className='block text-xs font-bold text-[#1C1917]'>Hình Thức Phát Hành</label>
+          <label className='block text-xs font-bold text-[#1C1917]'>
+            {t('scheduleModal.releaseModeLabel')}
+          </label>
           <div className='grid grid-cols-2 gap-2.5'>
             <button
               type='button'
@@ -109,10 +119,10 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
             >
               <div className='flex items-center gap-1.5 font-bold text-xs text-[#1C1917]'>
                 <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' />
-                <span>Phát hành ngay</span>
+                <span>{t('scheduleModal.publishNow')}</span>
               </div>
               <span className='text-[10px] text-[#57534E] leading-relaxed'>
-                Độc giả có thể đọc chương ngay lập tức trên Catalog.
+                {t('scheduleModal.publishNowDesc')}
               </span>
             </button>
 
@@ -127,10 +137,10 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
             >
               <div className='flex items-center gap-1.5 font-bold text-xs text-[#1C1917]'>
                 <Calendar className='w-3.5 h-3.5 text-[#C2410C]' />
-                <span>Lên lịch phát hành</span>
+                <span>{t('scheduleModal.scheduleRelease')}</span>
               </div>
               <span className='text-[10px] text-[#57534E] leading-relaxed'>
-                Chương tự động hiển thị cho độc giả khi đến giờ hẹn.
+                {t('scheduleModal.scheduleReleaseDesc')}
               </span>
             </button>
           </div>
@@ -140,7 +150,7 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
           <div className='space-y-1.5 p-3.5 bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl animate-in fade-in duration-150'>
             <label className='block text-xs font-semibold text-[#1C1917] flex items-center gap-1.5'>
               <Clock className='w-3.5 h-3.5 text-[#F97316]' />
-              <span>Chọn Ngày &amp; Giờ Phát Hành (Giờ địa phương)</span>
+              <span>{t('scheduleModal.selectDateTime')}</span>
             </label>
             <input
               type='datetime-local'
@@ -149,16 +159,14 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
               onChange={(e) => setScheduleDate(e.target.value)}
               className='w-full px-3 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg text-xs font-mono text-[#1C1917] focus:outline-none focus:border-[#F97316]'
             />
-            <p className='text-[10px] text-[#57534E] mt-1'>
-              * Hệ thống sẽ tự động chuyển đổi sang chuẩn giờ UTC khi gửi tới máy chủ.
-            </p>
+            <p className='text-[10px] text-[#57534E] mt-1'>{t('scheduleModal.utcNotice')}</p>
           </div>
         )}
 
         <div className='p-3 bg-amber-50/60 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed'>
-          <strong>Lưu ý quan trọng:</strong> Trạng thái <code>Published</code> là kết quả cuối cùng
-          của quy trình sản xuất manga. Sau khi xuất bản, chương không thể mở lại được nữa (theo quy
-          tắc phê duyệt V1.2).
+          <strong>{t('scheduleModal.importantNoteLabel')}</strong>{' '}
+          {t('scheduleModal.importantNoteBefore')} <code>Published</code>{' '}
+          {t('scheduleModal.importantNoteAfter')}
         </div>
 
         {/* Action buttons */}
@@ -169,7 +177,7 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
             disabled={loading}
             className='px-3.5 py-1.5 text-xs text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917] rounded-xl border border-[#D8D2C5] transition-colors cursor-pointer'
           >
-            Hủy
+            {t('common.actions.cancel')}
           </button>
           <button
             type='submit'
@@ -181,7 +189,11 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
             ) : (
               <Send className='w-3.5 h-3.5' />
             )}
-            <span>{publishMode === 'now' ? 'Xác Nhận Xuất Bản' : 'Xác Nhận Lên Lịch'}</span>
+            <span>
+              {publishMode === 'now'
+                ? t('scheduleModal.confirmPublish')
+                : t('scheduleModal.confirmSchedule')}
+            </span>
           </button>
         </div>
       </form>

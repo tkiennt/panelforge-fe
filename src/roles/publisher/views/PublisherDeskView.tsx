@@ -32,6 +32,7 @@ import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProv
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
 import { ChapterPriceBadge } from '@/shared/components/ChapterPriceBadge';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
+import { useTranslation } from '@/lib/i18n';
 
 interface PublisherDeskViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -41,6 +42,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
   const routeParams = useParams<{ seriesId?: string; workspaceId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t, lang } = useTranslation('publisher');
 
   // URL Query or Route params
   const paramWorkspaceId = routeParams.workspaceId || searchParams.get('workspaceId') || '';
@@ -92,11 +94,11 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
       });
       setChapters(res.items || []);
     } catch (err: any) {
-      onShowToast?.('Không thể tải danh sách chương', err.message || 'Lỗi kết nối máy chủ');
+      onShowToast?.(t('desk.loadErrorTitle'), err.message || t('shared.serverConnectionError'));
     } finally {
       setLoading(false);
     }
-  }, [selectedWorkspaceId, selectedSeriesId, searchQuery, onShowToast]);
+  }, [selectedWorkspaceId, selectedSeriesId, searchQuery, onShowToast, t]);
 
   useEffect(() => {
     fetchChapters();
@@ -124,9 +126,9 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
         : handedOffChapters;
 
   const formatDate = (isoString?: string | null) => {
-    if (!isoString) return 'Chưa xác định';
+    if (!isoString) return t('desk.dateUnknown');
     try {
-      return new Date(isoString).toLocaleString('vi-VN');
+      return new Date(isoString).toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN');
     } catch {
       return isoString;
     }
@@ -149,17 +151,12 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           </div>
           <div>
             <div className='flex items-center gap-2'>
-              <h1 className='text-xl font-serif font-bold text-[#1C1917]'>
-                Cổng Xuất Bản Hệ Thống // Publisher Portal
-              </h1>
+              <h1 className='text-xl font-serif font-bold text-[#1C1917]'>{t('desk.title')}</h1>
               <span className='px-2 py-0.5 rounded bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-mono font-bold'>
                 STAGE: PUBLISHING
               </span>
             </div>
-            <p className='text-xs text-[#57534E] mt-1'>
-              Duyệt thẩm định chương từ tất cả các Studio sau khi Producer hoàn tất sản xuất, lên
-              lịch phát hành hoặc xuất bản trực tiếp tới độc giả công khai.
-            </p>
+            <p className='text-xs text-[#57534E] mt-1'>{t('desk.subtitle')}</p>
           </div>
         </div>
 
@@ -171,7 +168,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
             className='px-3 py-1.5 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] text-xs font-semibold text-[#57534E] hover:text-[#1C1917] rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Làm mới</span>
+            <span>{t('shared.refresh')}</span>
           </button>
           <button
             type='button'
@@ -179,7 +176,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
             className='px-3.5 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm active:scale-95'
           >
             <BookMarked className='w-3.5 h-3.5' />
-            <span>Quản Lý Series &amp; Bible</span>
+            <span>{t('desk.manageSeries')}</span>
           </button>
         </div>
       </div>
@@ -198,11 +195,13 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
               }}
               className='text-xs font-medium bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl px-3 py-2 text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#F97316]/30 cursor-pointer min-w-[160px]'
             >
-              <option value=''>Tất cả Studio</option>
+              <option value=''>{t('desk.studioFilter')}</option>
               {workspaces.map((ws) => (
                 <option key={ws.id} value={ws.id}>
                   {ws.name}{' '}
-                  {ws.approvedChaptersCount > 0 ? `(${ws.approvedChaptersCount} chờ duyệt)` : ''}
+                  {ws.approvedChaptersCount > 0
+                    ? t('desk.studioPendingCount', { count: ws.approvedChaptersCount })
+                    : ''}
                 </option>
               ))}
             </select>
@@ -216,7 +215,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
               onChange={(e) => setSelectedSeriesId(e.target.value)}
               className='text-xs font-medium bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl px-3 py-2 text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#F97316]/30 cursor-pointer min-w-[180px]'
             >
-              <option value=''>Tất cả Bộ truyện (Series)</option>
+              <option value=''>{t('desk.seriesFilter')}</option>
               {seriesList.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.title} ({s.workspaceName})
@@ -232,7 +231,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
               type='text'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder='Tìm theo tên chương, bộ truyện, studio...'
+              placeholder={t('desk.searchPlaceholder')}
               className='w-full text-xs bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl pl-9 pr-3 py-2 text-[#1C1917] placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#F97316]/30'
             />
           </div>
@@ -242,10 +241,10 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
               type='button'
               onClick={clearFilters}
               className='px-2.5 py-1.5 rounded-xl border border-stone-300 hover:bg-stone-200 text-xs font-semibold text-stone-600 flex items-center gap-1 transition-colors cursor-pointer'
-              title='Xóa bộ lọc'
+              title={t('desk.clearFilterTooltip')}
             >
               <X className='w-3.5 h-3.5' />
-              <span>Xóa lọc</span>
+              <span>{t('shared.clearFilter')}</span>
             </button>
           )}
         </div>
@@ -262,15 +261,13 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           }`}
         >
           <div className='flex items-center justify-between text-xs text-[#57534E]'>
-            <span className='font-semibold'>Chờ Duyệt Xuất Bản</span>
+            <span className='font-semibold'>{t('desk.waitingApproval')}</span>
             <CheckCircle2 className='w-4 h-4 text-[#C2410C]' />
           </div>
           <div className='text-2xl font-bold font-mono tabular-nums text-[#1C1917] mt-1.5'>
             {approvedChapters.length}
           </div>
-          <p className='text-xs text-[#C2410C] mt-1 font-medium'>
-            Producer đã duyệt hoàn tất sản xuất
-          </p>
+          <p className='text-xs text-[#C2410C] mt-1 font-medium'>{t('desk.waitingApprovalDesc')}</p>
         </div>
 
         <div
@@ -282,14 +279,14 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           }`}
         >
           <div className='flex items-center justify-between text-xs text-[#57534E]'>
-            <span className='font-semibold'>Đã Xuất Bản &amp; Lên Lịch</span>
+            <span className='font-semibold'>{t('desk.publishedAndScheduled')}</span>
             <Sparkles className='w-4 h-4 text-[#C2410C]' />
           </div>
           <div className='text-2xl font-bold font-mono tabular-nums text-[#1C1917] mt-1.5'>
             {publishedChapters.length}
           </div>
           <p className='text-xs text-[#57534E] mt-1 font-medium'>
-            Sẵn sàng đọc hoặc đang đếm ngược
+            {t('desk.publishedAndScheduledDesc')}
           </p>
         </div>
 
@@ -302,15 +299,13 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           }`}
         >
           <div className='flex items-center justify-between text-xs text-[#57534E]'>
-            <span className='font-semibold'>Tổng Số Chương Bàn Giao</span>
+            <span className='font-semibold'>{t('desk.totalHandedOff')}</span>
             <BookOpen className='w-4 h-4 text-[#57534E]' />
           </div>
           <div className='text-2xl font-bold font-mono tabular-nums text-[#1C1917] mt-1.5'>
             {handedOffChapters.length}
           </div>
-          <p className='text-xs text-[#57534E] mt-1 font-medium'>
-            Tất cả các chương đã được bàn giao
-          </p>
+          <p className='text-xs text-[#57534E] mt-1 font-medium'>{t('desk.totalHandedOffDesc')}</p>
         </div>
       </div>
 
@@ -321,10 +316,10 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
             <Filter className='w-4 h-4 text-[#57534E]' />
             <span className='text-xs font-serif font-bold text-[#1C1917]'>
               {activeTab === 'approved'
-                ? 'Danh Sách Chương Chờ Publisher Phê Duyệt'
+                ? t('desk.tableTitleApproved')
                 : activeTab === 'published'
-                  ? 'Danh Sách Chương Đã Phát Hành & Lên Lịch'
-                  : 'Tất Cả Các Chương Đã Bàn Giao'}
+                  ? t('desk.tableTitlePublished')
+                  : t('desk.tableTitleAll')}
             </span>
             <span className='px-2 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-mono font-bold'>
               {filteredChapters.length}
@@ -341,7 +336,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                   : 'text-[#57534E] hover:text-[#1C1917]'
               }`}
             >
-              Chờ duyệt ({approvedChapters.length})
+              {t('desk.tabPending', { count: approvedChapters.length })}
             </button>
             <button
               type='button'
@@ -352,7 +347,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                   : 'text-[#57534E] hover:text-[#1C1917]'
               }`}
             >
-              Đã phát hành ({publishedChapters.length})
+              {t('desk.tabPublished', { count: publishedChapters.length })}
             </button>
             <button
               type='button'
@@ -363,7 +358,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                   : 'text-[#57534E] hover:text-[#1C1917]'
               }`}
             >
-              Tất cả ({handedOffChapters.length})
+              {t('desk.tabAll', { count: handedOffChapters.length })}
             </button>
           </div>
         </div>
@@ -372,14 +367,10 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           <div className='p-12 text-center text-[#57534E] space-y-2'>
             <CheckCircle2 className='w-8 h-8 text-[#D8D2C5] mx-auto' />
             <div className='font-serif font-bold text-sm text-[#1C1917]'>
-              {activeTab === 'approved'
-                ? 'Không có chương nào đang chờ duyệt xuất bản'
-                : 'Chưa có chương nào trong danh mục này'}
+              {activeTab === 'approved' ? t('desk.emptyApprovedTitle') : t('desk.emptyOtherTitle')}
             </div>
             <p className='text-xs text-[#57534E] max-w-sm mx-auto'>
-              {activeTab === 'approved'
-                ? 'Khi Producer hoàn tất sản xuất và duyệt chương (Approve), chương sẽ tự động xuất hiện tại đây để Publisher xem xét và phát hành.'
-                : 'Mọi chương được tạo trong Studio sẽ hiển thị tại danh mục này.'}
+              {activeTab === 'approved' ? t('desk.emptyApprovedDesc') : t('desk.emptyOtherDesc')}
             </p>
           </div>
         ) : (
@@ -397,11 +388,13 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                     {chap.coverUrl ? (
                       <AuthenticatedImage
                         src={chap.coverUrl}
-                        alt={`Bìa chương ${chap.chapterNumber}`}
+                        alt={t('desk.chapterCoverAlt', { number: chap.chapterNumber })}
                         className='w-11 h-15 object-cover rounded-lg border border-[#D8D2C5] shadow-2xs shrink-0 bg-stone-100'
                         fallback={
                           <div className='w-11 h-15 rounded-lg bg-[#FAF8F5] border border-[#D8D2C5] flex flex-col items-center justify-center text-center font-mono shrink-0 shadow-2xs'>
-                            <span className='text-[8px] text-stone-400 font-bold'>TẬP</span>
+                            <span className='text-[8px] text-stone-400 font-bold'>
+                              {t('desk.chapterShortUpper')}
+                            </span>
                             <span className='text-xs font-bold text-[#F97316]'>
                               {chap.chapterNumber}
                             </span>
@@ -410,7 +403,9 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                       />
                     ) : (
                       <div className='w-11 h-15 rounded-lg bg-[#FAF8F5] border border-[#D8D2C5] flex flex-col items-center justify-center text-center font-mono shrink-0 shadow-2xs'>
-                        <span className='text-[8px] text-stone-400 font-bold'>TẬP</span>
+                        <span className='text-[8px] text-stone-400 font-bold'>
+                          {t('desk.chapterShortUpper')}
+                        </span>
                         <span className='text-xs font-bold text-[#F97316]'>
                           {chap.chapterNumber}
                         </span>
@@ -430,11 +425,11 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                         </span>
 
                         <span className='px-2.5 py-0.5 rounded-lg bg-[#1C1917] text-[#FCFBF8] font-mono font-bold text-xs'>
-                          Chương #{chap.chapterNumber}
+                          {t('desk.chapterNumber', { number: chap.chapterNumber })}
                         </span>
 
                         <h3 className='font-bold text-sm text-[#1C1917]'>
-                          {chap.title || 'Chưa đặt tiêu đề'}
+                          {chap.title || t('desk.untitled')}
                         </h3>
 
                         <ChapterPriceBadge
@@ -446,7 +441,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                         {chap.status === 'ChapterApproved' && (
                           <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1'>
                             <Clock className='w-3 h-3 text-[#C2410C]' />
-                            <span>CHỜ DUYỆT XUẤT BẢN</span>
+                            <span>{t('desk.badgePending')}</span>
                           </span>
                         )}
                         {chap.status === 'HandedOffAndPublished' && (
@@ -463,7 +458,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                               <Sparkles className='w-3 h-3 text-emerald-600' />
                             )}
                             <span>
-                              {isScheduled ? 'ĐÃ LÊN LỊCH PHÁT HÀNH' : 'ĐÃ XUẤT BẢN CÔNG KHAI'}
+                              {isScheduled ? t('desk.badgeScheduled') : t('desk.badgePublished')}
                             </span>
                           </span>
                         )}
@@ -471,27 +466,28 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
 
                       <div className='flex items-center gap-4 text-xs text-[#57534E] font-mono flex-wrap'>
                         <span>
-                          Quy mô: <strong>{chap.scenesCount || 0}</strong> cảnh •{' '}
-                          <strong>{chap.pagesCount || 0}</strong> trang
+                          {t('desk.scopeLabel')}: <strong>{chap.scenesCount || 0}</strong>{' '}
+                          {t('desk.scenesUnit')} • <strong>{chap.pagesCount || 0}</strong>{' '}
+                          {t('desk.pagesUnit')}
                         </span>
                         <span>Version: v.{chap.versionVector}</span>
                         {chap.targetReleaseDate && (
                           <span className='flex items-center gap-1 text-[#57534E]'>
                             <Calendar className='w-3 h-3' />
-                            Hạn mục tiêu: {chap.targetReleaseDate}
+                            {t('desk.targetReleaseDate', { date: chap.targetReleaseDate })}
                           </span>
                         )}
                         {chap.publishedAt && (
                           <span className='flex items-center gap-1 text-[#C2410C] font-semibold'>
                             <Clock className='w-3 h-3' />
-                            Thời điểm phát hành: {formatDate(chap.publishedAt)}
+                            {t('desk.publishedAt', { date: formatDate(chap.publishedAt) })}
                           </span>
                         )}
                       </div>
 
                       {chap.outline && (
                         <p className='text-xs text-[#57534E] italic line-clamp-1'>
-                          Đề cương: {chap.outline}
+                          {t('desk.outline', { outline: chap.outline })}
                         </p>
                       )}
                     </div>
@@ -503,20 +499,20 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                       type='button'
                       onClick={() => setReviewingChapter(chap)}
                       className='px-3.5 py-1.5 rounded-full border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-xs font-semibold text-[#57534E] hover:text-[#1C1917] flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
-                      title='Xem lịch sử phê duyệt & xuất bản'
+                      title={t('desk.historyTooltip')}
                     >
                       <History className='w-3.5 h-3.5 text-[#57534E]' />
-                      <span>Lịch sử</span>
+                      <span>{t('detail.reviewHistory')}</span>
                     </button>
 
                     <button
                       type='button'
                       onClick={() => setSnapshotChapter(chap)}
                       className='px-3.5 py-1.5 rounded-full border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-xs font-semibold text-[#57534E] hover:text-[#1C1917] flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
-                      title='Bản duyệt chính thức của chương: chuẩn theo phiên bản Producer đã phê duyệt'
+                      title={t('desk.manifestTooltip')}
                     >
                       <FileStack className='w-3.5 h-3.5 text-[#57534E]' />
-                      <span>Bản duyệt</span>
+                      <span>{t('detail.viewManifest')}</span>
                     </button>
 
                     {chap.status === 'HandedOffAndPublished' && (
@@ -524,10 +520,10 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                         type='button'
                         onClick={() => setReadingChapter(chap)}
                         className='px-3.5 py-1.5 rounded-full border border-[#D8D2C5] bg-[#F8F6F0] hover:bg-[#F3F0E9] text-xs font-semibold text-[#1C1917] flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
-                        title='Đọc thử trên trình đọc Catalog'
+                        title={t('desk.readPreviewTooltip')}
                       >
                         <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
-                        <span>Đọc Thử</span>
+                        <span>{t('desk.readPreview')}</span>
                       </button>
                     )}
 
@@ -536,10 +532,10 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                         type='button'
                         onClick={() => setPublishingChapter(chap)}
                         className='px-4 py-1.5 rounded-full bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-soft-sm active:scale-95'
-                        title='Xuất bản hoặc lên lịch phát hành'
+                        title={t('desk.publishScheduleTooltip')}
                       >
                         <Send className='w-3.5 h-3.5' />
-                        <span>Xuất Bản / Lên Lịch</span>
+                        <span>{t('desk.publishSchedule')}</span>
                       </button>
                     )}
                   </div>
