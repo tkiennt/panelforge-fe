@@ -44,10 +44,12 @@ describe('AIConfigurationView', () => {
     });
   });
 
-  it('hiển thị đúng bộ KNOWN_MODELS mặc định gemini-2.5-flash, gemini-2.5-pro, gemini-2.5-flash-image', async () => {
+  it('hiển thị đúng bộ KNOWN_MODELS mặc định (dòng 3.x trước, giữ dòng 2.5 cho key cũ)', async () => {
     render(<AIConfigurationView />);
 
-    expect(await screen.findByText('gemini-2.5-flash')).toBeInTheDocument();
+    expect(await screen.findByText('gemini-3.8-flash')).toBeInTheDocument();
+    expect(screen.getByText('gemini-3.1-pro-preview')).toBeInTheDocument();
+    expect(screen.getByText('gemini-2.5-flash')).toBeInTheDocument();
     expect(screen.getByText('gemini-2.5-pro')).toBeInTheDocument();
     expect(screen.getByText('gemini-2.5-flash-image')).toBeInTheDocument();
 
