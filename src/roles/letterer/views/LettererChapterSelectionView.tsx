@@ -23,6 +23,7 @@ import {
 import { PageContainer } from '@/shared/components/PageContainer';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
+import { useTranslation } from '@/lib/i18n';
 
 interface LettererChapterSelectionViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -32,12 +33,15 @@ type StatusFilterType = 'all' | 'frozen' | 'in_progress' | 'approved';
 type SortByType = 'chapter_asc' | 'chapter_desc' | 'newest' | 'oldest';
 type ViewModeType = 'grid' | 'table';
 
-const getOpenBlockReason = (chapter: ChapterDto): string | null => {
+const getOpenBlockReason = (
+  chapter: ChapterDto,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string | null => {
   if (String(chapter.status) === 'PreProduction') {
-    return 'Chương đang ở giai đoạn tiền kỳ. Hãy chờ Producer bắt đầu sản xuất.';
+    return t('production.lettering.chapterSelection.blockPreProduction');
   }
   if (!chapter.isScriptFrozen) {
-    return 'Kịch bản chưa được đóng băng nên chưa thể mở bàn chữ.';
+    return t('production.lettering.chapterSelection.blockNotFrozen');
   }
   return null;
 };
@@ -48,6 +52,7 @@ const isCompletedChapter = (chapter: ChapterDto): boolean =>
 export const LettererChapterSelectionView: React.FC<LettererChapterSelectionViewProps> = ({
   onShowToast,
 }) => {
+  const { t } = useTranslation();
   const { workspaceId, seriesId } = useParams<{ workspaceId: string; seriesId: string }>();
   const navigate = useNavigate();
 
@@ -75,13 +80,13 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
       if (seriesRes) setSeriesDetail(seriesRes);
       setChapters(chaptersRes.items || []);
     } catch (err: any) {
-      const msg = err.message || 'Không thể tải danh sách chương.';
+      const msg = err.message || t('production.lettering.chapterSelection.loadError');
       setError(msg);
-      onShowToast?.('Lỗi tải dữ liệu', msg);
+      onShowToast?.(t('production.lettering.chapterSelection.loadErrorTitle'), msg);
     } finally {
       setLoading(false);
     }
-  }, [seriesId, onShowToast]);
+  }, [seriesId, onShowToast, t]);
 
   useEffect(() => {
     loadData();
@@ -102,9 +107,11 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
+      const chapterWord = t('production.lettering.chapterSelection.chapterWord').toLowerCase();
       list = list.filter((chap) => {
         const matchNum =
-          String(chap.chapterNumber).includes(q) || `chương ${chap.chapterNumber}`.includes(q);
+          String(chap.chapterNumber).includes(q) ||
+          `${chapterWord} ${chap.chapterNumber}`.includes(q);
         const matchTitle = (chap.title || '').toLowerCase().includes(q);
         const matchOutline = (chap.outline || '').toLowerCase().includes(q);
         return matchNum || matchTitle || matchOutline;
@@ -128,15 +135,16 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
     });
 
     return list;
-  }, [chapters, searchQuery, statusFilter, sortBy]);
+  }, [chapters, searchQuery, statusFilter, sortBy, t]);
 
-  const seriesTitle = seriesDetail?.title || 'Bộ truyện';
+  const seriesTitle =
+    seriesDetail?.title || t('production.lettering.chapterSelection.defaultSeriesTitle');
 
   const handleSelectChapter = (chapter: ChapterDto) => {
     if (!workspaceId || !seriesId) return;
-    const blockReason = getOpenBlockReason(chapter);
+    const blockReason = getOpenBlockReason(chapter, t);
     if (blockReason) {
-      onShowToast?.('Chưa thể mở bàn chữ', blockReason);
+      onShowToast?.(t('production.lettering.chapterSelection.cannotOpenTitle'), blockReason);
       return;
     }
     navigate(
@@ -149,7 +157,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
       return (
         <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
           <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-          <span>Nghiệm thu hoàn tất (Gate 3)</span>
+          <span>{t('production.lettering.chapterSelection.statusApproved')}</span>
         </span>
       );
     }
@@ -157,7 +165,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
       return (
         <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
           <Sparkles className='w-3 h-3 text-purple-600' />
-          <span>Đã bàn giao và phát hành</span>
+          <span>{t('production.lettering.chapterSelection.statusPublishedFull')}</span>
         </span>
       );
     }
@@ -165,7 +173,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
       return (
         <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0'>
           <Lock className='w-3 h-3 text-indigo-600' />
-          <span>Kịch bản đã khóa</span>
+          <span>{t('production.lettering.chapterSelection.statusFrozen')}</span>
         </span>
       );
     }
@@ -175,28 +183,28 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-50 text-stone-700 border border-stone-200 shrink-0'>
             <Clock className='w-3 h-3 text-stone-500' />
-            <span>Tiền kỳ (viết kịch bản)</span>
+            <span>{t('production.lettering.chapterSelection.statusPreProduction')}</span>
           </span>
         );
       case 'ChapterApproved':
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
             <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-            <span>Nghiệm thu hoàn tất (Gate 3)</span>
+            <span>{t('production.lettering.chapterSelection.statusApproved')}</span>
           </span>
         );
       case 'HandedOffAndPublished':
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
             <Sparkles className='w-3 h-3 text-purple-600' />
-            <span>Đã phát hành</span>
+            <span>{t('production.lettering.chapterSelection.statusPublished')}</span>
           </span>
         );
       default:
         return (
           <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0'>
             <Clock className='w-3 h-3 text-amber-600' />
-            <span>Đang sản xuất</span>
+            <span>{t('production.lettering.chapterSelection.statusInProduction')}</span>
           </span>
         );
     }
@@ -216,16 +224,14 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
               <span>LETTERING PRODUCTION DESK</span>
             </span>
             <h1 className='text-xl sm:text-2xl font-bold font-serif text-[#1C1917] tracking-tight'>
-              Bàn làm việc thoại &amp; chữ — {seriesTitle}
+              {t('production.lettering.chapterSelection.heading', { series: seriesTitle })}
             </h1>
           </div>
           <p className='text-xs text-[#57534E] leading-relaxed max-w-3xl'>
             <strong className='text-[#1C1917] font-semibold'>
-              Chọn Chương Để Mở Bàn Xếp Chữ Chuyên Dụng
+              {t('production.lettering.chapterSelection.subHeadingStrong')}
             </strong>{' '}
-            — Lựa chọn một chương để bước vào không gian làm việc toàn màn hình độc lập (Focus
-            Workspace), định vị bóng thoại (Balloons), neo liên kết kịch bản (Script Anchoring), căn
-            chỉnh kiểu chữ và xuất trang thoại hoàn chỉnh.
+            {t('production.lettering.chapterSelection.subHeadingDesc')}
           </p>
         </div>
 
@@ -236,7 +242,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
             className='bg-white border border-[#D8D2C5] rounded-xl px-4 py-2.5 shadow-2xs min-w-[100px]'
           >
             <div className='text-[10.5px] uppercase font-bold tracking-wider text-[#78716C]'>
-              Tổng chương
+              {t('production.lettering.chapterSelection.statsTotal')}
             </div>
             <div className='text-xl font-black text-[#1C1917] mt-0.5'>{stats.total}</div>
           </div>
@@ -246,7 +252,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
             className='bg-amber-50/70 border border-amber-200/80 rounded-xl px-4 py-2.5 shadow-2xs min-w-[100px]'
           >
             <div className='text-[10.5px] uppercase font-bold tracking-wider text-amber-800'>
-              Đang viết / vẽ
+              {t('production.lettering.chapterSelection.statsInProgress')}
             </div>
             <div className='text-xl font-black text-amber-900 mt-0.5'>{stats.inProgress}</div>
           </div>
@@ -256,7 +262,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
             className='bg-indigo-50/70 border border-indigo-200/80 rounded-xl px-4 py-2.5 shadow-2xs min-w-[100px]'
           >
             <div className='text-[10.5px] uppercase font-bold tracking-wider text-indigo-800'>
-              Kịch bản khóa
+              {t('production.lettering.chapterSelection.statsFrozen')}
             </div>
             <div className='text-xl font-black text-indigo-900 mt-0.5'>{stats.frozen}</div>
           </div>
@@ -270,7 +276,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
           <input
             type='text'
             data-testid='letterer-chapter-search-input'
-            placeholder='Tìm theo số chương, tiêu đề hoặc nội dung tóm tắt...'
+            placeholder={t('production.lettering.chapterSelection.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className='w-full bg-transparent text-xs text-[#1C1917] placeholder-[#A8A29E] outline-none'
@@ -289,10 +295,16 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
           <div className='flex items-center bg-[#F3F0E9] p-1 rounded-xl border border-[#D8D2C5] text-xs'>
             {(
               [
-                { id: 'all', label: 'Tất cả' },
-                { id: 'frozen', label: 'Đã khóa' },
-                { id: 'in_progress', label: 'Đang làm' },
-                { id: 'approved', label: 'Đã duyệt' },
+                { id: 'all', label: t('production.lettering.chapterSelection.filterAll') },
+                { id: 'frozen', label: t('production.lettering.chapterSelection.filterFrozen') },
+                {
+                  id: 'in_progress',
+                  label: t('production.lettering.chapterSelection.filterInProgress'),
+                },
+                {
+                  id: 'approved',
+                  label: t('production.lettering.chapterSelection.filterApproved'),
+                },
               ] as const
             ).map((tab) => (
               <button
@@ -316,10 +328,18 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
               onChange={(e) => setSortBy(e.target.value as SortByType)}
               className='bg-transparent text-xs font-medium text-[#1C1917] outline-none cursor-pointer'
             >
-              <option value='chapter_asc'>Chương tăng dần (1 → n)</option>
-              <option value='chapter_desc'>Chương giảm dần (n → 1)</option>
-              <option value='newest'>Mới cập nhật</option>
-              <option value='oldest'>Cũ nhất</option>
+              <option value='chapter_asc'>
+                {t('production.lettering.chapterSelection.sortChapterAsc')}
+              </option>
+              <option value='chapter_desc'>
+                {t('production.lettering.chapterSelection.sortChapterDesc')}
+              </option>
+              <option value='newest'>
+                {t('production.lettering.chapterSelection.sortNewest')}
+              </option>
+              <option value='oldest'>
+                {t('production.lettering.chapterSelection.sortOldest')}
+              </option>
             </select>
           </div>
 
@@ -331,7 +351,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
                   ? 'bg-white text-[#C2410C] shadow-2xs'
                   : 'text-[#78716C] hover:text-[#1C1917]'
               }`}
-              title='Hiển thị dạng thẻ (Lưới)'
+              title={t('production.lettering.chapterSelection.viewGridTitle')}
             >
               <LayoutGrid className='w-4 h-4' />
             </button>
@@ -342,7 +362,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
                   ? 'bg-white text-[#C2410C] shadow-2xs'
                   : 'text-[#78716C] hover:text-[#1C1917]'
               }`}
-              title='Hiển thị dạng danh sách'
+              title={t('production.lettering.chapterSelection.viewTableTitle')}
             >
               <List className='w-4 h-4' />
             </button>
@@ -352,7 +372,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
             onClick={loadData}
             disabled={loading}
             className='p-2 rounded-xl bg-white hover:bg-[#FAF8F5] border border-[#D8D2C5] text-[#57534E] hover:text-[#1C1917] transition-colors shadow-2xs cursor-pointer'
-            title='Tải lại danh sách'
+            title={t('production.lettering.chapterSelection.reloadTitle')}
           >
             <RotateCcw className={`w-4 h-4 ${loading ? 'animate-spin text-[#C2410C]' : ''}`} />
           </button>
@@ -364,7 +384,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
         <div className='bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] p-16 flex flex-col items-center justify-center gap-3 shadow-xs'>
           <Loader2 className='w-8 h-8 text-[#C2410C] animate-spin' />
           <span className='text-xs font-semibold text-[#78716C]'>
-            Đang tải danh sách chương xếp chữ...
+            {t('production.lettering.chapterSelection.loading')}
           </span>
         </div>
       ) : error ? (
@@ -375,7 +395,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
             onClick={loadData}
             className='px-4 py-2 bg-white border border-red-300 rounded-xl text-xs font-bold text-red-700 hover:bg-red-50 shadow-xs cursor-pointer'
           >
-            Thử lại
+            {t('production.lettering.chapterSelection.retry')}
           </button>
         </div>
       ) : filteredChapters.length === 0 ? (
@@ -385,19 +405,19 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
           </div>
           <h3 className='text-sm font-bold font-serif text-[#1C1917]'>
             {searchQuery || statusFilter !== 'all'
-              ? 'Không tìm thấy chương nào phù hợp với bộ lọc'
-              : 'Chưa có chương truyện nào trong series này'}
+              ? t('production.lettering.chapterSelection.emptyFilteredTitle')
+              : t('production.lettering.chapterSelection.emptySeriesTitle')}
           </h3>
           <p className='text-xs text-[#78716C] max-w-sm'>
             {searchQuery || statusFilter !== 'all'
-              ? 'Hãy thử thay đổi từ khóa tìm kiếm hoặc bỏ bộ lọc trạng thái.'
-              : 'Vui lòng khởi tạo chương kịch bản trước khi tiến hành chèn chữ & bóng thoại.'}
+              ? t('production.lettering.chapterSelection.emptyFilteredDesc')
+              : t('production.lettering.chapterSelection.emptySeriesDesc')}
           </p>
         </div>
       ) : viewMode === 'grid' ? (
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
           {filteredChapters.map((chap) => {
-            const blockReason = getOpenBlockReason(chap);
+            const blockReason = getOpenBlockReason(chap, t);
             return (
               <div
                 key={chap.id}
@@ -414,14 +434,19 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
                 <div className='space-y-3'>
                   <div className='flex items-center justify-between gap-2 flex-wrap'>
                     <span className='font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-[#1C1917] group-hover:border-[#F97316]/50 transition-colors'>
-                      CHƯƠNG {chap.chapterNumber}
+                      {t('production.lettering.chapterSelection.chapterBadge', {
+                        number: chap.chapterNumber,
+                      })}
                     </span>
                     {getStatusBadge(chap)}
                   </div>
 
                   <div>
                     <h3 className='text-sm font-bold font-serif text-[#1C1917] group-hover:text-[#C2410C] transition-colors line-clamp-2 leading-snug'>
-                      {chap.title || `Chương ${chap.chapterNumber}`}
+                      {chap.title ||
+                        t('production.lettering.chapterSelection.chapterNumber', {
+                          number: chap.chapterNumber,
+                        })}
                     </h3>
                     {chap.outline && (
                       <p className='text-xs text-[#57534E] line-clamp-3 mt-1.5 leading-relaxed bg-[#FAF8F5] p-2.5 rounded-xl border border-[#EBE7DF]'>
@@ -434,10 +459,10 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
                 <div className='pt-3 border-t border-[#EBE7DF] flex items-center justify-between text-xs text-[#78716C]'>
                   <span className='flex items-center gap-1 font-mono text-[11px]'>
                     <Type className='w-3 h-3 text-[#C2410C]' />
-                    <span>Xếp chữ &amp; thoại</span>
+                    <span>{t('production.lettering.chapterSelection.cardTag')}</span>
                   </span>
                   <span className='flex items-center gap-1 text-[#C2410C] font-bold group-hover:translate-x-0.5 transition-transform'>
-                    <span>Vào bàn làm việc</span>
+                    <span>{t('production.lettering.chapterSelection.enterDesk')}</span>
                     <ArrowRight className='w-3.5 h-3.5' />
                   </span>
                 </div>
@@ -450,15 +475,21 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
           <table className='w-full text-left text-xs'>
             <thead className='bg-[#FAF8F5] border-b border-[#EBE7DF] text-[#78716C] font-bold uppercase tracking-wider text-[10.5px]'>
               <tr>
-                <th className='py-3 px-4'>Chương</th>
-                <th className='py-3 px-4'>Tiêu đề</th>
-                <th className='py-3 px-4'>Trạng thái</th>
-                <th className='py-3 px-4 text-right'>Hành động</th>
+                <th className='py-3 px-4'>
+                  {t('production.lettering.chapterSelection.colChapter')}
+                </th>
+                <th className='py-3 px-4'>{t('production.lettering.chapterSelection.colTitle')}</th>
+                <th className='py-3 px-4'>
+                  {t('production.lettering.chapterSelection.colStatus')}
+                </th>
+                <th className='py-3 px-4 text-right'>
+                  {t('production.lettering.chapterSelection.colAction')}
+                </th>
               </tr>
             </thead>
             <tbody className='divide-y divide-[#EBE7DF] text-[#1C1917]'>
               {filteredChapters.map((chap) => {
-                const blockReason = getOpenBlockReason(chap);
+                const blockReason = getOpenBlockReason(chap, t);
                 return (
                   <tr
                     key={chap.id}
@@ -472,10 +503,15 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
                     }`}
                   >
                     <td className='py-3 px-4 font-mono font-bold text-[#C2410C]'>
-                      Chương {chap.chapterNumber}
+                      {t('production.lettering.chapterSelection.chapterNumber', {
+                        number: chap.chapterNumber,
+                      })}
                     </td>
                     <td className='py-3 px-4 font-bold font-serif max-w-md truncate group-hover:text-[#C2410C]'>
-                      {chap.title || `Chương ${chap.chapterNumber}`}
+                      {chap.title ||
+                        t('production.lettering.chapterSelection.chapterNumber', {
+                          number: chap.chapterNumber,
+                        })}
                     </td>
                     <td className='py-3 px-4'>{getStatusBadge(chap)}</td>
                     <td className='py-3 px-4 text-right'>
@@ -485,7 +521,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
                         title={blockReason || undefined}
                         className='inline-flex items-center gap-1 text-xs font-bold text-[#C2410C] group-hover:underline disabled:cursor-not-allowed disabled:text-[#A8A29E] disabled:no-underline'
                       >
-                        <span>Mở bàn chữ</span>
+                        <span>{t('production.lettering.chapterSelection.openDesk')}</span>
                         <ArrowRight className='w-3.5 h-3.5' />
                       </button>
                     </td>

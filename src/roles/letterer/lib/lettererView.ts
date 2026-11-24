@@ -7,6 +7,7 @@ import {
   MIN_LETTERING_FONT_PX,
   createShoutBalloonPath,
 } from '@/shared/lib/lettering/letteringPrimitives';
+import { translate } from '@/lib/i18n';
 
 export {
   LETTERING_CHAR_WIDTH_EM,
@@ -252,11 +253,11 @@ export function evaluateTextConstraints(
 
   let reason: string | undefined;
   if (isTooLong && isOverflowing) {
-    reason = 'Quá dài (>30 từ) & tràn khung';
+    reason = translate('production.lettering.constraints.tooLongAndOverflow');
   } else if (isTooLong) {
-    reason = 'Quá dài (>30 từ)';
+    reason = translate('production.lettering.constraints.tooLong');
   } else if (isOverflowing) {
-    reason = 'Chữ tràn khung';
+    reason = translate('production.lettering.constraints.overflow');
   }
 
   return { wordCount, isTooLong, isOverflowing, reason };
@@ -404,11 +405,29 @@ export function calculatePanelTextDensity(panel: Rect, balloons: Rect[]): PanelT
   const percentage = Math.round(ratio * 100);
 
   if (ratio <= 0.15) {
-    return { ratio, percentage, level: 'low', color: '#10B981', label: 'Thoáng (Xanh)' };
+    return {
+      ratio,
+      percentage,
+      level: 'low',
+      color: '#10B981',
+      label: translate('production.lettering.density.low'),
+    };
   } else if (ratio <= 0.25) {
-    return { ratio, percentage, level: 'medium', color: '#F59E0B', label: 'Vừa phải (Vàng)' };
+    return {
+      ratio,
+      percentage,
+      level: 'medium',
+      color: '#F59E0B',
+      label: translate('production.lettering.density.medium'),
+    };
   } else {
-    return { ratio, percentage, level: 'high', color: '#EF4444', label: 'Quá dày (Đỏ)' };
+    return {
+      ratio,
+      percentage,
+      level: 'high',
+      color: '#EF4444',
+      label: translate('production.lettering.density.high'),
+    };
   }
 }
 
@@ -456,7 +475,10 @@ export function checkReadingOrderMismatch<
       if (b1.scriptLineOrder! > b2.scriptLineOrder!) {
         mismatches.push({
           elementId: b1.id,
-          message: `Thứ tự đọc ngược kịch bản: dòng #${b1.scriptLineOrder} đứng trước dòng #${b2.scriptLineOrder}`,
+          message: translate('production.lettering.readingOrder.mismatch', {
+            first: b1.scriptLineOrder!,
+            second: b2.scriptLineOrder!,
+          }),
         });
         break;
       }
