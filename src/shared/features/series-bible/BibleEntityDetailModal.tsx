@@ -2228,7 +2228,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           key={d}
                           className='px-2 py-0.5 rounded-full bg-white border border-amber-200 text-xs font-medium'
                         >
-                          {d}
+                          {t(`bible.spec.deliverables.${d}`)}
                         </span>
                       ))}
                     </div>

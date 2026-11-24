@@ -257,6 +257,29 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 };
 
+/** True when `ns.path.to.key` (or its `_one` / `_other` plural form) exists in any dictionary. */
+function hasTranslationKey(fullKey: string): boolean {
+  const [namespace, ...path] = fullKey.split('.');
+  if (path.length === 0) return false;
+  const last = path[path.length - 1];
+  const candidates = [
+    path,
+    [...path.slice(0, -1), `${last}_one`],
+    [...path.slice(0, -1), `${last}_other`],
+  ];
+  return (Object.keys(DICTIONARIES) as SupportedLanguage[]).some((lang) => {
+    const nsDict = (DICTIONARIES[lang] as any)?.[namespace];
+    return candidates.some((candPath) => {
+      let curr = nsDict;
+      for (const k of candPath) {
+        if (!curr || typeof curr !== 'object' || !(k in curr)) return false;
+        curr = curr[k];
+      }
+      return typeof curr === 'string';
+    });
+  });
+}
+
 export function useTranslation(defaultNamespace?: TranslationNamespace) {
   const ctx = useContext(I18nContext);
   const currentLang = ctx ? ctx.lang : getInitialLanguage();
@@ -272,7 +295,13 @@ export function useTranslation(defaultNamespace?: TranslationNamespace) {
       const firstPart = parts[0] as TranslationNamespace;
       const isKnownNamespace = firstPart in DICTIONARIES.vi;
 
-      if (!isKnownNamespace && defaultNamespace) {
+      // A key in the default namespace wins over a namespace with the same name
+      // (e.g. useTranslation('landing') + t('features.tag') -> landing.features.tag).
+      if (
+        defaultNamespace &&
+        firstPart !== defaultNamespace &&
+        (!isKnownNamespace || hasTranslationKey(`${defaultNamespace}.${key}`))
+      ) {
         fullKey = `${defaultNamespace}.${key}`;
       }
 

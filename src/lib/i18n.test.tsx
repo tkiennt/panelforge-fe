@@ -95,6 +95,20 @@ describe('i18n core engine', () => {
     expect(localStorage.getItem('panelforge_lang')).toBe('en');
   });
 
+  it('useTranslation(ns) ưu tiên key trong namespace mặc định khi trùng tên namespace khác', () => {
+    const { result } = renderHook(() => useTranslation('publisher'), {
+      wrapper: ({ children }) => <I18nProvider>{children}</I18nProvider>,
+    });
+
+    // publisher.shared.clearFilter tồn tại -> không bị đẩy sang namespace "shared"
+    expect(result.current.t('shared.clearFilter')).toBe('Xóa lọc');
+    // Key tuyệt đối sang namespace khác vẫn hoạt động khi namespace mặc định không có key đó
+    expect(result.current.t('common.actions.save')).toBe('Lưu');
+    expect(result.current.t('shared.api.sessionEnded')).toBe(
+      translate('shared.api.sessionEnded', undefined, 'vi'),
+    );
+  });
+
   it('LanguageSwitcher hiển thị nút bấm và chuyển đổi ngôn ngữ khi click', () => {
     render(
       <I18nProvider>
