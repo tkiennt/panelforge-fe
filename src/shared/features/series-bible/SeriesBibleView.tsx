@@ -396,12 +396,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               'production.cast.crowdUnblockNotice',
               'Thực thể này không còn chặn Gửi duyệt hay Bắt đầu sản xuất.',
             )
-          : `${entity.name} đã được chuyển về thực thể tiêu chuẩn.`,
+          : t('bible.crowd.removedDesc', { name: entity.name }),
       );
     } catch (err: any) {
       onShowToast(
         t('production.cast.crowdUpdateFailed', 'Cập nhật cờ Quần chúng thất bại'),
-        err?.message || 'Không thể cập nhật cờ Quần chúng.',
+        err?.message || t('bible.crowd.updateFailedDesc'),
       );
     } finally {
       setTogglingCrowdId(null);

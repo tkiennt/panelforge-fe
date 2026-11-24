@@ -67,7 +67,10 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     [],
   );
   const [uploadingGallery, setUploadingGallery] = useState(false);
-  const [galleryLabel, setGalleryLabel] = useState('Chính diện (Front)');
+  const [galleryAngleKey, setGalleryAngleKey] = useState<
+    'front' | 'threeQuarter' | 'profile' | 'back' | 'expressions' | 'costume'
+  >('front');
+  const galleryLabel = t(`bible.addEntityModal.galleryAngles.${galleryAngleKey}`);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [tempCodes, setTempCodes] = useState<TempBibleCodeItem[]>([]);
@@ -83,8 +86,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       onShowToast(
-        t('bible.addEntityModal.invalidFormatTitle', 'Định dạng ảnh không hợp lệ'),
-        t('bible.addEntityModal.invalidFormatDesc', 'Hệ thống chỉ nhận ảnh PNG, JPEG hoặc WebP.'),
+        t('bible.addEntityModal.invalidFormatTitle'),
+        t('bible.addEntityModal.invalidFormatDesc'),
       );
       return;
     }
@@ -92,11 +95,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     const maxBytes = 10 * 1024 * 1024;
     if (file.size > maxBytes) {
       onShowToast(
-        t('bible.addEntityModal.sizeExceededTitle', 'Dung lượng ảnh vượt giới hạn'),
-        t(
-          'bible.addEntityModal.sizeExceededDesc',
-          'Ảnh reference sheet không được vượt quá 10 MB.',
-        ),
+        t('bible.addEntityModal.sizeExceededTitle'),
+        t('bible.addEntityModal.sizeExceededDesc'),
       );
       return;
     }
@@ -104,7 +104,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     if (!seriesId) {
       const localUrl = URL.createObjectURL(file);
       setImageUrl(localUrl);
-      onShowToast(t('bible.addEntityModal.localSelectedTitle', 'Đã chọn ảnh cục bộ'), file.name);
+      onShowToast(t('bible.addEntityModal.localSelectedTitle'), file.name);
       return;
     }
 
@@ -113,14 +113,13 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       const res = await bibleService.uploadReferenceImage(seriesId, file);
       setImageUrl(res.url);
       onShowToast(
-        t('bible.addEntityModal.uploadSuccessTitle', 'Đã tải ảnh lên kho an toàn'),
+        t('bible.addEntityModal.uploadSuccessTitle'),
         `${file.name} (${Math.round(res.sizeBytes / 1024)} KB)`,
       );
     } catch (err: any) {
       onShowToast(
-        t('bible.addEntityModal.uploadErrorTitle', 'Lỗi tải ảnh tham chiếu'),
-        err.message ||
-          t('bible.addEntityModal.uploadErrorDesc', 'Không thể tải ảnh reference sheet.'),
+        t('bible.addEntityModal.uploadErrorTitle'),
+        err.message || t('bible.addEntityModal.uploadErrorDesc'),
       );
     } finally {
       setUploadingImage(false);
@@ -133,8 +132,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       onShowToast(
-        t('bible.addEntityModal.invalidFormatTitle', 'Định dạng ảnh không hợp lệ'),
-        t('bible.addEntityModal.invalidFormatDesc', 'Hệ thống chỉ nhận ảnh PNG, JPEG hoặc WebP.'),
+        t('bible.addEntityModal.invalidFormatTitle'),
+        t('bible.addEntityModal.invalidFormatDesc'),
       );
       return;
     }
@@ -142,11 +141,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     const maxBytes = 10 * 1024 * 1024;
     if (file.size > maxBytes) {
       onShowToast(
-        t('bible.addEntityModal.sizeExceededTitle', 'Dung lượng ảnh vượt giới hạn'),
-        t(
-          'bible.addEntityModal.gallerySizeExceededDesc',
-          'Ảnh phác thảo không được vượt quá 10 MB.',
-        ),
+        t('bible.addEntityModal.sizeExceededTitle'),
+        t('bible.addEntityModal.gallerySizeExceededDesc'),
       );
       return;
     }
@@ -154,10 +150,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     if (!seriesId) {
       const localUrl = URL.createObjectURL(file);
       setGallery((prev) => [...prev, { url: localUrl, label: galleryLabel }]);
-      onShowToast(
-        t('bible.addEntityModal.galleryLocalTitle', 'Đã thêm phác thảo cục bộ'),
-        `${galleryLabel} - ${file.name}`,
-      );
+      onShowToast(t('bible.addEntityModal.galleryLocalTitle'), `${galleryLabel} - ${file.name}`);
       return;
     }
 
@@ -166,13 +159,13 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       const res = await bibleService.uploadReferenceImage(seriesId, file);
       setGallery((prev) => [...prev, { url: res.url, label: galleryLabel, sha256: res.sha256 }]);
       onShowToast(
-        t('bible.addEntityModal.galleryUploadedTitle', 'Đã thêm góc phác thảo'),
+        t('bible.addEntityModal.galleryUploadedTitle'),
         `${galleryLabel} (${Math.round(res.sizeBytes / 1024)} KB)`,
       );
     } catch (err: any) {
       onShowToast(
-        t('bible.addEntityModal.uploadErrorTitle', 'Lỗi tải ảnh phác thảo'),
-        err.message || t('bible.addEntityModal.galleryUploadError', 'Không thể tải ảnh góc vẽ.'),
+        t('bible.addEntityModal.uploadErrorTitle'),
+        err.message || t('bible.addEntityModal.galleryUploadError'),
       );
     } finally {
       setUploadingGallery(false);
@@ -248,20 +241,17 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size='md'
-      closeLabel={t('common.close', 'Đóng')}
+      closeLabel={t('common.actions.close')}
       className='font-sans'
       title={
         <span className='flex items-center gap-2.5'>
           <span className='flex size-8 items-center justify-center rounded-lg border border-orange-200 bg-orange-50 text-[#F97316]'>
             <BookOpen className='size-4' aria-hidden='true' />
           </span>
-          {t('bible.addEntityModal.title', 'Thêm mục mới vào Series Bible')}
+          {t('bible.addEntityModal.title')}
         </span>
       }
-      description={t(
-        'bible.addEntityModal.subtitle',
-        'Tạo thiết kế nhân vật, địa điểm, thuật ngữ hoặc quy tắc mỹ thuật',
-      )}
+      description={t('bible.addEntityModal.subtitle')}
     >
       <form onSubmit={handleSubmit} className='space-y-4 custom-scrollbar'>
         {/* Tên & Mã */}
@@ -271,18 +261,14 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               htmlFor='bible-entity-name'
               className='block text-xs font-semibold text-stone-800 mb-1'
             >
-              {t('bible.addEntityModal.nameLabel', 'Tên mục')}{' '}
-              <span className='text-red-500'>*</span>
+              {t('bible.addEntityModal.nameLabel')} <span className='text-red-500'>*</span>
             </label>
             <input
               id='bible-entity-name'
               type='text'
               required
               autoFocus
-              placeholder={t(
-                'bible.addEntityModal.namePlaceholder',
-                'Ví dụ: Kaito Shion, Thành phố Neo-Tokyo',
-              )}
+              placeholder={t('bible.addEntityModal.namePlaceholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
@@ -294,12 +280,12 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               htmlFor='bible-entity-code'
               className='block text-xs font-semibold text-stone-800 mb-1'
             >
-              {t('bible.addEntityModal.codeLabel', 'Mã định danh')}
+              {t('bible.addEntityModal.codeLabel')}
             </label>
             <input
               id='bible-entity-code'
               type='text'
-              placeholder={t('bible.addEntityModal.codePlaceholder', 'Tự động')}
+              placeholder={t('bible.addEntityModal.codePlaceholder')}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] font-mono text-xs text-stone-900 placeholder-stone-400 uppercase focus:outline-none focus:border-[#F97316] transition-colors'
@@ -307,7 +293,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             {tempCodes.length > 0 && (
               <div className='mt-1.5' data-testid='temp-bible-code-suggestions'>
                 <span className='text-xs text-stone-500 font-medium block mb-1'>
-                  {t('bible.addEntityModal.codeHelp', 'Gợi ý mã tạm từ kịch bản:')}
+                  {t('bible.addEntityModal.tempCodeSuggestions')}
                 </span>
                 <div className='flex flex-wrap gap-1'>
                   {tempCodes.map((item) => (
@@ -331,7 +317,14 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                         }
                       }}
                       className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-dashed border-amber-300 transition-colors cursor-pointer'
-                      title={`Dùng ${item.count} lần${item.chapterNumber ? ` ở Chương ${item.chapterNumber}` : ''}`}
+                      title={
+                        item.chapterNumber
+                          ? t('bible.addEntityModal.tempCodeUsageChapter', {
+                              count: item.count,
+                              chapter: item.chapterNumber,
+                            })
+                          : t('bible.addEntityModal.tempCodeUsage', { count: item.count })
+                      }
                     >
                       <span>@{item.code}</span>
                       <span className='text-xs text-amber-700 font-normal'>
@@ -352,8 +345,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               htmlFor='bible-entity-category'
               className='block text-xs font-semibold text-stone-800 mb-1'
             >
-              {t('bible.addEntityModal.categoryLabel', 'Danh mục tri thức')}{' '}
-              <span className='text-red-500'>*</span>
+              {t('bible.addEntityModal.categoryLabel')} <span className='text-red-500'>*</span>
             </label>
             <select
               id='bible-entity-category'
@@ -365,18 +357,10 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               }}
               className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 font-medium focus:outline-none focus:border-[#F97316] cursor-pointer'
             >
-              <option value='characters'>
-                {t('bible.categories.characters', 'Nhân vật (Character)')}
-              </option>
-              <option value='locations'>
-                {t('bible.categories.locations', 'Bối cảnh & Địa điểm (Location)')}
-              </option>
-              <option value='terminology'>
-                {t('bible.categories.terminology', 'Thuật ngữ & Đạo cụ (Terminology & Prop)')}
-              </option>
-              <option value='style'>
-                {t('bible.categories.style', 'Quy tắc mỹ thuật (Style Rule)')}
-              </option>
+              <option value='characters'>{t('bible.categories.characters')}</option>
+              <option value='locations'>{t('bible.categories.locations')}</option>
+              <option value='terminology'>{t('bible.categories.terminology')}</option>
+              <option value='style'>{t('bible.categories.style')}</option>
             </select>
           </div>
 
@@ -385,15 +369,12 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               htmlFor='bible-entity-subtitle'
               className='block text-xs font-semibold text-stone-800 mb-1'
             >
-              {t('bible.addEntityModal.subtitleLabel', 'Phụ đề / Vai trò')}
+              {t('bible.addEntityModal.subtitleLabel')}
             </label>
             <input
               id='bible-entity-subtitle'
               type='text'
-              placeholder={t(
-                'bible.addEntityModal.subtitlePlaceholder',
-                'Ví dụ: Nhân vật chính, Căn cứ kháng chiến',
-              )}
+              placeholder={t('bible.addEntityModal.subtitlePlaceholder')}
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
               className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
@@ -405,34 +386,34 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
         <div className='p-3 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-2.5'>
           <span className='text-xs font-bold text-stone-800 block'>
             {category === 'characters'
-              ? 'Thông số nhân vật (Tùy chọn)'
+              ? t('bible.addEntityModal.attrTitleCharacters')
               : category === 'locations'
-                ? 'Thông số không gian & Bối cảnh (Tùy chọn)'
+                ? t('bible.addEntityModal.attrTitleLocations')
                 : category === 'terminology'
-                  ? 'Đặc tả thuật ngữ / Đạo cụ (Tùy chọn)'
-                  : 'Quy chuẩn mỹ thuật (Tùy chọn)'}
+                  ? t('bible.addEntityModal.attrTitleTerminology')
+                  : t('bible.addEntityModal.attrTitleStyle')}
           </span>
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
             <div>
               <label className='block text-xs font-medium text-stone-700 mb-1'>
                 {category === 'characters'
-                  ? 'Độ tuổi'
+                  ? t('bible.addEntityModal.attr1LabelCharacters')
                   : category === 'locations'
-                    ? 'Loại địa hình / Phân khu'
+                    ? t('bible.addEntityModal.attr1LabelLocations')
                     : category === 'terminology'
-                      ? 'Phân loại lĩnh vực'
-                      : 'Bảng màu chủ đạo'}
+                      ? t('bible.addEntityModal.attr1LabelTerminology')
+                      : t('bible.addEntityModal.attr1LabelStyle')}
               </label>
               <input
                 type='text'
                 placeholder={
                   category === 'characters'
-                    ? 'Ví dụ: 17 tuổi, 25 tuổi...'
+                    ? t('bible.addEntityModal.attr1PlaceholderCharacters')
                     : category === 'locations'
-                      ? 'Ví dụ: Hang động ngầm, Đô thị...'
+                      ? t('bible.addEntityModal.attr1PlaceholderLocations')
                       : category === 'terminology'
-                        ? 'Ví dụ: Bí thuật, Cấp bậc tu vi...'
-                        : 'Ví dụ: Warm Sepia, Cam đất...'
+                        ? t('bible.addEntityModal.attr1PlaceholderTerminology')
+                        : t('bible.addEntityModal.attr1PlaceholderStyle')
                 }
                 value={attrField1}
                 onChange={(e) => setAttrField1(e.target.value)}
@@ -443,23 +424,23 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             <div>
               <label className='block text-xs font-medium text-stone-700 mb-1'>
                 {category === 'characters'
-                  ? 'Chiều cao / Vóc dáng'
+                  ? t('bible.addEntityModal.attr2LabelCharacters')
                   : category === 'locations'
-                    ? 'Quy mô / Khí hậu'
+                    ? t('bible.addEntityModal.attr2LabelLocations')
                     : category === 'terminology'
-                      ? 'Nguồn gốc / Khởi nguyên'
-                      : 'Quy chuẩn nét vẽ'}
+                      ? t('bible.addEntityModal.attr2LabelTerminology')
+                      : t('bible.addEntityModal.attr2LabelStyle')}
               </label>
               <input
                 type='text'
                 placeholder={
                   category === 'characters'
-                    ? 'Ví dụ: 178 cm, Cao gầy...'
+                    ? t('bible.addEntityModal.attr2PlaceholderCharacters')
                     : category === 'locations'
-                      ? 'Ví dụ: Rộng lớn, U tối ẩm ướt...'
+                      ? t('bible.addEntityModal.attr2PlaceholderLocations')
                       : category === 'terminology'
-                        ? 'Ví dụ: Thời Thượng Cổ, Dị giới...'
-                        : 'Ví dụ: Nét line thanh đậm rõ ràng...'
+                        ? t('bible.addEntityModal.attr2PlaceholderTerminology')
+                        : t('bible.addEntityModal.attr2PlaceholderStyle')
                 }
                 value={attrField2}
                 onChange={(e) => setAttrField2(e.target.value)}
@@ -476,22 +457,20 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               htmlFor='bible-entity-variant-label'
               className='block text-xs font-semibold text-stone-800 mb-1'
             >
-              Nhãn biến thể tạo hình (Variant Label) <span className='text-red-500'>*</span>
+              {t('bible.addEntityModal.variantLabel')} <span className='text-red-500'>*</span>
             </label>
             <input
               id='bible-entity-variant-label'
               type='text'
               maxLength={100}
-              placeholder='Ví dụ: Mặc định, Lúc nhỏ, Trưởng thành...'
+              placeholder={t('bible.addEntityModal.variantPlaceholder')}
               value={variantLabel}
               onChange={(e) => setVariantLabel(e.target.value)}
               required
               className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
               data-testid='bible-variant-label-input'
             />
-            <p className='text-xs text-stone-500 mt-1'>
-              Bắt buộc và không được trùng với biến thể đang hoạt động khác của mục.
-            </p>
+            <p className='text-xs text-stone-500 mt-1'>{t('bible.addEntityModal.variantHelp')}</p>
           </div>
 
           <div className='pt-1'>
@@ -509,11 +488,10 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               />
               <div>
                 <span className='text-xs font-semibold text-stone-900 block'>
-                  Cờ Quần chúng (Crowd Entity)
+                  {t('bible.addEntityModal.crowdCheckboxLabel')}
                 </span>
                 <p className='text-xs text-stone-500'>
-                  Mục quần chúng xuất hiện trong kịch bản nhưng không bắt buộc Model Sheet và không
-                  chặn kịch bản khi kiểm tra sản xuất.
+                  {t('bible.addEntityModal.crowdCheckboxHelp')}
                 </p>
               </div>
             </label>
@@ -524,8 +502,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
           <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs flex items-start gap-1.5'>
             <HelpCircle className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
             <span>
-              <strong>Bản nháp (Hướng B):</strong> Mục bạn tạo sẽ được lưu dưới dạng Bản nháp và cần
-              Producer xét duyệt &amp; khoá để trở thành Canon.
+              <strong>{t('bible.addEntityModal.draftNoticeTitle')}</strong>{' '}
+              {t('bible.addEntityModal.draftNoticeBody')}
             </span>
           </div>
         )}
@@ -539,13 +517,12 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               <HelpCircle className='w-4 h-4' />
             </div>
             <p className='text-xs font-semibold text-[#44403C]'>
-              Phân vai chuyên trách: Chỉ Họa sĩ (Artist) mới tải ảnh lên
+              {t('bible.addEntityModal.artistOnlyBannerTitle')}
             </p>
             <p className='text-xs text-[#78716C] max-w-md mx-auto leading-relaxed'>
-              Biên kịch và Nhà sản xuất thiết lập thông tin kịch bản và quy chuẩn thiết kế bằng văn
-              bản. Sau khi lưu, mục này sẽ tự động chuyển vào{' '}
-              <b>Hàng đợi thiết kế (Bible Design Queue)</b> để Họa sĩ vẽ và tải Model Sheet /
-              Concept Art lên.
+              {t('bible.addEntityModal.artistOnlyBannerBefore')}{' '}
+              <b>{t('bible.addEntityModal.artistOnlyBannerQueue')}</b>{' '}
+              {t('bible.addEntityModal.artistOnlyBannerAfter')}
             </p>
           </div>
         ) : (
@@ -554,8 +531,10 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             <div>
               <div className='flex items-center justify-between mb-1'>
                 <label className='text-xs font-semibold text-stone-800 flex items-center gap-1.5'>
-                  <span>Ảnh Reference Sheet / Model Sheet</span>
-                  <span className='text-xs text-stone-400 font-normal'>(Khuyên dùng)</span>
+                  <span>{t('bible.addEntityModal.refSheetLabel')}</span>
+                  <span className='text-xs text-stone-400 font-normal'>
+                    {t('bible.addEntityModal.recommended')}
+                  </span>
                 </label>
                 <button
                   type='button'
@@ -563,7 +542,11 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   className='text-xs text-[#F97316] hover:underline font-medium flex items-center gap-1 cursor-pointer'
                 >
                   <LinkIcon className='w-3 h-3' />
-                  <span>{showUrlInput ? 'Ẩn nhập URL' : 'Dán URL trực tiếp'}</span>
+                  <span>
+                    {showUrlInput
+                      ? t('bible.addEntityModal.hideUrlInput')
+                      : t('bible.addEntityModal.pasteUrlDirectly')}
+                  </span>
                 </button>
               </div>
 
@@ -592,7 +575,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                     <div className='min-w-0'>
                       <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200'>
                         <CheckCircle2 className='w-3 h-3' />
-                        Đã nạp ảnh hợp lệ
+                        {t('bible.addEntityModal.imageLoadedValid')}
                       </span>
                       <p
                         className='text-xs text-stone-500 truncate font-mono mt-0.5 max-w-[220px]'
@@ -609,13 +592,13 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                       onClick={() => fileInputRef.current?.click()}
                       className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-[#E7E7E7] hover:bg-stone-50 text-stone-700 transition-colors'
                     >
-                      Đổi ảnh
+                      {t('bible.addEntityModal.changeImage')}
                     </button>
                     <button
                       type='button'
                       onClick={() => setImageUrl('')}
                       className='p-1.5 text-xs rounded-lg text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors'
-                      title='Xóa ảnh này'
+                      title={t('bible.addEntityModal.deleteImageTitle')}
                     >
                       <Trash2 className='w-3.5 h-3.5' />
                     </button>
@@ -639,9 +622,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   {uploadingImage ? (
                     <div className='flex items-center gap-2 text-xs font-semibold text-[#F97316] py-2'>
                       <Loader2 className='w-4 h-4 animate-spin' />
-                      <span>
-                        {t('bible.addEntityModal.dropzoneTitle', 'Đang tải ảnh lên kho an toàn...')}
-                      </span>
+                      <span>{t('bible.addEntityModal.uploadingToStorage')}</span>
                     </div>
                   ) : (
                     <>
@@ -649,19 +630,13 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                         <Upload className='w-4 h-4' />
                       </div>
                       <p className='text-xs font-semibold text-stone-800'>
-                        {t(
-                          'bible.addEntityModal.dropzoneTitle',
-                          'Kéo thả ảnh reference sheet vào đây, hoặc ',
-                        )}{' '}
+                        {t('bible.addEntityModal.dropzoneTitle')}{' '}
                         <span className='text-[#F97316] underline'>
-                          {t('bible.addEntityModal.dropzoneBrowse', 'chọn file')}
+                          {t('bible.addEntityModal.dropzoneBrowse')}
                         </span>
                       </p>
                       <p className='text-xs text-stone-500'>
-                        {t(
-                          'bible.addEntityModal.dropzoneFormats',
-                          'Định dạng PNG, JPEG, WebP dung lượng tối đa 10 MB',
-                        )}
+                        {t('bible.addEntityModal.dropzoneFormats')}
                       </p>
                     </>
                   )}
@@ -672,10 +647,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 <div className='mt-2'>
                   <input
                     type='url'
-                    placeholder={t(
-                      'bible.addEntityModal.dropzoneUrlPlaceholder',
-                      'Hoặc dán URL ảnh trực tiếp (https://...)',
-                    )}
+                    placeholder={t('bible.addEntityModal.dropzoneUrlPlaceholder')}
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
                     className='w-full px-3 py-1.5 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
@@ -688,41 +660,36 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             <div className='space-y-2.5 pt-3 border-t border-[#E7E7E7]'>
               <div className='flex items-center justify-between'>
                 <label className='font-semibold text-[#171717] flex items-center gap-1.5'>
-                  <span>
-                    {t(
-                      'bible.addEntityModal.galleryTitle',
-                      'Bộ Sưu Tập Phác Thảo Góc Nhìn & Biểu Cảm (Character Sheet Gallery)',
-                    )}
-                  </span>
+                  <span>{t('bible.addEntityModal.galleryTitle')}</span>
                 </label>
                 <span className='text-xs font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded'>
-                  {t(
-                    'bible.addEntityModal.galleryCount',
-                    { count: gallery.length },
-                    `${gallery.length} góc phác thảo`,
-                  )}
+                  {t('bible.addEntityModal.galleryCount', { count: gallery.length })}
                 </span>
               </div>
-              <p className='text-xs text-[#737373]'>
-                {t(
-                  'bible.addEntityModal.gallerySubtitle',
-                  'Tải lên nhiều góc nhìn (Turnaround 360°, Góc 3/4, Biểu cảm, Trang phục) để hoạ sĩ đối chiếu đa chiều.',
-                )}
-              </p>
+              <p className='text-xs text-[#737373]'>{t('bible.addEntityModal.gallerySubtitle')}</p>
 
               {/* Upload controls */}
               <div className='flex items-center gap-2'>
                 <select
-                  value={galleryLabel}
-                  onChange={(e) => setGalleryLabel(e.target.value)}
+                  value={galleryAngleKey}
+                  onChange={(e) =>
+                    setGalleryAngleKey(
+                      e.target.value as
+                        'front' | 'threeQuarter' | 'profile' | 'back' | 'expressions' | 'costume',
+                    )
+                  }
                   className='h-8 px-2.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-semibold text-stone-800 cursor-pointer focus:outline-none focus:border-[#F97316]'
                 >
-                  <option value='Chính diện (Front)'>Chính diện (Front)</option>
-                  <option value='Góc nghiêng 3/4'>Góc nghiêng 3/4</option>
-                  <option value='Góc nghiêng (Profile / Side)'>Góc nghiêng (Profile / Side)</option>
-                  <option value='Phía sau (Back)'>Phía sau (Back)</option>
-                  <option value='Biểu cảm (Expressions)'>Biểu cảm (Expressions)</option>
-                  <option value='Trang phục (Costume)'>Trang phục (Costume)</option>
+                  <option value='front'>{t('bible.addEntityModal.galleryAngles.front')}</option>
+                  <option value='threeQuarter'>
+                    {t('bible.addEntityModal.galleryAngles.threeQuarter')}
+                  </option>
+                  <option value='profile'>{t('bible.addEntityModal.galleryAngles.profile')}</option>
+                  <option value='back'>{t('bible.addEntityModal.galleryAngles.back')}</option>
+                  <option value='expressions'>
+                    {t('bible.addEntityModal.galleryAngles.expressions')}
+                  </option>
+                  <option value='costume'>{t('bible.addEntityModal.galleryAngles.costume')}</option>
                 </select>
 
                 <input
@@ -747,12 +714,12 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   {uploadingGallery ? (
                     <>
                       <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
-                      <span>{t('bible.addEntityModal.galleryAdding', 'Đang tải...')}</span>
+                      <span>{t('bible.addEntityModal.galleryAdding')}</span>
                     </>
                   ) : (
                     <>
                       <Plus className='w-3.5 h-3.5 text-[#F97316]' />
-                      <span>{t('bible.addEntityModal.galleryAddBtn', 'Thêm góc vẽ này')}</span>
+                      <span>{t('bible.addEntityModal.galleryAddBtn')}</span>
                     </>
                   )}
                 </button>
@@ -781,18 +748,14 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                           {item.label}
                         </div>
                         <div className='text-xs text-[#737373] font-mono'>
-                          {t(
-                            'bible.addEntityModal.galleryThumbLabel',
-                            { number: idx + 1 },
-                            `Góc #${idx + 1}`,
-                          )}
+                          {t('bible.addEntityModal.galleryThumbLabel', { number: idx + 1 })}
                         </div>
                       </div>
                       <button
                         type='button'
                         onClick={() => setGallery((prev) => prev.filter((_, i) => i !== idx))}
                         className='p-1 rounded-md text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors'
-                        title={t('bible.addEntityModal.galleryDeleteTitle', 'Xóa góc này')}
+                        title={t('bible.addEntityModal.galleryDeleteTitle')}
                       >
                         <Trash2 className='w-3 h-3' />
                       </button>
@@ -810,17 +773,13 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             htmlFor='bible-entity-desc'
             className='block text-xs font-semibold text-stone-800 mb-1'
           >
-            {t('bible.addEntityModal.descLabel', 'Mô tả quy chuẩn thiết kế & Nhận dạng')}{' '}
-            <span className='text-red-500'>*</span>
+            {t('bible.addEntityModal.descLabel')} <span className='text-red-500'>*</span>
           </label>
           <textarea
             id='bible-entity-desc'
             required
             rows={3}
-            placeholder={t(
-              'bible.addEntityModal.descPlaceholder',
-              'Mô tả chi tiết ngoại hình, màu sắc trang phục, tính cách, đặc điểm nhận diện bắt buộc...',
-            )}
+            placeholder={t('bible.addEntityModal.descPlaceholder')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors resize-none'
@@ -833,7 +792,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             onClick={onClose}
             className='px-4 py-2 bg-white hover:bg-stone-50 border border-stone-200 text-stone-600 text-xs font-semibold rounded-full transition-colors cursor-pointer'
           >
-            {t('common.cancel', 'Hủy')}
+            {t('bible.addEntityModal.cancel')}
           </button>
           <button
             type='submit'
@@ -843,8 +802,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             <Plus className='w-3.5 h-3.5' />
             <span>
               {isProducer
-                ? t('bible.addEntityModal.saveProducer', 'Lưu vào Series Bible')
-                : t('bible.addEntityModal.saveDraft', 'Tạo bản nháp mới')}
+                ? t('bible.addEntityModal.saveProducer')
+                : t('bible.addEntityModal.saveDraft')}
             </span>
           </button>
         </div>

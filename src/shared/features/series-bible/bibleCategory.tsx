@@ -5,15 +5,58 @@ import { translate } from '@/lib/i18n';
 
 export const CATEGORIES: {
   key: string;
-  label: string;
+  labelKey: string;
+  readonly label: string;
   icon: React.FC<{ className?: string }>;
 }[] = [
-  { key: 'all', label: 'Tất cả', icon: BookOpen },
-  { key: 'review', label: 'Chờ thẩm định', icon: ShieldCheck },
-  { key: 'characters', label: 'Nhân vật', icon: User },
-  { key: 'locations', label: 'Bối cảnh & Địa điểm', icon: MapPin },
-  { key: 'terminology', label: 'Thuật ngữ & Đạo cụ', icon: BookMarked },
-  { key: 'style', label: 'Quy tắc mỹ thuật', icon: Palette },
+  {
+    key: 'all',
+    labelKey: 'bible.categories.all',
+    get label() {
+      return translate('bible.categories.all');
+    },
+    icon: BookOpen,
+  },
+  {
+    key: 'review',
+    labelKey: 'bible.categories.review',
+    get label() {
+      return translate('bible.categories.review');
+    },
+    icon: ShieldCheck,
+  },
+  {
+    key: 'characters',
+    labelKey: 'bible.categories.characters',
+    get label() {
+      return translate('bible.categories.characters');
+    },
+    icon: User,
+  },
+  {
+    key: 'locations',
+    labelKey: 'bible.categories.locations',
+    get label() {
+      return translate('bible.categories.locations');
+    },
+    icon: MapPin,
+  },
+  {
+    key: 'terminology',
+    labelKey: 'bible.categories.terminology',
+    get label() {
+      return translate('bible.categories.terminology');
+    },
+    icon: BookMarked,
+  },
+  {
+    key: 'style',
+    labelKey: 'bible.categories.style',
+    get label() {
+      return translate('bible.categories.style');
+    },
+    icon: Palette,
+  },
 ];
 
 export const mapCategoryToTab = (cat: any): BibleCategory => {
@@ -42,30 +85,34 @@ export const mapCategoryToTab = (cat: any): BibleCategory => {
   }
 };
 
-export const getCategoryLabel = (category: string | number): string => {
+export const getCategoryLabel = (
+  category: string | number,
+  t?: (key: string) => string,
+): string => {
+  const resolve = (key: string) => (t ? t(key) : translate(key));
   const catStr = String(category).toLowerCase();
   switch (catStr) {
     case 'characters':
     case 'character':
     case '0':
     case '1':
-      return translate('bible.categories.character', 'Nhân vật');
+      return resolve('bible.categories.character');
     case 'locations':
     case 'location':
     case '2':
-      return translate('bible.categories.location', 'Bối cảnh & Địa điểm');
+      return resolve('bible.categories.location');
     case 'terminology':
     case 'prop':
     case '3':
     case '4':
     case '6':
-      return translate('bible.categories.terminology', 'Thuật ngữ & Đạo cụ');
+      return resolve('bible.categories.terminology');
     case 'style':
     case 'rule':
     case '5':
-      return translate('bible.categories.style', 'Quy tắc mỹ thuật');
+      return resolve('bible.categories.style');
     default:
-      return translate('bible.categories.knowledgeItem', 'Mục tri thức');
+      return resolve('bible.categories.knowledgeItem');
   }
 };
 

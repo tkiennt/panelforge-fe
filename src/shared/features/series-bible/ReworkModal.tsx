@@ -31,14 +31,13 @@ export const ReworkModal: React.FC<ReworkModalProps> = React.memo(
         isOpen={isOpen}
         onClose={onClose}
         size='sm'
-        closeLabel={t('common.close', 'Đóng')}
+        closeLabel={t('common.actions.close')}
         data-child-modal='true'
-        title={t('bible.reworkModal.title', 'Yêu cầu vẽ lại thiết kế (Rework)')}
-        description={t(
-          'bible.reworkModal.targetInfo',
-          { version: targetRev.versionNumber, name: entityName },
-          `Phiên bản v${targetRev.versionNumber} của "${entityName}"`,
-        )}
+        title={t('bible.reworkModal.title')}
+        description={t('bible.reworkModal.targetInfo', {
+          version: targetRev.versionNumber,
+          name: entityName,
+        })}
         footer={
           <>
             <button
@@ -46,7 +45,7 @@ export const ReworkModal: React.FC<ReworkModalProps> = React.memo(
               onClick={onClose}
               className='px-3.5 py-1.5 border border-stone-200 rounded-lg text-xs font-semibold text-stone-600 hover:bg-stone-50'
             >
-              {t('common.cancel', 'Hủy')}
+              {t('bible.reworkModal.cancel')}
             </button>
             <button
               type='button'
@@ -56,9 +55,7 @@ export const ReworkModal: React.FC<ReworkModalProps> = React.memo(
             >
               <MessageSquare className='w-3.5 h-3.5' />
               <span>
-                {isSubmitting
-                  ? t('bible.reworkModal.submitting', 'Đang gửi...')
-                  : t('bible.reworkModal.submit', 'Gửi yêu cầu vẽ lại')}
+                {isSubmitting ? t('bible.reworkModal.submitting') : t('bible.reworkModal.submit')}
               </span>
             </button>
           </>
@@ -66,29 +63,18 @@ export const ReworkModal: React.FC<ReworkModalProps> = React.memo(
       >
         <div>
           <label className='block text-xs font-semibold text-stone-800 mb-1.5'>
-            {t(
-              'bible.reworkModal.reasonLabel',
-              'Nhận xét chi tiết cho Artist (Lý do chưa chuẩn / Rắc-co) *',
-            )}
+            {t('bible.reworkModal.reasonLabel')}
           </label>
           <textarea
             rows={4}
             required
             autoFocus
-            placeholder={t(
-              'bible.reworkModal.reasonPlaceholder',
-              'Ví dụ: Kiểu tóc chưa đúng với nguyên tác, màu trang phục cần chỉnh lại thành màu xanh đậm, thiếu biểu cảm giận dữ...',
-            )}
+            placeholder={t('bible.reworkModal.reasonPlaceholder')}
             value={localReason}
             onChange={(e) => setLocalReason(e.target.value)}
             className='w-full px-3 py-2 bg-[#FAF8F5] border border-stone-300 rounded-lg text-xs text-stone-900 focus:outline-none focus:border-rose-500 resize-none'
           />
-          <p className='text-xs text-stone-500 mt-1'>
-            {t(
-              'bible.reworkModal.reasonHelp',
-              'Ghi chú này sẽ được chuyển ngay đến hàng đợi vẽ của Artist để vẽ bản cập nhật tiếp theo.',
-            )}
-          </p>
+          <p className='text-xs text-stone-500 mt-1'>{t('bible.reworkModal.reasonHelp')}</p>
         </div>
       </Modal>
     );

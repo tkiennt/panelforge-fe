@@ -214,43 +214,24 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     if (!isOpen || !revisionTarget) return null;
 
     const modalTitle = supersedeTarget
-      ? t(
-          'bible.addRevisionModal.headerSupersede',
-          { version: supersedeTarget.versionNumber, name: revisionTarget.name },
-          `Thay thế bản khoá v${supersedeTarget.versionNumber}: ${revisionTarget.name}`,
-        )
+      ? t('bible.addRevisionModal.headerSupersede', {
+          version: supersedeTarget.versionNumber,
+          name: revisionTarget.name,
+        })
       : variantMode === 'new'
-        ? t(
-            'bible.addRevisionModal.headerNewVariant',
-            { name: revisionTarget.name },
-            `Tạo biến thể mới: ${revisionTarget.name}`,
-          )
+        ? t('bible.addRevisionModal.headerNewVariant', { name: revisionTarget.name })
         : isArtistResubmit
-          ? t(
-              'bible.addRevisionModal.headerResubmit',
-              { name: revisionTarget.name },
-              `Nộp lại bản vẽ Concept Art: ${revisionTarget.name}`,
-            )
+          ? t('bible.addRevisionModal.headerResubmit', { name: revisionTarget.name })
           : isArtistConceptSubmit && isArtist
-            ? t(
-                'bible.addRevisionModal.headerArtistSubmit',
-                { name: revisionTarget.name },
-                `Nộp bản vẽ Concept Art: ${revisionTarget.name}`,
-              )
+            ? t('bible.addRevisionModal.headerArtistSubmit', { name: revisionTarget.name })
             : isProducer
-              ? t(
-                  'bible.addRevisionModal.headerProducerNewVer',
-                  { name: revisionTarget.name },
-                  `Tạo phiên bản mới: ${revisionTarget.name}`,
-                )
-              : t(
-                  'bible.addRevisionModal.headerDraftNewVer',
-                  { name: revisionTarget.name },
-                  `Tạo bản nháp mới: ${revisionTarget.name}`,
-                );
+              ? t('bible.addRevisionModal.headerProducerNewVer', { name: revisionTarget.name })
+              : t('bible.addRevisionModal.headerDraftNewVer', { name: revisionTarget.name });
     const modalDescription = isArtistConceptSubmit
-      ? 'Tải lên thiết kế nhân vật (Model Sheet / Turnaround) để thẩm định'
-      : `Biến thể: ${variantLabel || 'Chưa đặt nhãn'}`;
+      ? t('bible.addRevisionModal.descArtistSubmit')
+      : t('bible.addRevisionModal.descVariant', {
+          variant: variantLabel || t('bible.addRevisionModal.unlabeledVariant'),
+        });
 
     const handleSubmit = () => {
       const updatedAttrs = mergeSpecAttributes(
@@ -289,7 +270,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         title={modalTitle}
         description={modalDescription}
         size='md'
-        closeLabel={t('common.close', 'Đóng')}
+        closeLabel={t('common.actions.close')}
         onClose={onClose}
         data-child-modal='true'
       >
@@ -297,12 +278,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
           <div className='flex flex-wrap items-center gap-2'>
             {isArtistConceptSubmit && isArtist && (
               <span className='px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300'>
-                Họa sĩ (Artist)
+                {t('bible.addRevisionModal.badgeArtist')}
               </span>
             )}
             {variantMode === 'new' && (
               <span className='px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300'>
-                Biến thể mới
+                {t('bible.addRevisionModal.badgeNewVariant')}
               </span>
             )}
           </div>
@@ -312,12 +293,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         <div className='p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4'>
           {/* Context Alert for Rework or Resubmit */}
           {revisionReworkFeedback ? (
-            <Alert tone='warning' title='Yêu cầu chỉnh sửa'>
-              “{revisionReworkFeedback}” — Chỉnh sửa thiết kế theo góp ý và tải lên bản vẽ mới.
+            <Alert tone='warning' title={t('bible.addRevisionModal.reworkAlertTitle')}>
+              “{revisionReworkFeedback}” {t('bible.addRevisionModal.reworkAlertSuffix')}
             </Alert>
           ) : isArtistResubmit ? (
-            <Alert tone='info' title='Nộp lại bản vẽ Concept Art'>
-              Bản vẽ mới sẽ thay thế bản vẽ chờ duyệt.
+            <Alert tone='info' title={t('bible.addRevisionModal.resubmitAlertTitle')}>
+              {t('bible.addRevisionModal.resubmitAlertBody')}
             </Alert>
           ) : null}
 
@@ -328,10 +309,10 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                 <div className='flex items-center gap-2'>
                   <Palette className='w-4 h-4 text-[#EA580C]' />
                   <label className='text-xs sm:text-sm font-bold text-stone-900'>
-                    Bản vẽ Concept Art / Model Sheet
+                    {t('bible.addRevisionModal.heroArtworkLabel')}
                   </label>
                   <span className='px-2 py-0.5 rounded text-xs font-bold bg-[#EA580C] text-white shadow-2xs'>
-                    Trọng tâm nộp bài
+                    {t('bible.addRevisionModal.heroFocusBadge')}
                   </span>
                 </div>
                 <span className='text-xs text-stone-500 font-medium'>PNG, JPG, WebP ≤ 10MB</span>
@@ -362,7 +343,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                   <div className='min-w-0 flex-1 space-y-1.5'>
                     <div className='flex items-center gap-1.5 text-xs font-bold text-emerald-700'>
                       <CheckCircle2 className='w-4 h-4 shrink-0' />
-                      <span>Đã tải lên bản vẽ thành công</span>
+                      <span>{t('bible.addRevisionModal.uploadSuccessText')}</span>
                     </div>
                     <p className='text-xs text-stone-500 font-mono truncate'>{referenceImageUrl}</p>
                     <div className='flex items-center gap-2 pt-1'>
@@ -372,7 +353,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         disabled={uploadingRevImage}
                         className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-stone-100 hover:bg-stone-200/80 text-stone-700 transition cursor-pointer'
                       >
-                        Đổi ảnh khác
+                        {t('bible.addRevisionModal.changeAnotherImage')}
                       </button>
                       <button
                         type='button'
@@ -380,7 +361,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         className='px-2.5 py-1 text-xs font-semibold rounded-lg text-rose-600 hover:bg-rose-50 transition cursor-pointer flex items-center gap-1'
                       >
                         <Trash2 className='w-3.5 h-3.5' />
-                        <span>Gỡ ảnh</span>
+                        <span>{t('bible.addRevisionModal.removeImageBtn')}</span>
                       </button>
                     </div>
                   </div>
@@ -411,7 +392,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     <>
                       <Loader2 className='w-8 h-8 animate-spin text-[#EA580C]' />
                       <span className='text-xs font-semibold text-stone-700'>
-                        Đang tải ảnh lên máy chủ...
+                        {t('bible.addRevisionModal.uploadingToServer')}
                       </span>
                     </>
                   ) : (
@@ -420,12 +401,13 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         <Upload className='w-6 h-6' />
                       </div>
                       <p className='text-xs sm:text-sm font-semibold text-stone-800'>
-                        Kéo thả ảnh bản vẽ vào đây, hoặc{' '}
-                        <span className='text-[#EA580C] underline font-bold'>chọn tệp từ máy</span>
+                        {t('bible.addRevisionModal.heroDropzonePrefix')}{' '}
+                        <span className='text-[#EA580C] underline font-bold'>
+                          {t('bible.addRevisionModal.heroDropzoneBrowse')}
+                        </span>
                       </p>
                       <p className='text-xs text-stone-400'>
-                        Hỗ trợ PNG, JPG, WebP tối đa 10MB • Hỗ trợ dán trực tiếp từ Clipboard (Ctrl
-                        + V)
+                        {t('bible.addRevisionModal.heroDropzoneHint')}
                       </p>
                     </>
                   )}
@@ -442,7 +424,9 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
             <div className='flex items-center justify-between gap-2 flex-wrap'>
               <div className='flex items-center gap-2'>
                 <Layers className='w-4 h-4 text-[#EA580C]' />
-                <span className='text-xs font-bold text-stone-900'>Biến thể thiết kế</span>
+                <span className='text-xs font-bold text-stone-900'>
+                  {t('bible.addRevisionModal.designVariantTitle')}
+                </span>
               </div>
               {!supersedeTarget && existingVariants.length > 0 && (
                 <div className='inline-flex rounded-xl bg-stone-200/70 p-0.5 text-xs font-medium'>
@@ -464,7 +448,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     }`}
                     data-testid='switch-to-existing-variant'
                   >
-                    Biến thể hiện có
+                    {t('bible.addRevisionModal.existingVariantTab')}
                   </button>
                   <button
                     type='button'
@@ -479,7 +463,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     }`}
                     data-testid='switch-to-new-variant'
                   >
-                    Tạo biến thể mới
+                    {t('bible.addRevisionModal.newVariantTab')}
                   </button>
                 </div>
               )}
@@ -491,7 +475,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                   htmlFor='existing-variant-select'
                   className='block text-xs font-semibold text-stone-700'
                 >
-                  Chọn biến thể *
+                  {t('bible.addRevisionModal.selectVariantLabel')}
                 </label>
                 <select
                   id='existing-variant-select'
@@ -519,13 +503,14 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                   htmlFor='revision-variant-label'
                   className='text-xs font-semibold text-stone-800'
                 >
-                  Nhãn biến thể mới <span className='text-red-500'>*</span>
+                  {t('bible.addRevisionModal.newVariantLabel')}{' '}
+                  <span className='text-red-500'>*</span>
                 </label>
                 <input
                   id='revision-variant-label'
                   type='text'
                   maxLength={100}
-                  placeholder='Ví dụ: Mặc định, Lúc nhỏ, Trưởng thành...'
+                  placeholder={t('bible.addRevisionModal.newVariantPlaceholder')}
                   value={variantLabel}
                   onChange={(e) => setVariantLabel(e.target.value)}
                   className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
@@ -533,7 +518,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                   required
                 />
                 <p className='text-xs text-stone-500'>
-                  Nhãn bắt buộc và không được trùng với biến thể đang hoạt động khác của mục.
+                  {t('bible.addRevisionModal.newVariantHelp')}
                 </p>
               </div>
             )}
@@ -543,18 +528,18 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
           <div>
             <label className='block text-xs font-semibold text-stone-800 mb-1'>
               {supersedeTarget
-                ? 'Lý do thay thế bản đã khoá *'
+                ? t('bible.addRevisionModal.summaryLabelSupersede')
                 : isArtistConceptSubmit
-                  ? 'Ghi chú nộp bài / Lời nhắn gửi Biên kịch & Biên tập viên *'
-                  : 'Tóm tắt thay đổi *'}
+                  ? t('bible.addRevisionModal.summaryLabelArtist')
+                  : t('bible.addRevisionModal.summaryLabelDefault')}
             </label>
             <input
               type='text'
               maxLength={supersedeTarget ? 400 : undefined}
               placeholder={
                 isArtistConceptSubmit
-                  ? 'Ví dụ: Hoàn thiện turnaround 3 góc, cập nhật trang phục và chuôi kiếm theo kịch bản...'
-                  : 'Ví dụ: Cập nhật trang phục chiến đấu mới...'
+                  ? t('bible.addRevisionModal.summaryPlaceholderArtist')
+                  : t('bible.addRevisionModal.summaryPlaceholderDefault')
               }
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
@@ -575,12 +560,16 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                   <FileText className='w-4 h-4 text-stone-500 shrink-0' />
                   <div className='min-w-0'>
                     <span className='text-xs font-bold text-stone-800 block'>
-                      Đặc tả của Writer (chỉ đọc)
+                      {t('bible.addRevisionModal.writerSpecsTitle')}
                     </span>
                     <span className='text-xs text-stone-500 truncate block'>
                       {isSpecsExpanded
-                        ? 'Vẽ theo đặc tả này; muốn đổi đặc tả hãy nhờ Writer. Nhấp để thu gọn.'
-                        : `${name} • đặc tả ${specCompleteness(specCategory, specValues).filled}/${specCompleteness(specCategory, specValues).total} trường`}
+                        ? t('bible.addRevisionModal.writerSpecsExpandedHint')
+                        : t('bible.addRevisionModal.writerSpecsCollapsedHint', {
+                            name,
+                            filled: specCompleteness(specCategory, specValues).filled,
+                            total: specCompleteness(specCategory, specValues).total,
+                          })}
                     </span>
                   </div>
                 </div>
@@ -607,7 +596,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
                 <div>
                   <label className='block text-xs font-semibold text-stone-800 mb-1'>
-                    Tên mục *
+                    {t('bible.addRevisionModal.entryNameLabel')}
                   </label>
                   <div
                     className='w-full px-3 py-2 bg-stone-100 border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-700'
@@ -618,7 +607,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                 </div>
                 <div>
                   <label className='block text-xs font-semibold text-stone-800 mb-1'>
-                    Phụ đề / Vai trò
+                    {t('bible.addRevisionModal.subtitleLabel')}
                   </label>
                   <input
                     type='text'
@@ -638,13 +627,13 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
 
               <div>
                 <label className='block text-xs font-semibold text-stone-800 mb-1'>
-                  Mô tả chi tiết (Tùy chọn)
+                  {t('bible.addRevisionModal.descriptionLabel')}
                 </label>
                 <textarea
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder='Mô tả chi tiết ngoại hình, tính cách hoặc lưu ý cho họa sĩ...'
+                  placeholder={t('bible.addRevisionModal.descriptionPlaceholder')}
                   className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316] resize-y custom-scrollbar leading-relaxed'
                 />
               </div>
@@ -653,10 +642,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               <div>
                 <div className='flex items-center justify-between mb-1'>
                   <label className='text-xs font-semibold text-stone-800'>
-                    Ảnh tham chiếu / Moodboard (Tùy chọn)
+                    {t('bible.addRevisionModal.moodboardLabel')}
                   </label>
                   <span className='text-xs text-stone-400 font-normal'>
-                    {isArtist ? 'Dành cho Artist' : 'Chỉ Artist được tải'}
+                    {isArtist
+                      ? t('bible.addRevisionModal.forArtistHint')
+                      : t('bible.addRevisionModal.artistUploadOnlyHint')}
                   </span>
                 </div>
                 <input
@@ -693,13 +684,13 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         onClick={() => revFileInputRef.current?.click()}
                         className='px-2 py-1 text-xs font-semibold rounded bg-white border border-[#E7E7E7] hover:bg-stone-50 text-stone-700'
                       >
-                        Đổi ảnh
+                        {t('bible.addEntityModal.changeImage')}
                       </button>
                       <button
                         type='button'
                         onClick={() => setReferenceImageUrl('')}
                         className='p-1 text-red-600 hover:bg-red-50 rounded'
-                        title='Gỡ ảnh'
+                        title={t('bible.addRevisionModal.removeImageBtn')}
                       >
                         <Trash2 className='w-3.5 h-3.5' />
                       </button>
@@ -708,7 +699,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                 ) : !isArtist ? (
                   <div className='p-3 rounded-xl border border-dashed border-stone-200 bg-stone-50 text-center text-xs text-stone-500 flex items-center justify-center gap-2'>
                     <Lock className='w-3.5 h-3.5 text-stone-400' />
-                    <span>Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Model Sheet mới.</span>
+                    <span>{t('bible.addRevisionModal.artistUploadOnlyNotice')}</span>
                   </div>
                 ) : (
                   <button
@@ -720,12 +711,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     {uploadingRevImage ? (
                       <>
                         <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
-                        <span>Đang tải ảnh lên...</span>
+                        <span>{t('bible.addRevisionModal.uploadingImage')}</span>
                       </>
                     ) : (
                       <>
                         <Upload className='w-3.5 h-3.5 text-[#F97316]' />
-                        <span>+ Tải ảnh Model Sheet / Concept (PNG, JPEG, WebP ≤ 10MB)</span>
+                        <span>{t('bible.addRevisionModal.uploadModelSheetBtn')}</span>
                       </>
                     )}
                   </button>
@@ -742,12 +733,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               (referenceImageUrl ? (
                 <span className='text-emerald-700 font-semibold flex items-center gap-1.5'>
                   <CheckCircle2 className='w-4 h-4' />
-                  Đã đính kèm ảnh bản vẽ
+                  {t('bible.addRevisionModal.artworkAttached')}
                 </span>
               ) : (
                 <span className='text-amber-700 font-medium flex items-center gap-1.5'>
                   <AlertCircle className='w-4 h-4' />
-                  Chưa chọn ảnh bản vẽ
+                  {t('bible.addRevisionModal.noArtworkSelected')}
                 </span>
               ))}
           </div>
@@ -758,7 +749,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               onClick={onClose}
               className='px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-100 transition cursor-pointer'
             >
-              Hủy
+              {t('bible.addRevisionModal.cancel')}
             </button>
             <button
               type='button'
@@ -778,20 +769,20 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               )}
               <span>
                 {savingRevision
-                  ? 'Đang lưu...'
+                  ? t('bible.addRevisionModal.saving')
                   : supersedeTarget
-                    ? 'Khoá & Thay thế'
+                    ? t('bible.addRevisionModal.btnSupersede')
                     : isArtistConceptSubmit && isArtist
                       ? isArtistResubmit
-                        ? 'Nộp lại Concept Art'
-                        : 'Nộp Concept Art'
+                        ? t('bible.addRevisionModal.btnResubmit')
+                        : t('bible.addRevisionModal.btnSubmitConcept')
                       : variantMode === 'new'
                         ? isProducer
-                          ? 'Tạo biến thể & Lưu'
-                          : 'Tạo biến thể & Gửi'
+                          ? t('bible.addRevisionModal.btnCreateVariantSave')
+                          : t('bible.addRevisionModal.btnCreateVariantSend')
                         : isProducer
-                          ? 'Lưu phiên bản'
-                          : 'Gửi bản nháp'}
+                          ? t('bible.addRevisionModal.btnSaveVersion')
+                          : t('bible.addRevisionModal.btnSendDraft')}
               </span>
             </button>
           </div>

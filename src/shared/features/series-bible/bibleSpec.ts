@@ -10,146 +10,103 @@ export type SpecCategory = 'character' | 'location' | 'prop' | 'terminology' | '
 
 export interface SpecField {
   key: string;
-  label: string;
-  placeholder?: string;
+  readonly label: string;
+  readonly placeholder?: string;
+  hasPlaceholder?: boolean;
   multiline?: boolean;
 }
 
 export interface SpecGroup {
-  title: string;
+  key: string;
+  readonly title: string;
   fields: SpecField[];
 }
 
-const FORBIDDEN: SpecField = {
-  key: 'forbidden',
-  label: 'Không được vẽ',
-  placeholder: 'Những điểm Artist tuyệt đối tránh, vd. không có râu, không đeo kính',
-  multiline: true,
-};
+const makeField = (
+  key: string,
+  options?: { hasPlaceholder?: boolean; multiline?: boolean },
+): SpecField => ({
+  key,
+  hasPlaceholder: options?.hasPlaceholder,
+  multiline: options?.multiline,
+  get label() {
+    return translate(`bible.spec.fields.${key}.label`);
+  },
+  get placeholder() {
+    return options?.hasPlaceholder ? translate(`bible.spec.fields.${key}.placeholder`) : undefined;
+  },
+});
+
+const makeGroup = (key: string, fields: SpecField[]): SpecGroup => ({
+  key,
+  get title() {
+    return translate(`bible.spec.groups.${key}`);
+  },
+  fields,
+});
+
+const FORBIDDEN: SpecField = makeField('forbidden', { hasPlaceholder: true, multiline: true });
 
 export const SPEC_SCHEMA: Record<SpecCategory, SpecGroup[]> = {
   character: [
-    {
-      title: 'Hình thể',
-      fields: [
-        { key: 'age', label: 'Độ tuổi', placeholder: 'vd. 17' },
-        { key: 'height', label: 'Chiều cao', placeholder: 'vd. 168 cm' },
-        { key: 'build', label: 'Dáng người', placeholder: 'vd. gầy, vai hẹp' },
-      ],
-    },
-    {
-      title: 'Khuôn mặt & nhận dạng',
-      fields: [
-        { key: 'hair', label: 'Kiểu tóc', placeholder: 'vd. tóc ngắn rối, mái lệch trái' },
-        { key: 'eyes', label: 'Mắt', placeholder: 'vd. mắt một mí, đuôi xếch' },
-        { key: 'marks', label: 'Đặc điểm nhận dạng', placeholder: 'Sẹo, nốt ruồi, kính...' },
-        { key: 'appearance', label: 'Diện mạo tổng quát', multiline: true },
-      ],
-    },
-    {
-      title: 'Trang phục',
-      fields: [
-        { key: 'outfit', label: 'Trang phục mặc định', multiline: true },
-        { key: 'accessories', label: 'Phụ kiện luôn mang' },
-      ],
-    },
-    {
-      title: 'Mỹ thuật',
-      fields: [
-        {
-          key: 'inkTone',
-          label: 'Tông đen trắng / screentone',
-          placeholder: 'vd. tóc tô đen, áo screentone 30%',
-        },
-        { key: 'expressions', label: 'Biểu cảm & tư thế đặc trưng', multiline: true },
-        FORBIDDEN,
-      ],
-    },
+    makeGroup('body', [
+      makeField('age', { hasPlaceholder: true }),
+      makeField('height', { hasPlaceholder: true }),
+      makeField('build', { hasPlaceholder: true }),
+    ]),
+    makeGroup('face', [
+      makeField('hair', { hasPlaceholder: true }),
+      makeField('eyes', { hasPlaceholder: true }),
+      makeField('marks', { hasPlaceholder: true }),
+      makeField('appearance', { multiline: true }),
+    ]),
+    makeGroup('costume', [makeField('outfit', { multiline: true }), makeField('accessories')]),
+    makeGroup('art', [
+      makeField('inkTone', { hasPlaceholder: true }),
+      makeField('expressions', { multiline: true }),
+      FORBIDDEN,
+    ]),
   ],
   location: [
-    {
-      title: 'Không gian',
-      fields: [
-        {
-          key: 'environmentType',
-          label: 'Loại không gian',
-          placeholder: 'vd. tiệm sửa đồng hồ, trong nhà',
-        },
-        { key: 'scale', label: 'Quy mô', placeholder: 'vd. 20 m², trần thấp' },
-        {
-          key: 'atmosphere',
-          label: 'Thời điểm & ánh sáng',
-          placeholder: 'vd. chiều mưa, đèn vàng',
-        },
-      ],
-    },
-    {
-      title: 'Chi tiết cố định',
-      fields: [
-        { key: 'architecture', label: 'Kiến trúc & vật cố định', multiline: true },
-        {
-          key: 'layout',
-          label: 'Bố trí / sơ đồ',
-          placeholder: 'Cửa ở đâu, quầy ở đâu',
-          multiline: true,
-        },
-        {
-          key: 'cameraAngles',
-          label: 'Góc máy chuẩn',
-          placeholder: 'vd. toàn cảnh từ cửa, cận quầy',
-        },
-        FORBIDDEN,
-      ],
-    },
+    makeGroup('space', [
+      makeField('environmentType', { hasPlaceholder: true }),
+      makeField('scale', { hasPlaceholder: true }),
+      makeField('atmosphere', { hasPlaceholder: true }),
+    ]),
+    makeGroup('fixedDetails', [
+      makeField('architecture', { multiline: true }),
+      makeField('layout', { hasPlaceholder: true, multiline: true }),
+      makeField('cameraAngles', { hasPlaceholder: true }),
+      FORBIDDEN,
+    ]),
   ],
   prop: [
-    {
-      title: 'Đạo cụ',
-      fields: [
-        { key: 'propType', label: 'Loại đạo cụ', placeholder: 'vd. chìa khoá, vũ khí' },
-        {
-          key: 'sizeWeight',
-          label: 'Kích thước so với người',
-          placeholder: 'vd. dài bằng bàn tay',
-        },
-        { key: 'material', label: 'Chất liệu', placeholder: 'vd. bạc, gỉ ở răng' },
-        { key: 'owner', label: 'Chủ sở hữu', placeholder: 'Mã nhân vật, vd. AN' },
-        {
-          key: 'stateByChapter',
-          label: 'Trạng thái theo chương',
-          placeholder: 'vd. gãy từ Ch.12',
-          multiline: true,
-        },
-        FORBIDDEN,
-      ],
-    },
+    makeGroup('prop', [
+      makeField('propType', { hasPlaceholder: true }),
+      makeField('sizeWeight', { hasPlaceholder: true }),
+      makeField('material', { hasPlaceholder: true }),
+      makeField('owner', { hasPlaceholder: true }),
+      makeField('stateByChapter', { hasPlaceholder: true, multiline: true }),
+      FORBIDDEN,
+    ]),
   ],
   terminology: [
-    {
-      title: 'Thuật ngữ',
-      fields: [
-        { key: 'termType', label: 'Phân loại', placeholder: 'vd. địa danh, chiêu thức' },
-        { key: 'origin', label: 'Nguồn gốc' },
-        { key: 'usage', label: 'Cách dùng trong thoại', multiline: true },
-      ],
-    },
+    makeGroup('terminology', [
+      makeField('termType', { hasPlaceholder: true }),
+      makeField('origin'),
+      makeField('usage', { multiline: true }),
+    ]),
   ],
   style: [
-    {
-      title: 'Quy tắc mỹ thuật',
-      fields: [
-        { key: 'colorPalette', label: 'Tông / screentone' },
-        { key: 'lineArtRules', label: 'Quy tắc nét', multiline: true },
-      ],
-    },
+    makeGroup('style', [makeField('colorPalette'), makeField('lineArtRules', { multiline: true })]),
   ],
 };
 
 /** Bản vẽ Artist phải nộp cho mục có thiết kế hình (Model Sheet). */
 export const SPEC_DELIVERABLES: Partial<Record<SpecCategory, string[]>> = {
-  character: ['Turnaround trước / nghiêng / sau', 'Bảng biểu cảm chính'],
-  location: ['Toàn cảnh (wide shot)', 'Cận cảnh chi tiết cố định'],
-  prop: ['Hình chính', 'Cận chi tiết / chất liệu'],
+  character: ['charTurnaround', 'charExpressions'],
+  location: ['locWide', 'locClose'],
+  prop: ['propMain', 'propDetail'],
 };
 
 export const specFields = (category: SpecCategory): SpecField[] =>
@@ -210,51 +167,28 @@ export const specCategoryOf = (
 };
 
 export const getFieldLabel = (field: SpecField, t?: (k: string, fb?: string) => string): string => {
-  if (t) return t(`bible.spec.fields.${field.key}.label`, field.label);
-  return translate(`bible.spec.fields.${field.key}.label`, field.label);
+  if (t) return t(`bible.spec.fields.${field.key}.label`);
+  return translate(`bible.spec.fields.${field.key}.label`);
 };
 
 export const getFieldPlaceholder = (
   field: SpecField,
   t?: (k: string, fb?: string) => string,
 ): string | undefined => {
-  if (!field.placeholder) return undefined;
-  if (t) return t(`bible.spec.fields.${field.key}.placeholder`, field.placeholder);
-  return translate(`bible.spec.fields.${field.key}.placeholder`, field.placeholder);
+  if (!field.hasPlaceholder) return undefined;
+  if (t) return t(`bible.spec.fields.${field.key}.placeholder`);
+  return translate(`bible.spec.fields.${field.key}.placeholder`);
 };
 
-export const getGroupTitle = (title: string, t?: (k: string, fb?: string) => string): string => {
-  const groupMap: Record<string, string> = {
-    'Hình thể': 'body',
-    'Khuôn mặt & nhận dạng': 'face',
-    'Trang phục': 'costume',
-    'Mỹ thuật': 'art',
-    'Không gian': 'space',
-    'Chi tiết cố định': 'fixedDetails',
-    'Đạo cụ': 'prop',
-    'Thuật ngữ': 'terminology',
-    'Quy tắc mỹ thuật': 'style',
-  };
-  const key = groupMap[title];
-  if (!key) return title;
-  if (t) return t(`bible.spec.groups.${key}`, title);
-  return translate(`bible.spec.groups.${key}`, title);
+export const getGroupTitle = (groupKey: string, t?: (k: string, fb?: string) => string): string => {
+  if (t) return t(`bible.spec.groups.${groupKey}`);
+  return translate(`bible.spec.groups.${groupKey}`);
 };
 
 export const getDeliverableLabel = (
-  deliverable: string,
+  deliverableKey: string,
   t?: (k: string, fb?: string) => string,
 ): string => {
-  const delMap: Record<string, string> = {
-    'Turnaround trước / nghiêng / sau': 'charTurnaround',
-    'Bảng biểu cảm chính': 'charExpressions',
-    'Toàn cảnh (wide shot)': 'locWide',
-    'Cận cảnh chi tiết cố định': 'locClose',
-    'Hình chính': 'propMain',
-    'Cận chi tiết / chất liệu': 'propDetail',
-  };
-  const key = delMap[deliverable];
-  if (!key) return deliverable;
-  if (t) return t(`bible.spec.deliverables.${key}`, deliverable);
-  return translate(`bible.spec.deliverables.${key}`, deliverable);
+  if (t) return t(`bible.spec.deliverables.${deliverableKey}`);
+  return translate(`bible.spec.deliverables.${deliverableKey}`);
 };
