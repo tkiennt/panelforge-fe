@@ -285,7 +285,7 @@ export function AppShell({
               },
               {
                 icon: BookOpen,
-                label: 'Quản lý chương',
+                label: t('navigation.menu.chapterManagement'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
               },
 
@@ -362,17 +362,17 @@ export function AppShell({
     if (isPublisher || effectiveRole === 'PUBLISHER') {
       return [
         {
-          section: t('navigation.sections.publisherDesk') || 'Cổng Xuất Bản',
+          section: t('navigation.sections.publisherDesk'),
           items: [
             {
               icon: BookMarked,
-              label: 'Quản lý Xuất bản',
+              label: t('navigation.menu.publisherManagement'),
               href: '/publisher/series',
               badge: { type: 'dot', color: 'bg-orange-500' },
             },
             {
               icon: BookOpen,
-              label: 'Danh mục công khai',
+              label: t('navigation.menu.publicCatalog'),
               href: '/publisher/catalog',
             },
             {
@@ -424,7 +424,7 @@ export function AppShell({
               },
               {
                 icon: BookOpen,
-                label: 'Quản lý chương',
+                label: t('navigation.menu.chapterManagement'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
               },
               {
@@ -800,7 +800,7 @@ export function AppShell({
                 <BrandMark size={28} className='shrink-0' />
                 <div className='flex items-center gap-2'>
                   <span className='text-stone-900 font-serif font-bold text-sm'>
-                    PanelForge // Cổng Xuất Bản
+                    {t('navigation.header.publisherPortal')}
                   </span>
                   <span className='px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200 text-xs font-mono font-bold'>
                     PUBLISHER PORTAL
@@ -903,7 +903,9 @@ export function AppShell({
                           data-testid='header-script-breadcrumb'
                         >
                           <FileText className='w-3.5 h-3.5 text-[#C2410C]' />
-                          <span className='truncate'>Quản lý Kịch bản</span>
+                          <span className='truncate'>
+                            {t('navigation.header.scriptManagement')}
+                          </span>
                         </div>
                       </>
                     )}
@@ -915,7 +917,7 @@ export function AppShell({
                           data-testid='header-letterer-breadcrumb'
                         >
                           <Type className='w-3.5 h-3.5 text-[#C2410C]' />
-                          <span className='truncate'>Bàn làm việc Chữ & Thoại</span>
+                          <span className='truncate'>{t('navigation.header.lettererDesk')}</span>
                         </div>
                       </>
                     )}
@@ -1048,7 +1050,7 @@ export function AppShell({
                         className='w-full text-left flex items-center gap-2 text-xs text-stone-700 hover:text-stone-900 hover:bg-orange-50 px-3 py-2 rounded-lg transition-colors cursor-pointer'
                       >
                         <Send className='w-3.5 h-3.5 text-orange-600' />
-                        <span>Bàn Làm Việc Publisher</span>
+                        <span>{t('navigation.menu.publisherDesk')}</span>
                       </button>
                     ) : (
                       <button

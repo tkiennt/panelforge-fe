@@ -52,7 +52,10 @@
     "reviewDesk": "Review desk",
     "bibleReview": "Bible design review",
     "readerStats": "Reader stats",
-    "revenue": "Revenue"
+    "revenue": "Revenue",
+    "chapterManagement": "Chapter Management",
+    "publisherManagement": "Publishing Management",
+    "publisherDesk": "Publisher Desk"
   },
   "header": {
     "searchPlaceholder": "Search frames, dialogues, assets...",
@@ -65,7 +68,10 @@
     "openSeriesList": "Open Series list",
     "goToSeries": "Go to Series Workspace",
     "currentChapter": "Current chapter",
-    "quickSearch": "Quick search or open command palette (⌘K / Ctrl+K)"
+    "quickSearch": "Quick search or open command palette (⌘K / Ctrl+K)",
+    "publisherPortal": "PanelForge // Publishing Portal",
+    "scriptManagement": "Script Management",
+    "lettererDesk": "Lettering & Dialogue Desk"
   },
   "breadcrumbs": {
     "studios": "Studio",
@@ -89,10 +95,73 @@
     "seriesListSubtitle": "Series list",
     "activeSeriesFallback": "Series",
     "themes": {
-      "paper": "Light paper",
-      "ink": "Dark ink",
-      "ocean": "Night sea",
-      "plum": "Manuscript plum"
-    }
+      "paper": "Light Paper",
+      "ink": "Deep Ink",
+      "ocean": "Midnight Ocean",
+      "plum": "Manuscript Plum"
+    },
+    "publisherSubtitle": "Publishing System"
+  },
+  "focus": {
+    "workspaceTitle": {
+      "artist": "Artist Drawing Desk",
+      "scriptReview": "Script Review",
+      "script": "Script Editor",
+      "letterer": "Lettering & Balloons",
+      "chapterReview": "Full Chapter Review",
+      "bibleReview": "Bible Design Review",
+      "editorDesk": "Editorial Review Desk",
+      "review": "Editorial Review",
+      "task": "Task Details",
+      "default": "Workspace"
+    },
+    "chapterFallback": "Chapter {number}",
+    "chapterOpen": "Current Chapter",
+    "defaultUser": "Member",
+    "defaultSeries": "Series",
+    "backTooltip": "Back to series page",
+    "backToReviewDesk": "Back to review desk",
+    "backToSeries": "Back to series",
+    "breadcrumbAria": "Series and chapter navigation",
+    "openSeriesTooltip": "Open series page: {title}",
+    "selectChapterAria": "Select chapter",
+    "stageProgressAria": "Stage progress",
+    "autosaved": "Autosaved",
+    "withdrawTooltip": "Withdraw submission to continue editing",
+    "withdrawing": "Withdrawing...",
+    "withdrawBtn": "Withdraw",
+    "submittedBadge": "Submitted for review",
+    "submitCustomTooltip": "{label} for review",
+    "submitFinalTooltip": "Submit completed draft for review",
+    "submitStageTooltip": "Submit current stage draft",
+    "submitting": "Submitting...",
+    "submitBtn": "Submit draft",
+    "zenModeTooltip": "Fullscreen focus mode (Key F)",
+    "zenModeBtn": "Focus",
+    "quickSearchTooltip": "Quick search (Ctrl+K)",
+    "exitZenTooltip": "Exit focus mode (Key F or Escape)",
+    "exitZenBtn": "Exit fullscreen (F)"
+  },
+  "guard": {
+    "forbiddenTitle": "403 - Access Denied",
+    "forbiddenDesc": "You do not have permission to access this area with your current role ({role})."
+  },
+  "app": {
+    "openEntityDetail": "Opened details for {name}",
+    "noSeriesSelectedTitle": "No series selected",
+    "noSeriesSelectedDesc": "Open a series to view its Series Bible.",
+    "sessionExpiredTitle": "Session expired",
+    "sessionExpiredDesc": "Please sign in again to continue.",
+    "reloginBtn": "Sign in again",
+    "loggedOutTitle": "Signed out",
+    "loggedOutDesc": "You have signed out of PanelForge.",
+    "defaultUserDisplay": "there",
+    "loginSuccessTitle": "Signed in successfully",
+    "welcomeBack": "Welcome back, {name}!",
+    "registerSuccessTitle": "Registration successful",
+    "welcomeNew": "Welcome to PanelForge, {name}!",
+    "twoFactorUpdatedTitle": "2FA security updated",
+    "twoFactorEnabledDesc": "Two-factor authentication has been enabled.",
+    "twoFactorDisabledDesc": "Two-factor authentication has been disabled."
   }
 }

@@ -39,6 +39,7 @@ import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordMod
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 import { auth, onAuthStateChanged } from '@/config/firebase';
 import { User } from 'firebase/auth';
+import { useTranslation } from '@/lib/i18n';
 
 export type Toast = ToastItemData;
 export type { ToastOptions, ToastType };
@@ -46,6 +47,7 @@ export type { ToastOptions, ToastType };
 const IS_DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true';
 
 function AppContent() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   // ---> STATE QUẢN LÝ ĐĂNG NHẬP VÀ ĐIỀU HƯỚNG BÊN NGOÀI <---
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -576,14 +578,14 @@ function AppContent() {
       // Nếu hệ thống đã chuyển tới /login (hoặc được PrivateRoute chuyển tới /login),
       // không thêm nút "Đăng nhập lại" dư thừa.
       // Chỉ khi người dùng đang ở các màn public (như / landing), cơ chế cho phép thì mới cung cấp action "Đăng nhập lại".
-      showToast('Phiên đăng nhập đã hết hạn', 'Vui lòng đăng nhập lại để tiếp tục.', {
+      showToast(t('navigation.app.sessionExpiredTitle'), t('navigation.app.sessionExpiredDesc'), {
         id: 'session-expired',
         type: 'warning',
         duration: 7000,
         action:
           !isAlreadyOnLogin && isPublicPath
             ? {
-                label: 'Đăng nhập lại',
+                label: t('navigation.app.reloginBtn'),
                 onClick: () => navigate('/login'),
               }
             : undefined,
@@ -591,7 +593,7 @@ function AppContent() {
     };
     window.addEventListener('auth:unauthorized', onUnauthorized);
     return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
-  }, [navigate, showToast, isAuthenticated, currentUserInfo]);
+  }, [navigate, showToast, isAuthenticated, currentUserInfo, t]);
 
   // Keyboard shortcut for Command Palette
   useEffect(() => {
@@ -698,7 +700,7 @@ function AppContent() {
     setActiveProjectRoles([]);
     // Chủ động đăng xuất: về trang chủ sạch, không để PrivateRoute đẩy sang /login?redirect=<trang cũ>.
     navigate('/', { replace: true });
-    showToast('Đã đăng xuất', 'Bạn đã đăng xuất khỏi PanelForge.', {
+    showToast(t('navigation.app.loggedOutTitle'), t('navigation.app.loggedOutDesc'), {
       id: 'auth-logout',
       type: 'logout',
       duration: 5000,
@@ -752,11 +754,16 @@ function AppContent() {
       authResponse?.user?.fullName ||
       authResponse?.user?.name ||
       authResponse?.user?.displayName ||
-      (authResponse?.user?.email ? authResponse.user.email.split('@')[0] : 'bạn');
+      (authResponse?.user?.email
+        ? authResponse.user.email.split('@')[0]
+        : t('navigation.app.defaultUserDisplay'));
 
     if (customRedirect) {
       navigate(customRedirect);
-      showToast('Đăng nhập thành công', `Chào mừng ${displayName}!`);
+      showToast(
+        t('navigation.app.loginSuccessTitle'),
+        t('navigation.app.welcomeBack', { name: displayName }),
+      );
       return;
     }
 
@@ -812,7 +819,10 @@ function AppContent() {
         }
       });
 
-    showToast('Đăng nhập thành công', `Chào mừng ${displayName}!`);
+    showToast(
+      t('navigation.app.loginSuccessTitle'),
+      t('navigation.app.welcomeBack', { name: displayName }),
+    );
   };
 
   const handleRegisterSuccess = (authResponse: any, customRedirect?: string) => {
@@ -889,7 +899,10 @@ function AppContent() {
         twoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
         isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
         onSuccess={() => {
-          showToast('Bảo mật 2FA', 'Đã kích hoạt thành công Google Authenticator cho tài khoản!');
+          showToast(
+            t('navigation.app.twoFactorUpdatedTitle'),
+            t('navigation.app.twoFactorEnabledDesc'),
+          );
           setCurrentUserInfo((prev) => (prev ? { ...prev, isTwoFactorEnabled: true } : prev));
           const savedUser = localStorage.getItem('user');
           if (savedUser) {
@@ -903,7 +916,10 @@ function AppContent() {
           }
         }}
         onDisabled={() => {
-          showToast('Bảo mật 2FA', 'Đã tắt xác thực 2 lớp cho tài khoản.');
+          showToast(
+            t('navigation.app.twoFactorUpdatedTitle'),
+            t('navigation.app.twoFactorDisabledDesc'),
+          );
           setCurrentUserInfo((prev) => (prev ? { ...prev, isTwoFactorEnabled: false } : prev));
         }}
       />

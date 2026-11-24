@@ -6,6 +6,7 @@ import { PageDetailModal } from '@/roles/artist/modals/PageDetailModal';
 import { AuditLogModal } from '@/shared/modals/AuditLogModal';
 import { NewPageCardModal } from '@/roles/artist/modals/NewPageCardModal';
 import { KanbanCard, BibleEntity, MangaProject, SystemRole, KanbanStageKey } from '@/types';
+import { useTranslation } from '@/lib/i18n';
 
 interface GlobalModalsProps {
   // States
@@ -59,6 +60,7 @@ export const GlobalModals: React.FC<GlobalModalsProps> = ({
   handleUpdateCardStage,
   handleAddCard,
 }) => {
+  const { t } = useTranslation();
   return (
     <>
       <PageDetailModal
@@ -77,7 +79,10 @@ export const GlobalModals: React.FC<GlobalModalsProps> = ({
             setCurrentView(`bible?search=${encodeURIComponent(e.name)}`);
             showToast('Entity Selected', `Navigated to ${e.name}`);
           } else {
-            showToast('Chưa chọn bộ truyện', 'Mở một bộ truyện để xem Series Bible.');
+            showToast(
+              t('navigation.app.noSeriesSelectedTitle'),
+              t('navigation.app.noSeriesSelectedDesc'),
+            );
           }
         }}
         cards={cards}

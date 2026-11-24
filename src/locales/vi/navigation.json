@@ -52,7 +52,10 @@
     "reviewDesk": "Bàn duyệt",
     "bibleReview": "Duyệt thiết kế Bible",
     "readerStats": "Lượt đọc",
-    "revenue": "Doanh thu"
+    "revenue": "Doanh thu",
+    "chapterManagement": "Quản lý chương",
+    "publisherManagement": "Quản lý Xuất bản",
+    "publisherDesk": "Bàn Làm Việc Publisher"
   },
   "header": {
     "searchPlaceholder": "Tìm kiếm khung tranh, thoại, tư liệu...",
@@ -65,7 +68,10 @@
     "openSeriesList": "Mở danh sách Series của Workspace",
     "goToSeries": "Chuyển đến Series Workspace",
     "currentChapter": "Chương đang mở",
-    "quickSearch": "Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)"
+    "quickSearch": "Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)",
+    "publisherPortal": "PanelForge // Cổng Xuất Bản",
+    "scriptManagement": "Quản lý Kịch bản",
+    "lettererDesk": "Bàn làm việc Chữ & Thoại"
   },
   "breadcrumbs": {
     "studios": "Studio",
@@ -93,6 +99,69 @@
       "ink": "Mực đậm",
       "ocean": "Biển đêm",
       "plum": "Tím bản thảo"
-    }
+    },
+    "publisherSubtitle": "Hệ thống xuất bản"
+  },
+  "focus": {
+    "workspaceTitle": {
+      "artist": "Bàn vẽ họa sĩ",
+      "scriptReview": "Duyệt kịch bản",
+      "script": "Biên soạn kịch bản",
+      "letterer": "Chèn chữ & bóng thoại",
+      "chapterReview": "Duyệt toàn chương",
+      "bibleReview": "Duyệt thiết kế Bible",
+      "editorDesk": "Bàn thẩm định biên tập",
+      "review": "Kiểm duyệt biên tập",
+      "task": "Chi tiết công việc",
+      "default": "Phòng làm việc"
+    },
+    "chapterFallback": "Chương {number}",
+    "chapterOpen": "Chương đang mở",
+    "defaultUser": "Thành viên",
+    "defaultSeries": "Bộ truyện",
+    "backTooltip": "Quay lại trang bộ truyện",
+    "backToReviewDesk": "Về bàn duyệt",
+    "backToSeries": "Về bộ truyện",
+    "breadcrumbAria": "Điều hướng bộ truyện và chương",
+    "openSeriesTooltip": "Mở trang bộ truyện: {title}",
+    "selectChapterAria": "Chọn chương",
+    "stageProgressAria": "Tiến độ công đoạn",
+    "autosaved": "Đã lưu tự động",
+    "withdrawTooltip": "Rút bài nộp để tiếp tục chỉnh sửa",
+    "withdrawing": "Đang rút...",
+    "withdrawBtn": "Rút bài",
+    "submittedBadge": "Đã nộp chờ duyệt",
+    "submitCustomTooltip": "{label} để chờ duyệt",
+    "submitFinalTooltip": "Nộp hoàn thiện bản thảo để chờ duyệt",
+    "submitStageTooltip": "Nộp bản thảo công đoạn hiện tại",
+    "submitting": "Đang nộp...",
+    "submitBtn": "Nộp bản thảo",
+    "zenModeTooltip": "Chế độ tập trung toàn màn hình (Phím F)",
+    "zenModeBtn": "Tập trung",
+    "quickSearchTooltip": "Tìm kiếm nhanh (Ctrl+K)",
+    "exitZenTooltip": "Thoát chế độ tập trung (Phím F hoặc Escape)",
+    "exitZenBtn": "Thoát toàn màn hình (F)"
+  },
+  "guard": {
+    "forbiddenTitle": "403 - Không có quyền truy cập",
+    "forbiddenDesc": "Bạn không có quyền truy cập vào khu vực này với vai trò hiện tại ({role})."
+  },
+  "app": {
+    "openEntityDetail": "Mở chi tiết {name}",
+    "noSeriesSelectedTitle": "Chưa chọn bộ truyện",
+    "noSeriesSelectedDesc": "Mở một bộ truyện để xem Series Bible.",
+    "sessionExpiredTitle": "Phiên đăng nhập đã hết hạn",
+    "sessionExpiredDesc": "Vui lòng đăng nhập lại để tiếp tục.",
+    "reloginBtn": "Đăng nhập lại",
+    "loggedOutTitle": "Đã đăng xuất",
+    "loggedOutDesc": "Bạn đã đăng xuất khỏi PanelForge.",
+    "defaultUserDisplay": "bạn",
+    "loginSuccessTitle": "Đăng nhập thành công",
+    "welcomeBack": "Chào mừng {name}!",
+    "registerSuccessTitle": "Đăng ký thành công",
+    "welcomeNew": "Chào mừng {name} đến với PanelForge!",
+    "twoFactorUpdatedTitle": "Đã cập nhật bảo mật 2FA",
+    "twoFactorEnabledDesc": "Xác thực 2 bước đã được bật.",
+    "twoFactorDisabledDesc": "Xác thực 2 bước đã được tắt."
   }
 }

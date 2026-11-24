@@ -21,6 +21,7 @@ import { getRoleDefaultPath } from '@/roles/roles';
 import { seriesService } from '@/services/series.service';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
 import { CurrentUser } from './AppShell';
+import { useTranslation } from '@/lib/i18n';
 
 export interface FocusStageItem {
   id: string;
@@ -87,25 +88,29 @@ export interface FocusStudioHeaderBarProps {
   showFocusControls?: boolean;
 }
 
-function getReadableWorkspaceTitle(pathname: string): string {
-  if (pathname.includes('/artist')) return 'Bàn vẽ họa sĩ';
-  if (pathname.includes('/script/review')) return 'Duyệt kịch bản';
-  if (pathname.includes('/script')) return 'Biên soạn kịch bản';
-  if (pathname.includes('/letterer')) return 'Chèn chữ & bóng thoại';
-  if (pathname.includes('/chapter-review')) return 'Duyệt toàn chương';
-  if (pathname.includes('/editor/bible')) return 'Duyệt thiết kế Bible';
-  if (pathname.includes('/editor/desk')) return 'Bàn thẩm định biên tập';
-  if (pathname.includes('/review/')) return 'Kiểm duyệt biên tập';
-  if (pathname.includes('/task/')) return 'Chi tiết công việc';
-  return 'Phòng làm việc';
+function getReadableWorkspaceTitle(pathname: string, t: (k: string) => string): string {
+  if (pathname.includes('/artist')) return t('navigation.focus.workspaceTitle.artist');
+  if (pathname.includes('/script/review')) return t('navigation.focus.workspaceTitle.scriptReview');
+  if (pathname.includes('/script')) return t('navigation.focus.workspaceTitle.script');
+  if (pathname.includes('/letterer')) return t('navigation.focus.workspaceTitle.letterer');
+  if (pathname.includes('/chapter-review'))
+    return t('navigation.focus.workspaceTitle.chapterReview');
+  if (pathname.includes('/editor/bible')) return t('navigation.focus.workspaceTitle.bibleReview');
+  if (pathname.includes('/editor/desk')) return t('navigation.focus.workspaceTitle.editorDesk');
+  if (pathname.includes('/review/')) return t('navigation.focus.workspaceTitle.review');
+  if (pathname.includes('/task/')) return t('navigation.focus.workspaceTitle.task');
+  return t('navigation.focus.workspaceTitle.default');
 }
 
-function formatFallbackChapterText(chapterId: string): string {
+function formatFallbackChapterText(
+  chapterId: string,
+  t: (k: string, params?: Record<string, string | number>) => string,
+): string {
   const cleaned = chapterId.replace(/^chapter-?/i, '').replace(/^chap-?/i, '');
   if (/^\d+$/.test(cleaned)) {
-    return `Chương ${cleaned}`;
+    return t('navigation.focus.chapterFallback', { number: cleaned });
   }
-  return 'Chương đang mở';
+  return t('navigation.focus.chapterOpen');
 }
 
 /**
@@ -118,7 +123,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
   chapterId,
   pathname,
   userRole,
-  userName = 'Thành viên',
+  userName,
   userInitials = 'PF',
   workspaceName,
   activeSeriesTitle,
@@ -128,7 +133,9 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
   onEnterFocusMode,
   showFocusControls = true,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const resolvedUserName = userName || t('navigation.focus.defaultUser');
 
   const resolvedSeriesPath =
     headerConfig?.seriesPath ||
@@ -144,7 +151,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
       ? activeSeriesTitle
       : undefined) ||
     workspaceName ||
-    'Bộ truyện';
+    t('navigation.focus.defaultSeries');
 
   const activeChapterId = headerConfig?.currentChapterId ?? chapterId ?? null;
   const chapters = headerConfig?.chapters ?? [];
@@ -193,7 +200,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
           onClick={handleBackClick}
           disabled={isExiting}
           data-testid='focus-back-btn'
-          title='Quay lại trang bộ truyện'
+          title={t('navigation.focus.backTooltip')}
           className='group flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] active:scale-95 transition-all duration-150 cursor-pointer shrink-0 focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] disabled:opacity-60'
         >
           {isExiting ? (
@@ -202,7 +209,9 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             <ArrowLeft className='w-3.5 h-3.5 transition-transform duration-150 group-hover:-translate-x-0.5' />
           )}
           <span className='hidden sm:inline'>
-            {isEditorReview ? 'Về bàn duyệt' : 'Về bộ truyện'}
+            {isEditorReview
+              ? t('navigation.focus.backToReviewDesk')
+              : t('navigation.focus.backToSeries')}
           </span>
         </button>
 
@@ -211,13 +220,13 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
         <BrandMark size={20} tone='ink' className='shrink-0 hidden xs:inline-block' />
 
         <nav
-          aria-label='Điều hướng bộ truyện và chương'
+          aria-label={t('navigation.focus.breadcrumbAria')}
           className='flex items-center gap-1.5 min-w-0 text-xs'
         >
           <Link
             to={resolvedSeriesPath}
             data-testid='focus-series-link'
-            title={`Mở trang bộ truyện: ${resolvedSeriesTitle}`}
+            title={t('navigation.focus.openSeriesTooltip', { title: resolvedSeriesTitle })}
             className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[#1C1917] hover:bg-[#FFF2E6] hover:text-[#C2410C] transition-colors truncate max-w-[140px] sm:max-w-[200px]'
           >
             <BookOpen className='w-3.5 h-3.5 text-[#C2410C] shrink-0' />
@@ -234,7 +243,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                 <FileText className='w-3.5 h-3.5 text-[#EA580C] shrink-0' />
                 {chapters.length > 0 && headerConfig?.onSelectChapter ? (
                   <select
-                    aria-label='Chọn chương'
+                    aria-label={t('navigation.focus.selectChapterAria')}
                     data-testid='focus-chapter-select'
                     value={activeChapterId || chapters[0].id}
                     onChange={(e) => headerConfig.onSelectChapter?.(e.target.value)}
@@ -255,8 +264,8 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                     {activeChapter
                       ? formatChapterLabel(activeChapter.chapterNumber, activeChapter.title)
                       : activeChapterId
-                        ? formatFallbackChapterText(activeChapterId)
-                        : 'Chương đang mở'}
+                        ? formatFallbackChapterText(activeChapterId, t)
+                        : t('navigation.focus.chapterOpen')}
                   </Link>
                 )}
               </div>
@@ -267,7 +276,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             <>
               <span className='text-[#A8A29E] font-bold select-none'>/</span>
               <span className='font-bold text-[#1C1917] truncate px-1'>
-                {getReadableWorkspaceTitle(pathname)}
+                {getReadableWorkspaceTitle(pathname, t)}
               </span>
             </>
           )}
@@ -280,7 +289,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
           <div
             data-testid='focus-stage-stepper'
             role='list'
-            aria-label='Tiến độ công đoạn'
+            aria-label={t('navigation.focus.stageProgressAria')}
             className='hidden md:flex items-center gap-1 p-0.5 rounded-xl bg-[#F3F0E9] border border-[#D8D2C5]'
           >
             {stages.map((stage, idx) => {
@@ -330,7 +339,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
         ) : isReadOnlyReview ? null : (
           <div className='hidden lg:flex items-center gap-1.5 bg-[#F3F0E9] px-3 py-1 rounded-full border border-[#D8D2C5] text-[11px] font-medium text-[#57534E] shrink-0'>
             <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-            <span>Đã lưu tự động</span>
+            <span>{t('navigation.focus.autosaved')}</span>
           </div>
         )}
       </div>
@@ -343,7 +352,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             onClick={headerConfig.onWithdrawStage}
             disabled={Boolean(headerConfig.isWithdrawingStage)}
             data-testid='artist-withdraw-btn'
-            title='Rút bài nộp để tiếp tục chỉnh sửa'
+            title={t('navigation.focus.withdrawTooltip')}
             className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0'
           >
             {headerConfig.isWithdrawingStage ? (
@@ -353,8 +362,8 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             )}
             <span>
               {headerConfig.isWithdrawingStage
-                ? 'Đang rút...'
-                : headerConfig.withdrawButtonLabel || 'Rút bài'}
+                ? t('navigation.focus.withdrawing')
+                : headerConfig.withdrawButtonLabel || t('navigation.focus.withdrawBtn')}
             </span>
           </button>
         )}
@@ -366,7 +375,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold shrink-0'
             >
               <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-              <span>Đã nộp chờ duyệt</span>
+              <span>{t('navigation.focus.submittedBadge')}</span>
             </div>
           ) : (
             <button
@@ -376,10 +385,12 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
               data-testid='focus-submit-stage-btn'
               title={
                 headerConfig.submitButtonLabel
-                  ? `${headerConfig.submitButtonLabel} để chờ duyệt`
+                  ? t('navigation.focus.submitCustomTooltip', {
+                      label: headerConfig.submitButtonLabel,
+                    })
                   : isLastStage
-                    ? 'Nộp hoàn thiện bản thảo để chờ duyệt'
-                    : 'Nộp bản thảo công đoạn hiện tại'
+                    ? t('navigation.focus.submitFinalTooltip')
+                    : t('navigation.focus.submitStageTooltip')
               }
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C2410C] hover:bg-[#9A3412] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0'
             >
@@ -392,8 +403,8 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
               )}
               <span>
                 {isSubmittingStage
-                  ? 'Đang nộp...'
-                  : headerConfig.submitButtonLabel || 'Nộp bản thảo'}
+                  ? t('navigation.focus.submitting')
+                  : headerConfig.submitButtonLabel || t('navigation.focus.submitBtn')}
               </span>
             </button>
           ))}
@@ -402,12 +413,12 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
           <button
             type='button'
             onClick={onEnterFocusMode}
-            title='Chế độ tập trung toàn màn hình (Phím F)'
+            title={t('navigation.focus.zenModeTooltip')}
             data-testid='focus-zen-toggle-btn'
             className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F3F0E9] border border-[#D8D2C5] text-xs font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] active:scale-95 transition-all cursor-pointer'
           >
             <Maximize2 className='w-3.5 h-3.5 text-[#C2410C]' />
-            <span className='hidden sm:inline'>Tập trung</span>
+            <span className='hidden sm:inline'>{t('navigation.focus.zenModeBtn')}</span>
           </button>
         )}
 
@@ -419,7 +430,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                 new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
               )
             }
-            title='Tìm kiếm nhanh (Ctrl+K)'
+            title={t('navigation.focus.quickSearchTooltip')}
             className='hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg bg-[#F3F0E9] border border-[#D8D2C5] text-[11px] font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] active:scale-95 transition-all cursor-pointer'
           >
             <Command className='w-3 h-3' />
@@ -430,7 +441,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
         <div className='flex items-center gap-2 pl-2 border-l border-[#D8D2C5]'>
           <div
             className='w-7 h-7 rounded-full bg-[#FFF2E6] border border-[#FDBA74] text-[#C2410C] flex items-center justify-center text-xs font-bold'
-            title={userName}
+            title={resolvedUserName}
           >
             {userInitials || 'PF'}
           </div>
@@ -449,6 +460,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
   activeSeries,
   children,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams<{ workspaceId?: string; seriesId?: string; chapterId?: string }>();
@@ -584,10 +596,10 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
               type='button'
               onClick={() => setIsZenMode(false)}
               className='flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] text-xs text-[#1C1917] hover:bg-[#FFF2E6] shadow-md cursor-pointer transition-all active:scale-95'
-              title='Thoát chế độ tập trung (Phím F hoặc Escape)'
+              title={t('navigation.focus.exitZenTooltip')}
             >
               <Minimize2 className='w-3.5 h-3.5 text-[#C2410C]' />
-              <span className='font-semibold'>Thoát toàn màn hình (F)</span>
+              <span className='font-semibold'>{t('navigation.focus.exitZenBtn')}</span>
             </button>
           </div>
         ) : (

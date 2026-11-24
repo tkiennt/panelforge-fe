@@ -17,6 +17,7 @@ import { getRoleDefaultPath } from '@/roles/roles';
 import { AuthLayout } from '@/roles/guest/views/AuthLayout';
 import { LoginPage } from '@/roles/guest/views/LoginPage';
 import { RegisterPage } from '@/roles/guest/views/RegisterPage';
+import { useTranslation } from '@/lib/i18n';
 
 /** Link cũ /preview/:token → /review/invite/:token (cùng định dạng route với Mobile). */
 const LegacyPreviewRedirect: React.FC = () => {
@@ -306,6 +307,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
   onApiLoginSuccess,
   onRegisterSuccess,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -585,7 +587,12 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                         activeProject={activeProject}
                         onAddEntity={handleAddEntity}
                         onSelectSeries={(p) => setActiveProject(p)}
-                        onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
+                        onEditEntity={(e) =>
+                          showToast(
+                            'Series Bible',
+                            t('navigation.app.openEntityDetail', { name: e.name }),
+                          )
+                        }
                         onShowToast={showToast}
                       />
                     </RequireWorkspaceRole>

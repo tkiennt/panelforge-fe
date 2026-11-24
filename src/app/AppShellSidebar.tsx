@@ -26,13 +26,6 @@ import '@/styles/modules/sidebar-theme.css';
 
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
 
-const THEME_FALLBACK: Record<SidebarTheme, string> = {
-  paper: 'Giấy sáng',
-  ink: 'Mực đậm',
-  ocean: 'Biển đêm',
-  plum: 'Tím bản thảo',
-};
-
 export interface AppShellSidebarProps {
   currentUser: CurrentUser;
   activeWorkspace?: { id?: string; name: string } | null;
@@ -218,7 +211,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   const workspaceLabel = `Workspace: ${activeWorkspace?.name || t('navigation.sidebar.chooseWorkspace', 'Chọn Workspace')}`;
   const seriesLabel = `Series: ${seriesId ? activeSeries?.title || t('navigation.sidebar.activeSeriesFallback', 'Bộ truyện') : t('navigation.sidebar.chooseSeries', 'Chọn Series')}`;
   const themeLabel = t('navigation.sidebar.appearance', 'Giao diện thanh bên');
-  const themeName = (id: SidebarTheme) => t(`navigation.sidebar.themes.${id}`, THEME_FALLBACK[id]);
+  const themeName = (id: SidebarTheme) => t(`navigation.sidebar.themes.${id}`);
 
   const moveFocus = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const items = Array.from(
@@ -328,7 +321,9 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 <p className='text-xs font-bold tracking-tight text-[#C2410C] leading-tight'>
                   Publisher Portal
                 </p>
-                <p className='text-[10px] text-stone-500 truncate'>Hệ thống xuất bản</p>
+                <p className='text-[10px] text-stone-500 truncate'>
+                  {t('navigation.sidebar.publisherSubtitle')}
+                </p>
               </div>
             )}
           </div>

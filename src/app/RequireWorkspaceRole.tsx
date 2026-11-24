@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Alert } from '@/shared/ui';
 import { WorkspaceRole, SystemRole } from '@/types';
 import { resolveCurrentWorkspaceRole, isRoleAllowed } from './workspaceRoleGuard';
+import { useTranslation } from '@/lib/i18n';
 
 export interface RequireWorkspaceRoleProps {
   allowedRoles: (WorkspaceRole | SystemRole | string)[];
@@ -19,6 +20,7 @@ export const RequireWorkspaceRole: React.FC<RequireWorkspaceRoleProps> = ({
   activeRoles,
   children,
 }) => {
+  const { t } = useTranslation();
   const effectiveRole = resolveCurrentWorkspaceRole(currentWorkspaceRole, activeRoles, currentRole);
 
   const allowed = isRoleAllowed(effectiveRole, allowedRoles, activeRoles, currentRole);
@@ -26,9 +28,9 @@ export const RequireWorkspaceRole: React.FC<RequireWorkspaceRoleProps> = ({
   if (!allowed) {
     return (
       <div className='p-6 max-w-2xl mx-auto py-12' data-testid='workspace-role-forbidden'>
-        <Alert tone='danger' title='403 - Không có quyền truy cập' className='shadow-xs'>
+        <Alert tone='danger' title={t('navigation.guard.forbiddenTitle')} className='shadow-xs'>
           <p className='text-sm text-stone-600 mt-1'>
-            Bạn không có quyền truy cập vào khu vực này với vai trò hiện tại ({effectiveRole}).
+            {t('navigation.guard.forbiddenDesc', { role: effectiveRole })}
           </p>
         </Alert>
       </div>
