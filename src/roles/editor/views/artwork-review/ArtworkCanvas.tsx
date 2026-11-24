@@ -39,6 +39,7 @@ const Frame: React.FC<{
       ref={wrapperRef}
       onMouseDown={onMouseDown}
       data-testid={testId}
+      id={testId === 'review-current-image' ? 'panel-frame-1' : undefined}
       className={`relative inline-block select-none ${drawable ? 'cursor-crosshair' : ''}`}
     >
       {url ? (

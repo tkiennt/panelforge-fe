@@ -207,13 +207,19 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
     }
     const existingIds = new Set(seriesMembers.map((m) => m.userId));
     return workspaceMembers
-      .filter(
-        (m) =>
+      .filter((m) => {
+        const statusKey = String(m.status ?? '').toLowerCase();
+        return (
           !existingIds.has(m.userId) &&
           !m.isOwner &&
           m.role?.toString().toLowerCase() !== 'producer' &&
-          m.role?.toString().toLowerCase() !== 'owner',
-      )
+          m.role?.toString().toLowerCase() !== 'owner' &&
+          statusKey !== '0' &&
+          statusKey !== 'pending' &&
+          statusKey !== '2' &&
+          statusKey !== 'rejected'
+        );
+      })
       .map((m) => ({
         userId: m.userId,
         fullName: m.fullName || '',
@@ -487,8 +493,11 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                       <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
                         {tProd('producer.seriesMembersModal.candidatePoolTitle')}
                       </h4>
-                      <p className='text-[11px] text-[#737373]'>
-                        {tProd('producer.seriesMembersModal.candidatePoolSubtitle')}
+                      <p className='text-xs text-[#737373]'>
+                        {tProd(
+                          'members.candidatePool.subtitle',
+                          'Chọn vai trò và thêm trực tiếp vào Series',
+                        )}
                       </p>
                     </div>
                   </div>
@@ -540,7 +549,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                             workspaceName: displayWsName,
                           })}
                     </p>
-                    <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
+                    <p className='text-xs text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {candidateSearchQuery
                         ? tProd('producer.seriesMembersModal.candidatePoolEmptySearchDesc')
                         : tProd('producer.seriesMembersModal.candidatePoolEmptyAllDesc', {
@@ -552,7 +561,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                         <a
                           href={`/workspaces/${workspaceId}/members`}
                           onClick={onClose}
-                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-50 hover:bg-orange-50 border border-zinc-200 hover:border-orange-200 text-zinc-700 hover:text-orange-600 text-xs font-medium transition-colors cursor-pointer shadow-2xs'
+                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-50 hover:bg-orange-50 border border-stone-200 hover:border-orange-200 text-stone-700 hover:text-orange-600 text-xs font-medium transition-colors cursor-pointer shadow-2xs'
                         >
                           <UserPlus className='w-3.5 h-3.5' />
                           <span>{tProd('producer.seriesMembersModal.manageWorkspaceMembers')}</span>
@@ -597,7 +606,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                 {displayName}
                               </span>
                               {candidate.role && (
-                                <span className='text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-white border border-[#E7E7E7] text-[#555555] font-semibold shrink-0'>
+                                <span className='text-xs font-mono px-1.5 py-0.5 rounded-md bg-white border border-[#E7E7E7] text-[#555555] font-semibold shrink-0'>
                                   {candidate.role}
                                 </span>
                               )}
@@ -649,8 +658,11 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                       <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
                         {tProd('producer.seriesMembersModal.rosterTitle')}
                       </h4>
-                      <p className='text-[11px] text-[#737373]'>
-                        {tProd('producer.seriesMembersModal.rosterSubtitle')}
+                      <p className='text-xs text-[#737373]'>
+                        {tProd(
+                          'members.seriesRoster.subtitle',
+                          'Đang tham gia sản xuất và phân quyền trong Series',
+                        )}
                       </p>
                     </div>
                   </div>
@@ -718,7 +730,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                         ? tProd('producer.seriesMembersModal.rosterEmptySearch')
                         : tProd('producer.seriesMembersModal.rosterEmpty')}
                     </p>
-                    <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
+                    <p className='text-xs text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {seriesSearchQuery || filterRole !== 'ALL'
                         ? tProd('producer.seriesMembersModal.rosterEmptySearchDesc')
                         : tProd('producer.seriesMembersModal.rosterEmptyDesc')}
@@ -812,7 +824,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                 {displayName}
                               </span>
                               {isProducer && (
-                                <span className='text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1 shrink-0'>
+                                <span className='text-xs font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1 shrink-0'>
                                   <Crown className='w-2.5 h-2.5 text-amber-600' />
                                   <span>
                                     {tProd('producer.seriesMembersModal.producerAdminTag')}

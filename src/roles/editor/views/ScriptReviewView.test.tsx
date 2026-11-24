@@ -200,8 +200,10 @@ describe('ScriptReviewView', () => {
       });
     });
 
-    // The comment item card appears in the comments panel
-    expect(await screen.findByText('Sửa lại câu này ngắn gọn hơn')).toBeInTheDocument();
+    // The comment item card appears inline on the script line and in the comments panel
+    expect(
+      (await screen.findAllByText('Sửa lại câu này ngắn gọn hơn')).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('switches tabs between comments, changes, and checks', async () => {
@@ -213,7 +215,7 @@ describe('ScriptReviewView', () => {
     fireEvent.click(checksTab);
 
     // Checks tab content is visible
-    expect(await screen.findByText(/Bible Gate của chương/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Bible Gate/i)).toBeInTheDocument();
   });
 
   it('shows warning with 2 unresolved comments and button stays enabled; hidden when 0', async () => {

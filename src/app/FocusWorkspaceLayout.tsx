@@ -14,14 +14,22 @@ import {
   Minimize2,
   RotateCcw,
   Send,
+  Layers,
+  LayoutTemplate,
+  Type,
+  ShieldCheck,
+  BookMarked,
+  Kanban,
+  Users,
 } from 'lucide-react';
 import { BrandMark } from '@/shared/components/BrandMark';
 import { MangaProject } from '@/types';
 import { getRoleDefaultPath } from '@/roles/roles';
 import { seriesService } from '@/services/series.service';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
-import { CurrentUser } from './AppShell';
 import { useTranslation } from '@/lib/i18n';
+import { CurrentUser } from './AppShell';
+import { AppShellSidebar } from './AppShellSidebar';
 
 export interface FocusStageItem {
   id: string;
@@ -114,7 +122,7 @@ function formatFallbackChapterText(
 }
 
 /**
- * Header dùng chung cho không gian làm việc tập trung (màu giấy ấm chuẩn hệ thống,
+ * Header dùng chung cho không gian làm việc tập trung (chuẩn Stitch Design,
  * hiển thị đường dẫn Bộ truyện / Chương, thanh công đoạn và nút Nộp chuyển bước).
  */
 export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
@@ -136,6 +144,13 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const resolvedUserName = userName || t('navigation.focus.defaultUser');
+
+  const isWriterScriptEditor =
+    pathname.includes('/script/editor') ||
+    (pathname.includes('/script') &&
+      !pathname.includes('/review') &&
+      !pathname.includes('/editor/desk') &&
+      !pathname.includes('/artist'));
 
   const resolvedSeriesPath =
     headerConfig?.seriesPath ||
@@ -169,14 +184,12 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
   const isSubmittingStage = Boolean(headerConfig?.isSubmittingStage);
   const isLastStage = stages.length > 0 && currentStageIndex >= stages.length - 1;
 
-  // Editor: màn duyệt quay về bàn duyệt (đường mặc định của vai trò); từ bàn duyệt quay về thư viện bộ truyện.
   const isEditorDesk = pathname.includes('/editor/desk');
   const isEditorReview =
     String(userRole ?? '').toUpperCase() === 'EDITOR' &&
     (pathname.includes('/script/review') ||
       pathname.includes('/review/') ||
       pathname.includes('/editor/bible'));
-  const isReadOnlyReview = isEditorDesk || isEditorReview;
   const backPath =
     isEditorDesk && workspaceId ? `/workspaces/${workspaceId}/series` : resolvedSeriesPath;
 
@@ -190,107 +203,106 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
 
   return (
     <header
-      className='min-h-12 bg-[#FCFBF8]/95 backdrop-blur-md border-b border-[#D8D2C5] px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 sm:gap-3 shrink-0 z-30 select-none transition-all duration-200 ease-out animate-in fade-in slide-in-from-top-2'
+      className='h-16 bg-white border-b border-stone-200 px-4 md:px-6 flex items-center justify-between gap-3 shrink-0 z-30 select-none shadow-xs'
       data-testid='focus-studio-header'
     >
-      {/* Phía trái: Nút quay lại + Đường dẫn Bộ truyện / Chương */}
-      <div className='flex items-center gap-1.5 sm:gap-2 min-w-0'>
+      {/* Phía trái: Breadcrumb Studio › Series › Chương n: <title> (Kịch bản) */}
+      <nav
+        aria-label={t('navigation.focus.breadcrumbAria')}
+        className='flex items-center gap-1.5 min-w-0 text-xs text-stone-600'
+      >
         <button
           type='button'
           onClick={handleBackClick}
           disabled={isExiting}
           data-testid='focus-back-btn'
-          title={t('navigation.focus.backTooltip')}
-          className='group flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] active:scale-95 transition-all duration-150 cursor-pointer shrink-0 focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] disabled:opacity-60'
+          title={t('navigation.sidebar.backToStudio', 'Về Sảnh Studio')}
+          className='font-medium text-stone-600 hover:text-stone-900 transition-colors cursor-pointer truncate max-w-[120px] sm:max-w-[180px] disabled:opacity-60 flex items-center gap-1 shrink-0'
         >
-          {isExiting ? (
-            <Loader2 className='w-3.5 h-3.5 animate-spin text-[#C2410C]' />
-          ) : (
-            <ArrowLeft className='w-3.5 h-3.5 transition-transform duration-150 group-hover:-translate-x-0.5' />
-          )}
-          <span className='hidden sm:inline'>
-            {isEditorReview
-              ? t('navigation.focus.backToReviewDesk')
-              : t('navigation.focus.backToSeries')}
+          {isExiting && <Loader2 className='w-3 h-3 animate-spin text-orange-600 shrink-0' />}
+          <span className='truncate'>
+            {workspaceName || t('navigation.breadcrumbs.studios', 'Studio')}
           </span>
         </button>
 
-        <span className='text-[#D8D2C5] font-bold select-none'>/</span>
+        <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0' aria-hidden='true' />
 
-        <BrandMark size={20} tone='ink' className='shrink-0 hidden xs:inline-block' />
-
-        <nav
-          aria-label={t('navigation.focus.breadcrumbAria')}
-          className='flex items-center gap-1.5 min-w-0 text-xs'
+        <Link
+          to={resolvedSeriesPath}
+          data-testid='focus-series-link'
+          title={t('navigation.focus.openSeriesTooltip', { title: resolvedSeriesTitle })}
+          className='font-medium text-stone-600 hover:text-stone-900 transition-colors truncate max-w-[130px] sm:max-w-[200px] shrink-0'
         >
-          <Link
-            to={resolvedSeriesPath}
-            data-testid='focus-series-link'
-            title={t('navigation.focus.openSeriesTooltip', { title: resolvedSeriesTitle })}
-            className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[#1C1917] hover:bg-[#FFF2E6] hover:text-[#C2410C] transition-colors truncate max-w-[140px] sm:max-w-[200px]'
-          >
-            <BookOpen className='w-3.5 h-3.5 text-[#C2410C] shrink-0' />
-            <span className='truncate'>{resolvedSeriesTitle}</span>
-          </Link>
+          {resolvedSeriesTitle}
+        </Link>
 
-          {(chapters.length > 0 || activeChapterId) && (
-            <>
-              <span className='text-[#A8A29E] font-bold select-none'>/</span>
-              <div
-                data-testid='focus-chapter-breadcrumb'
-                className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3F0E9] border border-[#D8D2C5] text-[#1C1917] font-semibold max-w-[190px] sm:max-w-[250px]'
-              >
-                <FileText className='w-3.5 h-3.5 text-[#EA580C] shrink-0' />
-                {chapters.length > 0 && headerConfig?.onSelectChapter ? (
-                  <select
-                    aria-label={t('navigation.focus.selectChapterAria')}
-                    data-testid='focus-chapter-select'
-                    value={activeChapterId || chapters[0].id}
-                    onChange={(e) => headerConfig.onSelectChapter?.(e.target.value)}
-                    className='bg-transparent text-xs font-semibold text-[#1C1917] focus:outline-none cursor-pointer truncate max-w-[155px] sm:max-w-[210px]'
-                  >
-                    {chapters.map((ch) => (
+        {(chapters.length > 0 || activeChapterId) && (
+          <>
+            <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0' aria-hidden='true' />
+            <div
+              data-testid='focus-chapter-breadcrumb'
+              className='inline-flex items-center min-w-0 max-w-[200px] sm:max-w-[320px]'
+            >
+              {chapters.length > 0 && headerConfig?.onSelectChapter ? (
+                <select
+                  aria-label={t('navigation.header.chapter', 'Chọn chương')}
+                  data-testid='focus-chapter-select'
+                  value={activeChapterId || chapters[0].id}
+                  onChange={(e) => headerConfig.onSelectChapter?.(e.target.value)}
+                  className='bg-transparent text-xs font-semibold text-stone-900 hover:text-orange-600 focus:outline-none cursor-pointer truncate max-w-full'
+                >
+                  {chapters.map((ch) => {
+                    const baseLabel = formatChapterLabel(ch.chapterNumber, ch.title);
+                    const displayLabel = isWriterScriptEditor
+                      ? `${baseLabel} ${t('navigation.breadcrumbs.scriptSuffix', '(Kịch bản)')}`
+                      : baseLabel;
+                    return (
                       <option key={ch.id} value={ch.id}>
-                        {formatChapterLabel(ch.chapterNumber, ch.title)}
+                        {displayLabel}
                       </option>
-                    ))}
-                  </select>
-                ) : (
-                  <Link
-                    to={resolvedChapterPath}
-                    data-testid='focus-chapter-link'
-                    className='truncate hover:text-[#C2410C] transition-colors'
-                  >
-                    {activeChapter
+                    );
+                  })}
+                </select>
+              ) : (
+                <Link
+                  to={resolvedChapterPath}
+                  data-testid='focus-chapter-link'
+                  className='font-semibold text-stone-900 hover:text-orange-600 transition-colors truncate'
+                >
+                  {(() => {
+                    const base = activeChapter
                       ? formatChapterLabel(activeChapter.chapterNumber, activeChapter.title)
                       : activeChapterId
                         ? formatFallbackChapterText(activeChapterId, t)
-                        : t('navigation.focus.chapterOpen')}
-                  </Link>
-                )}
-              </div>
-            </>
-          )}
+                        : t('navigation.header.currentChapter', 'Chương đang mở');
+                    return isWriterScriptEditor
+                      ? `${base} ${t('navigation.breadcrumbs.scriptSuffix', '(Kịch bản)')}`
+                      : base;
+                  })()}
+                </Link>
+              )}
+            </div>
+          </>
+        )}
 
-          {stages.length === 0 && !activeChapterId && chapters.length === 0 && (
-            <>
-              <span className='text-[#A8A29E] font-bold select-none'>/</span>
-              <span className='font-bold text-[#1C1917] truncate px-1'>
-                {getReadableWorkspaceTitle(pathname, t)}
-              </span>
-            </>
-          )}
-        </nav>
-      </div>
+        {stages.length === 0 && !activeChapterId && chapters.length === 0 && (
+          <>
+            <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0' aria-hidden='true' />
+            <span className='font-semibold text-stone-900 truncate'>
+              {getReadableWorkspaceTitle(pathname, t)}
+            </span>
+          </>
+        )}
+      </nav>
 
-      {/* Ở giữa: Hiển thị các công đoạn thực hiện (Stage Stepper) */}
-      <div className='flex items-center justify-center min-w-0'>
-        {stages.length > 0 ? (
+      {/* Ở giữa: Hiển thị các công đoạn thực hiện (Stage Stepper) - chỉ hiển thị khi có stages */}
+      {stages.length > 0 && (
+        <div className='flex items-center justify-center min-w-0'>
           <div
             data-testid='focus-stage-stepper'
             role='list'
             aria-label={t('navigation.focus.stageProgressAria')}
-            className='hidden md:flex items-center gap-1 p-0.5 rounded-xl bg-[#F3F0E9] border border-[#D8D2C5]'
+            className='hidden md:flex items-center gap-1 p-1 rounded-xl bg-stone-100 border border-stone-200'
           >
             {stages.map((stage, idx) => {
               const isCompleted = isStageFlowCompleted || idx < currentStageIndex;
@@ -300,7 +312,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
               return (
                 <React.Fragment key={stage.id}>
                   {idx > 0 && (
-                    <ChevronRight className='w-3 h-3 text-[#A8A29E] shrink-0' aria-hidden='true' />
+                    <ChevronRight className='w-3 h-3 text-stone-400 shrink-0' aria-hidden='true' />
                   )}
                   <div
                     role='listitem'
@@ -313,10 +325,10 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                       headerConfig?.onSelectStage ? 'cursor-pointer hover:opacity-90' : ''
                     } ${
                       isCurrent
-                        ? 'bg-white text-[#1C1917] border border-[#D8D2C5] shadow-2xs font-bold'
+                        ? 'bg-white text-stone-900 border border-stone-200 shadow-2xs font-bold'
                         : isCompleted
-                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-semibold'
-                          : 'text-[#78716C] border border-transparent font-medium'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold'
+                          : 'text-stone-500 border border-transparent font-medium'
                     }`}
                   >
                     <span
@@ -324,8 +336,8 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                         isCompleted
                           ? 'bg-emerald-600 text-white'
                           : isCurrent
-                            ? 'bg-[#C2410C] text-white'
-                            : 'bg-[#E7E2D8] text-[#57534E]'
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-stone-200 text-stone-600'
                       }`}
                     >
                       {isCompleted ? <Check className='w-2.5 h-2.5' /> : idx + 1}
@@ -336,15 +348,10 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
               );
             })}
           </div>
-        ) : isReadOnlyReview ? null : (
-          <div className='hidden lg:flex items-center gap-1.5 bg-[#F3F0E9] px-3 py-1 rounded-full border border-[#D8D2C5] text-[11px] font-medium text-[#57534E] shrink-0'>
-            <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-            <span>{t('navigation.focus.autosaved')}</span>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Phía phải: Nút Rút bài / Nộp qua công đoạn, Chế độ tập trung, Tìm kiếm nhanh & Tài khoản */}
+      {/* Phía phải: Nút Rút bài / Nộp qua công đoạn / Gửi duyệt kịch bản */}
       <div className='flex items-center gap-2 shrink-0'>
         {headerConfig?.onWithdrawStage && (
           <button
@@ -392,7 +399,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                     ? t('navigation.focus.submitFinalTooltip')
                     : t('navigation.focus.submitStageTooltip')
               }
-              className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C2410C] hover:bg-[#9A3412] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0'
+              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold shadow-xs active:scale-95 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0'
             >
               {isSubmittingStage ? (
                 <Loader2 className='w-3.5 h-3.5 animate-spin' />
@@ -409,55 +416,43 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             </button>
           ))}
 
-        {showFocusControls && onEnterFocusMode && (
+        {!isWriterScriptEditor && showFocusControls && onEnterFocusMode && (
           <button
             type='button'
             onClick={onEnterFocusMode}
             title={t('navigation.focus.zenModeTooltip')}
             data-testid='focus-zen-toggle-btn'
-            className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F3F0E9] border border-[#D8D2C5] text-xs font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] active:scale-95 transition-all cursor-pointer'
+            className='flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-stone-100 border border-stone-200 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-200 active:scale-95 transition-all cursor-pointer'
           >
-            <Maximize2 className='w-3.5 h-3.5 text-[#C2410C]' />
+            <Maximize2 className='w-3.5 h-3.5 text-orange-600' />
             <span className='hidden sm:inline'>{t('navigation.focus.zenModeBtn')}</span>
           </button>
         )}
 
-        {showFocusControls && (
-          <button
-            type='button'
-            onClick={() =>
-              window.dispatchEvent(
-                new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
-              )
-            }
-            title={t('navigation.focus.quickSearchTooltip')}
-            className='hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg bg-[#F3F0E9] border border-[#D8D2C5] text-[11px] font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] active:scale-95 transition-all cursor-pointer'
-          >
-            <Command className='w-3 h-3' />
-            <span>K</span>
-          </button>
-        )}
-
-        <div className='flex items-center gap-2 pl-2 border-l border-[#D8D2C5]'>
-          <div
-            className='w-7 h-7 rounded-full bg-[#FFF2E6] border border-[#FDBA74] text-[#C2410C] flex items-center justify-center text-xs font-bold'
-            title={resolvedUserName}
-          >
-            {userInitials || 'PF'}
+        {!isWriterScriptEditor && (
+          <div className='flex items-center gap-2 pl-2 border-l border-stone-200'>
+            <div
+              className='w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center text-xs font-bold'
+              title={resolvedUserName}
+            >
+              {userInitials || 'PF'}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </header>
   );
 };
 
 /**
- * FocusWorkspaceLayout - Chế độ phòng làm việc tập trung theo bảng màu giấy ấm hệ thống.
+ * FocusWorkspaceLayout - Chế độ phòng làm việc tập trung (Writer Studio, Artist Desk, Editor Desk)
+ * với sidebar trái từ thiết kế Stitch Writer Studio.
  */
 export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
   currentUser,
   activeWorkspace,
   activeSeries,
+  onLogout,
   children,
 }) => {
   const { t } = useTranslation();
@@ -469,12 +464,38 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
   const [headerConfig, setHeaderConfig] = useState<FocusHeaderConfig | null>(null);
   const [fetchedSeriesTitle, setFetchedSeriesTitle] = useState<string | undefined>(undefined);
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('pf.sidebar.collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('pf.sidebar.collapsed', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
   const workspaceId = params.workspaceId ?? activeWorkspace?.id;
   const seriesId = params.seriesId ?? (activeSeries as any)?.id;
   const urlSearchParams = new URLSearchParams(location.search);
   const chapterId = params.chapterId ?? urlSearchParams.get('chapterId');
 
-  // Nạp tên bộ truyện thật nếu layout chưa có thông tin từ App
+  const isWriterScriptEditor =
+    location.pathname.includes('/script/editor') ||
+    (location.pathname.includes('/script') &&
+      !location.pathname.includes('/review') &&
+      !location.pathname.includes('/editor/desk') &&
+      !location.pathname.includes('/artist'));
+
   useEffect(() => {
     let alive = true;
     if (!seriesId) return;
@@ -497,8 +518,12 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
     };
   }, [seriesId, activeSeries?.title]);
 
-  // Lắng nghe phím tắt 'f' để bật/tắt chế độ tập trung toàn màn hình, 'Escape' để thoát
   useEffect(() => {
+    if (isWriterScriptEditor) {
+      if (isZenMode) setIsZenMode(false);
+      return;
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (
@@ -523,7 +548,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isZenMode]);
+  }, [isZenMode, isWriterScriptEditor]);
 
   const handleBackToProject = useCallback(() => {
     if (isExiting) return;
@@ -567,6 +592,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
     currentUser.workspaceRole,
     currentUser.role,
     navigate,
+    location.pathname,
   ]);
 
   const contextValue = useMemo<FocusHeaderContextValue>(
@@ -577,17 +603,268 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
     [],
   );
 
+  const effectiveRole = currentUser.workspaceRole
+    ? String(currentUser.workspaceRole).toUpperCase()
+    : currentUser.activeRoles && currentUser.activeRoles.length > 0
+      ? String(currentUser.activeRoles[0]).toUpperCase()
+      : 'WRITER';
+
+  const chapterQuery = chapterId ? `?chapterId=${encodeURIComponent(chapterId)}` : '';
+
+  const navSections = useMemo(() => {
+    if (effectiveRole === 'WRITER') {
+      return [
+        {
+          section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+          items: [
+            {
+              icon: Layers,
+              label: t('navigation.menu.myWork', 'Việc của tôi'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              badge: { type: 'count', count: 3 },
+            },
+          ],
+        },
+        {
+          section: t('navigation.sidebar.chapterWriting', 'SÁNG TÁC CHƯƠNG'),
+          items: [
+            {
+              icon: FileText,
+              label: t('navigation.menu.chapterScript', 'Kịch bản Chương'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+            },
+          ],
+        },
+        {
+          section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+          items: [
+            {
+              icon: BookMarked,
+              label: t('navigation.menu.bible', 'Series Bible'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+              badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
+            },
+            {
+              icon: Users,
+              label: t('navigation.menu.characterProfilesAndLore', 'Hồ sơ Nhân vật & Lore'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/bible?tab=entities`,
+            },
+          ],
+        },
+      ];
+    }
+
+    if (effectiveRole === 'ARTIST') {
+      return [
+        {
+          section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+          items: [
+            {
+              icon: Layers,
+              label: t('navigation.menu.myWork', 'Việc của tôi'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              badge: { type: 'count', count: 4 },
+            },
+          ],
+        },
+        {
+          section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+          items: [
+            {
+              icon: LayoutTemplate,
+              label: t('navigation.menu.panelCanvasDesk', 'Bàn vẽ Khung tranh'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
+            },
+            {
+              icon: FileText,
+              label: t('navigation.menu.scriptReadOnly', 'Kịch bản (chỉ đọc)'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+            },
+          ],
+        },
+        {
+          section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+          items: [
+            {
+              icon: BookMarked,
+              label: t('navigation.menu.bible', 'Series Bible'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+            },
+          ],
+        },
+      ];
+    }
+
+    if (effectiveRole === 'LETTERER') {
+      return [
+        {
+          section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+          items: [
+            {
+              icon: Layers,
+              label: t('navigation.menu.myWork', 'Việc của tôi'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              badge: { type: 'count', count: 2 },
+            },
+          ],
+        },
+        {
+          section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+          items: [
+            {
+              icon: Type,
+              label: t('navigation.menu.letteringAndBalloons', 'Chèn chữ & Bóng thoại'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
+            },
+            {
+              icon: FileText,
+              label: t('navigation.menu.scriptReadOnly', 'Kịch bản (chỉ đọc)'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+            },
+          ],
+        },
+        {
+          section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+          items: [
+            {
+              icon: BookMarked,
+              label: t('navigation.menu.bible', 'Series Bible'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+            },
+          ],
+        },
+      ];
+    }
+
+    if (effectiveRole === 'EDITOR') {
+      return [
+        {
+          section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+          items: [
+            {
+              icon: Layers,
+              label: t('navigation.menu.myWork', 'Việc của tôi'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              badge: { type: 'count', count: 3 },
+            },
+          ],
+        },
+        {
+          section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+          items: [
+            {
+              icon: ShieldCheck,
+              label: t('navigation.menu.editorReviewDesk', 'Kiểm tra & Hiệu đính'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk`,
+            },
+            {
+              icon: FileText,
+              label: t('navigation.menu.script', 'Kịch bản'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+            },
+          ],
+        },
+        {
+          section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+          items: [
+            {
+              icon: BookMarked,
+              label: t('navigation.menu.bible', 'Series Bible'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+              badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
+            },
+          ],
+        },
+      ];
+    }
+
+    return [
+      {
+        section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+        items: [
+          {
+            icon: Kanban,
+            label: t('navigation.menu.progressAndTasks', 'Tiến độ & Giao việc'),
+            href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
+          },
+          {
+            icon: BookOpen,
+            label: t('navigation.menu.artworkReview', 'Đọc duyệt tranh'),
+            href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk${chapterQuery}`,
+          },
+        ],
+      },
+      {
+        section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+        items: [
+          {
+            icon: BookMarked,
+            label: t('navigation.menu.bible', 'Series Bible'),
+            href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+          },
+        ],
+      },
+    ];
+  }, [t, workspaceId, seriesId, effectiveRole, chapterQuery]);
+
+  const handleNavClick = useCallback(
+    (e: React.MouseEvent, href: string) => {
+      e.preventDefault();
+      navigate(href);
+    },
+    [navigate],
+  );
+
+  const renderBadge = useCallback((badge: any) => {
+    if (!badge) return null;
+    if (typeof badge === 'number' || typeof badge === 'string') {
+      return (
+        <span className='px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-600 font-bold text-xs shrink-0'>
+          {badge}
+        </span>
+      );
+    }
+    if (badge.type === 'count') {
+      return (
+        <span className='px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-600 font-bold text-xs shrink-0'>
+          {badge.count}
+        </span>
+      );
+    }
+    if (badge.type === 'dot') {
+      return (
+        <span className={`w-1.5 h-1.5 rounded-full ${badge.color || 'bg-orange-600'} shrink-0`} />
+      );
+    }
+    if (badge.type === 'text') {
+      return (
+        <span
+          className={`text-xs font-mono px-1.5 py-0.5 rounded font-semibold ${badge.color || 'bg-stone-100 text-stone-600'} shrink-0 max-w-[80px] truncate`}
+        >
+          {badge.text}
+        </span>
+      );
+    }
+    return null;
+  }, []);
+
+  const effectiveActiveSeries = activeSeries || {
+    id: seriesId,
+    title: fetchedSeriesTitle || 'Shibuya Overdrive',
+    subtitle: chapterId ? `Chapter ${chapterId}` : 'Series Workspace',
+  };
+
   return (
     <FocusHeaderContext.Provider value={contextValue}>
       <div
-        className={`h-screen w-full flex flex-col overflow-hidden bg-[#F3F0E9] text-[#1C1917] select-none transition-all duration-200 ease-out ${
+        className={`h-screen w-full flex overflow-hidden bg-[#FAF9F5] text-stone-900 select-none transition-all duration-200 ease-out ${
           isExiting
             ? 'opacity-0 scale-[0.995] filter blur-[0.5px] pointer-events-none'
             : 'opacity-100 scale-100 filter-none'
         }`}
         data-testid='focus-workspace-layout'
       >
-        {isZenMode ? (
+        {isZenMode && !isWriterScriptEditor ? (
           <div
             data-testid='focus-zen-pill'
             className='absolute top-3 right-4 z-50 animate-in fade-in zoom-in-95 duration-200'
@@ -595,43 +872,63 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
             <button
               type='button'
               onClick={() => setIsZenMode(false)}
-              className='flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] text-xs text-[#1C1917] hover:bg-[#FFF2E6] shadow-md cursor-pointer transition-all active:scale-95'
+              className='flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-stone-200 text-xs text-stone-900 hover:bg-stone-50 shadow-md cursor-pointer transition-all active:scale-95'
               title={t('navigation.focus.exitZenTooltip')}
             >
-              <Minimize2 className='w-3.5 h-3.5 text-[#C2410C]' />
+              <Minimize2 className='w-3.5 h-3.5 text-orange-600' />
               <span className='font-semibold'>{t('navigation.focus.exitZenBtn')}</span>
             </button>
           </div>
         ) : (
-          <FocusStudioHeaderBar
+          <AppShellSidebar
+            currentUser={currentUser}
+            activeWorkspace={activeWorkspace}
+            activeSeries={effectiveActiveSeries as any}
             workspaceId={workspaceId}
             seriesId={seriesId}
-            chapterId={chapterId}
-            pathname={location.pathname}
-            userRole={currentUser.workspaceRole || currentUser.role}
-            userName={currentUser.name}
-            userInitials={currentUser.avatarInitials}
-            workspaceName={activeWorkspace?.name}
-            activeSeriesTitle={fetchedSeriesTitle || activeSeries?.title}
-            headerConfig={headerConfig}
-            isExiting={isExiting}
-            onBack={handleBackToProject}
-            onEnterFocusMode={() => setIsZenMode(true)}
-            showFocusControls={true}
+            isReader={false}
+            navSections={navSections}
+            handleNavClick={handleNavClick}
+            renderBadge={renderBadge}
+            onLogout={onLogout}
+            isCollapsed={isSidebarCollapsed}
+            onToggleSidebar={handleToggleSidebar}
+            isMobileDrawer={false}
           />
         )}
 
-        <main
-          className='flex-1 min-h-0 min-w-0 w-full flex flex-col overflow-hidden relative transition-all duration-200 ease-out'
-          data-testid='focus-workspace-body'
-        >
-          <div
-            key={location.pathname}
-            className='w-full h-full flex-1 flex flex-col overflow-hidden animate-in fade-in duration-250 ease-out'
+        <div className='flex-1 flex flex-col min-w-0 h-full bg-[#FAF9F5] relative overflow-hidden'>
+          {!isZenMode && (
+            <FocusStudioHeaderBar
+              workspaceId={workspaceId}
+              seriesId={seriesId}
+              chapterId={chapterId}
+              pathname={location.pathname}
+              userRole={currentUser.workspaceRole || currentUser.role}
+              userName={currentUser.name}
+              userInitials={currentUser.avatarInitials}
+              workspaceName={activeWorkspace?.name}
+              activeSeriesTitle={fetchedSeriesTitle || activeSeries?.title}
+              headerConfig={headerConfig}
+              isExiting={isExiting}
+              onBack={handleBackToProject}
+              onEnterFocusMode={() => setIsZenMode(true)}
+              showFocusControls={!isWriterScriptEditor}
+            />
+          )}
+
+          <main
+            className='flex-1 min-h-0 min-w-0 w-full flex flex-col overflow-hidden relative'
+            data-testid='focus-workspace-body'
           >
-            {children ?? <Outlet />}
-          </div>
-        </main>
+            <div
+              key={location.pathname}
+              className='w-full h-full flex-1 flex flex-col overflow-hidden animate-in fade-in duration-200'
+            >
+              {children ?? <Outlet />}
+            </div>
+          </main>
+        </div>
       </div>
     </FocusHeaderContext.Provider>
   );

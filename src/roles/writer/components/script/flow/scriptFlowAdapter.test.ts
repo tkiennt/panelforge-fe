@@ -309,4 +309,78 @@ describe('scriptFlowAdapter', () => {
       refs: null,
     });
   });
+
+  it('scriptToDoc giữ page.id và docToScriptTree khớp quy tắc BE: tách trùng line.id, bỏ refs trên Dialogue, phân biệt castRevisions [] và null', () => {
+    const entryId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const revisionId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const lineId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+
+    // 1. Round-trip scriptToDoc -> docToScriptTree giữ page.id, panel.id, direction, line.id
+    const roundTripDoc = scriptToDoc(
+      [scene([{ id: lineId, kind: ScriptLineKind.Action, text: 'Mở màn', panelId: PANEL_1 }])],
+      [page],
+      [panels[0]],
+    );
+    const roundTripTree = docToScriptTree(toNode(roundTripDoc), 'rev-1');
+    expect(roundTripTree.pages?.[0].id).toBe(PAGE_ID);
+    expect(roundTripTree.pages?.[0].panels?.[0].id).toBe(PANEL_1);
+    expect(roundTripTree.pages?.[0].panels?.[0].direction).toBe('Toàn cảnh mái nhà');
+    expect(roundTripTree.pages?.[0].panels?.[0].lines?.[0].id).toBe(lineId);
+
+    // 2. Trùng lineId (copy/paste), bibleRef lỡ dính trên dialogue, castRevisions [] (gỡ hết) vs null (giữ nguyên)
+    const node = toNode({
+      type: 'doc',
+      content: [
+        { type: 'scriptLine', attrs: { el: 'page', refId: PAGE_ID } },
+        { type: 'scriptLine', attrs: { el: 'panel', refId: PANEL_1, castRevisions: [] } },
+        {
+          type: 'scriptLine',
+          attrs: { el: 'action', refId: lineId },
+          content: [{ type: 'text', text: 'Dòng gốc' }],
+        },
+        {
+          type: 'scriptLine',
+          attrs: { el: 'action', refId: lineId },
+          content: [{ type: 'text', text: 'Dòng dán lại bị trùng id' }],
+        },
+        {
+          type: 'scriptLine',
+          attrs: { el: 'character', refId: null },
+          content: [{ type: 'text', text: 'KAI:' }],
+        },
+        {
+          type: 'scriptLine',
+          attrs: { el: 'dialogue', refId: null },
+          content: [
+            {
+              type: 'text',
+              text: 'Chào',
+              marks: [{ type: 'bibleRef', attrs: { entryId, surfaceText: 'Chào' } }],
+            },
+          ],
+        },
+        {
+          type: 'scriptLine',
+          attrs: { el: 'panel', refId: PANEL_2, castRevisions: [{ entryId, revisionId }] },
+        },
+        { type: 'scriptLine', attrs: { el: 'panel', refId: null } },
+      ],
+    });
+
+    const tree = docToScriptTree(node, null);
+    const p1Panels = tree.pages![0].panels!;
+
+    // Panel 1: castRevisions: [] được giữ nguyên để BE gỡ biến thể của panel
+    expect(p1Panels[0].castRevisions).toEqual([]);
+    // Dòng trùng lineId: dòng đầu giữ GUID, dòng thứ 2 đổi thành null
+    expect(p1Panels[0].lines![0].id).toBe(lineId);
+    expect(p1Panels[0].lines![1].id).toBeNull();
+    // Dialogue luôn refs: null để BE không báo 400
+    expect(p1Panels[0].lines![2].kind).toBe(ScriptLineKind.Dialogue);
+    expect(p1Panels[0].lines![2].refs).toBeNull();
+    // Panel 2: có castRevisions hợp lệ
+    expect(p1Panels[1].castRevisions).toEqual([{ entryId, revisionId }]);
+    // Panel 3: không đụng tới castRevisions -> không gửi field (BE hiểu là null = giữ nguyên)
+    expect('castRevisions' in p1Panels[2]).toBe(false);
+  });
 });

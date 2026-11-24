@@ -154,7 +154,8 @@
     "tabs": {
       "notes": "Notes ({count})",
       "checks": "Checks",
-      "changes": "Changes"
+      "changes": "Changes",
+      "entities": "Entities"
     },
     "composer": {
       "label": "Note for the writer",
@@ -339,7 +340,43 @@
       "none": "The Writer has not submitted a version of this chapter yet.",
       "firstSubmit": "First submission: compared with an empty script.",
       "sincePrevious": "Compared with the previous submission.",
-      "workingCopyDraft": "Draft in progress"
+      "workingCopyDraft": "Writing draft"
+    },
+    "entities": {
+      "title": "Entities in Script",
+      "subtitle": "Verify readiness of character designs & profiles",
+      "filterMain": "Main",
+      "filterCrowd": "Crowd",
+      "empty": "No matching entities",
+      "statusLocked": "Canon Locked",
+      "statusApproved": "Design Approved",
+      "statusInReview": "Awaiting Art Review",
+      "statusExempt": "Exempt",
+      "statusMissing": "No Model Sheet",
+      "typeMain": "Main",
+      "typeCrowd": "Crowd",
+      "blockerTitle": "Script is blocked from starting production:"
+    },
+    "stitch": {
+      "readerTitle": "Script Content & Editorial Comments",
+      "readerSubtitle": "Read-only Script Viewer",
+      "dialogueCount": "{count} lines",
+      "panelsLayout": "{count} panels layout",
+      "entitiesTitle": "Script Entities ({count})",
+      "entitiesSubtitle": "Verify readiness of character sheets and designs",
+      "mainEntities": "Main ({count})",
+      "crowdEntities": "Crowd ({count})",
+      "lockedCanon": "Canon locked",
+      "approvedDesign": "Design approved",
+      "pendingEditorReview": "Pending editor drawing review",
+      "noDrawing": "No drawing yet",
+      "exempt": "Exempt",
+      "lockAction": "Lock canon",
+      "reopenScript": "Reopen script",
+      "approveStartProduction": "Approve & Start production",
+      "authorPrefix": "Author: {author}",
+      "headerSubtitle": "Verify dialogue, setting, and Bible gate before drawing.",
+      "blockWarning": "Script approval blocked because some entities have not completed canon design sheets."
     }
   },
   "artworkReview": {
@@ -643,5 +680,42 @@
       "visualDoneDesc": "Threshold: {threshold}%",
       "visualErrorDesc": "Could not run visual check"
     }
+  },
+  "readerView": {
+    "title": "Chapter {number}: {title} — Artwork Review",
+    "pageIndicator": "Page {current} / {total}",
+    "reworkCount": "Request rework ({count})",
+    "approvePage": "Approve this page",
+    "scriptRefTitle": "Script reference",
+    "scriptRefSubtitle": "Synchronized with selected panel",
+    "panelBadge": "Panel {page}.{panel}",
+    "statusMatched": "Matched ✓",
+    "statusHasComment": "{count} rework comments ⚑",
+    "statusChecking": "Checking",
+    "statusApproved": "Panel #{number} · Approved ✓",
+    "statusNeedsFix": "Panel #{number} · Needs fix",
+    "statusReviewing": "Panel #{number} · Reviewing",
+    "toolPan": "Pan",
+    "toolCrop": "Focus & Pin Panel",
+    "feedbackTitle": "Review & Comments",
+    "itemsCount": "{count} items",
+    "selectedPanelBadge": "Selected: Panel #{number}",
+    "artistLabel": "Artist: {name}",
+    "panelCommentPlaceholder": "Enter detailed feedback for this panel...",
+    "btnComment": "Comment",
+    "btnRequestRework": "Request rework",
+    "threadsTitle": "Discussion threads ({count})",
+    "waitingArtist": "Waiting for artist fix",
+    "shortcutsHint": "Shortcuts: 1 2 3 switch panels"
+  },
+  "handoffView": {
+    "title": "Package manuscript for publisher",
+    "subtitle": "Standard PDF/X-1a publisher file standard.",
+    "createPackage": "Create package",
+    "securityTitle": "Copyright security",
+    "securityDesc": "Automatic editor watermark on previews.",
+    "readinessTitle": "Readiness status",
+    "readinessNotice": "Incomplete pages must be resolved before final export.",
+    "readinessReady": "Ready for publication export."
   }
 }

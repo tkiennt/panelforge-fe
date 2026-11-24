@@ -207,8 +207,11 @@ export type ScopeKey = string; // 'chapter' | 'panel' | `page:${id}`
 
 export const scopeKeyOf = (card: BoardCard): ScopeKey => {
   const t = String(card.entityType);
-  if (t === 'Page') return `page:${card.targetEntityId}`;
-  if (t === 'Panel') return 'panel';
+  if (t === 'Page') return `page:${card.pageId || card.targetEntityId}`;
+  if (t === 'Panel') {
+    const pid = card.pageId ?? card.rawAssignment?.pageId;
+    return pid ? `page:${pid}` : 'panel';
+  }
   return 'chapter';
 };
 
@@ -244,7 +247,8 @@ export const buildScopeOptions = (cards: BoardCard[]): ScopeOption[] => {
     if (key === 'chapter') hasChapter = true;
     else if (key === 'panel') hasPanel = true;
     else if (!pages.has(key)) {
-      pages.set(key, { label: c.targetLabel, n: c.pageNumber ?? Number.MAX_SAFE_INTEGER });
+      const label = c.pageNumber != null ? `Trang ${c.pageNumber}` : c.targetLabel;
+      pages.set(key, { label, n: c.pageNumber ?? Number.MAX_SAFE_INTEGER });
     }
   });
   const pageOptions = [...pages.entries()]
@@ -412,7 +416,10 @@ export const groupCards = (cards: BoardCard[], groupBy: GroupBy): CardGroup[] =>
           Number.MAX_SAFE_INTEGER,
           card,
         );
-      else push(key, card.targetLabel, card.pageNumber ?? Number.MAX_SAFE_INTEGER - 1, card);
+      else {
+        const label = card.pageNumber != null ? `Trang ${card.pageNumber}` : card.targetLabel;
+        push(key, label, card.pageNumber ?? Number.MAX_SAFE_INTEGER - 1, card);
+      }
     } else {
       const key = card.assigneeUserId || 'unassigned';
       push(
@@ -482,15 +489,19 @@ export const mapAssignmentsToCards = (
     const member = membersMap.get(a.assigneeUserId);
 
     let targetLabel = translate('pipeline.productionBoard.scope.wholeChapter');
+    let pageId: string | null = a.pageId ?? null;
     let pageNumber: number | null = null;
     if (String(a.entityType) === 'Page') {
-      const page = pagesMap.get(a.targetEntityId);
+      pageId = pageId || a.targetEntityId;
+      const page = pagesMap.get(pageId);
       targetLabel = page
         ? translate('pipeline.productionBoard.scope.pageNumber', { number: page.pageNumber })
         : translate('pipeline.productionBoard.scope.draftPage');
       pageNumber = page?.pageNumber ?? null;
     } else if (String(a.entityType) === 'Panel') {
-      targetLabel = translate('pipeline.productionBoard.scope.panel');
+      const page = pageId ? pagesMap.get(pageId) : undefined;
+      pageNumber = page?.pageNumber ?? null;
+      targetLabel = page ? `Trang ${page.pageNumber} · Khung tranh` : 'Khung tranh';
     }
 
     const memberName =
@@ -511,6 +522,7 @@ export const mapAssignmentsToCards = (
       entityType: a.entityType,
       targetEntityId: a.targetEntityId,
       targetLabel,
+      pageId,
       pageNumber,
       pipelineStageId: a.pipelineStageId,
       stageName: stage?.name || a.stageName || translate('pipeline.productionBoard.stageFallback'),

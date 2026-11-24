@@ -260,98 +260,6 @@
     "sceneMissingDesc": "The scene the Editor commented on is no longer in this chapter."
   },
   "scriptStudio": {
-    "rail": {
-      "chapters": "Chapters",
-      "scenes": "Scenes",
-      "structure": "Structure",
-      "outline": "Outline",
-      "characters": "Cast",
-      "consistency": "Consistency",
-      "comments": "Comments",
-      "import": "Import",
-      "ai": "AI assist",
-      "history": "History",
-      "chapterCast": "Cast",
-      "bibleGate": "Bible Gate",
-      "status": "Notifications",
-      "label": "Writer tools"
-    },
-    "railTooltip": {
-      "chapters": "Chapters list in series",
-      "scenes": "Scenes list in chapter",
-      "structure": "Manuscript structure: Chapters and Scenes",
-      "outline": "Story outline & narrative context",
-      "characters": "Bible characters & chapter cast",
-      "consistency": "Check narrative consistency",
-      "comments": "Script feedback and comments",
-      "status": "Alerts and script status",
-      "import": "Import script from file",
-      "importDisabledRole": "View only - cannot import script",
-      "importDisabledLocked": "Chapter is locked - cannot import script",
-      "ai": "AI assistant for drafting and storyboard",
-      "aiDisabledRole": "View only - cannot use AI assistant",
-      "aiDisabledLocked": "Chapter is locked - cannot use AI assistant",
-      "history": "Script version history"
-    },
-    "consistency": {
-      "title": "Consistency Findings",
-      "runCheck": "Run check",
-      "running": "Checking...",
-      "reRunTooltip": "Re-run script consistency check",
-      "close": "Close findings drawer"
-    },
-    "statusDrawer": {
-      "title": "Notifications & Status",
-      "desc": "Warnings, script status, and review gates",
-      "empty": "All systems normal. No active notifications.",
-      "viewDetails": "View details",
-      "draftNotice": "Unsaved draft for {{label}} found from {{time}}.",
-      "restore": "Restore",
-      "discard": "Discard",
-      "frozen": "Script is frozen",
-      "inReview": "Script is under Editor review",
-      "locked": "Chapter in production (locked)",
-      "viewOnly": "View-only mode",
-      "submitBlocked": "Submission blocked: draft characters unlinked",
-      "startBlocked": "No scenes available to submit",
-      "openCast": "Open Cast",
-      "frozenChip": "Frozen"
-    },
-    "narrative": {
-      "title": "Outline & Story Narrative",
-      "both": "Both",
-      "storyArc": "Story Arc",
-      "outline": "Outline",
-      "outlineWithChapter": "Ch.{{n}} Outline",
-      "hasChanges": "Unsaved changes",
-      "seriesStoryArc": "Series Story Arc",
-      "seriesStoryArcDesc": "Long-term story arc",
-      "saving": "Saving...",
-      "saveStoryArc": "Save Story Arc",
-      "storyArcPlaceholder": "Enter Series Story Arc summary (e.g. Journey to uncover ancient mysteries...)",
-      "storyArcAiHint": "Used as primary context for Writer AI",
-      "chapterOutline": "Chapter {{n}} Outline",
-      "chapterOutlineDesc": "Outline and key plot points",
-      "saveOutline": "Save Outline",
-      "outlinePlaceholder": "Enter scene outline / chapter pacing...",
-      "outlineAiHint": "Automatically included in AI script prompt",
-      "words": "words",
-      "chars": "chars",
-      "updateSuccess": "Series Story Arc has been updated.",
-      "updateError": "Failed to update Story Arc",
-      "discardTitle": "Discard unsaved changes?",
-      "discardSwitchDesc": "You have unsaved changes in outline or Story Arc. Do you want to discard them and switch chapter?",
-      "discardBackDesc": "You have unsaved changes in outline or Story Arc. Do you want to discard them and return to chapter list?",
-      "discardAndSwitch": "Discard and switch",
-      "discardAndBack": "Discard and return",
-      "stay": "Stay"
-    },
-    "ai": {
-      "draft": "Draft the selected scene",
-      "storyboard": "AI panel breakdown",
-      "storyboardLocked": "Scene already has panels",
-      "needScene": "Select a scene first"
-    },
     "aiPanel": {
       "writingFor": "Writing for",
       "changeScene": "Switch scene",
@@ -450,12 +358,6 @@
       "producer": "Start production",
       "resubmit": "Submit again"
     },
-    "views": {
-      "label": "View",
-      "paper": "Continuous page",
-      "cards": "Line cards",
-      "thumbnail": "Thumbnails"
-    },
     "gn": {
       "page": "PAGE {n} - PANELS: {k}",
       "panel": "PANEL {n}",
@@ -477,29 +379,6 @@
         "caption": "Caption",
         "sfx": "SFX"
       }
-    },
-    "dock": {
-      "addPage": "Add page",
-      "fourPanels": "4-panel page",
-      "fivePanels": "5-panel page",
-      "page": "Page {n}",
-      "pages": "Pages in chapter",
-      "saving": "Saving…",
-      "unsaved": "Unsaved · Ctrl+S",
-      "saved": "Saved at {time}",
-      "idle": "Ctrl+S to save",
-      "typingHelp": "Tab / Shift+Tab: change line type · \"Name:\" at line start: dialogue · Enter on an empty line: back to action · Ctrl+S: save"
-    },
-    "blocks": {
-      "dialogue": "Dialogue",
-      "character": "Character name",
-      "caption": "Caption",
-      "stage_direction": "Action",
-      "sfx": "Sound effect",
-      "scene_heading": "New scene",
-      "transition": "Transition",
-      "page_heading": "Page",
-      "panel_heading": "Panel"
     },
     "scenes": {
       "title": "Scenes",
@@ -541,14 +420,9 @@
       "startBlockedBanner": "Cannot start production yet",
       "viewCast": "View cast",
       "search": "Search chapter entities...",
-      "willCreateDraft": "Will create draft",
-      "panelStageTitle": "Set panel stage",
-      "panelStageDesc": "Use a different variant (flashback, alternate form) for this panel",
       "selectPanel": "Select Page & Panel",
       "selectEntity": "Series Bible entity",
       "selectRevision": "Visual revision / variant",
-      "clearPanelStage": "Clear panel stage",
-      "setPanelStageBtn": "Set panel stage",
       "pageLabel": "Page:",
       "pageOption": "Page {number}",
       "panelLabel": "Panel:",
@@ -620,8 +494,6 @@
       "saveDefinition": "Save Definition",
       "cancel": "Cancel",
       "draftBadge": "[Draft]",
-      "charactersDrawerTitle": "Series Bible Characters",
-      "charactersDrawerDesc": "Canon character list for script verification",
       "searchCharacter": "Search characters...",
       "noMatchingCharacterFound": "No matching characters found.",
       "noCharactersInBible": "No characters in Series Bible yet.",
@@ -641,10 +513,8 @@
       "inCastBadge": "In chapter",
       "notInCastBadge": "Out of chapter",
       "inChapter": "In chapter",
-      "outOfChapter": "Out of chapter",
       "allFilter": "All",
       "inChapterFilter": "In chapter",
-      "outOfChapterFilter": "Out of chapter",
       "inCastFilter": "In chapter",
       "notInCastFilter": "Out of chapter",
       "stubsFilter": "Undefined",
@@ -657,9 +527,6 @@
       "selectChapterHint": "Please select a chapter before modifying the cast.",
       "cancelReplacementConfirmTitle": "Cancel replacement revision",
       "cancelReplacementConfirmBody": "Are you sure you want to cancel this replacement revision?"
-    },
-    "paper": {
-      "hint": "Just write. Enter for a new line · type \"Name:\" for dialogue · Tab changes the line type"
     },
     "lifecycle": {
       "inReviewTitle": "Script is in review",
@@ -1223,20 +1090,20 @@
     "exportView": {
       "formats": {
         "PDF": {
-          "label": "PDF",
-          "hint": "One image per page, for review or sending to partners"
+          "label": "PDF (Print publishing)",
+          "hint": "One image per page, PDF/X-1a standard for publishing partners"
         },
         "CBZ": {
-          "label": "CBZ",
-          "hint": "Comic reader format, page turns follow Series reading direction"
+          "label": "CBZ (Comic Book ZIP)",
+          "hint": "Comic reader format, page turns follow Manga/Manhwa direction"
         },
         "PAGE_IMAGES": {
           "label": "Page Images (ZIP)",
-          "hint": "Original approved artwork for each page"
+          "hint": "Original approved artwork for each page with folder structure"
         },
         "WEBTOON": {
           "label": "Vertical Webtoon",
-          "hint": "Stitches pages into a single vertical strip"
+          "hint": "Stitches pages into a vertical strip optimized for phones"
         },
         "OPEN_JSON": {
           "label": "JSON with Provenance",
@@ -1260,15 +1127,15 @@
       "back": "Back",
       "title": "Export Chapter",
       "subtitle": "Only Producer-approved or published chapters can be exported. Approved chapter content is read-only, ensuring exports always match the approved version.",
-      "noSeriesNotice": "Open this screen from within a Series to select a chapter.",
-      "noApprovedChapters": "This Series has no approved chapters ready for export.",
-      "chapterLabel": "Chapter",
+      "noSeriesNotice": "Open this screen from within a Series to select a chapter to publish.",
+      "noApprovedChapters": "This Series has no chapters approved by the Producer (ChapterApproved) or published yet.",
+      "chapterLabel": "Select chapter to publish",
       "chapterOption": "Chapter {number}",
-      "formatLegend": "Formats",
+      "formatLegend": "Package formats",
       "exportBtn": "Export",
       "exportsListTitle": "Chapter Exports",
       "reloadAria": "Reload export list",
-      "noExports": "No exports yet.",
+      "noExports": "No exports for this chapter yet. Pick formats on the left and click \"Create package\".",
       "colFormat": "Format",
       "colStatus": "Status",
       "colPages": "Pages",
@@ -1276,7 +1143,10 @@
       "colCreatedAt": "Created",
       "colActions": "Actions",
       "downloadBtn": "Download",
-      "cancelBtn": "Cancel"
+      "cancelBtn": "Cancel",
+      "chapterReady": "Chapter {number} is ready to export ({status}).",
+      "noReadyChaptersTitle": "No chapters ready to export",
+      "exportsListHint": "Built files ready to download or reconcile"
     },
     "chapterEditionsModal": {
       "status": {

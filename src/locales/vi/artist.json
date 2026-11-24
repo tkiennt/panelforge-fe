@@ -722,7 +722,10 @@
     "labelPrefix": "Thoại {order}",
     "resizeTitle": "Kéo để thay đổi kích thước",
     "staleTitle": "Kịch bản đã đổi sau khi đặt bóng (BR-05 / isStale)",
-    "staleBadge": "Sửa kịch bản"
+    "staleBadge": "Sửa kịch bản",
+    "keepOutTitle": "Bóng thoại đang che {label}",
+    "keepOutDefaultLabel": "vùng cấm",
+    "keepOutBadge": "Che mặt/tay"
   },
   "panelFrame": {
     "selectPanelTitle": "Chọn Khung #{panelNum} để làm nổi dòng kịch bản tương ứng",

@@ -282,11 +282,11 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
 
           {isOwner && baseSeriesPath && roleUpper === 'WRITER' && (
             <Link
-              to={`${baseSeriesPath}/script?chapterId=${encodeURIComponent(lot.chapterId)}`}
-              className='h-8 px-3 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-semibold inline-flex items-center gap-1.5'
+              to={`${baseSeriesPath}/script/editor?chapterId=${encodeURIComponent(lot.chapterId)}`}
+              className='h-8 px-3 rounded-xl border border-[#EA580C]/30 bg-[#FFF1EC] hover:bg-[#FFE6DC] text-[#EA580C] text-xs font-semibold inline-flex items-center gap-1.5'
             >
-              <PenTool className='w-3.5 h-3.5 text-blue-600' />
-              <span>{t('collaboration.taskGrid.openScriptEditor')}</span>
+              <PenTool className='w-3.5 h-3.5 text-[#EA580C]' />
+              <span>Mở Kịch bản Ch.{lot.chapterNumber} →</span>
             </Link>
           )}
           {isOwner && baseSeriesPath && roleUpper === 'ARTIST' && (
@@ -331,7 +331,11 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
           <span className='inline-flex items-center gap-1'>
             <Calendar className='w-3.5 h-3.5 text-stone-400' />
             <strong>{t('collaboration.taskGrid.dueLabel')}</strong>{' '}
-            {new Date(lot.dueDate).toLocaleDateString(dateLocale)}
+            {new Intl.DateTimeFormat(undefined, {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            }).format(new Date(lot.dueDate))}
           </span>
         )}
       </div>
@@ -397,7 +401,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                     {attemptCount > 0 && (
                       <span
                         data-testid={`lot-cell-attempt-${cell.id}`}
-                        className='px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-[10px] font-mono font-semibold text-stone-700'
+                        className='px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-xs font-mono font-semibold text-stone-700'
                       >
                         {t('taskGridV3.attemptBadge', {
                           count: attemptCount,
@@ -406,7 +410,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                       </span>
                     )}
                     <span
-                      className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${metaCls}`}
+                      className={`px-2 py-0.5 rounded-full border text-xs font-semibold ${metaCls}`}
                     >
                       {metaLabel}
                     </span>
@@ -420,7 +424,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                         ? `lot-cell-rework-reopen-${cell.id}`
                         : `lot-cell-rework-comment-${cell.id}`
                     }
-                    className='rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-[11px] text-rose-900'
+                    className='rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-xs text-rose-900'
                   >
                     {reworkDisplay.kind === 'reopen' ? (
                       <>
@@ -443,7 +447,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                 )}
 
                 {cell.isInputOutdated && (
-                  <div className='rounded-lg bg-amber-50 border border-amber-300 px-2 py-1 text-[11px] text-amber-900'>
+                  <div className='rounded-lg bg-amber-50 border border-amber-300 px-2 py-1 text-xs text-amber-900'>
                     <span className='font-semibold'>
                       {t('collaboration.taskGrid.inputOutdatedLabel')}
                     </span>{' '}
@@ -452,7 +456,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
                 )}
 
                 {canStart && !cell.isStartable && (
-                  <p className='text-[11px] text-stone-500 flex items-center gap-1'>
+                  <p className='text-xs text-stone-500 flex items-center gap-1'>
                     <Lock className='w-3 h-3 text-amber-600 shrink-0' />
                     <span>{t('collaboration.taskGrid.waitingPrerequisite')}</span>
                   </p>
@@ -711,7 +715,12 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
           <span className='inline-flex items-center gap-1'>
             <Calendar className='w-3.5 h-3.5 text-stone-400' />
             <strong>{t('collaboration.taskGrid.submittedAtLabel')}</strong>{' '}
-            {new Date(item.submittedAt).toLocaleString(dateLocale)}
+            {new Intl.DateTimeFormat(undefined, {
+              day: '2-digit',
+              month: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+            }).format(new Date(item.submittedAt))}
           </span>
         )}
       </div>
@@ -911,7 +920,7 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
                         status: sub.status,
                       })}
                     </span>
-                    <span className='text-[11px] font-mono text-stone-500'>
+                    <span className='text-xs font-mono text-stone-500'>
                       {t('collaboration.taskGrid.artworkCount', {
                         count: sub.artworkReferenceIds?.length ?? 0,
                       })}

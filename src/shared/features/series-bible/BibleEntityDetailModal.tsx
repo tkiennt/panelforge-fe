@@ -282,7 +282,7 @@ export const DefineStubModal: React.FC<DefineStubModalProps> = ({
           canUseAi={isWriter}
           onApplyDraft={({ description: draftDesc, subtitle: draftSub }) => {
             setDescription(draftDesc);
-            setSubtitle(draftSub);
+            if (draftSub) setSubtitle(draftSub);
             setSubmitError(null);
           }}
         />

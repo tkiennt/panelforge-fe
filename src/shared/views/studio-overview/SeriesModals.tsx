@@ -28,30 +28,12 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
       onClose={onClose}
       closeLabel={t('common.actions.close')}
       size='lg'
-      title={t('workspace.seriesModals.coverTitle')}
+      title={`Chọn ảnh bìa cho “${series.title}”`}
+      description={t('workspace.seriesModals.coverDesc')}
       data-testid='system-cover-picker'
       dismissible={!savingCoverId}
     >
-      <div
-        className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-2xl max-w-xl w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto'
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className='flex items-center justify-between'>
-          <h3 id='cover-picker-title' className='text-sm font-bold text-[#44403C]'>
-            {t('workspace.seriesModals.coverHeading', { title: series.title })}
-          </h3>
-          <button
-            type='button'
-            autoFocus
-            onClick={onClose}
-            disabled={Boolean(savingCoverId)}
-            className='p-1 text-[#57534E] hover:text-[#44403C] cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-[#F97316]'
-            aria-label={t('common.actions.close')}
-          >
-            <X className='w-4 h-4' />
-          </button>
-        </div>
-        <p className='text-xs text-[#57534E]'>{t('workspace.seriesModals.coverDesc')}</p>
+      <div className='space-y-4'>
         <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
           {SYSTEM_COVERS.map((img) => (
             <button
@@ -67,7 +49,7 @@ export const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
                 alt={img.name}
                 className='w-full aspect-[366/594] object-cover rounded-md'
               />
-              <span className='text-[11px] font-semibold text-[#44403C]'>
+              <span className='text-xs font-semibold text-[#44403C]'>
                 {savingCoverId === img.id ? t('workspace.seriesModals.savingEllipsis') : img.name}
               </span>
             </button>
@@ -131,31 +113,10 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
       closeLabel={t('common.actions.close')}
       size='lg'
       title={t('workspace.seriesModals.createTitle')}
+      description={t('workspace.seriesModals.createSubtitle')}
     >
-      <div className='bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto flex flex-col text-xs'>
-        {/* Header */}
-        <div className='p-5 border-b border-stone-200 flex items-center justify-between'>
-          <div className='flex items-center gap-3'>
-            <div className='w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold shrink-0'>
-              <BookOpen className='w-5 h-5' />
-            </div>
-            <div>
-              <h3 className='font-bold text-stone-900 text-base'>
-                {t('workspace.seriesModals.createTitle')}
-              </h3>
-              <p className='text-xs text-stone-500'>{t('workspace.seriesModals.createSubtitle')}</p>
-            </div>
-          </div>
-          <button
-            type='button'
-            onClick={onClose}
-            className='p-1 rounded-lg text-stone-400 hover:text-stone-700 cursor-pointer'
-          >
-            <X className='w-5 h-5' />
-          </button>
-        </div>
-
-        <form onSubmit={onSubmit} className='p-6 flex flex-col gap-4 text-xs'>
+      <div className='flex flex-col text-xs'>
+        <form onSubmit={onSubmit} className='flex flex-col gap-4 text-xs'>
           <div className='flex flex-col gap-3.5'>
             <h4 className='font-semibold text-stone-800 pb-1 border-b border-stone-100 text-sm'>
               {t('workspace.seriesModals.sectionPubInfo')}
@@ -218,7 +179,7 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
                       className='accent-orange-600'
                     />
                   </div>
-                  <span className='text-[11px] text-stone-500'>
+                  <span className='text-xs text-stone-500'>
                     {t('workspace.seriesModals.mangaDesc')}
                   </span>
                 </label>
@@ -244,7 +205,7 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
                       className='accent-orange-600'
                     />
                   </div>
-                  <span className='text-[11px] text-stone-500'>
+                  <span className='text-xs text-stone-500'>
                     {t('workspace.seriesModals.webtoonDesc')}
                   </span>
                 </label>
@@ -385,19 +346,7 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
       size='lg'
       title={t('workspace.seriesModals.editTitle')}
     >
-      <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
-        <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-          <div className='flex items-center gap-2'>
-            <Edit2 className='w-4 h-4 text-[#F97316]' />
-            <h3 className='text-sm font-bold text-[#171717]'>
-              {t('workspace.seriesModals.editHeading')}
-            </h3>
-          </div>
-          <button type='button' onClick={onClose} className='text-[#888888] hover:text-[#171717]'>
-            <X className='w-4 h-4' />
-          </button>
-        </div>
-
+      <div className='space-y-4'>
         <form onSubmit={onSubmit} className='space-y-3.5 text-xs'>
           <div>
             <label className='block font-semibold text-[#171717] mb-1'>

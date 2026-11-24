@@ -32,7 +32,6 @@ export interface GnLabels {
   caption: string;
   sfx: string;
   acceptHint: string;
-  willCreateDraft?: string;
 }
 
 /** Mark tham chiếu Series Bible trên dòng action / caption / sfx (BIB-16, 1A, 2A, 5A). */
@@ -187,8 +186,11 @@ export function setLineElement(editor: Editor, el: GnElement): boolean {
   if (!line) return false;
   if (line.el === el) return true;
   if (el === 'page' && !line.isEmpty) return insertLineAfter(editor, 'page');
-  // Dòng panel giữ Id panel; đổi sang loại khác thì bỏ liên kết, và ngược lại.
-  const keepRef = (line.el === 'panel') === (el === 'panel');
+  // Dòng page/panel giữ Id riêng; đổi sang loại khác (hoặc ngược lại) thì bỏ refId để không lẫn Page/Panel/ScriptLine Id.
+  const keepRef =
+    line.el === 'page' || el === 'page'
+      ? line.el === el
+      : (line.el === 'panel') === (el === 'panel');
   view.dispatch(
     state.tr.setNodeMarkup(line.pos, undefined, {
       ...line.node.attrs,
@@ -490,7 +492,6 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
         caption: 'CAPTION:',
         sfx: 'SFX:',
         acceptHint: '(Enter)',
-        willCreateDraft: translate('writer.flowEditor.willCreateDraftParens'),
       },
       bibleSpeakers: [],
     };
@@ -694,19 +695,6 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
               widget.setAttribute('contenteditable', 'false');
               widget.textContent = `${full.slice(typed.trim().length)}: ${labels.acceptHint}`;
               widgets.push(Decoration.widget(endPos, widget, { side: 1 }));
-            } else if (isValidCharacterNameInput(typed)) {
-              const normTyped = typed.toUpperCase();
-              const isBibleKnown = bibleSpeakers.some((s) => s.name.toUpperCase() === normTyped);
-
-              if (!isBibleKnown) {
-                const chip = document.createElement('span');
-                chip.className =
-                  'gn-draft-chip ml-2 inline-flex items-center text-[10px] font-sans font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 pointer-events-none select-none';
-                chip.setAttribute('contenteditable', 'false');
-                chip.textContent =
-                  labels.willCreateDraft || translate('writer.flowEditor.willCreateDraft');
-                widgets.push(Decoration.widget(endPos, chip, { side: 1 }));
-              }
             }
 
             return widgets.length > 0 ? DecorationSet.create(state.doc, widgets) : null;

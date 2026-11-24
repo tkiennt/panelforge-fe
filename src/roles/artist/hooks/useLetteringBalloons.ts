@@ -865,6 +865,44 @@ export function useLetteringBalloons(
     t,
   ]);
 
+  const moveElementTo = useCallback(
+    async (elementId: string, targetX: number, targetY: number) => {
+      if (!selectedPage?.id) return;
+      if (readOnly) {
+        notifyForbidden();
+        return;
+      }
+      const target = pageElements.find((item) => item.elementId === elementId);
+      if (!target) return;
+      const pos = clampToPanel(targetX, targetY, target.width, target.height);
+      const prevPos = { x: target.x, y: target.y };
+      updateElement(elementId, (el) => ({ ...el, ...pos }));
+
+      try {
+        const res = await elementService.moveElement(selectedPage.id, elementId, {
+          newX: pos.x,
+          newY: pos.y,
+          newWidth: target.width,
+          newHeight: target.height,
+          newZIndex: target.zIndex,
+          expectedElementVersion: target.version,
+        });
+        if (res?.elementVersion) {
+          updateElement(elementId, (item) => ({ ...item, version: res.elementVersion }));
+        }
+        toast.success('Đã dời bóng thoại', 'Đã chọn vị trí thoáng nhất tránh vùng cấm.');
+      } catch (err: any) {
+        updateElement(elementId, (item) => ({ ...item, ...prevPos }));
+        if (isForbiddenError(err)) {
+          notifyForbidden(err);
+          return;
+        }
+        toast.error?.('Không thể dời bóng thoại', err?.message || 'Thử lại sau ít phút.');
+      }
+    },
+    [selectedPage?.id, readOnly, notifyForbidden, pageElements, clampToPanel, updateElement, toast],
+  );
+
   return {
     pageElements,
     elementsByPageId,
@@ -875,6 +913,7 @@ export function useLetteringBalloons(
     addElement,
     deleteElement,
     scaleElement,
+    moveElementTo,
     copyElement,
     updateElementText,
     updateElementStyle,

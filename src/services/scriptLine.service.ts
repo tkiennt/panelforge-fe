@@ -42,6 +42,9 @@ export interface SceneScriptLineSummaryDto {
   dialogueText?: string | null;
   stageDirection?: string | null;
   panelId?: string | null;
+  pageId?: string | null;
+  pageNumber?: number | null;
+  panelNumber?: number | null;
   narrationMode?: NarrationMode;
 }
 

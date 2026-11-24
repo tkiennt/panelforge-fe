@@ -7,6 +7,7 @@ import type { PanelDto } from '@/types/pipeline';
 export interface ArtistScriptReferenceSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
+  pageId?: string | null;
   pageNumber: number;
   panels: PanelDto[];
   scriptLines: ScriptLineItem[];
@@ -27,6 +28,7 @@ interface SceneGroup {
 export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebarProps> = ({
   isOpen,
   onToggle,
+  pageId,
   pageNumber,
   panels,
   scriptLines,
@@ -36,17 +38,24 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
   isLoading = false,
 }) => {
   const { t } = useTranslation('artist');
-  // Lấy các dòng kịch bản của trang hiện tại (hoặc các dòng chưa gắn trang nếu trang chưa có dòng nào)
-  const pageLines = useMemo(() => {
-    const matched = scriptLines.filter((l) => l.pageNumber === pageNumber);
-    if (matched.length > 0) return matched;
-    return scriptLines.filter((l) => typeof l.pageNumber !== 'number' || l.pageNumber <= 0);
-  }, [scriptLines, pageNumber]);
+  // Lấy các dòng kịch bản của trang hiện tại (ưu tiên khớp pageId từ BE, lùi về pageNumber; fallback dòng chưa gắn trang)
+  const { pageLines, isShowingUnpagedFallback } = useMemo(() => {
+    const isOnCurrentPage = (l: ScriptLineItem) =>
+      pageId && l.pageId
+        ? l.pageId === pageId
+        : typeof l.pageNumber === 'number' && l.pageNumber === pageNumber;
 
-  const isShowingUnpagedFallback = useMemo(
-    () => scriptLines.length > 0 && !scriptLines.some((l) => l.pageNumber === pageNumber),
-    [scriptLines, pageNumber],
-  );
+    const matched = scriptLines.filter(isOnCurrentPage);
+    if (matched.length > 0) {
+      return { pageLines: matched, isShowingUnpagedFallback: false };
+    }
+    return {
+      pageLines: scriptLines.filter(
+        (l) => !l.pageId && (typeof l.pageNumber !== 'number' || l.pageNumber <= 0),
+      ),
+      isShowingUnpagedFallback: scriptLines.length > 0,
+    };
+  }, [scriptLines, pageId, pageNumber]);
 
   // Gom các dòng theo Scene theo đúng thứ tự xuất hiện (KHÔNG chia box/card cho từng dòng)
   const sceneGroups = useMemo<SceneGroup[]>(() => {

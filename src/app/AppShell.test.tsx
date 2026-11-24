@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AppShell, CurrentUser } from './AppShell';
 import { I18nProvider } from '@/lib/i18n';
@@ -10,6 +10,10 @@ vi.mock('@/shared/features/collaboration/NotificationBell', () => ({
 }));
 
 describe('AppShell Component', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   const renderInRouter = (
     user: CurrentUser,
     route = '/workspaces/ws-1/series/ser-1/dashboard',
@@ -41,7 +45,7 @@ describe('AppShell Component', () => {
     );
   };
 
-  it('hiển thị mục "Bàn vẽ & Khung trang" cho vai trò ARTIST trong ngữ cảnh Series (Line 135)', () => {
+  it('hiển thị mục "Bàn vẽ Khung tranh" cho vai trò ARTIST trong ngữ cảnh Series', () => {
     const artistUser: CurrentUser = {
       name: 'Nguyễn Văn Họa Sĩ',
       role: 'USER',
@@ -52,15 +56,15 @@ describe('AppShell Component', () => {
 
     renderInRouter(artistUser, '/workspaces/ws-1/series/ser-1/my-work');
 
-    expect(screen.getByText('Bàn vẽ & Khung trang')).toBeInTheDocument();
-    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản (Script)')).toBeInTheDocument();
+    expect(screen.getByText('Bàn vẽ Khung tranh')).toBeInTheDocument();
+    expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
+    expect(screen.getByText('Kịch bản (chỉ đọc)')).toBeInTheDocument();
     expect(screen.getByText('Series Bible')).toBeInTheDocument();
     // Artist không được thấy màn Letterer
     expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
   });
 
-  it('hiển thị mục "Chèn chữ & Bóng thoại" cho vai trò LETTERER trong ngữ cảnh Series (Line 135)', () => {
+  it('hiển thị mục "Chèn chữ & Bóng thoại" cho vai trò LETTERER trong ngữ cảnh Series', () => {
     const lettererUser: CurrentUser = {
       name: 'Lê Văn Chữ',
       role: 'USER',
@@ -72,11 +76,11 @@ describe('AppShell Component', () => {
     renderInRouter(lettererUser, '/workspaces/ws-1/series/ser-1/my-work');
 
     expect(screen.getByText('Chèn chữ & Bóng thoại')).toBeInTheDocument();
-    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản (Script)')).toBeInTheDocument();
+    expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
+    expect(screen.getByText('Kịch bản (chỉ đọc)')).toBeInTheDocument();
     expect(screen.getByText('Series Bible')).toBeInTheDocument();
     // Letterer không thấy màn Artist
-    expect(screen.queryByText('Bàn vẽ & Khung trang')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bàn vẽ Khung tranh')).not.toBeInTheDocument();
   });
 
   it('vai trò WRITER không thấy cả Bàn vẽ lẫn Chèn chữ', () => {
@@ -90,13 +94,15 @@ describe('AppShell Component', () => {
 
     renderInRouter(writerUser, '/workspaces/ws-1/series/ser-1/my-work');
 
-    expect(screen.getByText('Kịch bản (Script)')).toBeInTheDocument();
-    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
-    expect(screen.queryByText('Bàn vẽ & Khung trang')).not.toBeInTheDocument();
+    expect(screen.getByText('Kịch bản Chương')).toBeInTheDocument();
+    expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
+    expect(screen.getByText('Series Bible')).toBeInTheDocument();
+    expect(screen.getByText('Hồ sơ Nhân vật & Lore')).toBeInTheDocument();
+    expect(screen.queryByText('Bàn vẽ Khung tranh')).not.toBeInTheDocument();
     expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
   });
 
-  it('hiển thị đầy đủ Bàn duyệt, Kịch bản, Series Bible, Tiến độ, Board chia việc cho vai trò EDITOR trong ngữ cảnh Series', () => {
+  it('hiển thị đầy đủ Bàn kiểm tra & hiệu đính, Kịch bản, Series Bible cho vai trò EDITOR trong ngữ cảnh Series', () => {
     const editorUser: CurrentUser = {
       name: 'Vũ Biên Tập',
       role: 'USER',
@@ -107,19 +113,16 @@ describe('AppShell Component', () => {
 
     renderInRouter(editorUser, '/workspaces/ws-1/series/ser-1/my-work');
 
-    expect(screen.getByText('Bàn duyệt')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản (Script)')).toBeInTheDocument();
-    expect(screen.getByText('Công việc & Xét duyệt')).toBeInTheDocument();
+    expect(screen.getByText('Kiểm tra & Hiệu đính')).toBeInTheDocument();
+    expect(screen.getByText('Kịch bản')).toBeInTheDocument();
+    expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
     expect(screen.getByText('Series Bible')).toBeInTheDocument();
-    expect(screen.getByText('Series Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Quy trình sản xuất')).toBeInTheDocument();
-    expect(screen.queryByText('Duyệt thiết kế Bible')).not.toBeInTheDocument();
-    expect(screen.queryByText('Bàn vẽ & Khung trang')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bàn vẽ Khung tranh')).not.toBeInTheDocument();
     expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
     expect(screen.queryByText('Cổng Duyệt Xuất Bản')).not.toBeInTheDocument();
   });
 
-  it('vai trò PRODUCER trong Series thấy đầy đủ các menu quản lý và sản xuất', () => {
+  it('vai trò PRODUCER trong Series thấy chính xác các menu quản lý và sản xuất theo Stitch', () => {
     const producerUser: CurrentUser = {
       name: 'Phạm Nhà Sản Xuất',
       role: 'USER',
@@ -130,11 +133,20 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
-    expect(screen.getByText('Series Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Quy trình sản xuất')).toBeInTheDocument();
-    expect(screen.getByText('Bàn vẽ & Khung trang')).toBeInTheDocument();
-    expect(screen.getByText('Chèn chữ & Bóng thoại')).toBeInTheDocument();
-    expect(screen.getByText('Cổng Duyệt Xuất Bản')).toBeInTheDocument();
+    expect(screen.getByText('Tiến độ & Giao việc')).toBeInTheDocument();
+    expect(screen.getByText('Kịch bản & Cổng duyệt')).toBeInTheDocument();
+    expect(screen.getByText('Đọc duyệt tranh')).toBeInTheDocument();
+    expect(screen.getByText('Đóng gói & Xuất bản')).toBeInTheDocument();
+    expect(screen.getByText('Thư viện')).toBeInTheDocument();
+    expect(screen.getByText('Doanh thu & Lượt đọc')).toBeInTheDocument();
+    expect(screen.getByText('Đội ngũ')).toBeInTheDocument();
+    // Removed old items:
+    expect(screen.queryByText('Quy trình sản xuất')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bàn vẽ & Khung trang')).not.toBeInTheDocument();
+    expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
+    expect(screen.queryByText('Cổng Duyệt Xuất Bản')).not.toBeInTheDocument();
+    expect(screen.queryByText('Series Dashboard')).not.toBeInTheDocument();
+    expect(screen.queryByText('Quản lý chương')).not.toBeInTheDocument();
     expect(screen.queryByText('AI Multi-Agent')).not.toBeInTheDocument();
   });
 
@@ -192,7 +204,7 @@ describe('AppShell Component', () => {
     expect(screen.queryByRole('dialog', { name: /menu điều hướng/i })).not.toBeInTheDocument();
   });
 
-  it('kích hoạt onOpenCommandPalette khi click vào nút tìm kiếm nhanh ⌘K', () => {
+  it('kích hoạt onOpenCommandPalette khi nhấn tổ hợp phím ⌘K / Ctrl+K', () => {
     const producerUser: CurrentUser = {
       name: 'Phạm Nhà Sản Xuất',
       role: 'USER',
@@ -206,9 +218,7 @@ describe('AppShell Component', () => {
       onOpenCommandPalette,
     });
 
-    const triggerBtn = screen.getByTestId('header-command-palette-trigger');
-    expect(triggerBtn).toBeInTheDocument();
-    fireEvent.click(triggerBtn);
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
     expect(onOpenCommandPalette).toHaveBeenCalledTimes(1);
   });
 
@@ -272,15 +282,16 @@ describe('AppShell Component', () => {
     fireEvent.click(toggleBtn);
     expect(sidebar).toHaveStyle({ width: '64px' });
     expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('true');
-    expect(toggleBtn).toHaveAttribute('aria-label', 'Mở rộng thanh điều hướng');
-    expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
+    const collapsedToggleBtn = screen.getByTestId('sidebar-rail-toggle-btn');
+    expect(collapsedToggleBtn).toHaveAttribute('aria-label', 'Mở rộng thanh điều hướng');
+    expect(collapsedToggleBtn).toHaveAttribute('aria-expanded', 'false');
 
     // Hover không tự mở rộng
     fireEvent.mouseEnter(sidebar);
     expect(sidebar).toHaveStyle({ width: '64px' });
 
     // Bấm mở rộng lại
-    fireEvent.click(toggleBtn);
+    fireEvent.click(collapsedToggleBtn);
     expect(sidebar).toHaveStyle({ width: '256px' });
     expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('false');
   });
@@ -413,10 +424,11 @@ describe('AppShell Component', () => {
 
     renderInRouter(userWithAvatar, '/workspaces/ws-1/dashboard');
 
-    const avatarImg = screen.getByRole('img', { name: 'Alex Producer' });
+    const headerUserBtn = screen.getByTestId('header-user-menu-btn');
+    const avatarImg = within(headerUserBtn).getByRole('img', { name: 'Alex Producer' });
     expect(avatarImg).toBeInTheDocument();
     expect(avatarImg).toHaveAttribute('src', userWithAvatar.avatarUrl);
-    expect(screen.queryByText('AP')).not.toBeInTheDocument();
+    expect(within(headerUserBtn).queryByText('AP')).not.toBeInTheDocument();
   });
 
   it('fallback về avatarInitials khi avatarUrl bị lỗi tải', () => {
@@ -431,14 +443,17 @@ describe('AppShell Component', () => {
 
     renderInRouter(userWithFailingAvatar, '/workspaces/ws-1/dashboard');
 
-    const avatarImg = screen.getByRole('img', { name: 'Alex Producer' });
+    const headerUserBtn = screen.getByTestId('header-user-menu-btn');
+    const avatarImg = within(headerUserBtn).getByRole('img', { name: 'Alex Producer' });
     expect(avatarImg).toBeInTheDocument();
 
     // Giả lập lỗi tải ảnh (onError)
     fireEvent.error(avatarImg);
 
     // Sau khi ảnh lỗi, component fallback hiển thị initials
-    expect(screen.getByText('AP')).toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: 'Alex Producer' })).not.toBeInTheDocument();
+    expect(within(headerUserBtn).getByText('AP')).toBeInTheDocument();
+    expect(
+      within(headerUserBtn).queryByRole('img', { name: 'Alex Producer' }),
+    ).not.toBeInTheDocument();
   });
 });

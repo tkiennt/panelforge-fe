@@ -529,9 +529,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               <div className='flex items-center gap-1.5'>
                 <span
                   data-testid='chapter-status-badge'
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold border ${
                     chapter.status === 'InProduction'
-                      ? 'border-sky-300 bg-sky-50 text-sky-800'
+                      ? 'border-blue-300 bg-blue-50 text-blue-800'
                       : chapter.status === 'ChapterApproved'
                         ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
                         : chapter.status === 'HandedOffAndPublished'
@@ -551,16 +551,16 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 
                 <span
                   data-testid='script-frozen-badge'
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold border ${
                     isScriptFrozen
-                      ? 'border-purple-300 bg-purple-50 text-purple-800'
+                      ? 'border-violet-300 bg-violet-50 text-violet-800'
                       : isInReview
                         ? 'border-orange-300 bg-orange-50 text-orange-800'
                         : 'border-stone-200 bg-stone-100 text-stone-600'
                   }`}
                 >
                   {isScriptFrozen ? (
-                    <Lock className='h-2.5 w-2.5 text-purple-700' />
+                    <Lock className='h-2.5 w-2.5 text-violet-700' />
                   ) : (
                     <FileText className='h-2.5 w-2.5 text-stone-500' />
                   )}
@@ -572,6 +572,86 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 </span>
               </div>
             )}
+          </div>
+
+          {/* Sub-tabs Navigation */}
+          <div
+            className='inline-flex p-1 rounded-lg bg-stone-100 border border-stone-200 hidden md:inline-flex'
+            id='subtab-bar'
+          >
+            <button
+              type='button'
+              data-subtab='progress'
+              id='subtab-progress'
+              onClick={() =>
+                navigate(
+                  `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapterId}&tab=progress`,
+                )
+              }
+              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
+            >
+              Ma trận trang
+            </button>
+            <button
+              type='button'
+              data-subtab='chapters'
+              id='subtab-chapters'
+              className='subtab-btn px-2.5 py-1 rounded-md bg-white text-stone-900 font-semibold shadow-xs text-xs cursor-pointer'
+            >
+              Tổng quan chương
+            </button>
+            <button
+              type='button'
+              data-subtab='crew'
+              id='subtab-crew'
+              onClick={() =>
+                navigate(
+                  `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapterId}&tab=crew`,
+                )
+              }
+              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
+            >
+              Quản lý Ê-kíp
+            </button>
+            <button
+              type='button'
+              data-subtab='script'
+              id='subtab-script'
+              onClick={() =>
+                navigate(
+                  `/workspaces/${workspaceId}/series/${seriesId}/script?chapterId=${selectedChapterId}`,
+                )
+              }
+              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
+            >
+              Kịch bản
+            </button>
+            <button
+              type='button'
+              data-subtab='reader'
+              id='subtab-reader'
+              onClick={() =>
+                navigate(
+                  `/workspaces/${workspaceId}/series/${seriesId}/editor/desk?chapterId=${selectedChapterId}`,
+                )
+              }
+              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
+            >
+              Đọc thử &amp; Soát trang
+            </button>
+            <button
+              type='button'
+              data-subtab='handoff'
+              id='subtab-handoff'
+              onClick={() =>
+                navigate(
+                  `/workspaces/${workspaceId}/series/${seriesId}/export?chapterId=${selectedChapterId}`,
+                )
+              }
+              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
+            >
+              Bàn giao
+            </button>
           </div>
 
           {/* Quick Action CTAs */}
@@ -591,7 +671,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 <Play className='h-3 w-3 fill-current' />
                 <span>{t('producer.chapterManagement.gate1Cta')}</span>
                 {blockers.length > 0 && (
-                  <span className='ml-1 rounded-full bg-rose-600 px-1.5 py-0.2 text-[9px] text-white font-mono'>
+                  <span className='ml-1 rounded-full bg-rose-600 px-1.5 py-0.2 text-xs text-white font-mono'>
                     {t('producer.chapterManagement.blockersCount', { count: blockers.length })}
                   </span>
                 )}
@@ -617,10 +697,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 <button
                   type='button'
                   onClick={() => setShowUnfreezeDialog(true)}
-                  className='inline-flex h-8 items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2.5 text-xs font-semibold text-purple-900 hover:bg-purple-100'
+                  className='inline-flex h-8 items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-2.5 text-xs font-semibold text-violet-900 hover:bg-violet-100'
                   title={t('producer.chapterManagement.reopenBtnTitle')}
                 >
-                  <Unlock className='h-3 w-3 text-purple-700' />
+                  <Unlock className='h-3 w-3 text-violet-700' />
                   <span>{t('producer.chapterManagement.reopenBtn')}</span>
                 </button>
               </>
@@ -684,7 +764,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     }}
                     className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-stone-100'
                   >
-                    <Globe className='h-3.5 w-3.5 text-purple-600' />
+                    <Globe className='h-3.5 w-3.5 text-violet-600' />
                     <span>{t('producer.chapterManagement.toolEditions')}</span>
                   </button>
                   <button
@@ -695,7 +775,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     }}
                     className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-stone-100'
                   >
-                    <History className='h-3.5 w-3.5 text-sky-600' />
+                    <History className='h-3.5 w-3.5 text-blue-600' />
                     <span>{t('producer.chapterManagement.toolProvenance')}</span>
                   </button>
                   <button
@@ -729,7 +809,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 
         {/* ── 1-LINE GLANCE STRIP (Dải đối chiếu nhanh) ── */}
         {chapter && (
-          <div className='mt-2.5 flex items-center justify-between gap-4 border-t border-stone-100 pt-2 text-[11px] text-stone-600 overflow-x-auto whitespace-nowrap'>
+          <div className='mt-2.5 flex items-center justify-between gap-4 border-t border-stone-100 pt-2 text-xs text-stone-600 overflow-x-auto whitespace-nowrap'>
             <div className='flex items-center gap-4'>
               <span className='flex items-center gap-1 font-medium'>
                 <FileText className='h-3 w-3 text-stone-400' />
@@ -778,7 +858,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               )}
             </div>
 
-            <div className='flex items-center gap-2 font-mono text-[10px] text-stone-400 shrink-0'>
+            <div className='flex items-center gap-2 font-mono text-xs text-stone-400 shrink-0'>
               {pushedScript?.version.contentHash && (
                 <span>#{shortHash(pushedScript.version.contentHash)}</span>
               )}
@@ -791,7 +871,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       {showUnfreezeDialog && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 p-4 backdrop-blur-xs'>
           <div className='w-full max-w-md rounded-2xl border border-stone-200 bg-white p-5 shadow-xl'>
-            <div className='flex items-center gap-2 text-purple-800 font-bold text-sm'>
+            <div className='flex items-center gap-2 text-violet-800 font-bold text-sm'>
               <Unlock className='h-4 w-4' />
               <span>{t('producer.chapterManagement.unfreezeTitle')}</span>
             </div>
@@ -827,7 +907,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 })}
               </h3>
               {selectedEntityName && (
-                <span className='inline-flex items-center gap-1 rounded-md bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-800'>
+                <span className='inline-flex items-center gap-1 rounded-md bg-orange-100 px-1.5 py-0.5 text-xs font-bold text-orange-800'>
                   {t('producer.chapterManagement.filterTag', { name: selectedEntityName })}
                   <button
                     type='button'
@@ -876,7 +956,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   return (
                     <div
                       key={row.key || `pan-${idx}`}
-                      className='mt-2 rounded bg-stone-100 px-2 py-0.5 font-sans text-[11px] font-bold text-stone-700'
+                      className='mt-2 rounded bg-stone-100 px-2 py-0.5 font-sans text-xs font-bold text-stone-700'
                     >
                       {renderRow(row, DEFAULT_ROW_LABELS)}
                     </div>
@@ -901,7 +981,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                       <button
                         type='button'
                         onClick={() => setSelectedEntityName(row.label || null)}
-                        className='font-sans text-[11px] font-bold text-orange-800 shrink-0 uppercase tracking-wide hover:underline cursor-pointer'
+                        className='font-sans text-xs font-bold text-orange-800 shrink-0 uppercase tracking-wide hover:underline cursor-pointer'
                         title={t('producer.chapterManagement.filterCharacterTitle')}
                       >
                         [{row.label || t('producer.chapterManagement.defaultCharacter')}
@@ -920,7 +1000,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   return (
                     <div
                       key={row.key || `n-${idx}`}
-                      className='my-1 border-l-2 border-amber-400 bg-amber-50/40 px-2.5 py-1 text-[11px] font-sans text-amber-950 italic'
+                      className='my-1 border-l-2 border-amber-400 bg-amber-50/40 px-2.5 py-1 text-xs font-sans text-amber-950 italic'
                     >
                       <span className='font-bold not-italic mr-1.5 uppercase'>
                         {t('producer.chapterManagement.narrationTag')}
@@ -934,7 +1014,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   return (
                     <div
                       key={row.key || `sfx-${idx}`}
-                      className='pl-4 py-0.5 text-[11px] font-sans font-bold text-rose-700'
+                      className='pl-4 py-0.5 text-xs font-sans font-bold text-rose-700'
                     >
                       ⚡ SFX: {row.text}
                     </div>
@@ -944,7 +1024,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 return (
                   <div
                     key={row.key || `a-${idx}`}
-                    className='pl-3 text-[11px] font-sans text-stone-600'
+                    className='pl-3 text-xs font-sans text-stone-600'
                   >
                     {row.text}
                   </div>
@@ -1028,7 +1108,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                       {t('producer.chapterManagement.blockersWarning', { count: blockers.length })}
                     </span>
                   </div>
-                  <ul className='space-y-1 text-[11px] pl-5 list-disc'>
+                  <ul className='space-y-1 text-xs pl-5 list-disc'>
                     {blockers.map((b) => (
                       <li key={b.bibleEntryId}>
                         <strong>{b.entryName}</strong>:{' '}
@@ -1041,7 +1121,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 
               {/* Bible Search & Filter */}
               <div className='flex items-center gap-2'>
-                <div className='flex items-center gap-1 text-[11px] font-bold'>
+                <div className='flex items-center gap-1 text-xs font-bold'>
                   {['all', 'character', 'location'].map((c) => (
                     <button
                       key={c}
@@ -1122,34 +1202,30 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                             <span className='font-bold text-xs text-stone-900 truncate'>
                               {ent.name}
                             </span>
-                            <span className='font-mono text-[9px] text-stone-400'>{ent.code}</span>
+                            <span className='font-mono text-xs text-stone-400'>{ent.code}</span>
                           </div>
 
-                          <div className='flex items-center gap-1.5 mt-0.5 text-[10px] text-stone-500'>
+                          <div className='flex items-center gap-1.5 mt-0.5 text-xs text-stone-500'>
                             <span>
                               {ent.boundRevision?.variantLabel ||
-                                t('producer.chapterManagement.defaultVariantLabel')}
+                                t('production.producer.chapterManagement.defaultVariantLabel')}
                             </span>
-                            <span>
-                              {t('producer.chapterManagement.mentionsCount', {
-                                count: ent.mentions?.length || 0,
-                              })}
-                            </span>
+                            <span>· {ent.mentions?.length || 0} lần</span>
                           </div>
                         </div>
 
                         {/* Status Tag */}
                         <div className='shrink-0'>
                           {isLocked ? (
-                            <span className='inline-flex items-center gap-0.5 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200'>
+                            <span className='inline-flex items-center gap-0.5 rounded-md bg-emerald-50 px-1.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200'>
                               <CheckCircle2 className='h-2.5 w-2.5' /> Locked
                             </span>
                           ) : isCrowd ? (
-                            <span className='rounded-md bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-600'>
+                            <span className='rounded-md bg-stone-100 px-1.5 py-0.5 text-xs font-medium text-stone-600'>
                               {t('producer.chapterManagement.crowdTag')}
                             </span>
                           ) : (
-                            <span className='inline-flex items-center gap-0.5 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-800 border border-rose-200'>
+                            <span className='inline-flex items-center gap-0.5 rounded-md bg-rose-50 px-1.5 py-0.5 text-xs font-bold text-rose-800 border border-rose-200'>
                               {t('producer.chapterManagement.unlockedTag')}
                             </span>
                           )}
@@ -1173,9 +1249,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     {t('producer.chapterManagement.gate1CardTitle')}
                   </span>
                   <span
-                    className={`rounded-md px-1.5 py-0.2 text-[10px] font-bold ${
+                    className={`rounded-md px-1.5 py-0.2 text-xs font-bold ${
                       isScriptFrozen
-                        ? 'bg-purple-100 text-purple-800'
+                        ? 'bg-violet-100 text-violet-800'
                         : isGatePassed
                           ? 'bg-emerald-100 text-emerald-800'
                           : 'bg-rose-100 text-rose-800'
@@ -1189,7 +1265,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   </span>
                 </div>
 
-                <div className='space-y-1.5 text-[11px] divide-y divide-stone-100'>
+                <div className='space-y-1.5 text-xs divide-y divide-stone-100'>
                   <div className='pt-1 flex items-center justify-between'>
                     <span>{t('producer.chapterManagement.gate1Step1')}</span>
                     <span
@@ -1255,7 +1331,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     {t('producer.chapterManagement.gate3CardTitle')}
                   </span>
                   <span
-                    className={`rounded-md px-1.5 py-0.2 text-[10px] font-bold ${
+                    className={`rounded-md px-1.5 py-0.2 text-xs font-bold ${
                       lockGate?.canApprove
                         ? 'bg-emerald-100 text-emerald-800'
                         : 'bg-stone-100 text-stone-600'
@@ -1272,7 +1348,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     {t('producer.chapterManagement.loadingLockGate')}
                   </p>
                 ) : (
-                  <div className='space-y-1.5 text-[11px] divide-y divide-stone-100'>
+                  <div className='space-y-1.5 text-xs divide-y divide-stone-100'>
                     {lockGate.items.map((it, idx) => (
                       <div key={idx} className='pt-1 flex items-center justify-between gap-2'>
                         <span className='truncate'>{it.message}</span>
@@ -1337,27 +1413,27 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                         : 'border-orange-200 bg-orange-50/30'
                     }`}
                   >
-                    <div className='flex items-center justify-between text-[10px] text-stone-500'>
+                    <div className='flex items-center justify-between text-xs text-stone-500'>
                       <span className='font-bold text-stone-700'>
                         {c.authorName || t('producer.chapterManagement.defaultEditorName')}
                       </span>
                       <span>{formatDate(c.createdAt)}</span>
                     </div>
                     {c.quotedText && (
-                      <blockquote className='border-l-2 border-stone-300 pl-2 text-[10px] italic text-stone-600 line-clamp-2'>
+                      <blockquote className='border-l-2 border-stone-300 pl-2 text-xs italic text-stone-600 line-clamp-2'>
                         &quot;{c.quotedText}&quot;
                       </blockquote>
                     )}
                     <p className='text-stone-800 leading-snug'>{c.body}</p>
-                    <div className='flex items-center justify-between pt-1 text-[10px]'>
+                    <div className='flex items-center justify-between pt-1 text-xs'>
                       <span
                         className={
                           c.resolvedAt ? 'text-emerald-700 font-bold' : 'text-orange-700 font-bold'
                         }
                       >
                         {c.resolvedAt
-                          ? t('producer.chapterManagement.commentResolved')
-                          : t('producer.chapterManagement.commentPending')}
+                          ? t('production.producer.chapterManagement.commentResolved')
+                          : t('production.producer.chapterManagement.commentPending')}
                       </span>
                       {!c.resolvedAt && (
                         <button
@@ -1418,7 +1494,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 className='flex w-full items-center justify-between rounded-xl border border-stone-200 bg-white p-3 hover:bg-stone-50 text-left'
               >
                 <div className='flex items-center gap-2'>
-                  <Globe className='h-4 w-4 text-purple-600' />
+                  <Globe className='h-4 w-4 text-violet-600' />
                   <span className='font-bold text-stone-800'>
                     {t('producer.chapterManagement.toolEditionsFull')}
                   </span>
@@ -1432,7 +1508,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 className='flex w-full items-center justify-between rounded-xl border border-stone-200 bg-white p-3 hover:bg-stone-50 text-left'
               >
                 <div className='flex items-center gap-2'>
-                  <History className='h-4 w-4 text-sky-600' />
+                  <History className='h-4 w-4 text-blue-600' />
                   <span className='font-bold text-stone-800'>
                     {t('producer.chapterManagement.toolProvenanceFull')}
                   </span>
@@ -1461,12 +1537,12 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     {t('producer.chapterManagement.coverTitle')}
                   </span>
                   {chapter?.coverUrl && (
-                    <span className='text-[10px] text-emerald-700 font-bold'>
+                    <span className='text-xs text-emerald-700 font-bold'>
                       {t('producer.chapterManagement.hasCoverBadge')}
                     </span>
                   )}
                 </div>
-                <label className='block w-full cursor-pointer rounded-lg border border-stone-200 bg-stone-50 py-1.5 text-center text-[11px] font-bold text-stone-700 hover:bg-stone-100'>
+                <label className='block w-full cursor-pointer rounded-lg border border-stone-200 bg-stone-50 py-1.5 text-center text-xs font-bold text-stone-700 hover:bg-stone-100'>
                   <span>{t('producer.chapterManagement.changeCoverBtn')}</span>
                   <input
                     type='file'

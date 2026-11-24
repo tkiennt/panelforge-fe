@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Briefcase,
   Plus,
@@ -14,7 +14,6 @@ import {
   Layers,
   Calendar,
   History,
-  TrendingUp,
   FileText,
   ArrowRight,
 } from 'lucide-react';
@@ -42,6 +41,7 @@ import { SeriesShelf } from './studio-overview/SeriesShelf';
 import { MembersTabContent } from './studio-overview/MembersTabContent';
 import { StudioScheduleTab } from './studio-overview/StudioScheduleTab';
 import { StudioAuditTab } from './studio-overview/StudioAuditTab';
+import { MemberSeriesPortal } from './studio-overview/MemberSeriesPortal';
 import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
 import { Alert } from '@/shared/ui';
 import {
@@ -50,10 +50,14 @@ import {
   EditSeriesModal,
 } from './studio-overview/SeriesModals';
 import { WorkspaceAuditModal, EditMemberAccessModal } from './studio-overview/StudioModals';
+import { CreateWorkspaceModal } from '@/roles/producer/modals/CreateWorkspaceModal';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
 import { formatReadingDirection } from './studio-overview/formatters';
 import { useTranslation } from '@/lib/i18n';
+
+const STUDIO_TABS = ['series', 'members', 'schedule', 'audit'] as const;
+type StudioTab = (typeof STUDIO_TABS)[number];
 
 export const StudioOverviewView: React.FC = () => {
   const navigate = useNavigate();
@@ -74,7 +78,19 @@ export const StudioOverviewView: React.FC = () => {
 
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
-  const [activeTab, setActiveTab] = useState<'series' | 'members' | 'schedule' | 'audit'>('series');
+  // The studio tabs live in the AppShell top bar, so the active tab is shared through `?tab=`.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const activeTab: StudioTab = STUDIO_TABS.includes(tabParam as StudioTab)
+    ? (tabParam as StudioTab)
+    : 'series';
+  const setActiveTab = (tab: StudioTab) =>
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'series') next.delete('tab');
+      else next.set('tab', tab);
+      return next;
+    });
   const [loading, setLoading] = useState(false);
 
   // Selected series for UC-03 Modals
@@ -92,9 +108,24 @@ export const StudioOverviewView: React.FC = () => {
   } | null>(null);
 
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [createStudioModalOpen, setCreateStudioModalOpen] = useState(false);
 
   // UC-03: Create Series Modal State
   const [createSeriesModalOpen, setCreateSeriesModalOpen] = useState(false);
+
+  // "Tạo Series mới" sits in the AppShell top bar and asks this view to open the modal via `?action=`.
+  useEffect(() => {
+    if (searchParams.get('action') !== 'create-series') return;
+    if (isProducerOrAdmin) setCreateSeriesModalOpen(true);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('action');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [searchParams, isProducerOrAdmin, setSearchParams]);
   const [newSeriesTitle, setNewSeriesTitle] = useState('');
   const [newSeriesFormat, setNewSeriesFormat] = useState('WEBTOON');
   const [newSeriesDirection, setNewSeriesDirection] = useState(2);
@@ -142,6 +173,8 @@ export const StudioOverviewView: React.FC = () => {
   const [editingMember, setEditingMember] = useState<any>(null);
   const [editRole, setEditRole] = useState('');
   const [editTask, setEditTask] = useState('');
+  const [editMemberError, setEditMemberError] = useState<string | null>(null);
+  const [savingMemberRole, setSavingMemberRole] = useState(false);
 
   // Search, Filter & Sort states for Series Library
   const [searchQuery, setSearchQuery] = useState('');
@@ -194,6 +227,10 @@ export const StudioOverviewView: React.FC = () => {
             .toUpperCase()
         : 'ME';
 
+      const statusKey = String(m.status ?? '').toLowerCase();
+      const isPending =
+        statusKey === '0' || statusKey === 'pending' || m.isEmailConfirmed === false;
+
       return {
         id: m.userId,
         name: m.fullName || m.email.split('@')[0],
@@ -201,10 +238,7 @@ export const StudioOverviewView: React.FC = () => {
         role: roleStr,
         avatarBg: '#171717',
         initials,
-        status:
-          m.isEmailConfirmed === false
-            ? t('workspace.membersTab.statusPending')
-            : t('workspace.membersTab.statusActive'),
+        status: isPending ? 'Pending' : 'Active',
         isEmailConfirmed: m.isEmailConfirmed,
         invitationEmailSent: m.invitationEmailSent,
         isOwner: m.isOwner,
@@ -628,10 +662,13 @@ export const StudioOverviewView: React.FC = () => {
     setEditingMember(member);
     setEditRole(member.role);
     setEditTask(member.activeTask || 'Chapter 5 Production');
+    setEditMemberError(null);
   };
 
   const handleSaveAccess = async () => {
-    if (!editingMember || !activeWorkspace) return;
+    if (!editingMember || !activeWorkspace || savingMemberRole) return;
+    setEditMemberError(null);
+    setSavingMemberRole(true);
     try {
       await workspaceService.updateMemberRole(activeWorkspace.id, editingMember.id, {
         newRole: editRole,
@@ -641,10 +678,11 @@ export const StudioOverviewView: React.FC = () => {
       showToast('Permissions Saved', `Updated role & access policies for ${editingMember.name}.`);
       setEditingMember(null);
     } catch (err: any) {
-      showToast(
-        t('workspace.overviewView.updateRoleErrorTitle'),
-        err.message || t('workspace.overviewView.updateRoleErrorFallback'),
-      );
+      const message = err?.message || t('workspace.overviewView.updateRoleErrorFallback');
+      setEditMemberError(message);
+      toast.error(t('workspace.overviewView.updateRoleErrorTitle'), message);
+    } finally {
+      setSavingMemberRole(false);
     }
   };
 
@@ -775,8 +813,45 @@ export const StudioOverviewView: React.FC = () => {
     setStatusFilter('ALL');
   };
 
+  // Writers, artists, letterers and editors land on their own series picker, not the studio governance hub.
+  if (!isProducerOrAdmin) {
+    return (
+      <MemberSeriesPortal
+        workspaceId={activeWorkspace?.id || workspaceId}
+        workspaceName={activeWorkspace?.name}
+        userName={currentUser?.fullName}
+        workspaceRole={wsRole}
+        seriesList={seriesList}
+        loading={loading}
+        onOpenSeries={handleOpenSeries}
+      />
+    );
+  }
+
+  const storageUsed = workspaceUsage
+    ? workspaceUsage.storage.used
+    : activeWorkspace?.usedStorageBytes || 0;
+  const storageQuota = workspaceUsage
+    ? workspaceUsage.storage.quota
+    : activeWorkspace?.storageQuotaBytes || 0;
+  const storagePct =
+    storageQuota > 0 ? Math.min(100, Math.round((storageUsed / storageQuota) * 100)) : 0;
+  const runningSeries = seriesList.filter((s) => !s.isCompleted).length;
+  const completedSeries = seriesList.length - runningSeries;
+  const activeMembers = members.filter((m) => {
+    const statusKey = String(m.status ?? '').toLowerCase();
+    return (
+      m.isEmailConfirmed !== false &&
+      statusKey !== '0' &&
+      statusKey !== 'pending' &&
+      statusKey !== '2' &&
+      statusKey !== 'rejected'
+    );
+  }).length;
+  const numberFmt = new Intl.NumberFormat(lang);
+
   return (
-    <div className='flex-1 bg-[#FAF9F5] min-h-screen p-4 md:p-6 space-y-5 text-stone-900 font-sans'>
+    <div className='flex-1 bg-[#FAF9F5] min-h-full px-4 md:px-8 xl:px-12 py-6 space-y-6 text-stone-900 font-sans'>
       {/* Chọn ảnh bìa có sẵn của hệ thống */}
       <CoverPickerModal
         series={coverPickerSeries}
@@ -785,379 +860,120 @@ export const StudioOverviewView: React.FC = () => {
         onPickSystemCover={(img) => void handlePickSystemCover(img)}
       />
 
-      {/* Header Banner: Studio Series Library Header */}
-      <div className='bg-white p-5 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4'>
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-          <div>
-            <div className='flex items-center gap-2.5 mb-2'>
-              <StudioSwitcher
-                activeWorkspaceId={activeWorkspace?.id || workspaceId}
-                activeWorkspaceName={activeWorkspace?.name}
-                onCreateNewStudio={() => navigate('/workspaces?create=true')}
-                onSelectStudio={(ws) => {
-                  const normalizedWs = ws as any;
-                  setActiveWorkspace(normalizedWs);
-                  writeCachedWorkspace(normalizedWs, currentUser?.id);
-                  navigate(`/workspaces/${ws.id}`);
-                }}
-              />
+      <section
+        className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch'
+        id='studio-metrics-strip'
+        aria-label={t('workspace.studioHub.metrics.ariaLabel')}
+      >
+        <div className='bg-white border border-stone-200/80 rounded-xl p-6 flex flex-col shadow-xs'>
+          <div className='flex items-start justify-between gap-2'>
+            <div className='flex items-center gap-2.5'>
+              <Layers className='w-5 h-5 text-orange-600' />
+              <span className='font-semibold text-stone-900'>
+                {t('workspace.studioHub.metrics.seriesTitle')}
+              </span>
             </div>
-            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight mt-1'>
-              {t('workspace.library.title')}
-            </h1>
-            <p className='text-xs sm:text-sm text-stone-600 mt-1 leading-relaxed max-w-2xl'>
-              {t(
-                `workspace.library.subtitle.${isProducer ? 'PRODUCER' : (wsRole ?? 'default')}`,
-                t('workspace.library.subtitle.default'),
-              )}
-            </p>
+            <span className='px-2 py-0.5 rounded-md bg-orange-50 font-semibold text-xs text-orange-700'>
+              {t('workspace.studioHub.metrics.seriesRunning', { count: runningSeries })}
+            </span>
           </div>
-
-          {isProducerOrAdmin && (
-            <div className='flex items-center gap-2.5 shrink-0'>
-              <button
-                type='button'
-                onClick={() => setCreateSeriesModalOpen(true)}
-                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-semibold shadow-xs active:scale-[0.98] transition-all cursor-pointer'
-              >
-                <Plus className='w-4 h-4' />
-                <span>{t('workspace.overviewView.createSeriesBtn')}</span>
-                <span className='sr-only'>{t('workspace.overviewView.createSeriesSrOnly')}</span>
-              </button>
-            </div>
-          )}
+          <div className='mt-4 flex items-baseline gap-1.5'>
+            <span className='text-4xl font-bold text-stone-900 tracking-tight'>
+              {seriesList.length}
+            </span>
+            <span className='text-stone-500'>
+              {t('workspace.studioHub.metrics.seriesChapters', {
+                count: seriesList.reduce((acc, s) => acc + (s.chaptersCount ?? 0), 0),
+              })}
+            </span>
+          </div>
+          <div className='mt-auto pt-4 flex items-center gap-2 text-sm text-stone-600'>
+            <span className='w-2 h-2 rounded-full bg-emerald-600' aria-hidden />
+            <span>
+              {t('workspace.studioHub.metrics.seriesSplit', {
+                running: runningSeries,
+                done: completedSeries,
+              })}
+            </span>
+          </div>
         </div>
 
-        {/* Quick Studio Operational Metrics (Stitch Architecture - 100% Real API Data) */}
-        <section
-          className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch pt-1'
-          id='studio-metrics-strip'
-        >
-          {/* Card 1: Bộ truyện (Series) */}
-          <div className='bg-white border border-stone-200 rounded-xl p-5 flex flex-col justify-between shadow-xs'>
-            <div className='flex items-start justify-between gap-2'>
-              <div className='flex items-center gap-2'>
-                <Layers className='w-5 h-5 text-orange-600' />
-                <span className='font-semibold text-stone-900 text-sm'>
-                  {t('workspace.overviewView.metricSeriesTitle')}
-                </span>
-              </div>
-              <span className='px-2 py-0.5 rounded-full bg-orange-50 font-semibold text-xs text-orange-700'>
-                {t('workspace.overviewView.metricRunning', {
-                  count: seriesList.filter((s) => !s.isCompleted).length,
-                })}
+        <div className='bg-white border border-stone-200/80 rounded-xl p-6 flex flex-col shadow-xs'>
+          <div className='flex items-start justify-between gap-2'>
+            <div className='flex items-center gap-2.5'>
+              <HardDrive className='w-5 h-5 text-orange-600' />
+              <span className='font-semibold text-stone-900'>
+                {t('workspace.studioHub.metrics.storageTitle')}
               </span>
             </div>
-            <div className='my-4'>
-              <div className='flex items-baseline gap-1.5'>
-                <span className='text-3xl font-bold text-stone-900 tracking-tight'>
-                  {seriesList.length}
-                </span>
-                <span className='text-stone-500 text-sm'>
-                  {t('workspace.overviewView.metricSeriesChapters', {
-                    count: seriesList.reduce((acc, s) => acc + (s.chaptersCount ?? 0), 0),
-                  })}
-                </span>
-              </div>
-              <p className='text-xs text-stone-500 mt-1'>
-                {t('workspace.overviewView.metricActiveCompleted', {
-                  active: seriesList.filter((s) => !s.isCompleted).length,
-                  completed: seriesList.filter((s) => s.isCompleted).length,
-                })}
-              </p>
-            </div>
-            <div className='flex items-center gap-2 pt-3 border-t border-stone-100 text-xs text-stone-500'>
-              <span className='inline-block w-2 h-2 rounded-full bg-emerald-600' />
-              <span>
-                {seriesList.length > 0
-                  ? t('workspace.overviewView.metricLiveData')
-                  : t('workspace.overviewView.metricNoSeries')}
-              </span>
-            </div>
+            <span className='px-2 py-0.5 rounded-md bg-stone-100 font-semibold text-xs text-stone-700'>
+              {storageQuota > 0 ? `${storagePct}%` : t('workspace.studioHub.metrics.unlimited')}
+            </span>
           </div>
-
-          {/* Card 2: Dung lượng lưu trữ */}
-          <div className='bg-white border border-stone-200 rounded-xl p-5 flex flex-col justify-between shadow-xs'>
-            <div className='flex items-start justify-between gap-2'>
-              <div className='flex items-center gap-2'>
-                <HardDrive className='w-5 h-5 text-orange-500' />
-                <span className='font-semibold text-stone-900 text-sm'>
-                  {t('workspace.overviewView.metricStorageTitle')}
-                </span>
-              </div>
-              <span className='px-2 py-0.5 rounded-full bg-stone-100 font-semibold text-xs text-stone-700'>
-                {(() => {
-                  const used = workspaceUsage
-                    ? workspaceUsage.storage.used
-                    : activeWorkspace?.usedStorageBytes || 0;
-                  const quota = workspaceUsage
-                    ? workspaceUsage.storage.quota
-                    : activeWorkspace?.storageQuotaBytes || 0;
-                  return quota > 0
-                    ? `${Math.min(100, Math.round((used / quota) * 100))}%`
-                    : t('workspace.governance.unlimited');
-                })()}
-              </span>
-            </div>
-            <div className='my-4'>
-              <div className='flex items-baseline gap-1.5'>
-                <span className='text-2xl font-bold text-stone-900 tracking-tight'>
-                  {(() => {
-                    const used = workspaceUsage
-                      ? workspaceUsage.storage.used
-                      : activeWorkspace?.usedStorageBytes || 0;
-                    return formatBytes(used);
-                  })()}
-                </span>
-                <span className='text-stone-500 text-sm'>
-                  /{' '}
-                  {(() => {
-                    const quota = workspaceUsage
-                      ? workspaceUsage.storage.quota
-                      : activeWorkspace?.storageQuotaBytes || 0;
-                    return quota > 0
-                      ? formatBytes(quota)
-                      : t('workspace.overviewView.metricUnlimitedShort');
-                  })()}
-                </span>
-              </div>
-              <div className='w-full bg-stone-100 h-2 rounded-full overflow-hidden mt-2'>
-                <div
-                  className='bg-orange-500 h-full rounded-full transition-all duration-500'
-                  style={{
-                    width: (() => {
-                      const used = workspaceUsage
-                        ? workspaceUsage.storage.used
-                        : activeWorkspace?.usedStorageBytes || 0;
-                      const quota = workspaceUsage
-                        ? workspaceUsage.storage.quota
-                        : activeWorkspace?.storageQuotaBytes || 0;
-                      const pct = quota > 0 ? Math.min(100, Math.round((used / quota) * 100)) : 0;
-                      return `${pct}%`;
-                    })(),
-                  }}
-                />
-              </div>
-            </div>
-            <div className='flex items-center gap-1.5 pt-3 border-t border-stone-100 text-xs text-stone-500'>
-              <FileText className='w-3.5 h-3.5 text-stone-400' />
-              <span className='truncate'>{t('workspace.overviewView.metricStorageFooter')}</span>
-            </div>
+          <div className='mt-4 flex items-baseline gap-1.5'>
+            <span className='text-4xl font-bold text-stone-900 tracking-tight'>
+              {formatBytes(storageUsed)}
+            </span>
+            <span className='text-stone-500'>
+              /{' '}
+              {storageQuota > 0
+                ? formatBytes(storageQuota)
+                : t('workspace.studioHub.metrics.unlimited')}
+            </span>
           </div>
-
-          {/* Card 3: Nhân sự Studio */}
-          <div className='bg-white border border-stone-200 rounded-xl p-5 flex flex-col justify-between shadow-xs'>
-            <div className='flex items-start justify-between gap-2'>
-              <div className='flex items-center gap-2'>
-                <Users className='w-5 h-5 text-sky-600' />
-                <span className='font-semibold text-stone-900 text-sm'>
-                  {t('workspace.overviewView.metricMembersTitle')}
-                </span>
-              </div>
-              <span className='px-2 py-0.5 rounded-full bg-emerald-50 font-semibold text-xs text-emerald-700 flex items-center gap-1'>
-                <span className='w-1.5 h-1.5 rounded-full bg-emerald-600' />
-                <span>
-                  {t('workspace.overviewView.metricActiveMembers', {
-                    count: members.filter((m) => m.isEmailConfirmed !== false).length,
-                  })}
-                </span>
-              </span>
-            </div>
-            <div className='my-4'>
-              <div className='flex items-baseline gap-1.5'>
-                <span className='text-3xl font-bold text-stone-900 tracking-tight'>
-                  {members.length}
-                </span>
-                <span className='text-stone-500 text-sm'>
-                  {t('workspace.overviewView.metricMembersUnit')}
-                </span>
-              </div>
-              <p className='text-xs text-stone-500 mt-1'>
-                {t('workspace.overviewView.metricRoleBreakdown', {
-                  writers: tabCounts.WRITER,
-                  artists: tabCounts.ARTIST,
-                  editors: tabCounts.EDITOR,
-                })}
-              </p>
-            </div>
-            <button
-              type='button'
-              onClick={() => setActiveTab('members')}
-              className='w-full pt-3 border-t border-stone-100 flex items-center justify-between text-left text-xs text-orange-600 hover:text-orange-700 font-semibold transition-colors cursor-pointer'
-            >
-              <span>{t('workspace.overviewView.metricManageMembers')}</span>
-              <ArrowRight className='w-4 h-4' />
-            </button>
+          <div className='w-full bg-stone-100 h-2 rounded-full overflow-hidden mt-3'>
+            <div
+              className='bg-orange-500 h-full rounded-full'
+              style={{ width: `${storagePct}%` }}
+            />
           </div>
-
-          {/* Card 4: Tương tác Độc giả thực tế (GET /api/workspaces/{id}/reader-stats) */}
-          <div className='bg-white border border-stone-200 rounded-xl p-5 flex flex-col justify-between shadow-xs'>
-            <div className='flex items-start justify-between gap-2'>
-              <div className='flex items-center gap-2'>
-                <TrendingUp className='w-5 h-5 text-emerald-600' />
-                <span className='font-semibold text-stone-900 text-sm'>
-                  {t('workspace.overviewView.metricReadersTitle')}
-                </span>
-              </div>
-              <span className='px-2 py-0.5 rounded-full bg-sky-50 font-semibold text-xs text-sky-700'>
-                {readerStats?.totalUniqueReaders
-                  ? t('workspace.overviewView.metricReadersBadge', {
-                      count: readerStats.totalUniqueReaders.toLocaleString(
-                        lang === 'en' ? 'en-US' : 'vi-VN',
-                      ),
-                    })
-                  : t('workspace.overviewView.metricLiveBadge')}
-              </span>
-            </div>
-            <div className='my-4'>
-              <div className='flex items-baseline gap-1.5'>
-                <span className='text-3xl font-bold text-stone-900 tracking-tight'>
-                  {readerStats?.totalViews
-                    ? readerStats.totalViews.toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN')
-                    : '0'}
-                </span>
-                <span className='text-stone-500 text-sm'>
-                  {t('workspace.overviewView.metricViewsUnit')}
-                </span>
-              </div>
-              <p className='text-xs text-stone-500 mt-1'>
-                {readerStats?.series?.length
-                  ? t('workspace.overviewView.metricReadersSeries', {
-                      count: readerStats.series.length,
-                    })
-                  : t('workspace.overviewView.metricNoViews')}
-              </p>
-            </div>
-            <div className='flex items-center gap-1.5 pt-3 border-t border-stone-100 text-xs text-stone-500'>
-              <TrendingUp className='w-3.5 h-3.5 text-sky-600' />
-              <span className='font-semibold text-stone-800'>
-                {readerStats?.totalUniqueReaders
-                  ? t('workspace.overviewView.metricUniqueReaders', {
-                      count: readerStats.totalUniqueReaders.toLocaleString(
-                        lang === 'en' ? 'en-US' : 'vi-VN',
-                      ),
-                    })
-                  : t('workspace.overviewView.metricRealtimeStats')}
-              </span>
-            </div>
+          <div className='mt-auto pt-4 flex items-center gap-2 text-sm text-stone-600'>
+            <FileText className='w-4 h-4 text-stone-400' />
+            <span className='truncate'>{t('workspace.studioHub.metrics.storageFootnote')}</span>
           </div>
-        </section>
+        </div>
 
-        {/* Studio Resource Governance (Compact & Collapsible) - Shown for Producer */}
-        {activeWorkspace && isProducer && (
-          <StudioGovernanceBar
-            activeWorkspace={activeWorkspace}
-            workspaceUsage={workspaceUsage}
-            isResourcesExpanded={isResourcesExpanded}
-            onToggleResourcesExpanded={() => setIsResourcesExpanded(!isResourcesExpanded)}
-            onOpenAuditModal={() => setAuditModalOpen(true)}
-          />
-        )}
-      </div>
-
-      {/* Main Workspace Content Area with Stitch Tabbed Navigation */}
-      <div className='space-y-6'>
-        {/* Stitch Tab Bar */}
-        <div className='border-b border-stone-200/80 pb-0'>
-          <nav
-            role='tablist'
-            aria-label={t('workspace.overviewView.navAria')}
-            className='flex items-center gap-6 h-12 text-sm font-medium overflow-x-auto custom-scrollbar'
+        <div className='bg-white border border-stone-200/80 rounded-xl p-6 flex flex-col shadow-xs'>
+          <div className='flex items-start justify-between gap-2'>
+            <div className='flex items-center gap-2.5'>
+              <Users className='w-5 h-5 text-orange-600' />
+              <span className='font-semibold text-stone-900'>
+                {t('workspace.studioHub.metrics.crewTitle')}
+              </span>
+            </div>
+            <span className='px-2 py-0.5 rounded-md bg-emerald-50 font-semibold text-xs text-emerald-700 flex items-center gap-1.5'>
+              <span className='w-1.5 h-1.5 rounded-full bg-emerald-600' aria-hidden />
+              {t('workspace.studioHub.metrics.crewActive', { count: activeMembers })}
+            </span>
+          </div>
+          <div className='mt-4 flex items-baseline gap-1.5'>
+            <span className='text-4xl font-bold text-stone-900 tracking-tight'>
+              {members.length}
+            </span>
+            <span className='text-stone-500'>{t('workspace.studioHub.metrics.crewMembers')}</span>
+          </div>
+          <p className='text-sm text-stone-500 mt-1'>
+            {t('workspace.studioHub.metrics.crewBreakdown', {
+              writers: tabCounts.WRITER,
+              artists: tabCounts.ARTIST,
+              letterers: studioMembers.filter((m) =>
+                (m.role || '').toLowerCase().includes('letterer'),
+              ).length,
+              editors: tabCounts.EDITOR,
+            })}
+          </p>
+          <button
+            type='button'
+            onClick={() => setActiveTab('members')}
+            className='mt-auto pt-4 border-t border-stone-100 flex items-center justify-between text-left text-sm text-orange-600 hover:text-orange-700 font-semibold transition-colors cursor-pointer'
           >
-            <button
-              type='button'
-              role='tab'
-              id='tab-series'
-              aria-selected={activeTab === 'series'}
-              aria-controls='tabpanel-series'
-              onClick={() => setActiveTab('series')}
-              className={`h-12 flex items-center gap-2 border-b-2 px-1 whitespace-nowrap transition-colors cursor-pointer text-xs sm:text-sm ${
-                activeTab === 'series'
-                  ? 'border-orange-600 text-orange-600 font-semibold'
-                  : 'border-transparent text-stone-600 hover:text-stone-900'
-              }`}
-            >
-              <BookOpen className='w-4 h-4' />
-              <span>{t('workspace.overview.seriesList')}</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[11px] font-mono font-bold ${
-                  activeTab === 'series'
-                    ? 'bg-orange-100 text-orange-700'
-                    : 'bg-stone-100 text-stone-600'
-                }`}
-              >
-                {seriesList.length}
-              </span>
-            </button>
-
-            {isProducerOrAdmin && (
-              <button
-                type='button'
-                role='tab'
-                id='tab-members'
-                aria-selected={activeTab === 'members'}
-                aria-controls='tabpanel-members'
-                onClick={() => setActiveTab('members')}
-                className={`h-12 flex items-center gap-2 border-b-2 px-1 whitespace-nowrap transition-colors cursor-pointer text-xs sm:text-sm ${
-                  activeTab === 'members'
-                    ? 'border-orange-600 text-orange-600 font-semibold'
-                    : 'border-transparent text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                <Users className='w-4 h-4' />
-                <span>{t('workspace.overviewView.tabMembers')}</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[11px] font-mono font-bold ${
-                    activeTab === 'members'
-                      ? 'bg-orange-100 text-orange-700'
-                      : 'bg-stone-100 text-stone-600'
-                  }`}
-                >
-                  {members.length}
-                </span>
-              </button>
-            )}
-
-            {/* Tab 3: Lịch phát hành tổng */}
-            <button
-              type='button'
-              role='tab'
-              id='tab-schedule'
-              aria-selected={activeTab === 'schedule'}
-              aria-controls='tabpanel-schedule'
-              onClick={() => setActiveTab('schedule')}
-              className={`h-12 flex items-center gap-2 border-b-2 px-1 whitespace-nowrap transition-colors cursor-pointer text-xs sm:text-sm ${
-                activeTab === 'schedule'
-                  ? 'border-orange-600 text-orange-600 font-semibold'
-                  : 'border-transparent text-stone-600 hover:text-stone-900'
-              }`}
-            >
-              <Calendar className='w-4 h-4' />
-              <span>{t('workspace.overviewView.tabSchedule')}</span>
-            </button>
-
-            {/* Tab 4: Nhật ký hoạt động */}
-            {isProducerOrAdmin && (
-              <button
-                type='button'
-                role='tab'
-                id='tab-audit'
-                aria-selected={activeTab === 'audit'}
-                aria-controls='tabpanel-audit'
-                onClick={() => setActiveTab('audit')}
-                className={`h-12 flex items-center gap-2 border-b-2 px-1 whitespace-nowrap transition-colors cursor-pointer text-xs sm:text-sm ${
-                  activeTab === 'audit'
-                    ? 'border-orange-600 text-orange-600 font-semibold'
-                    : 'border-transparent text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                <History className='w-4 h-4' />
-                <span>{t('workspace.overviewView.tabAudit')}</span>
-              </button>
-            )}
-          </nav>
+            <span>{t('workspace.studioHub.metrics.crewManage')}</span>
+            <ArrowRight className='w-4 h-4' />
+          </button>
         </div>
+      </section>
 
+      <div className='space-y-6'>
         {/* TAB 1: Series Projects View */}
         {activeTab === 'series' && (
           <div
@@ -1382,12 +1198,37 @@ export const StudioOverviewView: React.FC = () => {
       {/* Edit Access & Role Modal */}
       <EditMemberAccessModal
         member={editingMember}
-        onClose={() => setEditingMember(null)}
+        onClose={() => {
+          setEditingMember(null);
+          setEditMemberError(null);
+        }}
         role={editRole}
-        onRoleChange={setEditRole}
+        onRoleChange={(r) => {
+          setEditRole(r);
+          setEditMemberError(null);
+        }}
         task={editTask}
         onTaskChange={setEditTask}
         onSave={handleSaveAccess}
+        error={editMemberError}
+        saving={savingMemberRole}
+      />
+
+      {/* Create Studio Modal */}
+      <CreateWorkspaceModal
+        isOpen={createStudioModalOpen}
+        onClose={() => setCreateStudioModalOpen(false)}
+        onSuccess={(newWs) => {
+          setCreateStudioModalOpen(false);
+          const normalized = {
+            ...newWs,
+            currentUserRole: normalizeWorkspaceRole(newWs.currentUserRole),
+          } as any;
+          setActiveWorkspace(normalized);
+          writeCachedWorkspace(normalized, currentUser?.id);
+          navigate(`/workspaces/${newWs.id}`);
+        }}
+        onShowToast={showToast}
       />
     </div>
   );

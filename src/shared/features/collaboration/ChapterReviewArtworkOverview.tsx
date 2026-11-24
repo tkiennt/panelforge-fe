@@ -318,13 +318,13 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
   return (
     <div
       data-testid='chapter-review-artwork-overview'
-      className='p-3 bg-zinc-50 border border-zinc-200 rounded-xl space-y-3'
+      className='p-3 bg-stone-50 border border-stone-200 rounded-xl space-y-3'
     >
       {/* Tiêu đề & nút mở ReviewView */}
       <div className='flex flex-wrap items-center justify-between gap-2'>
         <div className='flex items-center gap-2'>
           <ScanSearch className='w-4 h-4 text-[#F97316]' />
-          <h4 className='text-xs font-bold text-zinc-900'>
+          <h4 className='text-xs font-bold text-stone-900'>
             {t('chapterOverview.title', { count: pagesData.length })}
           </h4>
         </div>
@@ -362,7 +362,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
       )}
 
       {loading && (
-        <div className='flex items-center justify-center py-6 text-zinc-500 text-xs gap-2'>
+        <div className='flex items-center justify-center py-6 text-stone-500 text-xs gap-2'>
           <Loader2 className='w-4 h-4 animate-spin text-[#F97316]' />
           <span>{t('chapterOverview.loading')}</span>
         </div>
@@ -376,7 +376,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
       )}
 
       {!loading && !error && pagesData.length === 0 && (
-        <p className='text-xs text-zinc-500 py-3 text-center italic'>
+        <p className='text-xs text-stone-500 py-3 text-center italic'>
           {t('chapterOverview.noPages')}
         </p>
       )}
@@ -408,24 +408,24 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
               <div
                 key={page.id}
                 data-testid={`page-overview-${page.id}`}
-                className='p-3 bg-white border border-zinc-200 rounded-xl flex flex-col justify-between gap-2.5 shadow-2xs hover:border-[#F97316]/50 transition-colors'
+                className='p-3 bg-white border border-stone-200 rounded-xl flex flex-col justify-between gap-2.5 shadow-2xs hover:border-[#F97316]/50 transition-colors'
               >
                 <div>
                   {/* Header: Số trang & Tiến độ công đoạn */}
-                  <div className='flex items-center justify-between text-xs font-bold text-zinc-800 pb-1.5 border-b border-zinc-100'>
+                  <div className='flex items-center justify-between text-xs font-bold text-stone-800 pb-1.5 border-b border-stone-100'>
                     <span>{t('chapterOverview.pageTitle', { number: page.pageNumber })}</span>
                     <span
                       data-testid={`summary-text-${page.id}`}
-                      className='text-[10px] font-mono font-medium text-zinc-500'
+                      className='text-[10px] font-mono font-medium text-stone-500'
                     >
                       {liveSummaryText}
                     </span>
                   </div>
 
                   {/* Thumbnail: TRANG THÀNH PHẨM COMPOSITE */}
-                  <div className='mt-2 w-full h-36 bg-zinc-100 rounded-lg overflow-hidden flex items-center justify-center border border-zinc-200/80 relative'>
+                  <div className='mt-2 w-full h-36 bg-stone-100 rounded-lg overflow-hidden flex items-center justify-center border border-stone-200/80 relative'>
                     {loadingComposite ? (
-                      <div className='flex flex-col items-center gap-1.5 text-zinc-400 text-[10px]'>
+                      <div className='flex flex-col items-center gap-1.5 text-stone-400 text-[10px]'>
                         <Loader2 className='w-5 h-5 animate-spin text-[#F97316]' />
                         <span>{t('chapterOverview.buildingComposite')}</span>
                       </div>
@@ -434,7 +434,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                         type='button'
                         data-testid={`thumbnail-btn-${page.id}`}
                         onClick={() => openLightbox(index)}
-                        className='relative group w-full h-full flex items-center justify-center cursor-zoom-in bg-zinc-950/5'
+                        className='relative group w-full h-full flex items-center justify-center cursor-zoom-in bg-stone-950/5'
                         title={t('chapterOverview.thumbnailTooltip')}
                       >
                         <img
@@ -471,9 +471,9 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                     ) : (
                       <div
                         data-testid={`no-artwork-${page.id}`}
-                        className='flex flex-col items-center gap-1 text-zinc-400 text-[11px]'
+                        className='flex flex-col items-center gap-1 text-stone-400 text-[11px]'
                       >
-                        <ImageIcon className='w-6 h-6 stroke-1 text-zinc-300' />
+                        <ImageIcon className='w-6 h-6 stroke-1 text-stone-300' />
                         <span>{t('chapterOverview.noArtwork')}</span>
                       </div>
                     )}
@@ -482,7 +482,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
 
                 {/* 2. Dải tiến độ đủ 1 → 7 của từng trang */}
                 <div className='space-y-1.5 pt-1'>
-                  <div className='text-[10px] text-zinc-500 font-medium flex items-center justify-between'>
+                  <div className='text-[10px] text-stone-500 font-medium flex items-center justify-between'>
                     <span>{t('chapterOverview.stageProgressLabel', { count: stages.length })}</span>
                   </div>
 
@@ -536,7 +536,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
         >
           {/* Header Lightbox */}
           <div
-            className='w-full max-w-4xl flex items-center justify-between text-white text-sm py-2 px-3 bg-zinc-900/80 rounded-xl border border-zinc-700'
+            className='w-full max-w-4xl flex items-center justify-between text-white text-sm py-2 px-3 bg-stone-900/80 rounded-xl border border-stone-700'
             onClick={(e) => e.stopPropagation()}
           >
             <div className='flex items-center gap-2.5'>
@@ -546,7 +546,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                   total: pagesData.length,
                 })}
               </span>
-              <span className='text-xs text-zinc-400 font-mono'>
+              <span className='text-xs text-stone-400 font-mono'>
                 (
                 {t('stageStatus.pageProgressSummary', {
                   panelCount: activeLightboxPage.panelCount,
@@ -561,7 +561,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                 </span>
               )}
               {activeLightboxPage.baseStageName && (
-                <span className='px-2 py-0.5 rounded bg-zinc-700 text-zinc-200 font-mono text-[10px]'>
+                <span className='px-2 py-0.5 rounded bg-stone-700 text-stone-200 font-mono text-[10px]'>
                   {t('chapterOverview.lightboxBase', {
                     stage: activeLightboxPage.baseStageName,
                     version: activeLightboxPage.baseVersion ?? 1,
@@ -575,7 +575,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
               data-testid='lightbox-close-btn'
               aria-label={t('chapterOverview.close')}
               onClick={closeLightbox}
-              className='p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white cursor-pointer transition-colors'
+              className='p-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white cursor-pointer transition-colors'
             >
               <X className='w-4 h-4' />
             </button>
@@ -592,11 +592,11 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                 alt={t('chapterOverview.finishedPageAlt', {
                   number: activeLightboxPage.page.pageNumber,
                 })}
-                className='max-h-[82vh] max-w-full w-auto h-auto object-contain bg-white rounded-lg shadow-2xl border border-zinc-800'
+                className='max-h-[82vh] max-w-full w-auto h-auto object-contain bg-white rounded-lg shadow-2xl border border-stone-800'
               />
             ) : (
-              <div className='p-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 text-center flex flex-col items-center gap-2'>
-                <ImageIcon className='w-12 h-12 stroke-1 text-zinc-600' />
+              <div className='p-12 bg-stone-900 border border-stone-800 rounded-2xl text-stone-400 text-center flex flex-col items-center gap-2'>
+                <ImageIcon className='w-12 h-12 stroke-1 text-stone-600' />
                 <span>{t('chapterOverview.noArtworkPage')}</span>
               </div>
             )}
@@ -612,13 +612,13 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
               data-testid='lightbox-prev-btn'
               disabled={lightboxIndex === 0}
               onClick={handlePrevPage}
-              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-md transition-colors cursor-pointer'
+              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-md transition-colors cursor-pointer'
             >
               <ChevronLeft className='w-4 h-4' />
               <span>{t('chapterOverview.prevPage')}</span>
             </button>
 
-            <span className='text-xs text-zinc-400 font-mono'>
+            <span className='text-xs text-stone-400 font-mono'>
               {t('chapterOverview.keyboardHint')}
             </span>
 
@@ -627,7 +627,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
               data-testid='lightbox-next-btn'
               disabled={lightboxIndex === pagesData.length - 1}
               onClick={handleNextPage}
-              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-md transition-colors cursor-pointer'
+              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-md transition-colors cursor-pointer'
             >
               <span>{t('chapterOverview.nextPage')}</span>
               <ChevronRight className='w-4 h-4' />

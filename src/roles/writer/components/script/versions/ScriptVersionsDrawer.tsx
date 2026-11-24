@@ -192,15 +192,13 @@ export const ScriptVersionsDrawer: React.FC<ScriptVersionsDrawerProps> = ({
               {t('scriptStudio.versions.compareWithPushed')}
             </button>
             {hasUnpushed && (
-              <p className='mt-2 text-[11px] text-amber-800'>
-                {t('scriptStudio.versions.unpushed')}
-              </p>
+              <p className='mt-2 text-xs text-amber-800'>{t('scriptStudio.versions.unpushed')}</p>
             )}
           </div>
 
           {sceneRevisions.length > 0 && (
             <div className='border-b border-stone-200 p-3'>
-              <p className='mb-2 text-[11px] font-bold uppercase tracking-wider text-stone-500'>
+              <p className='mb-2 text-xs font-bold uppercase tracking-wider text-stone-500'>
                 {t('scriptStudio.versions.sceneRevisionsTitle')}
               </p>
               {restoreError && (
@@ -225,7 +223,7 @@ export const ScriptVersionsDrawer: React.FC<ScriptVersionsDrawerProps> = ({
                         <div className='flex items-center gap-1.5'>
                           <span className='font-semibold text-stone-900'>v{rev.versionNumber}</span>
                           {isCurrent && (
-                            <span className='rounded-full bg-emerald-100 px-1.5 py-px text-[10px] font-bold text-emerald-800'>
+                            <span className='rounded-full bg-emerald-100 px-1.5 py-px text-xs font-bold text-emerald-800'>
                               {t('scriptStudio.versions.currentBadge')}
                             </span>
                           )}
@@ -290,16 +288,16 @@ export const ScriptVersionsDrawer: React.FC<ScriptVersionsDrawerProps> = ({
                       <div className='min-w-0 flex-1'>
                         <div className='flex flex-wrap items-center gap-1.5 text-xs'>
                           <span className='font-semibold text-stone-900'>v{v.versionNumber}</span>
-                          <code className='rounded bg-stone-100 px-1 font-mono text-[11px] text-stone-600'>
+                          <code className='rounded bg-stone-100 px-1 font-mono text-xs text-stone-600'>
                             #{shortHash(v.contentHash)}
                           </code>
                           {isPushed && (
-                            <span className='rounded-full bg-orange-600 px-1.5 py-px text-[10px] font-bold text-white'>
+                            <span className='rounded-full bg-orange-600 px-1.5 py-px text-xs font-bold text-white'>
                               {t('scriptStudio.versions.pushedBadge')}
                             </span>
                           )}
                           {i === 0 && !isPushed && (
-                            <span className='rounded-full border border-stone-300 px-1.5 py-px text-[10px] font-bold text-stone-600'>
+                            <span className='rounded-full border border-stone-300 px-1.5 py-px text-xs font-bold text-stone-600'>
                               {t('scriptStudio.versions.head')}
                             </span>
                           )}
@@ -307,7 +305,7 @@ export const ScriptVersionsDrawer: React.FC<ScriptVersionsDrawerProps> = ({
                         <p className='mt-0.5 truncate text-xs text-stone-700'>
                           {v.message || t('scriptStudio.versions.noMessage')}
                         </p>
-                        <p className='mt-0.5 text-[11px] text-stone-400'>
+                        <p className='mt-0.5 text-xs text-stone-400'>
                           {v.authorName ?? ''} · {dateFormat(v.createdAt)} ·{' '}
                           {v.submittedAt
                             ? t('scriptStudio.versions.pushed')

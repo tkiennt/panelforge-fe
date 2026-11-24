@@ -116,7 +116,7 @@ export const SeriesShelf: React.FC<SeriesShelfProps> = ({
   }
 
   return (
-    <div className={SHELF_GRID}>
+    <div id='series-grid' className={SHELF_GRID}>
       {series.map((s) => (
         <SeriesCardItem
           key={s.id}

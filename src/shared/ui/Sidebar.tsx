@@ -37,17 +37,17 @@ export const SidebarSection = forwardRef<HTMLDivElement, SidebarSectionProps>(
           if (typeof ref === 'function') ref(node);
           else if (ref) ref.current = node;
         }}
-        className={cn('space-y-1', className)}
+        className={cn('space-y-0.5', className)}
         onKeyDown={handleKeyDown}
       >
         {label && (
           <div
             className={cn(
-              'px-2 text-xs font-semibold uppercase tracking-wider text-[var(--studio-ink-muted)]',
+              'px-2 py-1 text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center justify-between',
               collapsed && 'sr-only',
             )}
           >
-            {label}
+            <span>{label}</span>
           </div>
         )}
         {children}
@@ -64,6 +64,8 @@ export interface SidebarItemProps extends Omit<
   label: string;
   href?: string;
   currentPath?: string;
+  /** Overrides the path-based match, e.g. when two items share a path and differ by query. */
+  active?: boolean;
   badge?: React.ReactNode;
   badgeLabel?: string;
   collapsed?: boolean;
@@ -78,6 +80,7 @@ export const SidebarItem = forwardRef<HTMLAnchorElement | HTMLButtonElement, Sid
       label,
       href,
       currentPath,
+      active: activeOverride,
       badge,
       badgeLabel,
       collapsed,
@@ -92,41 +95,49 @@ export const SidebarItem = forwardRef<HTMLAnchorElement | HTMLButtonElement, Sid
     const normalizedPath = currentPath?.split('?')[0].replace(/\/$/, '') ?? '';
     const normalizedHref = href?.replace(/^#/, '').split('?')[0].replace(/\/$/, '') ?? '';
     const active =
-      !!normalizedHref &&
-      (normalizedPath === normalizedHref ||
-        normalizedPath.endsWith(normalizedHref) ||
-        (normalizedHref !== '' && normalizedHref !== '/' && normalizedPath.includes(normalizedHref)));
+      activeOverride ??
+      (!!normalizedHref &&
+        (normalizedPath === normalizedHref ||
+          normalizedPath.endsWith(normalizedHref) ||
+          (normalizedHref !== '' &&
+            normalizedHref !== '/' &&
+            normalizedPath.includes(normalizedHref))));
     const classes = cn(
-      'pf-sb-item group relative flex min-h-10 items-center rounded-xl text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-focus-ring)]',
-      collapsed ? 'mx-auto size-10 justify-center' : 'gap-3 px-4 py-2.5',
-      active && 'bg-[var(--sb-active-bg)] font-semibold text-[var(--sb-text)] shadow-xs',
+      'pf-sb-item group relative flex items-center text-xs transition-colors cursor-pointer rounded-xl focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-orange-500',
+      collapsed ? 'size-10 justify-center mx-auto' : 'gap-2.5 px-3 py-2 min-h-9',
+      active
+        ? 'bg-orange-50 text-orange-600 font-semibold border border-orange-200/60 shadow-2xs'
+        : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 font-medium',
       disabled && 'cursor-not-allowed opacity-50',
       className,
     );
     const content = (
       <>
-        {active && (
-          <span
-            className='absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r bg-[var(--sb-accent)]'
-            aria-hidden='true'
-          />
-        )}
         {Icon && (
           <Icon
-            className={cn('pf-sb-icon size-5 shrink-0', active && 'text-[var(--sb-accent)]')}
+            className={cn(
+              'size-4 shrink-0 transition-colors',
+              active ? 'text-orange-600' : 'text-stone-500 group-hover:text-stone-800',
+            )}
             aria-hidden='true'
           />
         )}
-        <span className={collapsed ? 'sr-only' : 'pf-sb-label flex-1 text-left'}>{label}</span>
-        {badge != null && (
-          <span className={collapsed ? 'sr-only' : 'pf-sb-label ml-auto'} aria-label={badgeLabel}>
+        <span className={collapsed ? 'sr-only' : 'flex-1 truncate text-left'}>{label}</span>
+        {badge != null && !collapsed && (
+          <span className='ml-auto shrink-0 flex items-center' aria-label={badgeLabel}>
             {badge}
           </span>
+        )}
+        {active && !collapsed && (
+          <span
+            className='active-dot ml-auto w-1.5 h-1.5 rounded-full bg-orange-600 shrink-0'
+            aria-hidden='true'
+          />
         )}
         {collapsed && (
           <span
             role='tooltip'
-            className='pointer-events-none absolute left-full z-[var(--studio-z-tooltip)] ml-2 hidden whitespace-nowrap rounded-[var(--studio-radius-sm)] bg-stone-900 px-2 py-1 text-xs text-white shadow-md group-hover:block group-focus-visible:block'
+            className='pointer-events-none absolute left-full z-50 ml-2 hidden whitespace-nowrap rounded-md bg-stone-900 px-2.5 py-1 text-xs text-white shadow-md group-hover:block group-focus-visible:block'
           >
             {label}
           </span>

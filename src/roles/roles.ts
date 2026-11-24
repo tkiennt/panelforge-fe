@@ -21,7 +21,7 @@ export const ROLE_MANIFEST = {
     label: 'Producer',
     scope: 'workspace',
     folder: 'roles/producer',
-    defaultRoute: 'dashboard',
+    defaultRoute: 'workspace',
   },
   WRITER: {
     label: 'Writer',
@@ -45,7 +45,7 @@ export const ROLE_MANIFEST = {
     label: 'Editor',
     scope: 'workspace',
     folder: 'roles/editor',
-    defaultRoute: 'dashboard',
+    defaultRoute: 'editor/desk',
   },
   PUBLISHER: {
     label: 'Publisher',

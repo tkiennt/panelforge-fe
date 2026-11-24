@@ -225,4 +225,17 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
     );
     expect(stillHasMark).toBe(false);
   });
+
+  it('đổi loại dòng page có refId sang loại khác sẽ xoá refId để không lẫn PageId vào ScriptLineId', () => {
+    const editor = createEditor([
+      {
+        type: 'scriptLine',
+        attrs: { el: 'page', refId: '11111111-1111-4111-8111-111111111111' },
+      },
+    ]);
+    caretAtEndOf(editor, 0);
+    press(editor, 'Mod-8'); // đổi sang sfx
+    expect(els(editor)).toEqual(['sfx']);
+    expect(editor.getJSON().content?.[0].attrs?.refId).toBeNull();
+  });
 });

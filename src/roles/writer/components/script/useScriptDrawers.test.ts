@@ -7,16 +7,15 @@ describe('useScriptDrawers', () => {
     const { result } = renderHook(() => useScriptDrawers());
 
     expect(result.current.activeLeftDrawer).toBeNull();
-    // Trong môi trường test, activeRightDrawer mặc định là 'status'
-    expect(result.current.activeRightDrawer).toBe('status');
+    expect(result.current.activeRightDrawer).toBeNull();
   });
 
   it('cho phép cấu hình initial drawers', () => {
     const { result } = renderHook(() =>
-      useScriptDrawers({ initialLeftDrawer: 'chapters', initialRightDrawer: 'comments' }),
+      useScriptDrawers({ initialLeftDrawer: 'scenes', initialRightDrawer: 'comments' }),
     );
 
-    expect(result.current.activeLeftDrawer).toBe('chapters');
+    expect(result.current.activeLeftDrawer).toBe('scenes');
     expect(result.current.activeRightDrawer).toBe('comments');
   });
 
@@ -24,12 +23,12 @@ describe('useScriptDrawers', () => {
     const { result } = renderHook(() => useScriptDrawers());
 
     act(() => {
-      result.current.toggleLeftDrawer('chapters');
+      result.current.toggleLeftDrawer('scenes');
     });
-    expect(result.current.activeLeftDrawer).toBe('chapters');
+    expect(result.current.activeLeftDrawer).toBe('scenes');
 
     act(() => {
-      result.current.toggleLeftDrawer('chapters');
+      result.current.toggleLeftDrawer('scenes');
     });
     expect(result.current.activeLeftDrawer).toBeNull();
   });
@@ -38,23 +37,23 @@ describe('useScriptDrawers', () => {
     const { result } = renderHook(() => useScriptDrawers({ initialRightDrawer: null }));
 
     act(() => {
-      result.current.toggleRightDrawer('consistency');
+      result.current.toggleRightDrawer('bible');
     });
-    expect(result.current.activeRightDrawer).toBe('consistency');
+    expect(result.current.activeRightDrawer).toBe('bible');
 
     act(() => {
-      result.current.toggleRightDrawer('consistency');
+      result.current.toggleRightDrawer('bible');
     });
     expect(result.current.activeRightDrawer).toBeNull();
   });
 
   it('đóng toàn bộ ngăn kéo (closeAllDrawers)', () => {
     const { result } = renderHook(() =>
-      useScriptDrawers({ initialLeftDrawer: 'chapters', initialRightDrawer: 'characters' }),
+      useScriptDrawers({ initialLeftDrawer: 'scenes', initialRightDrawer: 'versions' }),
     );
 
-    expect(result.current.activeLeftDrawer).toBe('chapters');
-    expect(result.current.activeRightDrawer).toBe('characters');
+    expect(result.current.activeLeftDrawer).toBe('scenes');
+    expect(result.current.activeRightDrawer).toBe('versions');
 
     act(() => {
       result.current.closeAllDrawers();

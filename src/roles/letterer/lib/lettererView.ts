@@ -8,6 +8,13 @@ import {
   createShoutBalloonPath,
 } from '@/shared/lib/lettering/letteringPrimitives';
 import { translate } from '@/lib/i18n';
+import {
+  rectsOverlap,
+  findKeepOutCollision,
+  suggestBalloonPosition,
+  type Rect,
+  type KeepOutZone,
+} from '@/shared/lib/lettering/keepOutZones';
 
 export {
   LETTERING_CHAR_WIDTH_EM,
@@ -16,7 +23,11 @@ export {
   LETTERING_PADDING_PX,
   MIN_LETTERING_FONT_PX,
   createShoutBalloonPath,
+  rectsOverlap,
+  findKeepOutCollision,
+  suggestBalloonPosition,
 };
+export type { Rect, KeepOutZone };
 // Phép biến đổi zoom/pan và ước lượng hộp chữ của màn Letterer. Hàm thuần để kiểm thử được và để
 // artwork + lớp lettering dùng CHUNG một hệ toạ độ trang (px trang gốc, vd 1200×1800).
 
@@ -201,23 +212,6 @@ export function nudgeDelta(key: string, shift: boolean): Point | null {
 
 export const MAX_WORDS_PER_BALLOON = 30;
 
-export interface Rect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-export interface KeepOutZone {
-  id: string;
-  panelId?: string | null;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  label?: string;
-}
-
 export interface TailPoint {
   x: number;
   y: number;
@@ -296,88 +290,6 @@ export function splitTextIntoTwoBalloons(text: string): { part1: string; part2: 
     part1: words.slice(0, half).join(' '),
     part2: words.slice(half).join(' '),
   };
-}
-
-/** Kiểm tra hai hình chữ nhật có giao nhau (chạm nhau) không. */
-export function rectsOverlap(r1: Rect, r2: Rect): boolean {
-  return (
-    r1.x < r2.x + r2.width &&
-    r1.x + r1.width > r2.x &&
-    r1.y < r2.y + r2.height &&
-    r1.y + r1.height > r2.y
-  );
-}
-
-/** Tìm vùng cấm mà bóng thoại đang va chạm. */
-export function findKeepOutCollision(
-  balloonBox: Rect,
-  keepOutZones: KeepOutZone[],
-): KeepOutZone | null {
-  for (const zone of keepOutZones) {
-    if (rectsOverlap(balloonBox, zone)) {
-      return zone;
-    }
-  }
-  return null;
-}
-
-/**
- * Gợi ý vị trí đặt bóng: tìm khoảng trống trong panel không chạm vùng cấm,
- * ưu tiên góc trên theo thứ tự đọc (RTL: góc trên-phải).
- */
-export function suggestBalloonPosition(
-  balloonSize: { width: number; height: number },
-  panel: Rect,
-  keepOutZones: KeepOutZone[],
-  isRTL = true,
-): { x: number; y: number } {
-  const padding = 16;
-  const minX = panel.x + padding;
-  const maxX = Math.max(minX, panel.x + panel.width - balloonSize.width - padding);
-  const minY = panel.y + padding;
-  const maxY = Math.max(minY, panel.y + panel.height - balloonSize.height - padding);
-
-  const stepX = 24;
-  const stepY = 24;
-  let bestPos = { x: isRTL ? maxX : minX, y: minY };
-  let minScore = Infinity;
-
-  for (let y = minY; y <= maxY; y += stepY) {
-    for (let x = isRTL ? maxX : minX; isRTL ? x >= minX : x <= maxX; x += isRTL ? -stepX : stepX) {
-      const candidate: Rect = { x, y, width: balloonSize.width, height: balloonSize.height };
-      let collisionScore = 0;
-
-      for (const zone of keepOutZones) {
-        if (rectsOverlap(candidate, zone)) {
-          const overlapW =
-            Math.min(candidate.x + candidate.width, zone.x + zone.width) -
-            Math.max(candidate.x, zone.x);
-          const overlapH =
-            Math.min(candidate.y + candidate.height, zone.y + zone.height) -
-            Math.max(candidate.y, zone.y);
-          collisionScore += Math.max(1, overlapW * overlapH) * 500;
-        } else {
-          const dist = Math.hypot(
-            candidate.x + candidate.width / 2 - (zone.x + zone.width / 2),
-            candidate.y + candidate.height / 2 - (zone.y + zone.height / 2),
-          );
-          collisionScore += Math.max(0, 100 - dist);
-        }
-      }
-
-      // Thứ tự đọc ưu tiên: y nhỏ hơn (trên), trong RTL x lớn hơn (phải)
-      const yScore = (y - minY) * 1.5;
-      const xScore = isRTL ? (maxX - x) * 1.0 : (x - minX) * 1.0;
-      const totalScore = collisionScore + yScore + xScore;
-
-      if (totalScore < minScore) {
-        minScore = totalScore;
-        bestPos = { x, y };
-      }
-    }
-  }
-
-  return bestPos;
 }
 
 export interface PanelTextDensity {

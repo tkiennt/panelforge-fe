@@ -23,7 +23,7 @@
     "dashboard": "Dashboard",
     "seriesDashboard": "Series Dashboard",
     "systemDashboard": "System Dashboard",
-    "myWork": "Công việc của tôi",
+    "myWork": "Việc của tôi",
     "workAndReview": "Công việc & Xét duyệt",
     "production": "Quy trình sản xuất",
     "script": "Kịch bản (Script)",
@@ -55,7 +55,19 @@
     "revenue": "Doanh thu",
     "chapterManagement": "Quản lý chương",
     "publisherManagement": "Quản lý Xuất bản",
-    "publisherDesk": "Bàn Làm Việc Publisher"
+    "publisherDesk": "Bàn Làm Việc Publisher",
+    "progressAndTasks": "Tiến độ & Giao việc",
+    "scriptAndReview": "Kịch bản & Cổng duyệt",
+    "artworkReview": "Đọc duyệt tranh",
+    "packagingAndExport": "Đóng gói & Xuất bản",
+    "library": "Thư viện",
+    "revenueAndReads": "Doanh thu & Lượt đọc",
+    "chapterScript": "Kịch bản Chương",
+    "characterProfilesAndLore": "Hồ sơ Nhân vật & Lore",
+    "panelCanvasDesk": "Bàn vẽ Khung tranh",
+    "scriptReadOnly": "Kịch bản (chỉ đọc)",
+    "letteringAndBalloons": "Chèn chữ & Bóng thoại",
+    "editorReviewDesk": "Kiểm tra & Hiệu đính"
   },
   "header": {
     "searchPlaceholder": "Tìm kiếm khung tranh, thoại, tư liệu...",
@@ -78,7 +90,8 @@
     "studios": "Studio",
     "series": "Tác phẩm",
     "chapters": "Chương",
-    "pages": "Trang"
+    "pages": "Trang",
+    "scriptSuffix": "(Kịch bản)"
   },
   "sidebar": {
     "collapse": "Thu gọn thanh điều hướng",
@@ -101,7 +114,14 @@
       "ocean": "Biển đêm",
       "plum": "Tím bản thảo"
     },
-    "publisherSubtitle": "Hệ thống xuất bản"
+    "publisherSubtitle": "Hệ thống xuất bản",
+    "backToStudio": "Về Sảnh Studio",
+    "activeSeriesLabel": "BỘ TRUYỆN ĐANG MỞ",
+    "activeWorkspaceLabel": "WORKSPACE HIỆN TẠI",
+    "chapterProduction": "SẢN XUẤT CHƯƠNG",
+    "chapterWriting": "SÁNG TÁC CHƯƠNG",
+    "seriesOverview": "TỔNG QUAN",
+    "crew": "Đội ngũ"
   },
   "focus": {
     "workspaceTitle": {

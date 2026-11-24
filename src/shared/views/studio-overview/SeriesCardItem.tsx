@@ -10,7 +10,7 @@ import {
   Users,
   ArrowRight,
   PenTool,
-  BookOpen,
+  Lock,
 } from 'lucide-react';
 import { SeriesDto } from '@/services/series.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
@@ -30,7 +30,7 @@ export interface SeriesCardItemProps {
   onClearCover: (seriesId: string) => void;
   onEditSeries: (series: SeriesDto) => void;
   onDeleteSeries: (series: SeriesDto) => void;
-  /** Nhãn mở theo vai trò (DESIGN_RULES 5.1); mặc định "Mở bộ truyện". */
+  /** Nhãn mở theo vai trò (DESIGN_RULES 5.1); mặc định "Mở không gian truyện". */
   openLabel?: string;
 }
 
@@ -61,7 +61,6 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
 
   const isCompleted = s.isCompleted;
   const isPreProd = !isCompleted && (s.chaptersCount ?? 0) === 0;
-  const isInProd = !isCompleted && (s.chaptersCount ?? 0) > 0;
 
   const pct = isCompleted
     ? 100
@@ -69,11 +68,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
       ? 15
       : Math.min(95, Math.max(30, (s.chaptersCount ?? 1) * 16));
 
-  const progressColor = isCompleted
-    ? 'bg-emerald-600'
-    : isPreProd
-      ? 'bg-amber-500'
-      : 'bg-orange-600';
+  const progressColor = isCompleted ? 'bg-emerald-600' : 'bg-orange-600';
 
   const statusBadgeColor = isCompleted
     ? 'bg-stone-700 text-white'
@@ -81,18 +76,29 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
       ? 'bg-amber-500 text-white'
       : 'bg-emerald-600 text-white';
 
+  const statusText = isCompleted
+    ? t('workspace.studioHub.series.statusCompleted')
+    : isPreProd
+      ? t('workspace.studioHub.series.statusPreProd')
+      : t('workspace.studioHub.series.statusInProd');
+
   const seriesCode = (s as any).code || s.id.substring(0, 6).toUpperCase();
+  const buttonLabel = openLabel;
 
   return (
-    <article className='series-card group relative bg-white border border-stone-200 rounded-xl shadow-xs overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow min-w-0'>
+    <article
+      className='series-card group relative bg-white border border-stone-200 rounded-xl shadow-xs overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow min-w-0'
+      data-status={isCompleted ? 'completed' : isPreProd ? 'pre-prod' : 'in-prod'}
+      data-title={s.title.toLowerCase()}
+    >
       <div>
         {/* Cover Header Banner */}
         <div className='relative w-full h-48 bg-stone-100 overflow-hidden'>
           <button
             type='button'
             onClick={() => onOpenSeries(s.id)}
-            aria-label={`${resolvedOpenLabel}: ${s.title}`}
-            title={`${resolvedOpenLabel}: ${s.title}`}
+            aria-label={`${buttonLabel}: ${s.title}`}
+            title={`${buttonLabel}: ${s.title}`}
             className='focus-ring block w-full h-full relative cursor-pointer text-left'
           >
             {displayCoverUrl ? (
@@ -119,33 +125,31 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
               <h3 className='text-xl text-white font-bold drop-shadow-sm line-clamp-1'>
                 {s.title}
               </h3>
-              <span className='text-[11px] text-stone-200 line-clamp-1 mt-0.5'>
-                {s.synopsis || t('workspace.seriesCard.defaultSynopsis')} •{' '}
-                {t('workspace.seriesCard.codePrefix')} {seriesCode}
+              <span className='text-xs text-stone-200 line-clamp-1 mt-0.5'>
+                {s.synopsis || t('workspace.studioHub.series.defaultSynopsis')} •{' '}
+                {t('workspace.studioHub.series.codeLabel')}: {seriesCode}
               </span>
             </div>
           </button>
 
           {/* Top Left Badges */}
           <div className='absolute top-3 left-3 flex flex-wrap gap-1.5 z-10 pointer-events-none'>
-            <span className='px-2 py-0.5 rounded-md bg-white/95 backdrop-blur text-[11px] font-semibold text-stone-800 shadow-xs'>
+            <span className='px-2 py-0.5 rounded-md bg-white/95 backdrop-blur text-xs font-semibold text-stone-800 shadow-xs'>
               {formatGenre(s.genre || s.format)}
             </span>
-            <span className='px-2 py-0.5 rounded-md bg-white/95 backdrop-blur text-[11px] font-medium text-stone-600 shadow-xs'>
-              {formatReadingDirection(s.readingDirection).label}
+            <span className='px-2 py-0.5 rounded-md bg-white/95 backdrop-blur text-xs font-medium text-stone-600 shadow-xs'>
+              {s.format === 'WEBTOON'
+                ? t('workspace.studioHub.series.verticalOption')
+                : formatReadingDirection(s.readingDirection).label}
             </span>
           </div>
 
           {/* Top Right Status Badge & Menu */}
           <div className='absolute top-3 right-3 flex items-center gap-1.5 z-10'>
             <span
-              className={`px-2 py-0.5 rounded-md text-[11px] font-semibold shadow-xs flex items-center gap-1 ${statusBadgeColor}`}
+              className={`px-2 py-0.5 rounded-md text-xs font-semibold shadow-xs flex items-center gap-1 ${statusBadgeColor}`}
             >
-              {isCompleted
-                ? t('workspace.seriesCard.statusCompleted')
-                : isPreProd
-                  ? t('workspace.seriesCard.statusPreProd')
-                  : t('workspace.seriesCard.statusInProd')}
+              {statusText}
             </span>
 
             {/* Accessible 3-dots Menu for Producer / Admin */}
@@ -178,7 +182,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                       className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                     >
                       <Sliders className='w-3.5 h-3.5 text-blue-500' />
-                      <span>{t('workspace.seriesCard.menuPipeline')}</span>
+                      <span>{t('workspace.studioHub.series.menuPipeline')}</span>
                     </button>
                     <button
                       type='button'
@@ -190,7 +194,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                       className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                     >
                       <ListOrdered className='w-3.5 h-3.5 text-purple-500' />
-                      <span>Typography Presets</span>
+                      <span>{t('workspace.studioHub.series.menuTypography')}</span>
                     </button>
                     {onOpenMembers && (
                       <button
@@ -203,7 +207,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                         className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                       >
                         <Users className='w-3.5 h-3.5 text-emerald-600' />
-                        <span>{t('workspace.seriesCard.menuMembers')}</span>
+                        <span>{t('workspace.studioHub.series.menuCrew')}</span>
                       </button>
                     )}
                     <div className='border-t border-stone-100 my-1' />
@@ -219,8 +223,8 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                       <ImagePlus className='w-3.5 h-3.5 text-orange-500' />
                       <span>
                         {s.coverUrl
-                          ? t('workspace.seriesCard.menuChangeCover')
-                          : t('workspace.seriesCard.menuAddCover')}
+                          ? t('workspace.studioHub.series.menuChangeCover')
+                          : t('workspace.studioHub.series.menuAddCover')}
                       </span>
                     </button>
                     {s.coverUrl && (
@@ -234,7 +238,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                         className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                       >
                         <ImageOff className='w-3.5 h-3.5 text-stone-500' />
-                        <span>{t('workspace.seriesCard.menuClearCover')}</span>
+                        <span>{t('workspace.studioHub.series.menuClearCover')}</span>
                       </button>
                     )}
                     <button
@@ -247,7 +251,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                       className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                     >
                       <Edit2 className='w-3.5 h-3.5 text-stone-600' />
-                      <span>{t('workspace.seriesCard.menuEdit')}</span>
+                      <span>{t('workspace.studioHub.series.menuEdit')}</span>
                     </button>
                     <button
                       type='button'
@@ -259,7 +263,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                       className='w-full text-left px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer'
                     >
                       <Trash2 className='w-3.5 h-3.5' />
-                      <span>{t('workspace.seriesCard.menuDelete')}</span>
+                      <span>{t('workspace.studioHub.series.menuDelete')}</span>
                     </button>
                   </div>
                 )}
@@ -275,12 +279,12 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
             <div className='flex items-center justify-between text-xs'>
               <span className='font-semibold text-stone-800 flex items-center gap-1'>
                 <PenTool className='w-3.5 h-3.5 text-orange-600' />
-                {t('workspace.seriesCard.progress', { pct })}
+                {t('workspace.studioHub.series.progress', { pct })}
               </span>
               <span className='text-stone-500'>
                 {s.chaptersCount
-                  ? t('workspace.seriesCard.chaptersCountUpper', { count: s.chaptersCount })
-                  : t('workspace.seriesCard.nameDraft')}
+                  ? t('workspace.studioHub.series.chapterCount', { count: s.chaptersCount })
+                  : t('workspace.studioHub.series.draftName')}
               </span>
             </div>
             <div className='w-full bg-stone-100 h-2 rounded-full overflow-hidden'>
@@ -289,13 +293,13 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <div className='flex items-center justify-between text-[11px] text-stone-500'>
+            <div className='flex items-center justify-between text-xs text-stone-500'>
               <span className='text-stone-700 font-medium truncate'>
                 {isCompleted
-                  ? t('workspace.seriesCard.statusCompletedDetail')
+                  ? t('workspace.studioHub.series.completedDesc')
                   : isPreProd
-                    ? t('workspace.seriesCard.statusPreProdDetail')
-                    : t('workspace.seriesCard.statusInProdDetail', { count: s.chaptersCount ?? 1 })}
+                    ? t('workspace.studioHub.series.preProdDesc')
+                    : t('workspace.studioHub.series.inProdDesc', { count: s.chaptersCount ?? 1 })}
               </span>
             </div>
           </div>
@@ -303,25 +307,32 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
           {/* Metadata Box */}
           <div className='flex items-center justify-between bg-[#FAF9F5] px-3 py-2 rounded-lg border border-stone-200 text-xs'>
             <div className='flex items-center gap-1.5 text-stone-700 font-medium truncate'>
-              <BookOpen className='w-3.5 h-3.5 text-sky-600 shrink-0' />
+              <Lock className='w-3.5 h-3.5 text-sky-600 shrink-0' />
               <span className='truncate'>
-                {s.format || t('workspace.seriesCard.defaultFormat')} • {formatGenre(s.genre)}
+                {s.format || t('workspace.studioHub.series.standardFormat')} •{' '}
+                {formatGenre(s.genre)}
               </span>
             </div>
-            <span className='text-[11px] text-stone-600 font-medium shrink-0'>
-              {t('workspace.seriesCard.chaptersCountLower', { count: s.chaptersCount ?? 0 })} ·{' '}
+            <span className='text-xs text-stone-600 font-medium shrink-0'>
+              {s.chaptersCount ?? 0} {t('workspace.studioHub.series.chapterUnit')} ·{' '}
               {formatReadingDirection(s.readingDirection).label}
             </span>
           </div>
 
-          {/* Status Details Row */}
-          <div className='flex items-center justify-between text-xs text-stone-600'>
-            <span>{t('workspace.seriesCard.chapterProgressLabel')}</span>
-            <span className='font-semibold text-stone-900'>
-              {s.chaptersCount
-                ? t('workspace.seriesCard.chaptersCreated', { count: s.chaptersCount })
-                : t('workspace.seriesCard.initDraft')}
-            </span>
+          {/* Team / Ê-kíp row */}
+          <div className='flex items-center justify-between text-xs'>
+            <span className='text-stone-500'>{t('workspace.studioHub.series.team')}</span>
+            <div className='flex items-center -space-x-1.5'>
+              <div className='w-6 h-6 rounded-full bg-stone-200 text-stone-700 font-bold text-xs flex items-center justify-center border-2 border-white select-none'>
+                {s.title.charAt(0).toUpperCase()}
+              </div>
+              <div className='w-6 h-6 rounded-full bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center border-2 border-white select-none'>
+                PD
+              </div>
+              <div className='w-6 h-6 rounded-full bg-sky-100 text-sky-700 font-bold text-xs flex items-center justify-center border-2 border-white select-none'>
+                ED
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -331,11 +342,11 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
         <button
           type='button'
           onClick={() => onOpenSeries(s.id)}
-          aria-label={t('workspace.seriesCard.workspaceAria', { title: s.title })}
+          aria-label={`${buttonLabel}: ${s.title}`}
           className='w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer'
           data-testid={`open-series-btn-${s.id}`}
         >
-          <span>{t('workspace.seriesCard.openWorkspace')}</span>
+          <span>{buttonLabel}</span>
           <ArrowRight className='w-4 h-4' />
         </button>
       </div>

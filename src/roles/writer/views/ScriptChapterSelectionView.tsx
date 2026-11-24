@@ -1,9 +1,10 @@
 // src/roles/writer/views/ScriptChapterSelectionView.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { chapterService, ChapterDto, CreateChapterRequest } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { ChapterSelectionView } from '../components/script/chapter-selection';
+// eslint-disable-next-line no-restricted-imports
 import { ScriptReviewView } from '@/roles/editor/views/ScriptReviewView';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { useTranslation } from '@/lib/i18n';
@@ -97,24 +98,43 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
   };
 
   if (chapterIdParam) {
+    if (effectiveRole === 'EDITOR') {
+      return (
+        <ScriptReviewView
+          chapterIdProp={chapterIdParam}
+          workspaceRole={effectiveRole || undefined}
+          onShowToast={notify}
+          onBackToChapters={() => {
+            const next = new URLSearchParams(searchParams);
+            next.delete('chapterId');
+            next.delete('view');
+            setSearchParams(next);
+          }}
+          chaptersList={chapters}
+          onSelectChapter={(id) => {
+            const next = new URLSearchParams(searchParams);
+            next.set('chapterId', id);
+            next.set('view', 'review');
+            setSearchParams(next);
+          }}
+        />
+      );
+    }
+
+    if (effectiveRole === 'PRODUCER') {
+      return (
+        <Navigate
+          to={`/workspaces/${workspaceId}/series/${seriesId}/chapters?chapterId=${chapterIdParam}`}
+          replace
+        />
+      );
+    }
+
+    // Default / Writer: land in the editor
     return (
-      <ScriptReviewView
-        chapterIdProp={chapterIdParam}
-        workspaceRole={effectiveRole || undefined}
-        onShowToast={notify}
-        onBackToChapters={() => {
-          const next = new URLSearchParams(searchParams);
-          next.delete('chapterId');
-          next.delete('view');
-          setSearchParams(next);
-        }}
-        chaptersList={chapters}
-        onSelectChapter={(id) => {
-          const next = new URLSearchParams(searchParams);
-          next.set('chapterId', id);
-          next.set('view', 'review');
-          setSearchParams(next);
-        }}
+      <Navigate
+        to={`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${chapterIdParam}`}
+        replace
       />
     );
   }

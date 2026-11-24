@@ -35,7 +35,13 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
     const text = results
       .map(
         (r) =>
-          `${r.email} - ${r.role}: ${r.success ? t('producer.inviteResultModal.copySuccess') : t('producer.inviteResultModal.copyFailure', { message: r.message || t('producer.inviteResultModal.copyErrorFallback') })}`,
+          `${r.email} - ${r.role}: ${
+            r.success
+              ? t('members.inviteResult.successText')
+              : t('members.inviteResult.failureText', {
+                  error: r.message || t('members.inviteResult.statusError'),
+                })
+          }`,
       )
       .join('\n');
     navigator.clipboard.writeText(text);
@@ -48,9 +54,9 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size='md'
-      title={t('producer.inviteResultModal.title')}
+      title={t('members.inviteResult.title')}
       description={workspaceName}
-      closeLabel={t('producer.inviteResultModal.close')}
+      closeLabel={t('members.inviteResult.close')}
     >
       <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]'>
         {/* Summary Badges */}
@@ -61,10 +67,10 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             </div>
             <div className='text-xs'>
               <div className='font-bold text-emerald-800'>
-                {t('producer.inviteResultModal.sentSuccess')}
+                {t('members.inviteResult.successTitle')}
               </div>
-              <div className='text-emerald-600 text-[11px]'>
-                {t('producer.inviteResultModal.waitingEmailConfirm')}
+              <div className='text-emerald-600 text-xs'>
+                {t('members.inviteResult.pendingConfirm')}
               </div>
             </div>
           </div>
@@ -84,11 +90,11 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
               {failureCount}
             </div>
             <div className='text-xs'>
-              <div className='font-bold'>{t('producer.inviteResultModal.failed')}</div>
-              <div className='text-[11px]'>
+              <div className='font-bold'>{t('members.inviteResult.failureTitle')}</div>
+              <div className='text-xs'>
                 {failureCount > 0
-                  ? t('producer.inviteResultModal.checkEmailAgain')
-                  : t('producer.inviteResultModal.noErrors')}
+                  ? t('members.inviteResult.checkEmail')
+                  : t('members.inviteResult.noErrors')}
               </div>
             </div>
           </div>
@@ -96,8 +102,8 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
 
         {/* Detailed Results List */}
         <div className='p-4 overflow-y-auto space-y-2 flex-1 custom-scrollbar text-xs'>
-          <div className='text-[11px] text-stone-500 font-semibold mb-1'>
-            {t('producer.inviteResultModal.detailsCount', { count: results.length })}
+          <div className='text-xs text-stone-500 font-semibold mb-1'>
+            {t('members.inviteResult.details', { count: results.length })}
           </div>
 
           {results.map((item, idx) => (
@@ -118,30 +124,30 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
                     <span className='font-mono font-medium text-stone-900 truncate'>
                       {item.email}
                     </span>
-                    <span className='px-1.5 py-0.5 rounded text-[10px] font-mono bg-white border border-stone-200 text-stone-700 font-semibold'>
+                    <span className='px-1.5 py-0.5 rounded text-xs font-mono bg-white border border-stone-200 text-stone-700 font-semibold'>
                       {item.role}
                     </span>
                   </div>
                   <p
-                    className={`text-[11px] mt-0.5 ${
+                    className={`text-xs mt-0.5 ${
                       item.success ? 'text-stone-500' : 'text-red-700 font-medium'
                     }`}
                   >
                     {item.success
-                      ? t('producer.inviteResultModal.inviteSentPending')
-                      : item.message || t('producer.inviteResultModal.inviteError')}
+                      ? t('members.inviteResult.sentPending')
+                      : item.message || t('members.inviteResult.sendError')}
                   </p>
                 </div>
               </div>
 
               <span
-                className={`px-2 py-0.5 rounded text-[10px] font-semibold shrink-0 ${
+                className={`px-2 py-0.5 rounded text-xs font-semibold shrink-0 ${
                   item.success ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
                 }`}
               >
                 {item.success
-                  ? t('producer.inviteResultModal.badgePending')
-                  : t('producer.inviteResultModal.badgeError')}
+                  ? t('members.inviteResult.statusPending')
+                  : t('members.inviteResult.statusError')}
               </span>
             </div>
           ))}
@@ -160,9 +166,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
               <Copy className='w-3.5 h-3.5 text-stone-500' />
             )}
             <span>
-              {copied
-                ? t('producer.inviteResultModal.copied')
-                : t('producer.inviteResultModal.copy')}
+              {copied ? t('members.inviteResult.copied') : t('members.inviteResult.copy')}
             </span>
           </button>
 
@@ -171,7 +175,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             onClick={onClose}
             className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer'
           >
-            {t('producer.inviteResultModal.close')}
+            {t('members.inviteResult.close')}
           </button>
         </div>
       </div>

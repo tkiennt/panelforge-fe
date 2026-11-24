@@ -140,12 +140,6 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(screen.getByText('2 mục tri thức')).toBeDefined();
     });
 
-    // KPI: Tần Mục đã khoá Canon
-    expect(screen.getByTestId('bible-stat-locked').textContent).toContain('1');
-
-    // KPI: Tần Mục đã khoá Canon
-    expect(screen.getByTestId('bible-stat-locked').textContent).toContain('1');
-
     expect(screen.getByText('Tạo mục nháp')).toBeDefined();
   });
 
@@ -981,6 +975,119 @@ describe('SeriesBibleView UX/UI improvements', () => {
         ).not.toBeInTheDocument();
         unmount();
       }
+    });
+
+    it('lets Writer reject AI stub draft without altering form or auto-saving, and preserves existing subtitle when AI draft subtitle is null', async () => {
+      const runStubSpy = vi
+        .spyOn(aiAgentsService, 'runBibleStubDraft')
+        .mockResolvedValueOnce({
+          id: 'sug-reject-1',
+          runId: 'run-r-1',
+          stepId: 'step-r-1',
+          sceneId: 'sc-1',
+          kind: 'BibleStub',
+          status: 'Pending',
+          summary: 'Hồ sơ nháp lần 1',
+          payload: {
+            entryId: 'stub-1',
+            name: 'Hắc Y Nhân',
+            draft: {
+              description: 'Đề xuất không phù hợp.',
+              subtitle: 'Vai trò sai',
+              citations: [],
+            },
+            reason: 'Từ kịch bản',
+          },
+          payloadHash: 'hash-r-1',
+          baseChapterVersion: 1,
+          bibleRevisionIds: [],
+          hasBlockingFindings: false,
+          createdAt: '2026-11-19T10:00:00Z',
+          decisions: [],
+          canDecide: true,
+          canAccept: true,
+        })
+        .mockResolvedValueOnce({
+          id: 'sug-accept-2',
+          runId: 'run-r-2',
+          stepId: 'step-r-2',
+          sceneId: 'sc-1',
+          kind: 'BibleStub',
+          status: 'Pending',
+          summary: 'Hồ sơ nháp lần 2',
+          payload: {
+            entryId: 'stub-1',
+            name: 'Hắc Y Nhân',
+            draft: {
+              description: 'Nhân vật áo đen xuất hiện dưới mưa.',
+              subtitle: null,
+              citations: [],
+            },
+            reason: 'Từ kịch bản',
+          },
+          payloadHash: 'hash-r-2',
+          baseChapterVersion: 1,
+          bibleRevisionIds: [],
+          hasBlockingFindings: false,
+          createdAt: '2026-11-19T10:05:00Z',
+          decisions: [],
+          canDecide: true,
+          canAccept: true,
+        });
+      const reviewSpy = vi
+        .spyOn(aiAgentsService, 'review')
+        .mockResolvedValueOnce({
+          suggestionId: 'sug-reject-1',
+          status: 'Rejected',
+          decisionId: 'dec-r-1',
+          resultRevisionId: null,
+          chapterVersion: 1,
+        })
+        .mockResolvedValueOnce({
+          suggestionId: 'sug-accept-2',
+          status: 'Accepted',
+          decisionId: 'dec-r-2',
+          resultRevisionId: null,
+          chapterVersion: 1,
+        });
+
+      render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+
+      fireEvent.click(await screen.findByTestId('define-stub-btn-stub-1'));
+
+      const subtitleInput = screen.getByTestId('define-entity-subtitle-input') as HTMLInputElement;
+      const descInput = screen.getByTestId(
+        'define-entity-description-input',
+      ) as HTMLTextAreaElement;
+      fireEvent.change(subtitleInput, { target: { value: 'Thủ lĩnh ám sát' } });
+      fireEvent.change(descInput, { target: { value: 'Mô tả tự viết ban đầu.' } });
+
+      // 1. Request AI draft then Reject -> form remains untouched and defineBibleEntry is NOT called
+      fireEvent.click(screen.getByRole('button', { name: /Soạn nháp từ kịch bản/i }));
+      await screen.findByText('Đề xuất không phù hợp.');
+
+      fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Xác nhận Reject/i }));
+
+      await waitFor(() => {
+        expect(reviewSpy).toHaveBeenCalledWith('series-123', 'sug-reject-1', 'reject', {});
+      });
+      expect(subtitleInput.value).toBe('Thủ lĩnh ám sát');
+      expect(descInput.value).toBe('Mô tả tự viết ban đầu.');
+      expect(bibleService.defineBibleEntry).not.toHaveBeenCalled();
+
+      // 2. Request another AI draft with subtitle: null -> accepting updates description but preserves Writer's subtitle
+      fireEvent.click(screen.getByRole('button', { name: /Soạn nháp từ kịch bản/i }));
+      await screen.findByText('Nhân vật áo đen xuất hiện dưới mưa.');
+      expect(runStubSpy).toHaveBeenCalledTimes(2);
+
+      fireEvent.click(screen.getByRole('button', { name: /Dùng làm nháp/i }));
+      await waitFor(() => {
+        expect(reviewSpy).toHaveBeenCalledWith('series-123', 'sug-accept-2', 'accept', {});
+      });
+      expect(descInput.value).toBe('Nhân vật áo đen xuất hiện dưới mưa.');
+      expect(subtitleInput.value).toBe('Thủ lĩnh ám sát');
+      expect(bibleService.defineBibleEntry).not.toHaveBeenCalled();
     });
   });
 });

@@ -56,14 +56,6 @@ const WorkspaceView = lazy(() =>
 const ExportView = lazy(() =>
   import('@/roles/producer/views/ExportView').then((m) => ({ default: m.ExportView })),
 );
-const ProducerPaymentsView = lazy(() =>
-  import('@/roles/producer/views/ProducerPaymentsView').then((m) => ({
-    default: m.ProducerPaymentsView,
-  })),
-);
-const DashboardView = lazy(() =>
-  import('@/roles/producer/views/DashboardView').then((m) => ({ default: m.DashboardView })),
-);
 const ProducerChapterManagementView = lazy(() =>
   import('@/roles/producer/views/ProducerChapterManagementView').then((m) => ({
     default: m.ProducerChapterManagementView,
@@ -94,6 +86,14 @@ const BibleReviewView = lazy(() =>
 );
 const ScriptReviewView = lazy(() =>
   import('@/roles/editor/views/ScriptReviewView').then((m) => ({ default: m.ScriptReviewView })),
+);
+const ChapterReaderView = lazy(() =>
+  import('@/roles/editor/views/ChapterReaderView').then((m) => ({ default: m.ChapterReaderView })),
+);
+const SeriesRevenueView = lazy(() =>
+  import('@/roles/producer/views/SeriesRevenueView').then((m) => ({
+    default: m.SeriesRevenueView,
+  })),
 );
 const NotificationCenterView = lazy(() =>
   import('@/shared/views/NotificationCenterView').then((m) => ({
@@ -492,44 +492,12 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     />
                   }
                 />
-                <Route
-                  path='dashboard'
-                  element={
-                    <RequireWorkspaceRole
-                      allowedRoles={[
-                        'PRODUCER',
-                        'WRITER',
-                        'ARTIST',
-                        'LETTERER',
-                        'EDITOR',
-                        'ADMINISTRATOR',
-                      ]}
-                      currentWorkspaceRole={currentWorkspaceRole}
-                      currentRole={currentRole}
-                      activeRoles={activeProjectRoles}
-                    >
-                      <DashboardView
-                        workspaceRole={currentWorkspaceRole}
-                        activeProject={activeProject}
-                        assistants={assistants}
-                        provenanceLogs={provenanceLogs}
-                        onShowToast={showToast}
-                      />
-                    </RequireWorkspaceRole>
-                  }
-                />
+                <Route path='dashboard' element={<Navigate to='../chapters' replace />} />
                 <Route
                   path='chapters'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={[
-                        'PRODUCER',
-                        'WRITER',
-                        'ARTIST',
-                        'LETTERER',
-                        'EDITOR',
-                        'ADMINISTRATOR',
-                      ]}
+                      allowedRoles={['PRODUCER', 'ARTIST', 'LETTERER', 'EDITOR', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -545,14 +513,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='workspace'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={[
-                        'PRODUCER',
-                        'WRITER',
-                        'ARTIST',
-                        'LETTERER',
-                        'EDITOR',
-                        'ADMINISTRATOR',
-                      ]}
+                      allowedRoles={['PRODUCER', 'ARTIST', 'LETTERER', 'EDITOR', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -602,14 +563,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='my-work'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={[
-                        'PRODUCER',
-                        'WRITER',
-                        'ARTIST',
-                        'LETTERER',
-                        'EDITOR',
-                        'ADMINISTRATOR',
-                      ]}
+                      allowedRoles={['WRITER', 'ARTIST', 'LETTERER', 'EDITOR', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -622,19 +576,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     </RequireWorkspaceRole>
                   }
                 />
-                <Route
-                  path='publishing'
-                  element={
-                    <RequireWorkspaceRole
-                      allowedRoles={['PRODUCER', 'ADMINISTRATOR']}
-                      currentWorkspaceRole={currentWorkspaceRole}
-                      currentRole={currentRole}
-                      activeRoles={activeProjectRoles}
-                    >
-                      <PublisherDeskView onShowToast={showToast} />
-                    </RequireWorkspaceRole>
-                  }
-                />
+                <Route path='publishing' element={<Navigate to='../export' replace />} />
                 <Route
                   path='export'
                   element={
@@ -649,10 +591,23 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   }
                 />
                 <Route
+                  path='revenue'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER', 'ADMINISTRATOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <SeriesRevenueView onShowToast={showToast} />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
                   path='artist'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={['ARTIST', 'LETTERER', 'EDITOR', 'PRODUCER', 'ADMINISTRATOR']}
+                      allowedRoles={['ARTIST', 'LETTERER', 'EDITOR', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -665,14 +620,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='script'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={[
-                        'WRITER',
-                        'EDITOR',
-                        'ARTIST',
-                        'LETTERER',
-                        'PRODUCER',
-                        'ADMINISTRATOR',
-                      ]}
+                      allowedRoles={['WRITER', 'EDITOR', 'ARTIST', 'LETTERER', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -688,14 +636,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='letterer'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={[
-                        'LETTERER',
-                        'ARTIST',
-                        'EDITOR',
-                        'WRITER',
-                        'PRODUCER',
-                        'ADMINISTRATOR',
-                      ]}
+                      allowedRoles={['LETTERER', 'ARTIST', 'EDITOR', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -710,7 +651,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='editor/desk'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={['EDITOR', 'PRODUCER', 'ADMINISTRATOR']}
+                      allowedRoles={['EDITOR', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -748,6 +689,26 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                         workspaceRole={currentWorkspaceRole}
                         onShowToast={showToast}
                       />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
+                  path='chapters/:chapterId/reader'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={[
+                        'EDITOR',
+                        'PRODUCER',
+                        'ARTIST',
+                        'LETTERER',
+                        'WRITER',
+                        'ADMINISTRATOR',
+                      ]}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <ChapterReaderView onShowToast={showToast} />
                     </RequireWorkspaceRole>
                   }
                 />
@@ -799,6 +760,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     </RequireWorkspaceRole>
                   }
                 />
+                <Route path='review' element={<Navigate to='../workspace' replace />} />
               </Route>
             </Route>
 
@@ -869,11 +831,11 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             }
           >
             <Route path='workspaces/:workspaceId/series/:seriesId'>
-              {/* Artist Desk routes: ARTIST, LETTERER, EDITOR, PRODUCER, ADMINISTRATOR */}
+              {/* Artist Desk routes: ARTIST, LETTERER, EDITOR, ADMINISTRATOR */}
               <Route
                 element={
                   <RequireWorkspaceRole
-                    allowedRoles={['ARTIST', 'LETTERER', 'EDITOR', 'PRODUCER', 'ADMINISTRATOR']}
+                    allowedRoles={['ARTIST', 'LETTERER', 'EDITOR', 'ADMINISTRATOR']}
                     currentWorkspaceRole={currentWorkspaceRole}
                     currentRole={currentRole}
                     activeRoles={activeProjectRoles}
@@ -886,18 +848,11 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 />
               </Route>
 
-              {/* Script Editor routes: WRITER, EDITOR, ARTIST, LETTERER, PRODUCER, ADMINISTRATOR */}
+              {/* Script Editor routes: WRITER, EDITOR, ARTIST, LETTERER, ADMINISTRATOR */}
               <Route
                 element={
                   <RequireWorkspaceRole
-                    allowedRoles={[
-                      'WRITER',
-                      'EDITOR',
-                      'ARTIST',
-                      'LETTERER',
-                      'PRODUCER',
-                      'ADMINISTRATOR',
-                    ]}
+                    allowedRoles={['WRITER', 'EDITOR', 'ARTIST', 'LETTERER', 'ADMINISTRATOR']}
                     currentWorkspaceRole={currentWorkspaceRole}
                     currentRole={currentRole}
                     activeRoles={activeProjectRoles}
@@ -916,11 +871,11 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 />
               </Route>
 
-              {/* Editor Desk & Bible Review routes: EDITOR, PRODUCER, ADMINISTRATOR */}
+              {/* Editor Desk & Bible Review routes: EDITOR, ADMINISTRATOR */}
               <Route
                 element={
                   <RequireWorkspaceRole
-                    allowedRoles={['EDITOR', 'PRODUCER', 'ADMINISTRATOR']}
+                    allowedRoles={['EDITOR', 'ADMINISTRATOR']}
                     currentWorkspaceRole={currentWorkspaceRole}
                     currentRole={currentRole}
                     activeRoles={activeProjectRoles}

@@ -1,13 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { X, RotateCcw, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import type {
   ChapterDto,
   ScriptCommentDto,
   ScriptVersionDetailDto,
   ScriptVersionRow,
 } from '@/services/chapter.service';
-import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { ScriptCommentItemCard } from './ScriptCommentCard';
 import { ScriptVersionDiff } from '@/shared/features/script-versions/ScriptVersionDiff';
 import { EMPTY_BASE, rowLineId } from '@/shared/features/script-versions/versionDiff';
@@ -22,11 +21,8 @@ export interface ScriptReviewSidePanelProps {
   onResolveComment?: (commentId: string) => Promise<void> | void;
   onSelectComment?: (comment: ScriptCommentDto) => void;
   onClose?: () => void;
-  findings?: ConsistencyFindingDto[];
-  onRunCheck?: () => Promise<void> | void;
-  loadingCheck?: boolean;
   className?: string;
-  initialTab?: 'comments' | 'changes' | 'checks';
+  initialTab?: 'comments' | 'changes';
 }
 
 export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
@@ -39,14 +35,11 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
   onResolveComment,
   onSelectComment,
   onClose,
-  findings = [],
-  onRunCheck,
-  loadingCheck = false,
   className = '',
   initialTab = 'comments',
 }) => {
   const { t } = useTranslation('features');
-  const [tab, setTab] = useState<'comments' | 'changes' | 'checks'>(initialTab);
+  const [tab, setTab] = useState<'comments' | 'changes'>(initialTab);
 
   const openCommentsCount = useMemo(() => comments.filter((c) => !c.resolvedAt).length, [comments]);
 
@@ -112,19 +105,6 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
           >
             {t('scriptReview.tabs.changes')}
           </button>
-          <button
-            type='button'
-            role='tab'
-            aria-selected={tab === 'checks'}
-            onClick={() => setTab('checks')}
-            className={`-mb-px border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors duration-150 cursor-pointer ${
-              tab === 'checks'
-                ? 'border-orange-500 text-orange-800'
-                : 'border-transparent text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            {t('scriptReview.tabs.checks')}
-          </button>
         </div>
 
         {onClose && (
@@ -176,81 +156,23 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
               })}
             </div>
           )
-        ) : tab === 'changes' ? (
-          chapter?.id && pushedVersion ? (
-            <>
-              <p className='border-b border-stone-200 px-3 py-2 text-xs text-stone-500'>
-                {chapter.previousSubmittedVersionId
-                  ? t('scriptReview.compareWithPrevious')
-                  : t('scriptReview.firstSubmittedVersion')}
-              </p>
-              <ScriptVersionDiff
-                key={`${chapter.previousSubmittedVersionId ?? EMPTY_BASE}>${pushedVersion.version.id}`}
-                chapterId={chapter.id}
-                defaultFromId={chapter.previousSubmittedVersionId ?? EMPTY_BASE}
-                defaultToId={pushedVersion.version.id}
-              />
-            </>
-          ) : (
-            <div className='p-8 text-center text-xs text-stone-500'>
-              {t('scriptReview.noSubmittedVersion')}
-            </div>
-          )
+        ) : chapter?.id && pushedVersion ? (
+          <>
+            <p className='border-b border-stone-200 px-3 py-2 text-xs text-stone-500'>
+              {chapter.previousSubmittedVersionId
+                ? t('scriptReview.compareWithPrevious')
+                : t('scriptReview.firstSubmittedVersion')}
+            </p>
+            <ScriptVersionDiff
+              key={`${chapter.previousSubmittedVersionId ?? EMPTY_BASE}>${pushedVersion.version.id}`}
+              chapterId={chapter.id}
+              defaultFromId={chapter.previousSubmittedVersionId ?? EMPTY_BASE}
+              defaultToId={pushedVersion.version.id}
+            />
+          </>
         ) : (
-          <div className='p-4 space-y-4'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <h3 className='text-sm font-semibold text-stone-800'>
-                  {t('scriptReview.consistencyTitle')}
-                </h3>
-                <p className='text-xs text-stone-500 mt-0.5'>{t('scriptReview.consistencyDesc')}</p>
-              </div>
-              {onRunCheck && (
-                <button
-                  type='button'
-                  onClick={() => void onRunCheck()}
-                  disabled={loadingCheck}
-                  className='inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-100 disabled:opacity-50 cursor-pointer transition-colors shrink-0'
-                >
-                  <RotateCcw
-                    className={`h-3.5 w-3.5 ${loadingCheck ? 'animate-spin text-orange-600' : ''}`}
-                  />
-                  <span>{t('scriptReview.recheckBtn')}</span>
-                </button>
-              )}
-            </div>
-
-            {findings.length === 0 ? (
-              <div className='p-6 text-center text-xs text-stone-500 rounded-xl bg-stone-50 border border-stone-200/60'>
-                <CheckCircle2 className='w-5 h-5 text-emerald-600 mx-auto mb-1.5' />
-                {t('scriptReview.noFindings')}
-              </div>
-            ) : (
-              <ul className='space-y-2'>
-                {findings.map((f) => (
-                  <li
-                    key={f.id}
-                    onClick={() =>
-                      f.scriptLineId &&
-                      onSelectComment?.({
-                        id: f.id,
-                        scriptLineId: f.scriptLineId,
-                      } as any)
-                    }
-                    className='p-3 rounded-xl border border-stone-200 bg-stone-50/60 hover:bg-amber-50/50 hover:border-amber-300 transition-colors cursor-pointer text-xs'
-                  >
-                    <div className='flex items-center justify-between text-stone-700 font-semibold mb-1'>
-                      <span className='inline-flex items-center gap-1.5 text-amber-700'>
-                        <ShieldCheck className='w-3.5 h-3.5' />
-                        {f.ruleCode || t('scriptReview.issueFallback')}
-                      </span>
-                      <span className='text-[11px] text-stone-400'>{f.status}</span>
-                    </div>
-                    <p className='text-stone-800'>{f.message}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className='p-8 text-center text-xs text-stone-500'>
+            {t('features.scriptReview.noSubmittedVersion')}
           </div>
         )}
       </div>

@@ -722,7 +722,10 @@
     "labelPrefix": "Balloon {order}",
     "resizeTitle": "Drag to resize",
     "staleTitle": "Script changed after balloon placement (BR-05 / isStale)",
-    "staleBadge": "Script edited"
+    "staleBadge": "Script edited",
+    "keepOutTitle": "Balloon covers {label}",
+    "keepOutDefaultLabel": "a keep-out zone",
+    "keepOutBadge": "Covers face/hands"
   },
   "panelFrame": {
     "selectPanelTitle": "Select Panel #{panelNum} to highlight matching script lines",

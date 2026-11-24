@@ -278,7 +278,56 @@ export const pageService = {
       throw await toPageError(error, translate('errors.services.page.checkVisualContinuityFailed'));
     }
   },
+
+  /** GET /api/pages/{pageId}/keep-out-zones — lấy danh sách vùng cấm chữ (toạ độ 0..1) và version. */
+  getKeepOutZones: async (pageId: string): Promise<PageKeepOutZonesDto> => {
+    const validPageId = toValidPageGuid(pageId);
+    try {
+      const response = await axiosClient.get(`/pages/${validPageId}/keep-out-zones`);
+      return response.data;
+    } catch (error) {
+      throw await toPageError(error, 'Không tải được vùng cấm chữ của trang.');
+    }
+  },
+
+  /** PUT /api/pages/{pageId}/keep-out-zones — ghi đè toàn bộ vùng cấm chữ (optimistic concurrency via expectedVersion). */
+  replaceKeepOutZones: async (
+    pageId: string,
+    body: ReplaceKeepOutZonesRequest,
+  ): Promise<PageKeepOutZonesDto> => {
+    const validPageId = toValidPageGuid(pageId);
+    try {
+      const response = await axiosClient.put(`/pages/${validPageId}/keep-out-zones`, body);
+      return response.data;
+    } catch (error) {
+      throw await toPageError(error, 'Lưu vùng cấm chữ thất bại.');
+    }
+  },
 };
+
+// ── Vùng cấm chữ trên trang (Keep-out zones, toạ độ chuẩn hoá 0..1) ──────────
+
+export interface KeepOutZoneDto {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label?: string | null;
+  panelId?: string | null;
+}
+
+export interface PageKeepOutZonesDto {
+  pageId: string;
+  zones: KeepOutZoneDto[];
+  /** Gửi lại làm expectedVersion khi PUT (0 = chưa từng lưu). */
+  version: number;
+  updatedAt?: string | null;
+}
+
+export interface ReplaceKeepOutZonesRequest {
+  zones: KeepOutZoneDto[];
+  expectedVersion?: number | null;
+}
 
 // ── CF4 4.3: lịch sử canvas Page ─────────────────────────────────────────────
 

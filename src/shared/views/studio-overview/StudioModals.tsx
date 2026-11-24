@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, RefreshCw, Shield } from 'lucide-react';
+import { X, RefreshCw, Shield, AlertTriangle } from 'lucide-react';
 import { WorkspaceDto } from '@/services/workspace.service';
 import { Modal } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
@@ -145,6 +145,8 @@ export interface EditMemberAccessModalProps {
   task: string;
   onTaskChange: (t: string) => void;
   onSave: () => void;
+  error?: string | null;
+  saving?: boolean;
 }
 
 export const EditMemberAccessModal: React.FC<EditMemberAccessModalProps> = ({
@@ -155,6 +157,8 @@ export const EditMemberAccessModal: React.FC<EditMemberAccessModalProps> = ({
   task,
   onTaskChange,
   onSave,
+  error,
+  saving = false,
 }) => {
   if (!member) return null;
 
@@ -183,6 +187,17 @@ export const EditMemberAccessModal: React.FC<EditMemberAccessModalProps> = ({
         </div>
 
         <div className='p-6 space-y-4 text-xs'>
+          {error && (
+            <div
+              role='alert'
+              data-testid='edit-member-role-error'
+              className='p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-start gap-2'
+            >
+              <AlertTriangle className='w-4 h-4 shrink-0 mt-0.5' />
+              <span>{error}</span>
+            </div>
+          )}
+
           <div>
             <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5 text-xs'>
               Assigned Production Role (Single Role)
@@ -231,16 +246,18 @@ export const EditMemberAccessModal: React.FC<EditMemberAccessModalProps> = ({
           <button
             type='button'
             onClick={onClose}
-            className='px-3.5 py-1.5 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] text-[#555555] rounded-lg text-xs font-semibold cursor-pointer'
+            disabled={saving}
+            className='px-3.5 py-1.5 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] text-[#555555] rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50'
           >
             Cancel
           </button>
           <button
             type='button'
             onClick={onSave}
-            className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer'
+            disabled={saving}
+            className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50'
           >
-            Save Policies
+            {saving ? 'Saving...' : 'Save Policies'}
           </button>
         </div>
       </div>

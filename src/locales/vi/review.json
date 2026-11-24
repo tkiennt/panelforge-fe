@@ -154,7 +154,8 @@
     "tabs": {
       "notes": "Nhận xét ({count})",
       "checks": "Kiểm tra",
-      "changes": "Thay đổi"
+      "changes": "Thay đổi",
+      "entities": "Thực thể"
     },
     "composer": {
       "label": "Nhận xét cho Writer",
@@ -340,6 +341,42 @@
       "firstSubmit": "Lần gửi duyệt đầu tiên: so với bản trống.",
       "sincePrevious": "So với lần gửi duyệt trước.",
       "workingCopyDraft": "Bản thảo đang viết"
+    },
+    "entities": {
+      "title": "Thực thể trong kịch bản",
+      "subtitle": "Kiểm tra tính sẵn sàng của bản vẽ & hồ sơ nhân vật",
+      "filterMain": "Chính",
+      "filterCrowd": "Quần chúng",
+      "empty": "Không có thực thể nào phù hợp",
+      "statusLocked": "Đã khóa chuẩn",
+      "statusApproved": "Đã duyệt thiết kế",
+      "statusInReview": "Chờ duyệt vẽ",
+      "statusExempt": "Miễn trừ",
+      "statusMissing": "Chưa có bản vẽ",
+      "typeMain": "Chính",
+      "typeCrowd": "Quần chúng",
+      "blockerTitle": "Kịch bản đang bị chặn duyệt sản xuất:"
+    },
+    "stitch": {
+      "readerTitle": "Nội dung kịch bản & Góp ý biên tập",
+      "readerSubtitle": "Chế độ chỉ đọc (Read-only Script Viewer)",
+      "dialogueCount": "{count} câu thoại",
+      "panelsLayout": "Bố cục {count} khung",
+      "entitiesTitle": "Thực thể trong kịch bản ({count})",
+      "entitiesSubtitle": "Kiểm tra tính sẵn sàng của bản vẽ & hồ sơ nhân vật",
+      "mainEntities": "Chính ({count})",
+      "crowdEntities": "Quần chúng ({count})",
+      "lockedCanon": "Đã khóa chuẩn",
+      "approvedDesign": "Đã duyệt thiết kế",
+      "pendingEditorReview": "Chờ Editor duyệt vẽ",
+      "noDrawing": "Chưa có bản vẽ",
+      "exempt": "Miễn trừ",
+      "lockAction": "Khóa chuẩn",
+      "reopenScript": "Mở lại kịch bản",
+      "approveStartProduction": "Duyệt & Bắt đầu sản xuất",
+      "authorPrefix": "Tác giả: {author}",
+      "headerSubtitle": "Kiểm tra lời thoại, bối cảnh và kiểm soát cửa chuẩn bị Series Bible trước khi vào khâu vẽ.",
+      "blockWarning": "Kịch bản đang bị chặn duyệt do một số thực thể chưa hoàn thiện hồ sơ thiết kế chuẩn."
     }
   },
   "artworkReview": {
@@ -643,5 +680,42 @@
       "visualDoneDesc": "Ngưỡng: {threshold}%",
       "visualErrorDesc": "Không thể kiểm tra hình ảnh"
     }
+  },
+  "readerView": {
+    "title": "Chương {number}: {title} — Duyệt tranh",
+    "pageIndicator": "Trang {current} / {total}",
+    "reworkCount": "Yêu cầu vẽ lại ({count})",
+    "approvePage": "Duyệt đạt trang này",
+    "scriptRefTitle": "Kịch bản đối chiếu",
+    "scriptRefSubtitle": "Đồng bộ trực tiếp theo khung tranh đang soi",
+    "panelBadge": "Khung {page}.{panel}",
+    "statusMatched": "Đã khớp ✓",
+    "statusHasComment": "Có {count} góp ý sửa ⚑",
+    "statusChecking": "Đang kiểm tra",
+    "statusApproved": "Khung #{number} · Đạt ✓",
+    "statusNeedsFix": "Khung #{number} · Cần sửa",
+    "statusReviewing": "Khung #{number} · Đang soát",
+    "toolPan": "Di chuyển",
+    "toolCrop": "Soi & Ghim Panel",
+    "feedbackTitle": "Nhận xét & Góp ý",
+    "itemsCount": "{count} mục",
+    "selectedPanelBadge": "Đang chọn: Khung #{number}",
+    "artistLabel": "Họa sĩ: {name}",
+    "panelCommentPlaceholder": "Nhập nhận xét chi tiết cho khung tranh này...",
+    "btnComment": "Bình luận",
+    "btnRequestRework": "Yêu cầu vẽ lại",
+    "threadsTitle": "Danh sách trao đổi ({count})",
+    "waitingArtist": "Chờ họa sĩ sửa lại",
+    "shortcutsHint": "Phím tắt: 1 2 3 chuyển khung tranh"
+  },
+  "handoffView": {
+    "title": "Đóng gói bản thảo gửi nhà xuất bản",
+    "subtitle": "Chuẩn file PDF/X-1a xuất bản tiêu chuẩn.",
+    "createPackage": "Tạo gói gửi",
+    "securityTitle": "Bảo mật bản quyền",
+    "securityDesc": "Đóng dấu chìm mã biên tập viên tự động khi xem trước.",
+    "readinessTitle": "Tình trạng sẵn sàng",
+    "readinessNotice": "Cần xử lý xong các trang chưa đạt trước khi xuất file hoàn chỉnh.",
+    "readinessReady": "Đã sẵn sàng xuất bản."
   }
 }

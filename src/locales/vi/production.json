@@ -260,98 +260,6 @@
     "sceneMissingDesc": "Phân cảnh Editor nhận xét không còn trong chương này."
   },
   "scriptStudio": {
-    "rail": {
-      "chapters": "Chương",
-      "scenes": "Phân cảnh",
-      "structure": "Cấu trúc",
-      "outline": "Đề cương",
-      "characters": "Nhân vật",
-      "consistency": "Nhất quán",
-      "comments": "Góp ý",
-      "import": "Nhập",
-      "ai": "Trợ lý AI",
-      "history": "Lịch sử",
-      "chapterCast": "Thực thể",
-      "bibleGate": "Bible Gate",
-      "status": "Thông báo",
-      "label": "Công cụ biên kịch"
-    },
-    "railTooltip": {
-      "chapters": "Danh sách chương trong bộ truyện",
-      "scenes": "Danh sách phân cảnh trong chương",
-      "structure": "Cấu trúc: Chương và Phân cảnh",
-      "outline": "Đề cương & Ngữ cảnh cốt truyện",
-      "characters": "Nhân vật Bible & Phân vai chương",
-      "consistency": "Kiểm tra nhất quán cốt truyện",
-      "comments": "Góp ý và phản hồi kịch bản",
-      "status": "Thông báo và trạng thái kịch bản",
-      "import": "Nhập kịch bản từ tệp bên ngoài",
-      "importDisabledRole": "Chỉ xem - không có quyền nhập kịch bản",
-      "importDisabledLocked": "Chương đã đóng băng - không thể nhập kịch bản",
-      "ai": "Trợ lý AI viết nháp và phân khung",
-      "aiDisabledRole": "Chỉ xem - không có quyền dùng Trợ lý AI",
-      "aiDisabledLocked": "Chương đã đóng băng - không thể dùng Trợ lý AI",
-      "history": "Lịch sử các phiên bản kịch bản"
-    },
-    "consistency": {
-      "title": "Vấn đề nhất quán",
-      "runCheck": "Chạy kiểm tra",
-      "running": "Đang kiểm tra...",
-      "reRunTooltip": "Chạy lại kiểm tra nhất quán kịch bản",
-      "close": "Đóng bảng cảnh báo"
-    },
-    "statusDrawer": {
-      "title": "Thông báo & Trạng thái",
-      "desc": "Cảnh báo, trạng thái kịch bản và các cổng duyệt",
-      "empty": "Tất cả trạng thái bình thường. Không có thông báo cần xử lý.",
-      "viewDetails": "Xem chi tiết",
-      "draftNotice": "Có bản nháp {{label}} chưa lưu lúc {{time}}.",
-      "restore": "Khôi phục",
-      "discard": "Bỏ bản nháp",
-      "frozen": "Kịch bản đã đóng băng",
-      "inReview": "Kịch bản đang được Editor thẩm định",
-      "locked": "Chương đang sản xuất (khóa chỉnh sửa)",
-      "viewOnly": "Chế độ chỉ xem",
-      "submitBlocked": "Chặn gửi duyệt: nhân vật nháp chưa liên kết Bible",
-      "startBlocked": "Chưa có phân cảnh nào để gửi duyệt",
-      "openCast": "Mở Cast",
-      "frozenChip": "Đã đóng băng"
-    },
-    "narrative": {
-      "title": "Đề cương & Ngữ cảnh Cốt truyện",
-      "both": "Cả hai",
-      "storyArc": "Story Arc",
-      "outline": "Đề cương",
-      "outlineWithChapter": "Đề cương Ch.{{n}}",
-      "hasChanges": "Có sửa đổi chưa lưu",
-      "seriesStoryArc": "Story Arc của Series",
-      "seriesStoryArcDesc": "Cung truyện dài hạn",
-      "saving": "Đang lưu...",
-      "saveStoryArc": "Lưu Story Arc",
-      "storyArcPlaceholder": "Nhập tóm lược Story Arc của Series (ví dụ: Hành trình khám phá bí mật cổ xưa...)",
-      "storyArcAiHint": "Dùng làm bối cảnh chính cho Writer AI",
-      "chapterOutline": "Đề cương Chương {{n}} (Outline)",
-      "chapterOutlineDesc": "Dàn ý và diễn biến then chốt",
-      "saveOutline": "Lưu Đề Cương",
-      "outlinePlaceholder": "Nhập đề cương phân cảnh / nhịp điệu của chương...",
-      "outlineAiHint": "Tự động đưa vào prompt khi viết kịch bản AI",
-      "words": "từ",
-      "chars": "ký tự",
-      "updateSuccess": "Đã cập nhật Story Arc của Series.",
-      "updateError": "Lỗi cập nhật Story Arc",
-      "discardTitle": "Bỏ qua thay đổi chưa lưu?",
-      "discardSwitchDesc": "Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để chuyển chương không?",
-      "discardBackDesc": "Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để quay lại danh sách chọn chương không?",
-      "discardAndSwitch": "Bỏ qua và chuyển chương",
-      "discardAndBack": "Bỏ qua và quay lại",
-      "stay": "Ở lại"
-    },
-    "ai": {
-      "draft": "Viết nháp cảnh đang chọn",
-      "storyboard": "Phân khung bằng AI",
-      "storyboardLocked": "Cảnh đã có khung",
-      "needScene": "Chọn một phân cảnh trước"
-    },
     "aiPanel": {
       "writingFor": "Đang viết cho",
       "changeScene": "Đổi phân cảnh",
@@ -450,12 +358,6 @@
       "producer": "Bắt đầu sản xuất",
       "resubmit": "Gửi duyệt lại"
     },
-    "views": {
-      "label": "Chế độ xem",
-      "paper": "Trang giấy dài",
-      "cards": "Thẻ dòng",
-      "thumbnail": "Thumbnail"
-    },
     "gn": {
       "page": "TRANG {n} - PANEL: {k}",
       "panel": "PANEL {n}",
@@ -477,29 +379,6 @@
         "caption": "Dẫn truyện",
         "sfx": "SFX"
       }
-    },
-    "dock": {
-      "addPage": "Thêm trang",
-      "fourPanels": "Trang 4 khung",
-      "fivePanels": "Trang 5 khung",
-      "page": "Trang {n}",
-      "pages": "Trang trong chương",
-      "saving": "Đang lưu…",
-      "unsaved": "Chưa lưu · Ctrl+S",
-      "saved": "Đã lưu lúc {time}",
-      "idle": "Ctrl+S để lưu",
-      "typingHelp": "Tab / Shift+Tab: đổi loại dòng · \"Tên:\" đầu dòng: lời thoại · Enter trên dòng trống: về hành động · Ctrl+S: lưu"
-    },
-    "blocks": {
-      "dialogue": "Thoại",
-      "character": "Tên nhân vật",
-      "caption": "Lời dẫn",
-      "stage_direction": "Hành động",
-      "sfx": "Tiếng động",
-      "scene_heading": "Cảnh mới",
-      "transition": "Chuyển cảnh",
-      "page_heading": "Trang",
-      "panel_heading": "Panel"
     },
     "scenes": {
       "title": "Phân cảnh",
@@ -541,14 +420,9 @@
       "startBlockedBanner": "Chưa thể bắt đầu sản xuất",
       "viewCast": "Xem thực thể",
       "search": "Tìm thực thể trong chương...",
-      "willCreateDraft": "Sẽ tạo bản nháp",
-      "panelStageTitle": "Đặt giai đoạn riêng cho Panel",
-      "panelStageDesc": "Dùng tạo hình khác (hồi tưởng, biến thân) riêng cho Panel này",
       "selectPanel": "Chọn Trang & Panel",
       "selectEntity": "Thực thể Series Bible",
       "selectRevision": "Bản tạo hình / Biến thể",
-      "clearPanelStage": "Gỡ giai đoạn riêng",
-      "setPanelStageBtn": "Đặt giai đoạn theo Panel",
       "pageLabel": "Trang:",
       "pageOption": "Trang {number}",
       "panelLabel": "Panel:",
@@ -620,8 +494,6 @@
       "saveDefinition": "Lưu định nghĩa",
       "cancel": "Huỷ",
       "draftBadge": "[Bản nháp]",
-      "charactersDrawerTitle": "Nhân vật Series Bible",
-      "charactersDrawerDesc": "Danh sách nhân vật Canon đối chiếu kịch bản",
       "searchCharacter": "Tìm kiếm nhân vật...",
       "noMatchingCharacterFound": "Không tìm thấy nhân vật nào phù hợp.",
       "noCharactersInBible": "Chưa có nhân vật nào trong Series Bible.",
@@ -641,10 +513,8 @@
       "inCastBadge": "Trong chương",
       "notInCastBadge": "Ngoài chương",
       "inChapter": "Trong chương",
-      "outOfChapter": "Ngoài chương",
       "allFilter": "Tất cả",
       "inChapterFilter": "Trong chương",
-      "outOfChapterFilter": "Ngoài chương",
       "inCastFilter": "Trong chương",
       "notInCastFilter": "Ngoài chương",
       "stubsFilter": "Chưa định nghĩa",
@@ -657,9 +527,6 @@
       "selectChapterHint": "Hãy chọn một chương trước khi thay đổi cast.",
       "cancelReplacementConfirmTitle": "Huỷ bản thay thế",
       "cancelReplacementConfirmBody": "Bạn có chắc muốn huỷ bản thay thế này không?"
-    },
-    "paper": {
-      "hint": "Cứ viết. Enter xuống dòng · gõ \"Tên:\" để viết lời thoại · Tab đổi loại dòng"
     },
     "lifecycle": {
       "inReviewTitle": "Kịch bản đang chờ duyệt",
@@ -1223,24 +1090,24 @@
     "exportView": {
       "formats": {
         "PDF": {
-          "label": "PDF",
-          "hint": "Mỗi trang một ảnh, để đọc duyệt / gửi đối tác"
+          "label": "PDF (Xuất bản in)",
+          "hint": "Mỗi trang một ảnh, chuẩn PDF/X-1a gửi đối tác xuất bản"
         },
         "CBZ": {
-          "label": "CBZ",
-          "hint": "Trình đọc truyện, lật trang theo hướng đọc của Series"
+          "label": "CBZ (Comic Book ZIP)",
+          "hint": "Trình đọc truyện, lật trang theo chiều truyện Manga/Manhwa"
         },
         "PAGE_IMAGES": {
           "label": "Ảnh từng trang (ZIP)",
-          "hint": "Ảnh gốc đã duyệt của mỗi trang"
+          "hint": "Ảnh gốc đã duyệt của mỗi trang kèm cấu trúc thư mục"
         },
         "WEBTOON": {
           "label": "Webtoon cuộn dọc",
-          "hint": "Ghép các trang thành một ảnh dọc"
+          "hint": "Ghép các trang thành một chuỗi ảnh dọc chuẩn đọc điện thoại"
         },
         "OPEN_JSON": {
           "label": "JSON kèm nguồn gốc",
-          "hint": "Manifest bản duyệt + Provenance Report, kiểm chứng được bằng SHA-256"
+          "hint": "Manifest bản duyệt + Provenance Report, kiểm chứng bằng SHA-256"
         }
       },
       "status": {
@@ -1260,15 +1127,15 @@
       "back": "Quay lại",
       "title": "Xuất chương",
       "subtitle": "Chỉ chương đã được Producer duyệt (Approved) hoặc đã phát hành mới xuất được. Nội dung chương đã duyệt là chỉ đọc, nên file luôn đúng bản đã duyệt.",
-      "noSeriesNotice": "Mở màn này từ trong một Series để chọn chương.",
-      "noApprovedChapters": "Series chưa có chương nào đã duyệt để xuất.",
-      "chapterLabel": "Chương",
+      "noSeriesNotice": "Mở màn này từ trong một Series để chọn chương xuất bản.",
+      "noApprovedChapters": "Series chưa có chương nào được Producer duyệt (ChapterApproved) hoặc phát hành để xuất bản.",
+      "chapterLabel": "Chọn chương xuất bản",
       "chapterOption": "Chương {number}",
-      "formatLegend": "Định dạng",
+      "formatLegend": "Định dạng đóng gói",
       "exportBtn": "Xuất file",
       "exportsListTitle": "Bản xuất của chương",
       "reloadAria": "Tải lại danh sách bản xuất",
-      "noExports": "Chưa có bản xuất nào.",
+      "noExports": "Chưa có bản xuất nào cho chương này. Chọn định dạng bên trái và bấm \"Tạo gói gửi\".",
       "colFormat": "Định dạng",
       "colStatus": "Trạng thái",
       "colPages": "Trang",
@@ -1276,7 +1143,10 @@
       "colCreatedAt": "Tạo lúc",
       "colActions": "Thao tác",
       "downloadBtn": "Tải",
-      "cancelBtn": "Huỷ"
+      "cancelBtn": "Huỷ",
+      "chapterReady": "Chương {number} đã sẵn sàng xuất ({status}).",
+      "noReadyChaptersTitle": "Chưa có chương sẵn sàng xuất",
+      "exportsListHint": "Các bản dựng file sẵn sàng để tải về hoặc đối soát"
     },
     "chapterEditionsModal": {
       "status": {
