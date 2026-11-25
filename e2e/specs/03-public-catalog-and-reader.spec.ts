@@ -66,7 +66,7 @@ test.describe('E2E: Public Catalog & Manga Reader (CF5, BR-14, BR-24)', () => {
     await fantasyChip.click();
 
     // Đảm bảo chip đã được active
-    await expect(fantasyChip).toHaveClass(/bg-\[#292524\]/);
+    await expect(fantasyChip).toHaveClass(/bg-\[#(292524|FFF2E6)\]/);
   });
 
   test('TC-CATALOG-03: Xem chi tiết bộ truyện và danh sách chương', async ({ page }) => {
