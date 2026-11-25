@@ -42,12 +42,12 @@ const LAYER_COLORS: Record<string, string> = {
   ARTWORK_LAYER: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
 };
 
-const LAYER_TYPE_LABELS: Record<string, string> = {
-  CHARACTER_INSTANCE: 'Nhân vật',
-  BACKGROUND: 'Bối cảnh',
-  PROP: 'Đạo cụ',
-  EFFECT: 'Hiệu ứng',
-  ARTWORK_LAYER: 'Lớp tranh',
+const LAYER_TYPE_FALLBACKS: Record<string, string> = {
+  CHARACTER_INSTANCE: 'Character',
+  BACKGROUND: 'Background',
+  PROP: 'Prop',
+  EFFECT: 'Effect',
+  ARTWORK_LAYER: 'Artwork Layer',
 };
 
 export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
@@ -65,8 +65,8 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
 }) => {
   const { t } = useTranslation();
   const getLayerTypeLabel = (type: string) => {
-    if (type in LAYER_TYPE_LABELS) {
-      return t(`common.components.layerStacking.types.${type}`);
+    if (type in LAYER_TYPE_FALLBACKS) {
+      return t(`common.components.layerStacking.types.${type}`, LAYER_TYPE_FALLBACKS[type]);
     }
     return type;
   };
