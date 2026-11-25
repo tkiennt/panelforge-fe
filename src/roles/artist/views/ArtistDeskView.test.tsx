@@ -804,9 +804,7 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId('artist-script-coverage')).toHaveTextContent(
-      'Script Coverage: 1/2 dòng thoại · 50%',
-    );
+    expect(screen.queryByTestId('artist-script-coverage')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
 
     expect(await screen.findByText('Chưa thể nộp Pencil')).toBeInTheDocument();
@@ -2103,15 +2101,26 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         );
 
         await waitFor(() => {
-          expect(screen.getByTestId('artist-layout-locked-notice')).toHaveTextContent(
-            /Chỉ công đoạn Pencil mới được sửa bố cục khung/i,
-          );
+          expect(screen.getByTestId('btn-upload-sketch-simple')).toBeDisabled();
         });
 
-        // Thao tác bố cục khung bị khoá ở công đoạn Color
-        expect(screen.getByTestId('btn-upload-sketch-simple')).toBeDisabled();
+        expect(screen.queryByTestId('artist-layout-locked-notice')).not.toBeInTheDocument();
+
+        // Thao tác bố cục khung bị khoá ở công đoạn Color (vẫn hiện tab mờ kèm tooltip lý do)
+        expect(screen.getByTestId('btn-upload-sketch-simple')).toHaveAttribute(
+          'title',
+          'Chỉ công đoạn Pencil mới được sửa bố cục khung',
+        );
         expect(screen.getByTestId('btn-open-templates-simple')).toBeDisabled();
+        expect(screen.getByTestId('btn-open-templates-simple')).toHaveAttribute(
+          'title',
+          'Chỉ công đoạn Pencil mới được sửa bố cục khung',
+        );
         expect(screen.getByTestId('btn-split-panels-simple')).toBeDisabled();
+        expect(screen.getByTestId('btn-split-panels-simple')).toHaveAttribute(
+          'title',
+          'Chỉ công đoạn Pencil mới được sửa bố cục khung',
+        );
         expect(screen.getByTestId('canvas-btn-save-layout')).toBeDisabled();
         expect(screen.getByTestId('canva-tab-templates')).toBeDisabled();
 

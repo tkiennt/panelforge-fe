@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Check, LayoutTemplate, Loader2, Lock, Scissors, Upload } from 'lucide-react';
+import { Check, LayoutTemplate, Loader2, Scissors, Upload } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
 interface ArtistLayoutToolbarProps {
@@ -58,7 +58,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
           ? t('layoutToolbar.noChangesToSave')
           : undefined;
   const buttonClass = (step: number, isPrimaryWhenActive = false) => {
-    const isActive = currentStep === step;
+    const isActive = !layoutLockedReason && currentStep === step;
     if (isPrimaryWhenActive && isActive) {
       return 'focus-ring h-7 px-2.5 rounded bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold inline-flex items-center justify-center gap-1 whitespace-nowrap transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-45 shrink-0';
     }
@@ -71,79 +71,74 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
   return (
     <section
       aria-label={t('layoutToolbar.ariaLabel')}
-      className='w-full h-11 shrink-0 border-b border-[#E7E5E4] bg-white px-3 flex items-center justify-between gap-2 overflow-x-auto'
+      className='w-full h-11 shrink-0 border-b border-[#E7E5E4] bg-white px-3 flex items-center justify-start 2xl:justify-between gap-2 overflow-x-auto'
       data-testid='artist-layout-toolbar'
     >
-      <div className='flex items-center gap-2 shrink-0'>
-        {layoutLockedReason ? (
-          <span
-            data-testid='artist-layout-locked-notice'
-            className='inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 whitespace-nowrap shrink-0'
-          >
-            <Lock className='h-3 w-3 shrink-0 text-amber-700' aria-hidden='true' />
-            {layoutLockedReason}
-          </span>
-        ) : (
-          <ol className='hidden 2xl:flex items-center gap-1.5 text-xs text-stone-500 whitespace-nowrap shrink-0'>
-            {STEP_KEYS.map((key, index) => {
-              const step = index + 1;
-              const label = t(key);
-              return (
-                <li
-                  key={key}
-                  aria-current={step === currentStep ? 'step' : undefined}
-                  className={`inline-flex items-center gap-1 ${
-                    step < currentStep
-                      ? 'text-emerald-700 font-medium'
-                      : step === currentStep
-                        ? 'font-bold text-stone-900'
-                        : 'text-stone-500'
-                  }`}
-                >
-                  <span>
-                    {step} {label}
+      {!layoutLockedReason && (
+        <ol className='hidden 2xl:flex items-center gap-1.5 text-xs text-stone-500 whitespace-nowrap shrink-0'>
+          {STEP_KEYS.map((key, index) => {
+            const step = index + 1;
+            const label = t(key);
+            return (
+              <li
+                key={key}
+                aria-current={step === currentStep ? 'step' : undefined}
+                className={`inline-flex items-center gap-1 ${
+                  step < currentStep
+                    ? 'text-emerald-700 font-medium'
+                    : step === currentStep
+                      ? 'font-bold text-stone-900'
+                      : 'text-stone-500'
+                }`}
+              >
+                <span>
+                  {step} {label}
+                </span>
+                {step < currentStep && <Check className='h-3 w-3' aria-hidden='true' />}
+                {step < STEP_KEYS.length && (
+                  <span className='text-stone-300' aria-hidden='true'>
+                    →
                   </span>
-                  {step < currentStep && <Check className='h-3 w-3' aria-hidden='true' />}
-                  {step < STEP_KEYS.length && (
-                    <span className='text-stone-300' aria-hidden='true'>
-                      →
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        )}
-      </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
       <div className='flex items-center justify-end gap-1.5 shrink-0'>
-        <button
-          type='button'
-          disabled={isLayoutDisabled}
-          title={layoutLockedReason}
-          onClick={() => !isLayoutDisabled && sketchInputRef.current?.click()}
-          data-testid='btn-upload-sketch-simple'
-          className={buttonClass(1)}
-        >
-          <Upload className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
-          {t('layoutToolbar.uploadSketch')}
-        </button>
-        <button
-          type='button'
-          disabled={isLayoutDisabled}
-          title={layoutLockedReason}
-          onClick={() => !isLayoutDisabled && onOpenTemplates()}
-          data-testid='btn-open-templates-simple'
-          className={buttonClass(2)}
-        >
-          <LayoutTemplate className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
-          {t('layoutToolbar.chooseTemplate')}
-        </button>
+        <span title={layoutLockedReason} className='shrink-0'>
+          <button
+            type='button'
+            disabled={isLayoutDisabled}
+            title={layoutLockedReason}
+            onClick={() => !isLayoutDisabled && sketchInputRef.current?.click()}
+            data-testid='btn-upload-sketch-simple'
+            className={buttonClass(1)}
+          >
+            <Upload className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
+            {t('layoutToolbar.uploadSketch')}
+          </button>
+        </span>
+        <span title={layoutLockedReason} className='shrink-0'>
+          <button
+            type='button'
+            disabled={isLayoutDisabled}
+            title={layoutLockedReason}
+            onClick={() => !isLayoutDisabled && onOpenTemplates()}
+            data-testid='btn-open-templates-simple'
+            className={buttonClass(2)}
+          >
+            <LayoutTemplate className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
+            {t('layoutToolbar.chooseTemplate')}
+          </button>
+        </span>
         <span title={splitReason} className='shrink-0'>
           <button
             type='button'
             onClick={onSplitPanels}
             disabled={Boolean(splitReason) || isDetectingPanels}
+            title={splitReason}
             aria-describedby={splitReason ? 'artist-split-disabled-reason' : undefined}
             data-testid='btn-split-panels-simple'
             className={buttonClass(2)}
@@ -163,6 +158,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
             type='button'
             onClick={onSaveLayout}
             disabled={Boolean(saveReason) || isSavingLayout}
+            title={saveReason}
             aria-describedby={saveReason ? 'artist-save-disabled-reason' : undefined}
             data-testid='canvas-btn-save-layout'
             className={buttonClass(3, true)}

@@ -480,8 +480,6 @@
     "unplacedLinesIssue": "{count} dòng thoại chưa đặt bóng",
     "emptyBalloonsIssue": "{count} bóng chưa có chữ",
     "letteringCheckHint": "{issues}. Lọc \"Chưa gắn\" ở tab Letter để xem.",
-    "scriptCoverageLabel": "Script Coverage: {covered}/{total} dòng thoại · {percent}%",
-    "scriptCoverageLockedHint": " — Submit Pencil bị khóa đến khi mọi dòng thoại được ánh xạ vào khung.",
     "readOnlyBanner": "Chế độ chỉ đọc — Bạn không có ô đang mở cho trang này",
     "pageLabel": "Trang {page}"
   },

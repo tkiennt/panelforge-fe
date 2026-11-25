@@ -2850,29 +2850,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         />
       )}
 
-      {!isStageFlowCompleted && artistStages[currentStageIndex]?.key === 'pencil' && (
-        <div
-          data-testid='artist-script-coverage'
-          role='status'
-          className={`shrink-0 border-b px-4 py-2 text-xs font-semibold ${
-            scriptCoverage.percent === 100
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-              : 'border-amber-200 bg-amber-50 text-amber-900'
-          }`}
-        >
-          {t('artist.deskView.scriptCoverageLabel', {
-            covered: scriptCoverage.covered,
-            total: scriptCoverage.total,
-            percent: scriptCoverage.percent,
-          })}
-          {scriptCoverage.percent < 100 && (
-            <span className='ml-2 font-medium'>
-              {t('artist.deskView.scriptCoverageLockedHint')}
-            </span>
-          )}
-        </div>
-      )}
-
       {isPageReadOnly && (
         <div
           data-testid='artist-page-readonly-banner'

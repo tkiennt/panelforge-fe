@@ -480,8 +480,6 @@
     "unplacedLinesIssue": "{count} dialogue line(s) not placed in balloons",
     "emptyBalloonsIssue": "{count} empty balloon(s)",
     "letteringCheckHint": "{issues}. Filter \"Unlinked\" in the Letter tab to inspect.",
-    "scriptCoverageLabel": "Script Coverage: {covered}/{total} lines · {percent}%",
-    "scriptCoverageLockedHint": " — Pencil Submit is locked until all dialogue lines are mapped to panels.",
     "readOnlyBanner": "Read-only mode — You have no open slot for this page",
     "pageLabel": "Page {page}"
   },
