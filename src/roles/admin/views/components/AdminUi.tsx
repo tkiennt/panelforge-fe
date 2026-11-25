@@ -133,7 +133,9 @@ export const AdminCard: React.FC<{
           {title && <h2 className='text-base font-semibold text-admin-ink-strong'>{title}</h2>}
           {description && <p className='mt-0.5 text-sm text-admin-muted'>{description}</p>}
         </div>
-        {actions && <div className='flex flex-wrap items-center gap-2 min-w-0 max-w-full'>{actions}</div>}
+        {actions && (
+          <div className='flex flex-wrap items-center gap-2 min-w-0 max-w-full'>{actions}</div>
+        )}
       </header>
     )}
     <div className={cn('p-5 min-w-0', bodyClassName)}>{children}</div>

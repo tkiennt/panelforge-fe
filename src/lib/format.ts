@@ -24,7 +24,10 @@ const dateTimeFormatCache = new Map<string, Intl.DateTimeFormat>();
 const numberFormatCache = new Map<string, Intl.NumberFormat>();
 const relativeTimeFormatCache = new Map<string, Intl.RelativeTimeFormat>();
 
-function getDateTimeFormatter(locale: string, options: Intl.DateTimeFormatOptions = {}): Intl.DateTimeFormat {
+function getDateTimeFormatter(
+  locale: string,
+  options: Intl.DateTimeFormatOptions = {},
+): Intl.DateTimeFormat {
   const key = `${locale}:${JSON.stringify(options)}`;
   let formatter = dateTimeFormatCache.get(key);
   if (!formatter) {
@@ -34,7 +37,10 @@ function getDateTimeFormatter(locale: string, options: Intl.DateTimeFormatOption
   return formatter;
 }
 
-function getNumberFormatter(locale: string, options: Intl.NumberFormatOptions = {}): Intl.NumberFormat {
+function getNumberFormatter(
+  locale: string,
+  options: Intl.NumberFormatOptions = {},
+): Intl.NumberFormat {
   const key = `${locale}:${JSON.stringify(options)}`;
   let formatter = numberFormatCache.get(key);
   if (!formatter) {
@@ -44,7 +50,10 @@ function getNumberFormatter(locale: string, options: Intl.NumberFormatOptions = 
   return formatter;
 }
 
-function getRelativeTimeFormatter(locale: string, options: Intl.RelativeTimeFormatOptions = { numeric: 'auto' }): Intl.RelativeTimeFormat {
+function getRelativeTimeFormatter(
+  locale: string,
+  options: Intl.RelativeTimeFormatOptions = { numeric: 'auto' },
+): Intl.RelativeTimeFormat {
   const key = `${locale}:${JSON.stringify(options)}`;
   let formatter = relativeTimeFormatCache.get(key);
   if (!formatter) {

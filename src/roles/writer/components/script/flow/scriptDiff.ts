@@ -83,7 +83,9 @@ export function insertRows(scene: SceneDetailDto, s: NextLineSuggestion): Script
     panelId: null,
     refs: null,
   };
-  const idx = s.afterLineId ? existing.findIndex((l) => l.id === s.afterLineId) : existing.length - 1;
+  const idx = s.afterLineId
+    ? existing.findIndex((l) => l.id === s.afterLineId)
+    : existing.length - 1;
   const pos = idx >= 0 ? idx + 1 : existing.length;
   const next = [...existing.slice(0, pos), inserted, ...existing.slice(pos)];
   return toRows(next);

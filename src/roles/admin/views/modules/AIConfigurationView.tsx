@@ -210,9 +210,7 @@ const CloudflareModelPicker: React.FC<{
           'flex items-center justify-between gap-2 text-left cursor-pointer',
         )}
       >
-        <span
-          className={cn('truncate font-mono text-xs', !value && 'text-admin-muted font-sans')}
-        >
+        <span className={cn('truncate font-mono text-xs', !value && 'text-admin-muted font-sans')}>
           {value || placeholder || t('admin.aiConfig.providers.modelClearImage')}
         </span>
         <ChevronDown className='w-4 h-4 shrink-0 text-admin-muted' aria-hidden />
@@ -529,8 +527,7 @@ const AiProvidersPanel: React.FC<{
   const staleDefaultImage =
     providers.find(
       (p) =>
-        p.isDefaultImage &&
-        (!p.isEnabled || p.keyDecryptable === false || !p.imageModel?.trim()),
+        p.isDefaultImage && (!p.isEnabled || p.keyDecryptable === false || !p.imageModel?.trim()),
     ) ?? null;
 
   const handleDefaultChange = async (kind: 'text' | 'image', nextId: string | null) => {
@@ -1025,8 +1022,7 @@ const AiProvidersPanel: React.FC<{
             {modal.kind === 'edit' &&
               (() => {
                 const lockDefaultEnabled =
-                  modal.item.isEnabled &&
-                  !!(modal.item.isDefaultText || modal.item.isDefaultImage);
+                  modal.item.isEnabled && !!(modal.item.isDefaultText || modal.item.isDefaultImage);
                 return (
                   <div>
                     <label
@@ -1067,11 +1063,7 @@ const AiProvidersPanel: React.FC<{
               <AdminButton onClick={() => setDeleting(null)} disabled={deletingBusy}>
                 {t('admin.aiConfig.providers.cancel')}
               </AdminButton>
-              <AdminButton
-                variant='danger'
-                isLoading={deletingBusy}
-                onClick={handleConfirmDelete}
-              >
+              <AdminButton variant='danger' isLoading={deletingBusy} onClick={handleConfirmDelete}>
                 {t('admin.aiConfig.providers.deleteConfirmButton')}
               </AdminButton>
             </>
@@ -1159,15 +1151,12 @@ const StudioAiConfigPanel: React.FC<{
   const defaultImageProvider =
     providers.find(
       (p) =>
-        p.isDefaultImage &&
-        p.isEnabled &&
-        p.keyDecryptable !== false &&
-        !!p.imageModel?.trim(),
+        p.isDefaultImage && p.isEnabled && p.keyDecryptable !== false && !!p.imageModel?.trim(),
     ) ?? null;
 
   const usingSharedApi = credentialId !== '';
   const selectedProvider = usingSharedApi
-    ? providers.find((p) => p.id === credentialId) ?? null
+    ? (providers.find((p) => p.id === credentialId) ?? null)
     : null;
   const effectiveTextProvider = usingSharedApi ? selectedProvider : defaultTextProvider;
 
@@ -1176,7 +1165,7 @@ const StudioAiConfigPanel: React.FC<{
   );
   const usingDedicatedImageApi = imageCredentialId !== '';
   const selectedImageProvider = usingDedicatedImageApi
-    ? providers.find((p) => p.id === imageCredentialId) ?? null
+    ? (providers.find((p) => p.id === imageCredentialId) ?? null)
     : null;
   const isSelectedImageProviderUsable =
     !!selectedImageProvider &&
@@ -1204,7 +1193,10 @@ const StudioAiConfigPanel: React.FC<{
         : defaultActiveModels;
 
   const cloudflareModelSet = new Set<string>();
-  if (effectiveTextProvider?.providerType === 'Cloudflare' && effectiveTextProvider.textModel?.trim()) {
+  if (
+    effectiveTextProvider?.providerType === 'Cloudflare' &&
+    effectiveTextProvider.textModel?.trim()
+  ) {
     cloudflareModelSet.add(effectiveTextProvider.textModel.trim());
   }
   if (
@@ -1288,7 +1280,7 @@ const StudioAiConfigPanel: React.FC<{
       ? config.imageProviderCredentialId
       : null;
   const staleBoundImageProvider = staleBoundImageId
-    ? providers.find((p) => p.id === staleBoundImageId) ?? null
+    ? (providers.find((p) => p.id === staleBoundImageId) ?? null)
     : null;
 
   const parseQuota = (v: string) => (/^\d+$/.test(v.trim()) ? Number(v.trim()) : null);
@@ -1372,7 +1364,10 @@ const StudioAiConfigPanel: React.FC<{
             onChange={(e) => setWorkspaceId(e.target.value)}
             disabled={loadingWs || saving}
             aria-label={t('admin.aiConfig.studio.selectStudioAria')}
-            className={cn(adminFieldClass, 'w-auto min-w-[180px] sm:min-w-[220px] max-w-full truncate')}
+            className={cn(
+              adminFieldClass,
+              'w-auto min-w-[180px] sm:min-w-[220px] max-w-full truncate',
+            )}
           >
             {workspaces.map((ws) => (
               <option key={ws.id} value={ws.id}>

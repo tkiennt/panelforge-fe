@@ -100,7 +100,9 @@ describe('AIConfigurationView', () => {
 
     // Mô tả checkbox phản ánh trạng thái hiện tại thay vì 'Khi tắt...'
     expect(
-      screen.getByText(/Đang bật: thành viên Studio dùng được AI|Enabled: Studio members can use AI/i),
+      screen.getByText(
+        /Đang bật: thành viên Studio dùng được AI|Enabled: Studio members can use AI/i,
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Khi tắt, mọi yêu cầu AI/i)).not.toBeInTheDocument();
 
@@ -304,7 +306,9 @@ describe('AIConfigurationView', () => {
 
     // Giữ nguyên 2 ô quota
     expect(screen.getByLabelText(/Quota token mỗi tháng|Monthly token quota/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Quota sinh ảnh mỗi tháng|Monthly image quota/i)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/Quota sinh ảnh mỗi tháng|Monthly image quota/i),
+    ).toBeInTheDocument();
 
     // Dòng Trạng thái key hiện theo API đã chọn
     const keyStatus = screen.getByTestId('ai-key-status');
@@ -314,8 +318,18 @@ describe('AIConfigurationView', () => {
 
   it('cho phép chọn nhiều Studio khi Thêm API và báo lỗi riêng nếu gán Studio thất bại sau khi đã tạo API', async () => {
     vi.mocked(adminService.getWorkspaces).mockResolvedValue([
-      { id: 'ws-1', name: 'Studio Moonlight', ownerId: 'u-1', createdAt: '2026-11-01T00:00:00Z' } as any,
-      { id: 'ws-2', name: 'Studio Sunrise', ownerId: 'u-2', createdAt: '2026-11-01T00:00:00Z' } as any,
+      {
+        id: 'ws-1',
+        name: 'Studio Moonlight',
+        ownerId: 'u-1',
+        createdAt: '2026-11-01T00:00:00Z',
+      } as any,
+      {
+        id: 'ws-2',
+        name: 'Studio Sunrise',
+        ownerId: 'u-2',
+        createdAt: '2026-11-01T00:00:00Z',
+      } as any,
     ]);
     vi.mocked(adminService.createAiProvider).mockResolvedValue({
       id: 'cred-new',
@@ -430,7 +444,11 @@ describe('AIConfigurationView', () => {
     const optionTexts = Array.from(imageSelect.options).map((o) => o.textContent || '');
 
     // Có lựa chọn Theo mặc định (giống API chữ) + các API đang bật có imageModel
-    expect(optionTexts.some((t) => /Theo mặc định.*giống API chữ|Use default.*same as text API/i.test(t))).toBe(true);
+    expect(
+      optionTexts.some((t) =>
+        /Theo mặc định.*giống API chữ|Use default.*same as text API/i.test(t),
+      ),
+    ).toBe(true);
     expect(optionTexts.some((t) => t.includes('Gemini Chính'))).toBe(true);
     expect(optionTexts.some((t) => t.includes('Cloudflare FLUX'))).toBe(true);
     // Không liệt kê Cloudflare Dự phòng (imageModel: null) và Ảnh Đang Tắt (isEnabled: false)
@@ -750,9 +768,7 @@ describe('AIConfigurationView', () => {
     fireEvent.change(imageModelInput, { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: /Lưu API|Save API/i }));
 
-    expect(
-      await screen.findByText(/không thể để trống model sinh ảnh/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/không thể để trống model sinh ảnh/i)).toBeInTheDocument();
     expect(adminService.updateAiProvider).not.toHaveBeenCalled();
   });
 
@@ -801,16 +817,14 @@ describe('AIConfigurationView', () => {
     const defaultImageSelect = screen.getByLabelText(
       /API mặc định cho ảnh|Default image API/i,
     ) as HTMLSelectElement;
-    expect(
-      Array.from(defaultImageSelect.options).some((o) => o.value === 'cred-cf-broken'),
-    ).toBe(false);
+    expect(Array.from(defaultImageSelect.options).some((o) => o.value === 'cred-cf-broken')).toBe(
+      false,
+    );
 
-    const studioImageSelect = screen.getByLabelText(
-      /API cho ảnh|Image API/i,
-    ) as HTMLSelectElement;
-    expect(
-      Array.from(studioImageSelect.options).some((o) => o.value === 'cred-cf-broken'),
-    ).toBe(false);
+    const studioImageSelect = screen.getByLabelText(/API cho ảnh|Image API/i) as HTMLSelectElement;
+    expect(Array.from(studioImageSelect.options).some((o) => o.value === 'cred-cf-broken')).toBe(
+      false,
+    );
 
     // Mở Sửa trên Cloudflare Mất Khóa -> hiện nhắc nhập lại key mới và không gọi GET /models vô ích
     const editButtons = screen.getAllByRole('button', { name: /^Sửa$|^Edit$/i });
