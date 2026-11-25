@@ -894,7 +894,22 @@
     "notApprovedYet": "Pending",
     "ageAndBirth": "Age & Birth:",
     "heightAndWeight": "Height & Weight:",
-    "buildAndRatio": "Build & Ratio:"
+    "buildAndRatio": "Build & Ratio:",
+    "hairColor": "Hair color:",
+    "eyeColor": ". Eyes:",
+    "identifyingMarks": "Identifying marks:",
+    "artistTipLocationDesc": "When screentoning night rain, use 65-degree parallel hatching without solid blacks obscuring the sub-street reactor fissure.",
+    "overallDimensions": "Overall dimensions",
+    "drawnWeight": "Weight when drawn",
+    "screenToneEffect": "Screentone light effect",
+    "artistTipPropDesc": "When slashing metal objects, keep the sword outline continuous and use flare brush strokes with sparks flying at 4 corners.",
+    "styleRulesTitle": "Art Standards & World Setting",
+    "immutableConstraint": "Immutable constraint:",
+    "statusCanonLocked": "Canon Locked",
+    "statusWaitingInker": "Pending Inker",
+    "statusReworkNeeded": "Rework Required",
+    "reworkComment": "Rework note:",
+    "lockCanonBtn": "Lock Canon"
   },
   "isCrowdHelp": "Crowd entities do not require a Model Sheet",
   "crowd": {
