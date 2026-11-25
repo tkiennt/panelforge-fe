@@ -880,7 +880,21 @@
     "reworkTitle": "Yêu cầu Artist vẽ lại concept",
     "endorseTitle": "Writer/Editor duyệt concept art này",
     "defineStubBtn": "Định nghĩa",
-    "openWorkbench": "Bàn làm việc"
+    "openWorkbench": "Bàn làm việc",
+    "hasDraftVersion": "Có bản nháp v{version}",
+    "defaultVariant": "Mặc định",
+    "statusCanon": "Canon",
+    "statusInUse": "Đang áp dụng",
+    "standardSubtitle": "Tiêu chuẩn",
+    "crowdStatusActive": "Quần chúng",
+    "crowdStatusSet": "Đặt Quần chúng",
+    "codePrefix": "Mã:",
+    "noDownloadFile": "Chưa có tệp tải về",
+    "addVariantBtn": "+ Biến thể",
+    "notApprovedYet": "Chưa duyệt",
+    "ageAndBirth": "Độ tuổi & Ngày sinh:",
+    "heightAndWeight": "Chiều cao & Cân nặng:",
+    "buildAndRatio": "Thể trạng & Tỷ lệ:"
   },
   "isCrowdHelp": "Thực thể quần chúng không bắt buộc Model Sheet",
   "crowd": {
