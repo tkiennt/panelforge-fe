@@ -2091,8 +2091,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </button>
         </div>
       )}
-        </div>
-      )}
 
       {/* 3. Bàn viết: ngăn kéo phân cảnh (trái) | editor surface (giữa) | drawers (phải) */}
       <div className='flex-1 flex overflow-hidden relative'>

@@ -1312,7 +1312,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <input
                 data-testid='bible-search-input'
                 type='text'
-                data-testid='bible-search-input'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={getSearchPlaceholder()}
