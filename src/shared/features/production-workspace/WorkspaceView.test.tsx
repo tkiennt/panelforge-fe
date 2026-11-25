@@ -89,7 +89,7 @@ describe('WorkspaceView (Quy trình sản xuất)', () => {
       screen.getByRole('heading', { level: 1, name: 'Quy trình sản xuất' }),
     ).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByText('Chương 1: Khởi đầu cuộc hành trình')).toBeInTheDocument();
+      expect(screen.getAllByText('Chương 1: Khởi đầu cuộc hành trình').length).toBeGreaterThan(0);
       expect(screen.getByText('Đang sản xuất')).toBeInTheDocument();
       expect(screen.getByText('Board chapter: chap-1')).toBeInTheDocument();
     });

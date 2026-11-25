@@ -244,7 +244,9 @@ describe('AIConfigurationView', () => {
 
     // Giữ nguyên 2 ô quota
     expect(screen.getByLabelText(/Quota token mỗi tháng|Monthly token quota/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Quota sinh ảnh mỗi tháng|Monthly image quota/i)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/Quota sinh ảnh mỗi tháng|Monthly image quota/i),
+    ).toBeInTheDocument();
 
     // Dòng Trạng thái key hiện theo API dùng chung (tên + keyHint + Bật/Tắt), không hiện Chưa có API key
     const keyStatus = screen.getByTestId('ai-key-status');
@@ -254,8 +256,18 @@ describe('AIConfigurationView', () => {
 
   it('cho phép chọn nhiều Studio khi Thêm API và báo lỗi riêng nếu gán Studio thất bại sau khi đã tạo API', async () => {
     vi.mocked(adminService.getWorkspaces).mockResolvedValue([
-      { id: 'ws-1', name: 'Studio Moonlight', ownerId: 'u-1', createdAt: '2026-11-01T00:00:00Z' } as any,
-      { id: 'ws-2', name: 'Studio Sunrise', ownerId: 'u-2', createdAt: '2026-11-01T00:00:00Z' } as any,
+      {
+        id: 'ws-1',
+        name: 'Studio Moonlight',
+        ownerId: 'u-1',
+        createdAt: '2026-11-01T00:00:00Z',
+      } as any,
+      {
+        id: 'ws-2',
+        name: 'Studio Sunrise',
+        ownerId: 'u-2',
+        createdAt: '2026-11-01T00:00:00Z',
+      } as any,
     ]);
     vi.mocked(adminService.createAiProvider).mockResolvedValue({
       id: 'cred-new',

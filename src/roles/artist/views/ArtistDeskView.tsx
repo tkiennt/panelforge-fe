@@ -234,7 +234,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     Record<string, PanelDto[]>
   >({});
   const [panelPageMap, setPanelPageMap] = useState<
-    Record<string, { pageId?: string; pageNumber: number; panelNumber: number; sceneId?: string | null }>
+    Record<
+      string,
+      { pageId?: string; pageNumber: number; panelNumber: number; sceneId?: string | null }
+    >
   >({});
   const [rawBibleEntries, setRawBibleEntries] = useState<BibleEntryDto[]>([]);
   const [hasLoadedRealBible, setHasLoadedRealBible] = useState(false);

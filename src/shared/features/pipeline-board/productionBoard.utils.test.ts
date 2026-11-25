@@ -179,7 +179,9 @@ describe('productionBoard.utils', () => {
     expect(mapped[1].targetLabel).toBe('Khung tranh');
 
     const groups = groupCards(mapped, 'page');
-    expect(groups.map((g) => ({ key: g.key, label: g.label, ids: g.cards.map((c) => c.id) }))).toEqual([
+    expect(
+      groups.map((g) => ({ key: g.key, label: g.label, ids: g.cards.map((c) => c.id) })),
+    ).toEqual([
       { key: 'page:p2', label: 'Trang 2', ids: ['panel-with-page'] },
       { key: 'panel', label: 'Khung tranh (chưa xác định trang)', ids: ['panel-no-page'] },
     ]);

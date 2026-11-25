@@ -188,9 +188,7 @@ const CloudflareModelPicker: React.FC<{
           'flex items-center justify-between gap-2 text-left cursor-pointer',
         )}
       >
-        <span
-          className={cn('truncate font-mono text-xs', !value && 'text-admin-muted font-sans')}
-        >
+        <span className={cn('truncate font-mono text-xs', !value && 'text-admin-muted font-sans')}>
           {value || placeholder || t('admin.aiConfig.providers.modelClearImage')}
         </span>
         <ChevronDown className='w-4 h-4 shrink-0 text-admin-muted' aria-hidden />
@@ -882,11 +880,7 @@ const AiProvidersPanel: React.FC<{
               <AdminButton onClick={() => setDeleting(null)} disabled={deletingBusy}>
                 {t('admin.aiConfig.providers.cancel')}
               </AdminButton>
-              <AdminButton
-                variant='danger'
-                isLoading={deletingBusy}
-                onClick={handleConfirmDelete}
-              >
+              <AdminButton variant='danger' isLoading={deletingBusy} onClick={handleConfirmDelete}>
                 {t('admin.aiConfig.providers.deleteConfirmButton')}
               </AdminButton>
             </>
@@ -1022,7 +1016,7 @@ const StudioAiConfigPanel: React.FC<{
   const modelOptions = Array.from(new Set([...KNOWN_MODELS, ...(config?.allowedModels || [])]));
   const usingSharedApi = credentialId !== '';
   const selectedProvider = usingSharedApi
-    ? providers.find((p) => p.id === credentialId) ?? null
+    ? (providers.find((p) => p.id === credentialId) ?? null)
     : null;
 
   const keyState = usingSharedApi
@@ -1050,7 +1044,7 @@ const StudioAiConfigPanel: React.FC<{
   const eligibleImageProviders = providers.filter((p) => p.isEnabled && !!p.imageModel?.trim());
   const usingDedicatedImageApi = imageCredentialId !== '';
   const selectedImageProvider = usingDedicatedImageApi
-    ? providers.find((p) => p.id === imageCredentialId) ?? null
+    ? (providers.find((p) => p.id === imageCredentialId) ?? null)
     : null;
   const isSelectedImageProviderUsable =
     !!selectedImageProvider &&
@@ -1062,7 +1056,7 @@ const StudioAiConfigPanel: React.FC<{
       ? config.imageProviderCredentialId
       : null;
   const staleBoundImageProvider = staleBoundImageId
-    ? providers.find((p) => p.id === staleBoundImageId) ?? null
+    ? (providers.find((p) => p.id === staleBoundImageId) ?? null)
     : null;
 
   if (wsError)
@@ -1211,7 +1205,8 @@ const StudioAiConfigPanel: React.FC<{
               (() => {
                 const sameSharedApi =
                   usingSharedApi && (!usingDedicatedImageApi || imageCredentialId === credentialId);
-                const textBad = usingSharedApi && (!selectedProvider || !selectedProvider.isEnabled);
+                const textBad =
+                  usingSharedApi && (!selectedProvider || !selectedProvider.isEnabled);
                 const imgBad = usingDedicatedImageApi && !isSelectedImageProviderUsable;
                 const hasError = textBad || imgBad;
                 const anyCloudflare =
@@ -1303,9 +1298,7 @@ const StudioAiConfigPanel: React.FC<{
                                 })}
                               </span>
                               <span>·</span>
-                              <span className='font-mono'>
-                                {selectedImageProvider.imageModel!}
-                              </span>
+                              <span className='font-mono'>{selectedImageProvider.imageModel!}</span>
                               <ModelCostTag modelId={selectedImageProvider.imageModel!} />
                             </>
                           ) : (

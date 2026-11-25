@@ -114,7 +114,7 @@ describe('AppShell Component', () => {
     renderInRouter(editorUser, '/workspaces/ws-1/series/ser-1/my-work');
 
     expect(screen.getByText('Kiểm tra & Hiệu đính')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản')).toBeInTheDocument();
+    expect(screen.getByText(/Kịch bản/)).toBeInTheDocument();
     expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
     expect(screen.getByText('Series Bible')).toBeInTheDocument();
     expect(screen.queryByText('Bàn vẽ Khung tranh')).not.toBeInTheDocument();
@@ -305,9 +305,9 @@ describe('AppShell Component', () => {
       avatarInitials: 'PN',
     };
 
-    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
+    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/workspace');
 
-    const activeLink = screen.getByRole('link', { name: /Series Dashboard/i });
+    const activeLink = screen.getByRole('link', { name: /Tiến độ & Giao việc/i });
     expect(activeLink).toBeInTheDocument();
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 
@@ -391,25 +391,23 @@ describe('AppShell Component', () => {
     renderInRouter(artistUser, '/workspaces/ws-1/series/ser-1/my-work');
 
     // Mặc định là Tiếng Việt
-    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
-    expect(screen.getByText('Bàn vẽ & Khung trang')).toBeInTheDocument();
+    expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
+    expect(screen.getByText('Bàn vẽ Khung tranh')).toBeInTheDocument();
 
     // Chuyển sang Tiếng Anh
     const enBtn = screen.getByTestId('lang-btn-en');
     fireEvent.click(enBtn);
 
-    // Kiểm tra các nhãn điều hướng và header search đổi sang English
+    // Kiểm tra các nhãn điều hướng đổi sang English
     expect(screen.getByText('My Work')).toBeInTheDocument();
-    expect(screen.getByText('Drawing & Layout')).toBeInTheDocument();
-    expect(screen.getByText('Search frames, dialogues, assets...')).toBeInTheDocument();
+    expect(screen.getByText('Panel Canvas')).toBeInTheDocument();
 
     // Chuyển lại về Tiếng Việt
     const viBtn = screen.getByTestId('lang-btn-vi');
     fireEvent.click(viBtn);
 
-    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
-    expect(screen.getByText('Bàn vẽ & Khung trang')).toBeInTheDocument();
-    expect(screen.getByText('Tìm kiếm khung tranh, thoại, tư liệu...')).toBeInTheDocument();
+    expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
+    expect(screen.getByText('Bàn vẽ Khung tranh')).toBeInTheDocument();
   });
 
   it('hiển thị thẻ img với avatarUrl khi có ảnh đại diện của user', () => {

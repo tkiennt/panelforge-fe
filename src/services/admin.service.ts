@@ -595,10 +595,9 @@ export const adminService = {
     providerCredentialId: string | null,
   ): Promise<WorkspaceAiConfigDto> => {
     try {
-      const response = await axiosClient.put(
-        `/Admin/workspaces/${workspaceId}/ai-image-provider`,
-        { providerCredentialId },
-      );
+      const response = await axiosClient.put(`/Admin/workspaces/${workspaceId}/ai-image-provider`, {
+        providerCredentialId,
+      });
       return response.data;
     } catch (error) {
       throw new Error(

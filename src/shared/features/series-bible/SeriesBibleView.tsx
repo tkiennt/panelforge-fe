@@ -1242,6 +1242,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             <div className='relative flex-1'>
               <Search className='w-3.5 h-3.5 absolute left-2.5 top-2.5 text-stone-400' />
               <input
+                data-testid='bible-search-input'
                 type='text'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
