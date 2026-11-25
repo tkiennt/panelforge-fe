@@ -47,18 +47,17 @@ const renderSidebar = () =>
   );
 
 describe('ArtistScriptReferenceSidebar – nhãn loại dòng', () => {
-  it('dòng SFX hiện nhãn [SFX], không bị gắn [Mô tả cảnh]', () => {
+  it('dòng SFX hiện nhãn SFX:, không bị gắn [Mô tả]', () => {
     renderSidebar();
     const sfx = screen.getByTestId('artist-script-ref-line-l-sfx');
-    expect(sfx).toHaveTextContent('[SFX]');
-    expect(sfx).toHaveTextContent('RẦM!');
-    expect(sfx).not.toHaveTextContent('Mô tả cảnh');
+    expect(sfx).toHaveTextContent('SFX: RẦM!');
+    expect(sfx).not.toHaveTextContent('[Mô tả]');
   });
 
-  it('dòng hành động gắn [Mô tả cảnh]; thoại kèm chỉ dẫn phụ hiện cả hai', () => {
+  it('dòng hành động gắn [Mô tả]; thoại kèm chỉ dẫn phụ hiện cả hai', () => {
     renderSidebar();
     expect(screen.getByTestId('artist-script-ref-line-l-action')).toHaveTextContent(
-      '[Mô tả cảnh]Mưa rơi trên mái ngói.',
+      '[Mô tả] Mưa rơi trên mái ngói.',
     );
     const dialogue = screen.getByTestId('artist-script-ref-line-l-dialogue');
     expect(dialogue).toHaveTextContent('quay người');
