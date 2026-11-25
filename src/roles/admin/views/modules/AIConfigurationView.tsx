@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Download, RefreshCw, KeyRound } from 'lucide-react';
+import {
+  AlertCircle,
+  Download,
+  FlaskConical,
+  KeyRound,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 import {
   adminService,
   AdminWorkspaceDto,
+  AiProviderCredentialDto,
+  AiProviderType,
   AiUsageReportItemDto,
   AiUsageRecordDto,
   AiUsageRecordsFilterParams,
@@ -16,6 +27,7 @@ import {
   AdminButton,
   AdminCard,
   AdminField,
+  AdminModal,
   AdminPageHeader,
   AdminPagination,
   AdminStat,
@@ -53,11 +65,513 @@ const KNOWN_MODELS = [
   'gemini-2.5-flash-image',
 ];
 
+const DEFAULT_TEXT_MODEL: Record<AiProviderType, string> = {
+  Gemini: 'gemini-3.8-flash',
+  Cloudflare: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+};
+
+const DEFAULT_IMAGE_PLACEHOLDER: Record<AiProviderType, string> = {
+  Gemini: 'gemini-2.5-flash-image',
+  Cloudflare: '@cf/black-forest-labs/flux-1-schnell',
+};
+
 type ShowToast = (m: string, t?: 'success' | 'warning' | 'error') => void;
 
-/* ---------- Per-Studio AI configuration (GET/PUT ai-config) ---------- */
+/* ---------- Shared AI API credentials (GET/POST/PUT/DELETE/test ai-providers) ---------- */
 
-const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) => {
+const AiProvidersPanel: React.FC<{
+  providers: AiProviderCredentialDto[];
+  loading: boolean;
+  error: boolean;
+  onReload: () => void;
+  onMutated: () => void;
+  showToast: ShowToast;
+}> = ({ providers, loading, error, onReload, onMutated, showToast }) => {
+  const { t } = useTranslation();
+  const [modal, setModal] = useState<
+    { kind: 'add' } | { kind: 'edit'; item: AiProviderCredentialDto } | null
+  >(null);
+  const [deleting, setDeleting] = useState<AiProviderCredentialDto | null>(null);
+  const [deletingBusy, setDeletingBusy] = useState(false);
+  const [testingId, setTestingId] = useState<string | null>(null);
+
+  const [name, setName] = useState('');
+  const [providerType, setProviderType] = useState<AiProviderType>('Gemini');
+  const [accountId, setAccountId] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [textModel, setTextModel] = useState(DEFAULT_TEXT_MODEL.Gemini);
+  const [imageModel, setImageModel] = useState('');
+  const [isEnabled, setIsEnabled] = useState(true);
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string;
+    accountId?: string;
+    apiKey?: string;
+    textModel?: string;
+  }>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const openAdd = () => {
+    setName('');
+    setProviderType('Gemini');
+    setAccountId('');
+    setApiKey('');
+    setTextModel(DEFAULT_TEXT_MODEL.Gemini);
+    setImageModel('');
+    setIsEnabled(true);
+    setFieldErrors({});
+    setSubmitError(null);
+    setModal({ kind: 'add' });
+  };
+
+  const openEdit = (item: AiProviderCredentialDto) => {
+    setName(item.name);
+    setProviderType(item.providerType === 'Cloudflare' ? 'Cloudflare' : 'Gemini');
+    setAccountId(item.accountId ?? '');
+    setApiKey('');
+    setTextModel(item.textModel);
+    setImageModel(item.imageModel ?? '');
+    setIsEnabled(item.isEnabled);
+    setFieldErrors({});
+    setSubmitError(null);
+    setModal({ kind: 'edit', item });
+  };
+
+  const handleTypeChange = (next: AiProviderType) => {
+    const prevDefault = DEFAULT_TEXT_MODEL[providerType];
+    setProviderType(next);
+    if (!textModel.trim() || textModel === prevDefault) {
+      setTextModel(DEFAULT_TEXT_MODEL[next]);
+    }
+  };
+
+  const handleSubmitModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modal || submitting) return;
+
+    const errs: typeof fieldErrors = {};
+    if (!name.trim() || name.trim().length > 100) {
+      errs.name = t('admin.aiConfig.providers.validationName');
+    }
+    if (providerType === 'Cloudflare' && !accountId.trim()) {
+      errs.accountId = t('admin.aiConfig.providers.validationAccountId');
+    }
+    if (modal.kind === 'add' && !apiKey.trim()) {
+      errs.apiKey = t('admin.aiConfig.providers.validationApiKey');
+    }
+    if (!textModel.trim() || textModel.trim().length > 200) {
+      errs.textModel = t('admin.aiConfig.providers.validationTextModel');
+    }
+    setFieldErrors(errs);
+    setSubmitError(null);
+    if (Object.keys(errs).length > 0) return;
+
+    setSubmitting(true);
+    try {
+      const cleanAccount = providerType === 'Cloudflare' ? accountId.trim() || null : null;
+      const cleanImage = imageModel.trim() || null;
+      if (modal.kind === 'add') {
+        const created = await adminService.createAiProvider({
+          name: name.trim(),
+          providerType,
+          accountId: cleanAccount,
+          apiKey: apiKey.trim(),
+          textModel: textModel.trim(),
+          imageModel: cleanImage,
+        });
+        setApiKey('');
+        setModal(null);
+        showToast(t('admin.aiConfig.providers.createSuccess', { name: created.name }));
+      } else {
+        const updated = await adminService.updateAiProvider(modal.item.id, {
+          name: name.trim(),
+          accountId: cleanAccount,
+          apiKey: apiKey.trim() || null,
+          textModel: textModel.trim(),
+          imageModel: cleanImage,
+          isEnabled,
+        });
+        setApiKey('');
+        setModal(null);
+        showToast(t('admin.aiConfig.providers.updateSuccess', { name: updated.name }));
+      }
+      onMutated();
+    } catch (err: any) {
+      setSubmitError(err.message || t('admin.aiConfig.studio.saveFailed'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleTest = async (item: AiProviderCredentialDto) => {
+    if (testingId) return;
+    setTestingId(item.id);
+    try {
+      await adminService.testAiProvider(item.id);
+      showToast(t('admin.aiConfig.providers.testSuccess', { name: item.name }));
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    } finally {
+      setTestingId(null);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleting || deletingBusy) return;
+    setDeletingBusy(true);
+    const target = deleting;
+    try {
+      await adminService.deleteAiProvider(target.id);
+      setDeleting(null);
+      showToast(t('admin.aiConfig.providers.deleteSuccess', { name: target.name }));
+      onMutated();
+    } catch (err: any) {
+      setDeleting(null);
+      showToast(err.message, 'error');
+    } finally {
+      setDeletingBusy(false);
+    }
+  };
+
+  const COLS = 7;
+
+  return (
+    <>
+      <AdminCard
+        title={t('admin.aiConfig.providers.cardTitle')}
+        description={t('admin.aiConfig.providers.cardDesc')}
+        bodyClassName='p-0'
+        actions={
+          <AdminButton
+            variant='primary'
+            size='sm'
+            icon={<Plus className='w-4 h-4' />}
+            onClick={openAdd}
+          >
+            {t('admin.aiConfig.providers.addButton')}
+          </AdminButton>
+        }
+      >
+        <div className={adminTable.wrap}>
+          <table className={adminTable.table}>
+            <thead className={adminTable.thead}>
+              <tr>
+                <th className={adminTable.th}>{t('admin.aiConfig.providers.colName')}</th>
+                <th className={adminTable.th}>{t('admin.aiConfig.providers.colType')}</th>
+                <th className={adminTable.th}>{t('admin.aiConfig.providers.colKeyHint')}</th>
+                <th className={adminTable.th}>{t('admin.aiConfig.providers.colModels')}</th>
+                <th className={`${adminTable.th} text-right`}>
+                  {t('admin.aiConfig.providers.colStudios')}
+                </th>
+                <th className={adminTable.th}>{t('admin.aiConfig.providers.colStatus')}</th>
+                <th className={`${adminTable.th} text-right`}>
+                  {t('admin.aiConfig.providers.colActions')}
+                </th>
+              </tr>
+            </thead>
+            <tbody className={adminTable.tbody}>
+              {loading ? (
+                <AdminTableState
+                  colSpan={COLS}
+                  kind='loading'
+                  message={t('admin.aiConfig.providers.loading')}
+                />
+              ) : error ? (
+                <AdminTableState
+                  colSpan={COLS}
+                  kind='error'
+                  message={t('admin.aiConfig.providers.loadError')}
+                  action={
+                    <AdminButton size='sm' onClick={onReload}>
+                      {t('admin.aiConfig.providers.retry')}
+                    </AdminButton>
+                  }
+                />
+              ) : providers.length === 0 ? (
+                <AdminTableState
+                  colSpan={COLS}
+                  kind='empty'
+                  message={t('admin.aiConfig.providers.empty')}
+                />
+              ) : (
+                providers.map((p) => (
+                  <tr key={p.id} className={adminTable.tr}>
+                    <td className={`${adminTable.td} font-semibold text-admin-ink-strong`}>
+                      {p.name}
+                    </td>
+                    <td className={adminTable.td}>
+                      <AdminBadge tone={p.providerType === 'Cloudflare' ? 'info' : 'accent'}>
+                        {p.providerType}
+                      </AdminBadge>
+                      {p.accountId && (
+                        <div
+                          className='mt-1 text-xs text-admin-muted font-mono truncate max-w-[160px]'
+                          title={p.accountId}
+                        >
+                          {p.accountId}
+                        </div>
+                      )}
+                    </td>
+                    <td className={`${adminTable.td} font-mono text-xs whitespace-nowrap`}>
+                      {p.keyHint || '—'}
+                    </td>
+                    <td className={adminTable.td}>
+                      <div className='font-mono text-xs text-admin-ink-strong'>{p.textModel}</div>
+                      <div className='font-mono text-xs text-admin-muted'>
+                        {p.imageModel || t('admin.aiConfig.providers.imageDefault')}
+                      </div>
+                    </td>
+                    <td className={`${adminTable.td} text-right tabular-nums`}>
+                      {p.workspaceCount}
+                    </td>
+                    <td className={adminTable.td}>
+                      <AdminBadge tone={p.isEnabled ? 'success' : 'neutral'}>
+                        {p.isEnabled
+                          ? t('admin.aiConfig.providers.statusEnabled')
+                          : t('admin.aiConfig.providers.statusDisabled')}
+                      </AdminBadge>
+                    </td>
+                    <td className={`${adminTable.td} text-right whitespace-nowrap`}>
+                      <div className='inline-flex items-center justify-end gap-1.5'>
+                        <AdminButton
+                          size='sm'
+                          icon={<FlaskConical className='w-3.5 h-3.5' />}
+                          isLoading={testingId === p.id}
+                          disabled={!!testingId && testingId !== p.id}
+                          onClick={() => handleTest(p)}
+                        >
+                          {t('admin.aiConfig.providers.testButton')}
+                        </AdminButton>
+                        <AdminButton
+                          size='sm'
+                          icon={<Pencil className='w-3.5 h-3.5' />}
+                          onClick={() => openEdit(p)}
+                        >
+                          {t('admin.aiConfig.providers.editButton')}
+                        </AdminButton>
+                        <AdminButton
+                          size='sm'
+                          variant='danger'
+                          icon={<Trash2 className='w-3.5 h-3.5' />}
+                          onClick={() => setDeleting(p)}
+                        >
+                          {t('admin.aiConfig.providers.deleteButton')}
+                        </AdminButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </AdminCard>
+
+      {modal && (
+        <AdminModal
+          title={
+            modal.kind === 'add'
+              ? t('admin.aiConfig.providers.modalAddTitle')
+              : t('admin.aiConfig.providers.modalEditTitle')
+          }
+          size='lg'
+          onClose={() => !submitting && setModal(null)}
+          footer={
+            <>
+              <AdminButton onClick={() => setModal(null)} disabled={submitting}>
+                {t('admin.aiConfig.providers.cancel')}
+              </AdminButton>
+              <AdminButton
+                type='submit'
+                form='ai-provider-form'
+                variant='primary'
+                isLoading={submitting}
+              >
+                {t('admin.aiConfig.providers.save')}
+              </AdminButton>
+            </>
+          }
+        >
+          <form id='ai-provider-form' onSubmit={handleSubmitModal} noValidate className='space-y-4'>
+            {submitError && (
+              <div
+                role='alert'
+                className='flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700'
+              >
+                <AlertCircle className='w-4 h-4 mt-0.5 shrink-0' aria-hidden />
+                <span>{submitError}</span>
+              </div>
+            )}
+
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+              <AdminField
+                label={t('admin.aiConfig.providers.fieldName')}
+                htmlFor='aip-name'
+                required
+                error={fieldErrors.name}
+              >
+                <input
+                  id='aip-name'
+                  type='text'
+                  maxLength={100}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t('admin.aiConfig.providers.fieldNamePlaceholder')}
+                  className={adminFieldClass}
+                />
+              </AdminField>
+
+              <AdminField
+                label={t('admin.aiConfig.providers.fieldType')}
+                htmlFor='aip-type'
+                required
+                hint={
+                  modal.kind === 'edit' ? t('admin.aiConfig.providers.fieldTypeLockedHint') : null
+                }
+              >
+                <select
+                  id='aip-type'
+                  value={providerType}
+                  disabled={modal.kind === 'edit'}
+                  onChange={(e) => handleTypeChange(e.target.value as AiProviderType)}
+                  className={adminFieldClass}
+                >
+                  <option value='Gemini'>Gemini</option>
+                  <option value='Cloudflare'>Cloudflare</option>
+                </select>
+              </AdminField>
+            </div>
+
+            {providerType === 'Cloudflare' && (
+              <AdminField
+                label={t('admin.aiConfig.providers.fieldAccountId')}
+                htmlFor='aip-account-id'
+                required
+                hint={t('admin.aiConfig.providers.fieldAccountIdHint')}
+                error={fieldErrors.accountId}
+              >
+                <input
+                  id='aip-account-id'
+                  type='text'
+                  maxLength={100}
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  className={cn(adminFieldClass, 'font-mono')}
+                />
+              </AdminField>
+            )}
+
+            <AdminField
+              label={t('admin.aiConfig.providers.fieldApiKey')}
+              htmlFor='aip-api-key'
+              required={modal.kind === 'add'}
+              hint={
+                modal.kind === 'add'
+                  ? t('admin.aiConfig.providers.fieldApiKeyCreateHint')
+                  : t('admin.aiConfig.providers.fieldApiKeyEditHint', {
+                      hint: modal.item.keyHint || '••••',
+                    })
+              }
+              error={fieldErrors.apiKey}
+            >
+              <input
+                id='aip-api-key'
+                type='password'
+                autoComplete='off'
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={modal.kind === 'edit' ? modal.item.keyHint || '••••••••' : undefined}
+                className={cn(adminFieldClass, 'font-mono')}
+              />
+            </AdminField>
+
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+              <AdminField
+                label={t('admin.aiConfig.providers.fieldTextModel')}
+                htmlFor='aip-text-model'
+                required
+                error={fieldErrors.textModel}
+              >
+                <input
+                  id='aip-text-model'
+                  type='text'
+                  maxLength={200}
+                  value={textModel}
+                  onChange={(e) => setTextModel(e.target.value)}
+                  placeholder={DEFAULT_TEXT_MODEL[providerType]}
+                  className={cn(adminFieldClass, 'font-mono')}
+                />
+              </AdminField>
+
+              <AdminField
+                label={t('admin.aiConfig.providers.fieldImageModel')}
+                htmlFor='aip-image-model'
+                hint={t('admin.aiConfig.providers.fieldImageModelHint')}
+              >
+                <input
+                  id='aip-image-model'
+                  type='text'
+                  maxLength={200}
+                  value={imageModel}
+                  onChange={(e) => setImageModel(e.target.value)}
+                  placeholder={DEFAULT_IMAGE_PLACEHOLDER[providerType]}
+                  className={cn(adminFieldClass, 'font-mono')}
+                />
+              </AdminField>
+            </div>
+
+            {modal.kind === 'edit' && (
+              <label className='flex items-center gap-3 cursor-pointer pt-1'>
+                <input
+                  type='checkbox'
+                  checked={isEnabled}
+                  onChange={(e) => setIsEnabled(e.target.checked)}
+                  className='w-4 h-4 accent-[#F97316]'
+                />
+                <span className='text-sm font-medium text-admin-ink'>
+                  {t('admin.aiConfig.providers.fieldEnabled')}
+                </span>
+              </label>
+            )}
+          </form>
+        </AdminModal>
+      )}
+
+      {deleting && (
+        <AdminModal
+          title={t('admin.aiConfig.providers.deleteModalTitle')}
+          onClose={() => !deletingBusy && setDeleting(null)}
+          footer={
+            <>
+              <AdminButton onClick={() => setDeleting(null)} disabled={deletingBusy}>
+                {t('admin.aiConfig.providers.cancel')}
+              </AdminButton>
+              <AdminButton
+                variant='danger'
+                isLoading={deletingBusy}
+                onClick={handleConfirmDelete}
+              >
+                {t('admin.aiConfig.providers.deleteConfirmButton')}
+              </AdminButton>
+            </>
+          }
+        >
+          <p className='text-sm text-admin-ink'>
+            {t('admin.aiConfig.providers.deleteModalConfirm', { name: deleting.name })}
+          </p>
+        </AdminModal>
+      )}
+    </>
+  );
+};
+
+/* ---------- Per-Studio AI configuration (GET/PUT ai-config + PUT ai-provider) ---------- */
+
+const StudioAiConfigPanel: React.FC<{
+  providers: AiProviderCredentialDto[];
+  onProviderAssigned: () => void;
+  showToast: ShowToast;
+}> = ({ providers, onProviderAssigned, showToast }) => {
   const { t, lang } = useTranslation();
   const locale = lang === 'en' ? 'en-US' : 'vi-VN';
   const fmt = (n?: number | null) => (n ?? 0).toLocaleString(locale);
@@ -72,6 +586,7 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
   const [saving, setSaving] = useState(false);
 
   const [isEnabled, setIsEnabled] = useState(true);
+  const [credentialId, setCredentialId] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [tokenQuota, setTokenQuota] = useState('0');
   const [imageQuota, setImageQuota] = useState('0');
@@ -99,6 +614,7 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
   const applyConfig = (c: WorkspaceAiConfigDto) => {
     setConfig(c);
     setIsEnabled(c.isEnabled);
+    setCredentialId(c.providerCredentialId ?? '');
     setApiKey('');
     setTokenQuota(String(c.monthlyTokenQuota ?? 0));
     setImageQuota(String(c.monthlyImageQuota ?? 0));
@@ -137,8 +653,14 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
     });
     if (token === null || image === null) return;
 
+    const prevCredId = config?.providerCredentialId ?? '';
+    const credentialChanged = credentialId !== prevCredId;
+
     setSaving(true);
     try {
+      if (credentialChanged) {
+        await adminService.setWorkspaceAiProvider(workspaceId, credentialId || null);
+      }
       const updated = await adminService.updateWorkspaceAiConfig(workspaceId, {
         provider: AI_PROVIDER,
         apiKey: apiKey.trim() || undefined,
@@ -148,6 +670,7 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
         allowedModels: models,
       });
       applyConfig(updated);
+      if (credentialChanged) onProviderAssigned();
       showToast(t('admin.aiConfig.studio.saveSuccess'));
     } catch (err: any) {
       showToast(err.message || t('admin.aiConfig.studio.saveFailed'), 'error');
@@ -157,11 +680,28 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
   };
 
   const modelOptions = Array.from(new Set([...KNOWN_MODELS, ...(config?.allowedModels || [])]));
-  const keyState = !config?.hasApiKey
-    ? { label: t('admin.aiConfig.studio.keyMissing'), tone: 'warning' as AdminTone }
-    : config.apiKeyUsable === false
-      ? { label: t('admin.aiConfig.studio.keyUnusable'), tone: 'danger' as AdminTone }
-      : { label: t('admin.aiConfig.studio.keyPresent'), tone: 'success' as AdminTone };
+  const boundProvider = config?.providerCredentialId
+    ? providers.find((p) => p.id === config.providerCredentialId)
+    : null;
+
+  const keyState = config?.providerCredentialId
+    ? boundProvider && boundProvider.isEnabled
+      ? {
+          label: t('admin.aiConfig.studio.sharedKeyActive', {
+            name: boundProvider.name,
+            hint: boundProvider.keyHint || '••••',
+          }),
+          tone: 'success' as AdminTone,
+        }
+      : { label: t('admin.aiConfig.studio.sharedKeyUnavailable'), tone: 'danger' as AdminTone }
+    : !config?.hasApiKey
+      ? { label: t('admin.aiConfig.studio.keyMissing'), tone: 'warning' as AdminTone }
+      : config.apiKeyUsable === false
+        ? { label: t('admin.aiConfig.studio.keyUnusable'), tone: 'danger' as AdminTone }
+        : { label: t('admin.aiConfig.studio.keyPresent'), tone: 'success' as AdminTone };
+
+  const hasMissingBoundOption =
+    !!config?.providerCredentialId && !providers.some((p) => p.id === config.providerCredentialId);
 
   if (wsError)
     return (
@@ -243,6 +783,41 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
               {t('admin.aiConfig.studio.keyStatusLabel')}{' '}
               <AdminBadge tone={keyState.tone}>{keyState.label}</AdminBadge>
             </div>
+
+            <AdminField
+              label={t('admin.aiConfig.studio.credentialSelectLabel')}
+              htmlFor='ai-studio-credential'
+              hint={t('admin.aiConfig.studio.credentialSelectHint')}
+            >
+              <select
+                id='ai-studio-credential'
+                value={credentialId}
+                onChange={(e) => setCredentialId(e.target.value)}
+                className={adminFieldClass}
+              >
+                <option value=''>{t('admin.aiConfig.studio.useLegacyKey')}</option>
+                {hasMissingBoundOption && (
+                  <option value={config!.providerCredentialId!} disabled>
+                    {t('admin.aiConfig.studio.credentialMissingOption')}
+                  </option>
+                )}
+                {providers.map((p) => (
+                  <option
+                    key={p.id}
+                    value={p.id}
+                    disabled={!p.isEnabled && p.id !== config?.providerCredentialId}
+                  >
+                    {`${p.name} (${p.providerType} · ${p.textModel}${p.keyHint ? ` · ${p.keyHint}` : ''})${!p.isEnabled ? t('admin.aiConfig.studio.credentialDisabledSuffix') : ''}`}
+                  </option>
+                ))}
+              </select>
+            </AdminField>
+
+            {credentialId !== '' && (
+              <p className='text-xs text-admin-muted'>
+                {t('admin.aiConfig.studio.legacyFieldsSharedNote')}
+              </p>
+            )}
 
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <AdminField label={t('admin.aiConfig.studio.providerLabel')} htmlFor='ai-provider'>
@@ -371,11 +946,9 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
                     ? t('admin.aiConfig.summary.aiEnabled')
                     : t('admin.aiConfig.summary.aiDisabled')}
                 </AdminBadge>
-                <AdminBadge tone={config.hasApiKey ? 'success' : 'warning'}>
+                <AdminBadge tone={keyState.tone}>
                   <KeyRound className='w-3 h-3' aria-hidden />
-                  {config.hasApiKey
-                    ? t('admin.aiConfig.studio.keyPresent')
-                    : t('admin.aiConfig.studio.keyMissing')}
+                  {keyState.label}
                 </AdminBadge>
               </dd>
             </div>
@@ -419,6 +992,51 @@ const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) 
         )}
       </AdminCard>
     </form>
+  );
+};
+
+const CredentialsTabPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) => {
+  const [providers, setProviders] = useState<AiProviderCredentialDto[]>([]);
+  const [loadingProviders, setLoadingProviders] = useState(true);
+  const [providersError, setProvidersError] = useState(false);
+
+  const loadProviders = useCallback(async () => {
+    if (!adminService.getAiProviders) {
+      setLoadingProviders(false);
+      return;
+    }
+    setLoadingProviders(true);
+    setProvidersError(false);
+    try {
+      const list = await adminService.getAiProviders();
+      setProviders(list || []);
+    } catch {
+      setProvidersError(true);
+    } finally {
+      setLoadingProviders(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProviders();
+  }, [loadProviders]);
+
+  return (
+    <div className='space-y-6'>
+      <AiProvidersPanel
+        providers={providers}
+        loading={loadingProviders}
+        error={providersError}
+        onReload={loadProviders}
+        onMutated={loadProviders}
+        showToast={showToast}
+      />
+      <StudioAiConfigPanel
+        providers={providers}
+        onProviderAssigned={loadProviders}
+        showToast={showToast}
+      />
+    </div>
   );
 };
 
@@ -813,7 +1431,7 @@ export const AIConfigurationView: React.FC = () => {
       </div>
 
       {activeSubTab === 'credentials' ? (
-        <StudioAiConfigPanel key={reloadKey} showToast={showToast} />
+        <CredentialsTabPanel key={reloadKey} showToast={showToast} />
       ) : (
         <UsageReportsPanel key={reloadKey} showToast={showToast} />
       )}

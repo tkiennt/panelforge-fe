@@ -188,6 +188,40 @@ export interface UpdateWorkspaceSessionPolicyRequest {
   maxConcurrentSessions?: number | null;
 }
 
+export type AiProviderType = 'Gemini' | 'Cloudflare';
+
+export interface AiProviderCredentialDto {
+  id: string;
+  name: string;
+  providerType: AiProviderType | string;
+  accountId?: string | null;
+  keyHint: string;
+  textModel: string;
+  imageModel?: string | null;
+  isEnabled: boolean;
+  workspaceCount: number;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface CreateAiProviderCredentialRequest {
+  name: string;
+  providerType: AiProviderType;
+  accountId?: string | null;
+  apiKey: string;
+  textModel: string;
+  imageModel?: string | null;
+}
+
+export interface UpdateAiProviderCredentialRequest {
+  name: string;
+  accountId?: string | null;
+  apiKey?: string | null;
+  textModel: string;
+  imageModel?: string | null;
+  isEnabled: boolean;
+}
+
 export interface WorkspaceAiConfigDto {
   id: string;
   workspaceId: string;
@@ -195,6 +229,7 @@ export interface WorkspaceAiConfigDto {
   hasApiKey: boolean;
   /** Máy chủ giải mã được key đã lưu, tức AI dùng được key này. */
   apiKeyUsable?: boolean;
+  providerCredentialId?: string | null;
   isEnabled: boolean;
   monthlyTokenQuota: number;
   usedTokensCurrentMonth: number;
@@ -461,6 +496,77 @@ export const adminService = {
     } catch (error) {
       throw new Error(
         extractError(error, translate('errors.services.admin.updateWorkspaceAiConfigFailed')),
+      );
+    }
+  },
+
+  getAiProviders: async (): Promise<AiProviderCredentialDto[]> => {
+    try {
+      const response = await axiosClient.get('/Admin/ai-providers');
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, translate('errors.services.admin.getAiProvidersFailed')));
+    }
+  },
+
+  createAiProvider: async (
+    data: CreateAiProviderCredentialRequest,
+  ): Promise<AiProviderCredentialDto> => {
+    try {
+      const response = await axiosClient.post('/Admin/ai-providers', data);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.createAiProviderFailed')),
+      );
+    }
+  },
+
+  updateAiProvider: async (
+    id: string,
+    data: UpdateAiProviderCredentialRequest,
+  ): Promise<AiProviderCredentialDto> => {
+    try {
+      const response = await axiosClient.put(`/Admin/ai-providers/${id}`, data);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.updateAiProviderFailed')),
+      );
+    }
+  },
+
+  deleteAiProvider: async (id: string): Promise<void> => {
+    try {
+      await axiosClient.delete(`/Admin/ai-providers/${id}`);
+    } catch (error) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.deleteAiProviderFailed')),
+      );
+    }
+  },
+
+  testAiProvider: async (id: string): Promise<{ ok: boolean }> => {
+    try {
+      const response = await axiosClient.post(`/Admin/ai-providers/${id}/test`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, translate('errors.services.admin.testAiProviderFailed')));
+    }
+  },
+
+  setWorkspaceAiProvider: async (
+    workspaceId: string,
+    providerCredentialId: string | null,
+  ): Promise<WorkspaceAiConfigDto> => {
+    try {
+      const response = await axiosClient.put(`/Admin/workspaces/${workspaceId}/ai-provider`, {
+        providerCredentialId,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.setWorkspaceAiProviderFailed')),
       );
     }
   },
