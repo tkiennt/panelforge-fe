@@ -1558,9 +1558,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             void handleOpenAddRevision(entity);
                           }}
                           className='px-2 py-0.5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium'
-                          data-testid={`add-revision-btn-${entity.id}`}
+                          data-testid={
+                            entity.isStub
+                              ? `define-stub-btn-${entity.id}`
+                              : `add-revision-btn-${entity.id}`
+                          }
                         >
-                          + Bản
+                          {entity.isStub ? 'Định nghĩa' : '+ Bản'}
                         </button>
                       )}
 
@@ -1575,9 +1579,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             ? 'bg-emerald-100 text-emerald-800'
                             : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                         }`}
-                        data-testid={`crowd-badge-${entity.id}`}
+                        data-testid={`toggle-crowd-btn-${entity.id}`}
                       >
-                        {entity.isCrowd ? 'Quần chúng' : 'Đặt Quần chúng'}
+                        {entity.isCrowd ? '✓ Quần chúng' : 'Đặt Quần chúng'}
                       </button>
                     </div>
                   </div>
