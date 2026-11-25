@@ -2,9 +2,9 @@ name: Frontend CI
 
 on:
   pull_request:
-    branches: [ "main", "stg", "dev" ]
+    branches: [ "main", "dev" ]
   push:
-    branches: [ "main", "stg", "dev", "trungkien" ]
+    branches: [ "main", "dev", "trungkien" ]
 
 jobs:
   quality-assurance:
@@ -39,8 +39,8 @@ jobs:
       - name: Production Bundle Verification (Vite Build)
         run: npm run build
 
-      - name: Upload Build Artifacts (Staging & Production)
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/stg' || github.ref == 'refs/heads/dev')
+      - name: Upload Build Artifacts (Production & Dev)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
         uses: actions/upload-artifact@v4
         with:
           name: panelforge-fe-${{ github.ref_name }}
