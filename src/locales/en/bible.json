@@ -876,7 +876,11 @@
     "tabRules": "Rules",
     "statusAll": "All statuses",
     "statusPending": "Pending lock",
-    "statusLocked": "Canon locked"
+    "statusLocked": "Canon locked",
+    "reworkTitle": "Ask the Artist to redraw this concept",
+    "endorseTitle": "Writer/Editor approves this concept art",
+    "defineStubBtn": "Define",
+    "openWorkbench": "Workbench"
   },
   "isCrowdHelp": "Crowd entities do not require a Model Sheet",
   "crowd": {

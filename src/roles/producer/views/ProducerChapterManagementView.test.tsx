@@ -302,6 +302,30 @@ describe('ProducerChapterManagementView', () => {
     });
   });
 
+  it('Gate 3: chương đã nghiệm thu hiện "ĐÃ QUA CỔNG", không còn "CHƯA ĐẠT"', async () => {
+    const approved = { ...mockChapters[1], status: 'ChapterApproved' };
+    (chapterService.getChaptersBySeries as any).mockResolvedValue({
+      items: [mockChapters[0], approved],
+      totalCount: 2,
+    });
+    (chapterService.getChapterById as any).mockResolvedValue(approved);
+    (chapterService.getChapterLockGate as any).mockResolvedValue({
+      chapterId: 'chap-2',
+      status: 'ChapterApproved',
+      canApprove: false,
+      items: [
+        { code: 'NOT_IN_PRODUCTION', blocking: true, count: 1, message: 'Không ở InProduction' },
+      ],
+    });
+
+    renderComponent('chap-2');
+    fireEvent.click(await screen.findByText(/Chốt Cổng/i));
+
+    expect(await screen.findByTestId('gate3-status-badge')).toHaveTextContent('ĐÃ QUA CỔNG');
+    expect(screen.getByText('Đã duyệt Gate 3')).toBeInTheDocument();
+    expect(screen.queryByText('Không ở InProduction')).not.toBeInTheDocument();
+  });
+
   it('mở modal Start Production khi Producer bấm nút Chốt duyệt & Bắt đầu', async () => {
     renderComponent('chap-1');
 

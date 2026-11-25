@@ -404,12 +404,11 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     // Yêu cầu không gắn trang / khung: không hiện "Xem vị trí"
     expect(screen.queryByTestId('btn-navigate-cr-cr-2')).toBeNull();
 
-    // Click "Báo đã sửa..." reveals resolve input
-    fireEvent.click(screen.getByTestId('btn-resolve-cr-cr-1'));
-    const input = screen.getByPlaceholderText('Ghi chú cách bạn đã khắc phục (tuỳ chọn)...');
+    // Inline artist resolution note textarea is rendered directly in open cards (Stitch design)
+    const input = screen.getByPlaceholderText('Ghi chú đã sửa của Họa sĩ...');
     expect(input).toBeInTheDocument();
     fireEvent.change(input, { target: { value: 'Đã xoay góc kiếm 15 độ' } });
-    fireEvent.click(screen.getByTestId('btn-confirm-resolve-cr-1'));
+    fireEvent.click(screen.getByTestId('btn-resolve-cr-cr-1'));
     expect(handleResolve).toHaveBeenCalledWith('cr-1', 'Đã xoay góc kiếm 15 độ');
   });
 

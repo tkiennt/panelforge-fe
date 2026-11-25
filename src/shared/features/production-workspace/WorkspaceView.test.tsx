@@ -11,6 +11,10 @@ vi.mock('@/services/chapter.service', () => ({
   },
 }));
 
+vi.mock('@/roles/producer/modals/SeriesMembersModal', () => ({
+  SeriesMembersModal: () => <div data-testid='series-members-modal-mock' />,
+}));
+
 // Đã chọn chương thì chỉ còn Lưới Trang × Công đoạn
 vi.mock('@/shared/features/pipeline-board/TaskGridBoard', () => ({
   TaskGridBoard: ({
@@ -108,6 +112,24 @@ describe('WorkspaceView (Quy trình sản xuất)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Làm mới dữ liệu' }));
     await waitFor(() => expect(screen.getByText('Refresh: 1')).toBeInTheDocument());
+  });
+
+  it('tab Ê-kíp: nút Thêm thành viên mở hộp thoại thành viên series, không chuyển trang', async () => {
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/series-1/workspace?tab=crew']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/workspace'
+            element={<WorkspaceView currentUserRole='PRODUCER' onShowToast={vi.fn()} />}
+          />
+          <Route path='*' element={<div>Trang khác</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByTestId('crew-add-member-btn'));
+    expect(await screen.findByTestId('series-members-modal-mock')).toBeInTheDocument();
+    expect(screen.queryByText('Trang khác')).not.toBeInTheDocument();
   });
 
   it('chặn quyền truy cập đối với độc giả (READER mode)', () => {

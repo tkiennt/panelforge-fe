@@ -3,6 +3,7 @@ import type { BoardCard } from './pipelineBoard.types';
 import {
   EMPTY_DETAIL_FILTERS,
   blockedReason,
+  canHoldStageRole,
   buildScopeOptions,
   computeMetrics,
   formatChapterLabel,
@@ -189,5 +190,15 @@ describe('productionBoard.utils', () => {
       { key: 'page:p2', label: 'Trang 2' },
       { key: 'panel', label: 'Khung tranh' },
     ]);
+  });
+});
+
+describe('canHoldStageRole (BR-31)', () => {
+  it('công đoạn Letterer nhận cả Letterer và Artist; công đoạn Artist không nhận Letterer', () => {
+    expect(canHoldStageRole('Letterer', 'LETTERER')).toBe(true);
+    expect(canHoldStageRole('Letterer', 'Artist')).toBe(true);
+    expect(canHoldStageRole('Letterer', 'WRITER')).toBe(false);
+    expect(canHoldStageRole('Artist', 'LETTERER')).toBe(false);
+    expect(canHoldStageRole(null, 'WRITER')).toBe(true);
   });
 });

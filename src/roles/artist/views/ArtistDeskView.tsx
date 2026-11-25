@@ -462,12 +462,21 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             );
             if (assignedCells.length === 0) return;
 
-            const activeCell = assignedCells.find(
-              (t) =>
-                t.status === 'InProgress' ||
-                t.status === 'ReworkRequired' ||
-                t.status === 'Assigned',
-            );
+            // Ưu tiên ô đang làm/đang sửa, rồi ô đã đến lượt bắt đầu, rồi ô đã giao; cùng hạng thì theo thứ tự công đoạn.
+            // (Artist có thể giữ cả Pencil, Ink và Lettering của cùng trang — BR-31.)
+            const cellRank = (t: (typeof assignedCells)[number]) =>
+              t.status === 'InProgress' || t.status === 'ReworkRequired'
+                ? 0
+                : t.status === 'Assigned' && t.isStartable
+                  ? 1
+                  : t.status === 'Assigned'
+                    ? 2
+                    : 9;
+            const stageOrder = (t: (typeof assignedCells)[number]) =>
+              artistStages.findIndex((s) => s.id === t.pipelineStageId);
+            const activeCell = [...assignedCells]
+              .filter((t) => cellRank(t) < 9)
+              .sort((a, b) => cellRank(a) - cellRank(b) || stageOrder(a) - stageOrder(b))[0];
             if (activeCell) {
               const idx = artistStages.findIndex((s) => s.id === activeCell.pipelineStageId);
               if (idx >= 0) {
@@ -1571,7 +1580,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       onSubmitStage: handleSubmitStage,
       onSelectStage: handleSelectStage,
       submitButtonLabel: t('artist.deskView.submitButtonLabel'),
+      showWithdrawButton: true,
       onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
+      isWithdrawDisabled: !withdrawableCell,
+      withdrawDisabledReason: t('artist.deskView.withdrawDisabledTooltip'),
       isWithdrawingStage,
       withdrawButtonLabel: t('artist.deskView.withdrawButtonLabel'),
     });
@@ -1958,6 +1970,49 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       canUploadCurrentPageArtwork: holdsOpenStageCell || isProducerOnUnassignedStage,
     };
   }, [gridTasks, selectedPage, workspaceRole, currentStage?.id]);
+
+  // Ô của công đoạn hiện tại trên trang này đã giao cho mình và đến lượt làm nhưng chưa bấm Bắt đầu
+  const startableCurrentCell = useMemo(() => {
+    if (!isPageReadOnly || !selectedPage || !currentStage?.id) return null;
+    const me = getStoredCurrentUserId();
+    return (
+      gridTasks.find(
+        (t) =>
+          t.pipelineStageId === currentStage.id &&
+          (t.pageId === selectedPage.id || !t.pageId) &&
+          t.status === 'Assigned' &&
+          t.isStartable &&
+          (!me || t.assigneeUserId === me),
+      ) ?? null
+    );
+  }, [isPageReadOnly, selectedPage, currentStage?.id, gridTasks]);
+  const [isStartingCell, setIsStartingCell] = useState(false);
+
+  const handleStartCurrentCell = async () => {
+    if (!startableCurrentCell || !currentChapterId || isStartingCell) return;
+    setIsStartingCell(true);
+    try {
+      const started = await assignmentService.startStageTask(
+        currentChapterId,
+        startableCurrentCell.id,
+      );
+      setGridTasks((prev) =>
+        prev.map((t) =>
+          t.id === startableCurrentCell.id
+            ? { ...t, ...started, id: t.id, status: started?.status ?? 'InProgress' }
+            : t,
+        ),
+      );
+      toast.success(
+        t('artist.deskView.startCellSuccessTitle'),
+        t('artist.deskView.startCellSuccessDesc', { stage: currentStage?.label ?? '' }),
+      );
+    } catch (err: any) {
+      toast.error(t('artist.deskView.startCellErrorTitle'), err?.message || '');
+    } finally {
+      setIsStartingCell(false);
+    }
+  };
 
   const activeReworkDisplay = useMemo(() => {
     if (gridTasks.length === 0) return null;
@@ -2816,7 +2871,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   return (
     <div
       ref={containerRef}
-      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-col bg-[#F3F0E9] text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
+      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-col bg-[#FAF9F5] text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
       data-testid='artist-desk'
     >
       {/* Fallback Header khi màn hình ArtistDeskView được render độc lập bên ngoài FocusWorkspaceLayout */}
@@ -2842,35 +2897,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             onSubmitStage: handleSubmitStage,
             onSelectStage: handleSelectStage,
             submitButtonLabel: t('artist.deskView.submitButtonLabel'),
+            showWithdrawButton: true,
             onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
+            isWithdrawDisabled: !withdrawableCell,
+            withdrawDisabledReason: t('artist.deskView.withdrawDisabledTooltip'),
             isWithdrawingStage,
             withdrawButtonLabel: t('artist.deskView.withdrawButtonLabel'),
           }}
           showFocusControls={false}
         />
-      )}
-
-      {!isStageFlowCompleted && artistStages[currentStageIndex]?.key === 'pencil' && (
-        <div
-          data-testid='artist-script-coverage'
-          role='status'
-          className={`shrink-0 border-b px-4 py-2 text-xs font-semibold ${
-            scriptCoverage.percent === 100
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-              : 'border-amber-200 bg-amber-50 text-amber-900'
-          }`}
-        >
-          {t('artist.deskView.scriptCoverageLabel', {
-            covered: scriptCoverage.covered,
-            total: scriptCoverage.total,
-            percent: scriptCoverage.percent,
-          })}
-          {scriptCoverage.percent < 100 && (
-            <span className='ml-2 font-medium'>
-              {t('artist.deskView.scriptCoverageLockedHint')}
-            </span>
-          )}
-        </div>
       )}
 
       {isPageReadOnly && (
@@ -2885,7 +2920,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 { lang: activeLang.toUpperCase() },
                 `Chế độ dịch (${activeLang.toUpperCase()}) — Cho phép chỉnh sửa bản dịch; khung tranh và chữ gốc chỉ đọc`,
               )
-            : t('artist.deskView.readOnlyBanner')}
+            : startableCurrentCell
+              ? t('artist.deskView.readyToStartBanner', { stage: currentStage?.label ?? '' })
+              : t('artist.deskView.readOnlyBanner')}
+          {startableCurrentCell && !canEditCurrentTranslation && (
+            <button
+              type='button'
+              data-testid='artist-start-cell-btn'
+              disabled={isStartingCell}
+              onClick={() => void handleStartCurrentCell()}
+              className='ml-3 inline-flex items-center rounded-md bg-orange-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-60'
+            >
+              {isStartingCell
+                ? t('artist.deskView.startingCell')
+                : t('artist.deskView.startCellBtn')}
+            </button>
+          )}
         </div>
       )}
 
@@ -2936,7 +2986,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onDeletePage={(id) => handleDeletePage(id)}
           onMovePage={() => {}}
           onToggleVisibility={() => {}}
-          hidePagesTab={true}
+          hidePagesTab={false}
           scriptLines={resolvedScriptLines}
           sceneTitle={firstSceneMeta.title}
           sceneSlugline={firstSceneMeta.slugline}

@@ -34,8 +34,21 @@ import {
   SeriesMemberDto,
   SeriesProgressDto,
 } from '@/services/series.service';
+import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
+import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
+import { formatDate } from '@/lib/format';
 import { ProducerSharedHeader } from './ProducerSharedHeader';
+import {
+  countGateWarnings,
+  daysUntil,
+  getBibleMetrics,
+  getChapterMetrics,
+  getCrewMetrics,
+  getMemberLoad,
+  isApprovedStatus,
+  isPublishedStatus,
+} from './workspaceMetrics';
 
 export interface WorkspaceViewProps {
   currentUserRole?: WorkspaceRole | null;
@@ -103,6 +116,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [seriesProgress, setSeriesProgress] = useState<SeriesProgressDto | null>(null);
   const [lockGate, setLockGate] = useState<ChapterLockGateDto | null>(null);
   const [startProductionOpen, setStartProductionOpen] = useState(false);
+  const [membersModalOpen, setMembersModalOpen] = useState(false);
+  const [bibleEntries, setBibleEntries] = useState<BibleEntryDto[]>([]);
   const [chapterFilter, setChapterFilter] = useState<'all' | 'inProd' | 'published'>('all');
   const [crewRoleFilter, setCrewRoleFilter] = useState<'all' | 'artist' | 'tech'>('all');
 
@@ -144,21 +159,37 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         })
         .catch(() => {});
 
-      seriesService
-        .getSeriesMembers(workspaceId || '', seriesId)
-        .then((members) => {
-          if (Array.isArray(members)) setSeriesMembers(members);
-        })
-        .catch(() => {});
-
-      seriesService
-        .getSeriesProgress(seriesId)
-        .then((prog) => {
-          if (prog) setSeriesProgress(prog);
-        })
-        .catch(() => {});
+      bibleService
+        .getSeriesBible(seriesId)
+        .then((bible) => setBibleEntries(bible?.entries ?? []))
+        .catch(() => setBibleEntries([]));
     }
   }, [workspaceId, seriesId]);
+
+  const loadMembers = useCallback(() => {
+    if (!seriesId) return;
+    seriesService
+      .getSeriesMembers(workspaceId || '', seriesId)
+      .then((members) => {
+        if (Array.isArray(members)) setSeriesMembers(members);
+      })
+      .catch(() => {});
+  }, [workspaceId, seriesId]);
+
+  useEffect(() => {
+    loadMembers();
+  }, [loadMembers]);
+
+  // Tiến độ series (UC-16) nạp lại khi bấm Làm mới
+  useEffect(() => {
+    if (!seriesId) return;
+    seriesService
+      .getSeriesProgress(seriesId)
+      .then((prog) => {
+        if (prog) setSeriesProgress(prog);
+      })
+      .catch(() => {});
+  }, [seriesId, refreshKey]);
 
   // Load chapters list
   const loadChapters = useCallback(async () => {
@@ -279,12 +310,41 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     : null;
 
   // Filtered chapters for chapter overview tab
+  const isDoneChapter = (c: ChapterDto) =>
+    isPublishedStatus(c.status) || isApprovedStatus(c.status);
   const filteredChapters = chapters.filter((c) => {
     if (chapterFilter === 'inProd') return c.status === 'InProduction';
-    if (chapterFilter === 'published')
-      return c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved';
+    if (chapterFilter === 'published') return isDoneChapter(c);
     return true;
   });
+  const publishedCount = chapters.filter((c) => isPublishedStatus(c.status)).length;
+  const approvedCount = chapters.filter((c) => isApprovedStatus(c.status)).length;
+  const inProdCount = chapters.filter((c) => c.status === 'InProduction').length;
+
+  const currentMetrics = getChapterMetrics(currentChapter, seriesProgress);
+  const gateWarnings = countGateWarnings(lockGate);
+  const bibleMetrics = getBibleMetrics(bibleEntries);
+  const workload = seriesProgress?.workload ?? [];
+  const workloadByUser = new Map(workload.map((w) => [w.userId, w]));
+  const crewMetrics = getCrewMetrics(
+    seriesMembers.map((m) => m.userId),
+    workload,
+  );
+
+  const formatShortDate = (iso?: string | null) =>
+    iso ? formatDate(iso, { day: '2-digit', month: '2-digit' }) : '';
+  const deadlineHint = (iso?: string | null) => {
+    const days = daysUntil(iso);
+    if (days === null) return t('workbench.chaptersOverview.noDeadline');
+    if (days === 0) return t('workbench.chaptersOverview.dueToday');
+    return days > 0
+      ? t('workbench.chaptersOverview.daysLeft', { days })
+      : t('workbench.chaptersOverview.overdueDays', { days: -days });
+  };
+  const scriptStatusLabel = (c?: ChapterDto) => {
+    const s = c?.scriptStatus ?? (c?.isScriptFrozen ? 'Frozen' : 'Draft');
+    return t(`workbench.readiness.scriptStatus${s}`);
+  };
 
   // Filtered crew members
   const filteredMembers = seriesMembers.filter((m) => {
@@ -387,36 +447,33 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                     {t('workbench.readiness.scriptTitle', 'Trạng thái Kịch bản')}
                   </span>
                   <span
+                    data-testid='readiness-script-status'
                     className={`text-xs px-2 py-0.5 rounded font-medium border ${
-                      currentChapter?.status === 'PreProduction'
-                        ? 'bg-amber-50 text-amber-700 border-amber-200'
-                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      currentChapter?.isScriptFrozen || currentChapter?.scriptStatus === 'Frozen'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
                     }`}
                   >
-                    {currentChapter?.status === 'PreProduction'
-                      ? t('workbench.readiness.scriptPending', 'Chờ duyệt kịch bản')
-                      : t('workbench.readiness.scriptApproved', 'Đã gửi duyệt')}
+                    {scriptStatusLabel(currentChapter)}
                   </span>
                 </div>
                 <div>
                   <div className='text-base font-bold text-stone-900'>
-                    {t('workbench.readiness.scriptLines', {
-                      count: currentChapter?.scenesCount ? currentChapter.scenesCount * 12 : 48,
-                      defaultValue: '48 dòng thoại',
+                    {t('workbench.readiness.scriptSize', {
+                      scenes: currentChapter?.scenesCount ?? 0,
+                      pages: currentChapter?.pagesCount ?? 0,
                     })}
                   </div>
                   <div className='text-xs text-stone-500 mt-0.5'>
-                    {t('workbench.readiness.editorFeedback', {
-                      count: 3,
-                      defaultValue: '3 góp ý từ Editor',
-                    })}
+                    {currentChapter?.isScriptFrozen
+                      ? t('workbench.readiness.scriptFrozen')
+                      : t('workbench.readiness.scriptNotFrozen')}
                   </div>
                 </div>
                 <div className='pt-2 border-t border-stone-100 flex items-center justify-between'>
                   <span className='text-xs text-stone-400'>
                     {t('workbench.readiness.scriptVersion', {
-                      version: currentChapter?.versionVector || 1.2,
-                      defaultValue: 'Phiên bản v1.2',
+                      version: currentChapter?.versionVector ?? 1,
                     })}
                   </span>
                   <button
@@ -441,17 +498,27 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   <span className='text-xs font-semibold text-stone-700 uppercase tracking-wider'>
                     {t('workbench.readiness.bibleTitle', 'Series Bible')}
                   </span>
-                  <span className='bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2 py-0.5 rounded font-medium'>
-                    {t('workbench.readiness.bibleReview', 'Cần rà soát')}
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded font-medium border ${
+                      bibleMetrics.total > 0 && bibleMetrics.pending === 0
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}
+                  >
+                    {bibleMetrics.total > 0 && bibleMetrics.pending === 0
+                      ? t('workbench.readiness.bibleReady')
+                      : t('workbench.readiness.bibleReview')}
                   </span>
                 </div>
                 <div>
                   <div className='flex items-center gap-1.5'>
-                    <span className='text-base font-bold text-stone-900'>
+                    <span
+                      className='text-base font-bold text-stone-900'
+                      data-testid='readiness-bible-locked'
+                    >
                       {t('workbench.readiness.bibleLocked', {
-                        locked: 7,
-                        total: 8,
-                        defaultValue: '7 / 8 nhân vật',
+                        locked: bibleMetrics.locked,
+                        total: bibleMetrics.total,
                       })}
                     </span>
                     <span className='text-xs text-stone-500'>
@@ -459,11 +526,12 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                     </span>
                   </div>
                   <div className='text-xs text-stone-600 mt-0.5'>
-                    {t('workbench.readiness.bibleDetail', {
-                      locked: 7,
-                      pending: 1,
-                      defaultValue: '7 Đã khóa, 1 Chờ duyệt bản vẽ',
-                    })}
+                    {bibleMetrics.total === 0
+                      ? t('workbench.readiness.bibleEmpty')
+                      : t('workbench.readiness.bibleDetail', {
+                          locked: bibleMetrics.locked,
+                          pending: bibleMetrics.pending,
+                        })}
                   </div>
                 </div>
                 <div className='pt-2 border-t border-stone-100 flex items-center justify-between'>
@@ -488,41 +556,43 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </span>
                   <span className='text-xs font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'>
                     {t('workbench.readiness.completedBadge', {
-                      completed: Math.round(
-                        ((currentChapter?.pagesCount || 18) *
-                          (currentChapter?.status === 'ChapterApproved' ? 100 : 58)) /
-                          100,
-                      ),
-                      total: currentChapter?.pagesCount || 18,
-                      defaultValue: '2/6 trang hoàn tất',
+                      completed: currentMetrics.approvedPanels,
+                      total: currentMetrics.panelCount,
                     })}
                   </span>
                 </div>
                 <div>
                   <div className='flex items-baseline justify-between'>
-                    <span className='text-2xl font-bold text-stone-900'>
-                      {currentChapter?.status === 'ChapterApproved' ? '100%' : '58%'}
+                    <span
+                      className='text-2xl font-bold text-stone-900'
+                      data-testid='readiness-page-percent'
+                    >
+                      {currentMetrics.percent}%
                     </span>
-                    <span className='text-xs text-rose-700 font-semibold flex items-center gap-1'>
-                      <Flag className='w-3 h-3 text-rose-600' />
-                      {t('workbench.readiness.reworkAlert', {
-                        rework: 2,
-                        flags: 1,
-                        defaultValue: '2 cần sửa, 1 cảnh báo ⚑',
-                      })}
-                    </span>
+                    {(currentMetrics.rework > 0 || gateWarnings > 0) && (
+                      <span className='text-xs text-rose-700 font-semibold flex items-center gap-1'>
+                        <Flag className='w-3 h-3 text-rose-600' />
+                        {t('workbench.readiness.reworkAlert', {
+                          rework: currentMetrics.rework,
+                          flags: gateWarnings,
+                        })}
+                      </span>
+                    )}
                   </div>
                   <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden mt-1.5'>
                     <div
                       className='bg-orange-600 h-full'
-                      style={{
-                        width: `${currentChapter?.status === 'ChapterApproved' ? 100 : 58}%`,
-                      }}
+                      style={{ width: `${currentMetrics.percent}%` }}
                     />
                   </div>
                 </div>
                 <div className='pt-2 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500'>
-                  <span>{t('workbench.readiness.drawingLoad', 'Khối lượng vẽ')}</span>
+                  <span>
+                    {t('workbench.readiness.pageLoad', {
+                      pages: currentMetrics.pageCount,
+                      panels: currentMetrics.panelCount,
+                    })}
+                  </span>
                   <span className='font-mono font-medium text-stone-700'>
                     Ch.{currentChapter?.chapterNumber || '01'}
                   </span>
@@ -585,16 +655,14 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                         seriesTitle: seriesTitle || t('workbench.seriesFallback'),
                       })}
                     </h3>
-                    <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-xs font-semibold'>
-                      {seriesDetail?.format ||
-                        t('workbench.chaptersOverview.bannerBadge', 'Khối Shonen')}
-                    </span>
+                    {seriesDetail?.format && (
+                      <span className='px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-xs font-semibold'>
+                        {seriesDetail.format}
+                      </span>
+                    )}
                   </div>
                   <p className='text-xs text-stone-500 mt-0.5'>
-                    {t('workbench.chaptersOverview.bannerDesc', {
-                      count: chapters.length,
-                      defaultValue: `Theo dõi toàn bộ ${chapters.length} chương theo chu kỳ xuất bản tạp chí tuần và Tankōbon`,
-                    })}
+                    {t('workbench.chaptersOverview.bannerDesc', { count: chapters.length })}
                   </p>
                 </div>
               </div>
@@ -621,16 +689,14 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 <div className='flex items-baseline gap-2'>
                   <span className='text-2xl font-bold text-stone-900'>{chapters.length}</span>
                   <span className='text-xs text-stone-500'>
-                    {t('workbench.chaptersOverview.kpiVolDesc', 'chương (Vol 1-2)')}
+                    {t('workbench.chaptersOverview.kpiVolDesc')}
                   </span>
                 </div>
                 <div className='text-xs text-stone-500 pt-1 border-t border-stone-100'>
                   {t('workbench.chaptersOverview.kpiSummary', {
-                    published: chapters.filter(
-                      (c) => c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved',
-                    ).length,
-                    inProd: chapters.filter((c) => c.status === 'InProduction').length,
-                    defaultValue: `${chapters.filter((c) => c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved').length} Đã xuất bản, ${chapters.filter((c) => c.status === 'InProduction').length} Đang thực hiện`,
+                    published: publishedCount,
+                    approved: approvedCount,
+                    inProd: inProdCount,
                   })}
                 </div>
               </div>
@@ -645,7 +711,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 </div>
                 <div className='flex items-baseline gap-2'>
                   <span className='text-2xl font-bold text-emerald-700'>
-                    {approvedPanels} / {totalPanels || 196}
+                    {approvedPanels} / {totalPanels}
                   </span>
                   <span className='text-xs text-emerald-700 font-medium'>{completionPercent}%</span>
                 </div>
@@ -673,8 +739,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       : '01'}
                   </span>
                   <span className='text-xs text-orange-700 font-semibold'>
-                    {currentChapter?.title || tf('productionWorkspace.workspace.draftFallback')}{' '}
-                    (58%)
+                    {currentChapter?.title || tf('productionWorkspace.workspace.draftFallback')} (
+                    {currentMetrics.percent}%)
                   </span>
                 </div>
                 <div className='text-xs text-stone-500 pt-1 border-t border-stone-100'>
@@ -692,19 +758,14 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 </div>
                 <div className='flex items-baseline gap-2'>
                   <span className='text-2xl font-bold text-stone-900'>
-                    {currentChapter?.targetReleaseDate
-                      ? new Date(currentChapter.targetReleaseDate).toLocaleDateString('vi-VN', {
-                          day: '2-digit',
-                          month: '2-digit',
-                        })
-                      : '—'}
+                    {formatShortDate(currentChapter?.targetReleaseDate) || '—'}
                   </span>
                   <span className='text-xs text-stone-500'>
-                    {t('workbench.chaptersOverview.deadlineSample')}
+                    {deadlineHint(currentChapter?.targetReleaseDate)}
                   </span>
                 </div>
                 <div className='text-xs text-stone-500 pt-1 border-t border-stone-100'>
-                  {t('workbench.chaptersOverview.kpiWeeklyIssue', 'Kỳ phát hành Weekly Shonen')}
+                  {currentChapterFormattedTitle}
                 </div>
               </div>
             </div>
@@ -738,10 +799,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       : 'bg-white border border-stone-200 text-orange-700 hover:bg-orange-50'
                   }`}
                 >
-                  {t('workbench.chaptersOverview.filterInProd', {
-                    count: chapters.filter((c) => c.status === 'InProduction').length,
-                    defaultValue: `Đang sản xuất (${chapters.filter((c) => c.status === 'InProduction').length})`,
-                  })}
+                  {t('workbench.chaptersOverview.filterInProd', { count: inProdCount })}
                 </button>
                 <button
                   type='button'
@@ -753,10 +811,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   }`}
                 >
                   {t('workbench.chaptersOverview.filterPublished', {
-                    count: chapters.filter(
-                      (c) => c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved',
-                    ).length,
-                    defaultValue: `Đã xuất bản (${chapters.filter((c) => c.status === 'HandedOffAndPublished' || c.status === 'ChapterApproved').length})`,
+                    count: publishedCount + approvedCount,
                   })}
                 </button>
               </div>
@@ -766,9 +821,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4'>
               {filteredChapters.map((chap) => {
                 const isCurrent = chap.id === currentChapterId;
-                const isPublished =
-                  chap.status === 'HandedOffAndPublished' || chap.status === 'ChapterApproved';
+                const isReleased = isPublishedStatus(chap.status);
+                const isPublished = isReleased || isApprovedStatus(chap.status);
                 const isInProd = chap.status === 'InProduction';
+                const metrics = getChapterMetrics(chap, seriesProgress);
 
                 return (
                   <div
@@ -783,7 +839,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       <div className='flex items-start justify-between gap-2'>
                         {isPublished ? (
                           <span className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold'>
-                            {t('workbench.chaptersOverview.publishedBadge', 'Đã xuất bản')}
+                            {isReleased
+                              ? t('workbench.chaptersOverview.publishedBadge')
+                              : t('workbench.chaptersOverview.completedBadge')}
                           </span>
                         ) : isInProd ? (
                           <span className='px-2 py-0.5 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center gap-1'>
@@ -827,49 +885,44 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                                 : 'text-amber-700'
                           }`}
                         >
-                          {isPublished
-                            ? t('collaboration.writerStudio.pageProgress', {
-                                current: chap.pagesCount || 18,
-                                total: chap.pagesCount || 18,
-                                percent: 100,
+                          {isPublished || isInProd
+                            ? t('workbench.chaptersOverview.pageProgress', {
+                                percent: metrics.percent,
+                                pages: metrics.pageCount,
                               })
-                            : isInProd
-                              ? t('collaboration.writerStudio.pageProgress', {
-                                  current: 10,
-                                  total: 18,
-                                  percent: 58,
-                                })
-                              : t('workbench.chaptersOverview.scriptStageProgress', {
-                                  current: 0,
-                                  total: 18,
-                                  percent: 85,
-                                })}
+                            : scriptStatusLabel(chap)}
                         </span>
                       </div>
                       <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden'>
                         <div
                           className={`h-full ${
                             isPublished
-                              ? 'bg-emerald-600 w-full'
+                              ? 'bg-emerald-600'
                               : isInProd
-                                ? 'bg-orange-600 w-[58%]'
-                                : 'bg-amber-500 w-[25%]'
+                                ? 'bg-orange-600'
+                                : 'bg-amber-500'
                           }`}
+                          style={{ width: `${isPublished || isInProd ? metrics.percent : 0}%` }}
                         />
                       </div>
                       {isInProd && (
                         <div className='flex items-center justify-between text-xs text-amber-800'>
-                          <span className='flex items-center gap-1 font-semibold text-rose-700'>
-                            <Flag className='w-3 h-3 text-rose-600' />
-                            {t('workbench.chaptersOverview.reworkFlags', {
-                              rework: 2,
-                              defaultValue: '2 cờ sửa',
-                            })}
-                          </span>
+                          {metrics.rework > 0 ? (
+                            <span className='flex items-center gap-1 font-semibold text-rose-700'>
+                              <Flag className='w-3 h-3 text-rose-600' />
+                              {t('workbench.chaptersOverview.reworkFlags', {
+                                rework: metrics.rework,
+                              })}
+                            </span>
+                          ) : (
+                            <span />
+                          )}
                           <span>
-                            {t('workbench.chaptersOverview.deadlineLabel', {
-                              date: t('workbench.chaptersOverview.fridayLabel'),
-                            })}
+                            {chap.targetReleaseDate
+                              ? t('workbench.chaptersOverview.deadlineLabel', {
+                                  date: formatShortDate(chap.targetReleaseDate),
+                                })
+                              : t('workbench.chaptersOverview.noDeadline')}
                           </span>
                         </div>
                       )}
@@ -949,7 +1002,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       title:
                         currentChapter?.title || tf('productionWorkspace.workspace.draftFallback'),
                       count: seriesMembers.length,
-                      defaultValue: `${seriesTitle} • Chapter ${currentChapter?.chapterNumber}: ${currentChapter?.title} • ${seriesMembers.length} Thành viên chính phụ trách tiến độ tuần`,
                     })}
                   </p>
                 </div>
@@ -957,9 +1009,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               <div className='flex items-center gap-2.5'>
                 <button
                   type='button'
-                  onClick={() =>
-                    navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`)
-                  }
+                  data-testid='crew-add-member-btn'
+                  disabled={!isProducer}
+                  onClick={() => setMembersModalOpen(true)}
                   className='px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer'
                 >
                   <Users className='w-3.5 h-3.5' />
@@ -977,9 +1029,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   <Users className='w-4 h-4 text-stone-400' />
                 </div>
                 <div className='flex items-baseline gap-2'>
-                  <span className='text-2xl font-bold text-stone-900'>
-                    {seriesMembers.length || 5}
-                  </span>
+                  <span className='text-2xl font-bold text-stone-900'>{seriesMembers.length}</span>
                   <span className='text-xs text-stone-500'>
                     {t('workbench.crewOverview.kpiSizeUnit', 'nhân sự cốt lõi')}
                   </span>
@@ -993,17 +1043,29 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   <CheckCircle2 className='w-4 h-4 text-emerald-600' />
                 </div>
                 <div className='flex items-baseline gap-2'>
-                  <span className='text-2xl font-bold text-emerald-700'>80%</span>
+                  <span className='text-2xl font-bold text-emerald-700' data-testid='crew-ready'>
+                    {seriesMembers.length > 0
+                      ? Math.round((crewMetrics.ready / seriesMembers.length) * 100)
+                      : 0}
+                    %
+                  </span>
                   <span className='text-xs text-stone-500'>
                     {t('workbench.crewOverview.kpiReadinessSub', {
-                      ready: 4,
-                      total: 5,
-                      defaultValue: '4/5 sẵn sàng',
+                      ready: crewMetrics.ready,
+                      total: seriesMembers.length,
                     })}
                   </span>
                 </div>
-                <div className='text-xs text-amber-700 pt-1 border-t border-stone-100 font-medium'>
-                  {t('workbench.crewOverview.kpiReadinessNote', '1 thành viên đang xử lý cờ sửa')}
+                <div
+                  className={`text-xs pt-1 border-t border-stone-100 font-medium ${
+                    crewMetrics.withOverdue > 0 ? 'text-amber-700' : 'text-stone-500'
+                  }`}
+                >
+                  {crewMetrics.withOverdue > 0
+                    ? t('workbench.crewOverview.kpiReadinessNote', {
+                        count: crewMetrics.withOverdue,
+                      })
+                    : t('workbench.crewOverview.kpiReadinessAllGood')}
                 </div>
               </div>
 
@@ -1016,13 +1078,18 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   <Clock className='w-4 h-4 text-stone-400' />
                 </div>
                 <div className='flex items-baseline gap-2'>
-                  <span className='text-2xl font-bold text-stone-900'>78%</span>
+                  <span className='text-2xl font-bold text-stone-900'>{crewMetrics.open}</span>
                   <span className='text-xs text-stone-500'>
-                    {t('workbench.crewOverview.kpiWorkloadSub', 'trung bình')}
+                    {t('workbench.crewOverview.kpiWorkloadSub', { avg: crewMetrics.avgOpen })}
                   </span>
                 </div>
                 <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden'>
-                  <div className='bg-orange-600 h-full w-[78%]' />
+                  <div
+                    className='bg-orange-600 h-full'
+                    style={{
+                      width: `${crewMetrics.total > 0 ? Math.round((crewMetrics.open / crewMetrics.total) * 100) : 0}%`,
+                    }}
+                  />
                 </div>
               </div>
 
@@ -1035,13 +1102,19 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   <Check className='w-4 h-4 text-stone-400' />
                 </div>
                 <div className='flex items-baseline gap-2'>
-                  <span className='text-2xl font-bold text-stone-900'>14 / 18</span>
-                  <span className='text-xs text-emerald-700 font-medium'>77%</span>
+                  <span className='text-2xl font-bold text-stone-900' data-testid='crew-done'>
+                    {crewMetrics.done} / {crewMetrics.total}
+                  </span>
+                  <span className='text-xs text-emerald-700 font-medium'>
+                    {crewMetrics.donePercent}%
+                  </span>
                 </div>
                 <div className='text-xs text-stone-500 pt-1 border-t border-stone-100'>
                   {t('workbench.crewOverview.kpiWeeklyTasksDeadline', {
-                    chapter: currentChapter?.chapterNumber || '01',
-                    defaultValue: `Hạn bàn giao Ch.${currentChapter?.chapterNumber || '01'}: Thứ Sáu`,
+                    chapter: currentChapter?.chapterNumber ?? '—',
+                    date:
+                      formatShortDate(currentChapter?.targetReleaseDate) ||
+                      t('workbench.chaptersOverview.noDeadline'),
                   })}
                 </div>
               </div>
@@ -1137,7 +1210,37 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                         const initials = (member.fullName || member.userId || 'PF')
                           .slice(0, 2)
                           .toUpperCase();
-                        const isLeader = idx === 0 || member.seriesRole === 'Producer';
+                        const isLeader = member.seriesRole === 'Producer';
+                        const memberWork = workloadByUser.get(member.userId);
+                        const load = getMemberLoad(memberWork);
+                        const memberStatus =
+                          (memberWork?.overdue || 0) > 0
+                            ? {
+                                label: t('workbench.crewOverview.statusOverdue', {
+                                  count: memberWork!.overdue,
+                                }),
+                                cls: 'bg-rose-50 text-rose-700 border-rose-200',
+                              }
+                            : (memberWork?.waitingReview || 0) > 0
+                              ? {
+                                  label: t('workbench.crewOverview.statusWaitingReview', {
+                                    count: memberWork!.waitingReview,
+                                  }),
+                                  cls: 'bg-amber-50 text-amber-700 border-amber-200',
+                                }
+                              : (memberWork?.open || 0) > 0
+                                ? {
+                                    label: t('workbench.crewOverview.statusWorking', {
+                                      count: memberWork!.open,
+                                    }),
+                                    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                  }
+                                : {
+                                    label: isLeader
+                                      ? t('workbench.crewOverview.leaderStatus')
+                                      : t('workbench.crewOverview.statusIdle'),
+                                    cls: 'bg-stone-50 text-stone-600 border-stone-200',
+                                  };
 
                         return (
                           <tr
@@ -1154,9 +1257,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                                     {member.fullName || t('workbench.crewOverview.memberFallback')}
                                   </div>
                                   <div className='text-xs text-stone-500 font-mono'>
-                                    {member.userId
-                                      ? `${member.userId.slice(0, 8)}...`
-                                      : 'user@panelforge.io'}
+                                    {member.email || `${member.userId.slice(0, 8)}…`}
                                   </div>
                                 </div>
                               </div>
@@ -1183,20 +1284,26 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                                   })}
                             </td>
                             <td className='py-3 px-4'>
-                              <span className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium'>
-                                {isLeader
-                                  ? t('workbench.crewOverview.leaderStatus')
-                                  : t('workbench.crewOverview.onTrackStatus')}
+                              <span
+                                className={`px-2 py-0.5 rounded-full border text-xs font-medium ${memberStatus.cls}`}
+                              >
+                                {memberStatus.label}
                               </span>
                             </td>
                             <td className='py-3 px-4'>
                               <div className='w-24'>
                                 <div className='flex justify-between text-xs mb-1 font-medium'>
-                                  <span>{isLeader ? '65%' : '85%'}</span>
+                                  <span>
+                                    {t('workbench.crewOverview.loadDetail', {
+                                      done: memberWork?.done ?? 0,
+                                      total: load.total,
+                                    })}
+                                  </span>
                                 </div>
                                 <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden'>
                                   <div
-                                    className={`h-full ${isLeader ? 'bg-orange-500 w-[65%]' : 'bg-emerald-600 w-[85%]'}`}
+                                    className='h-full bg-emerald-600'
+                                    style={{ width: `${load.percent}%` }}
                                   />
                                 </div>
                               </div>
@@ -1221,6 +1328,18 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           </div>
         )}
       </div>
+
+      {membersModalOpen && workspaceId && seriesId && (
+        <SeriesMembersModal
+          isOpen={membersModalOpen}
+          workspaceId={workspaceId}
+          workspaceName={workspaceName}
+          seriesId={seriesId}
+          seriesTitle={seriesTitle}
+          onClose={() => setMembersModalOpen(false)}
+          onMembersChanged={loadMembers}
+        />
+      )}
 
       {/* Start Production Modal */}
       {startProductionOpen && (

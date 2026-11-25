@@ -114,7 +114,7 @@ describe('AppShell Component', () => {
     renderInRouter(editorUser, '/workspaces/ws-1/series/ser-1/my-work');
 
     expect(screen.getByText('Kiểm tra & Hiệu đính')).toBeInTheDocument();
-    expect(screen.getByText(/Kịch bản/)).toBeInTheDocument();
+    expect(screen.getByText('Kịch bản (Script)')).toBeInTheDocument();
     expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
     expect(screen.getByText('Series Bible')).toBeInTheDocument();
     expect(screen.queryByText('Bàn vẽ Khung tranh')).not.toBeInTheDocument();
@@ -161,6 +161,21 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
     expect(screen.queryByText('AI Multi-Agent')).not.toBeInTheDocument();
+  });
+
+  it('Publisher (vai trò hệ thống, không có vai trò Workspace) thấy menu Publisher, không thấy menu Studio', () => {
+    const publisherUser: CurrentUser = {
+      name: 'Nhà Xuất Bản',
+      role: 'PUBLISHER' as any,
+      activeRoles: ['PUBLISHER'] as any,
+      avatarInitials: 'NX',
+    };
+
+    renderInRouter(publisherUser, '/publisher/desk');
+
+    expect(screen.getByText('Quản lý Xuất bản')).toBeInTheDocument();
+    expect(screen.queryByText('Studio Workspaces')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tiến độ & Giao việc')).not.toBeInTheDocument();
   });
 
   it('hiển thị menu Admin cho vai trò ADMINISTRATOR', () => {

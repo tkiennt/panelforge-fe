@@ -35,6 +35,7 @@ import {
   PenTool,
   Maximize2,
   Box,
+  PanelRightOpen,
   Lightbulb,
 } from 'lucide-react';
 import { BibleEntity, MangaProject, normalizeWorkspaceRole } from '@/types';
@@ -175,6 +176,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   );
   const [addEntityOpen, setAddEntityOpen] = useState(false);
   const [defineTarget, setDefineTarget] = useState<BibleEntity | null>(null);
+  // Bàn làm việc chi tiết (phiên bản concept, góp ý, đặc tả, vẽ lại) cho mục đang chọn
+  const [workbenchOpen, setWorkbenchOpen] = useState(false);
 
   // Dynamic Series resolution
   const [availableSeries, setAvailableSeries] = useState<MangaProject[]>([]);
@@ -884,6 +887,71 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
+  const handleSaveSpecFields = async (
+    entity: BibleEntity,
+    attributes: Record<string, unknown>,
+    variantLabel: string,
+    expectedVersionNumber: number,
+    targetRevisionId?: string,
+  ): Promise<boolean> => {
+    if (!effectiveSeries?.id) return false;
+    try {
+      await bibleService.addRevision(effectiveSeries.id, entity.id, {
+        expectedVersionNumber,
+        targetRevisionId,
+        name: entity.name,
+        subtitle: entity.subtitle || '',
+        description: entity.description || '',
+        referenceImageUrl: entity.imageUrl || undefined,
+        variantLabel,
+        summary: t('bible.detailModal.specSavedTitle', 'Đã lưu đặc tả'),
+        detailsJson: JSON.stringify({ turnaroundGallery: entity.gallery || [], attributes }),
+      });
+      onShowToast(
+        t('bible.detailModal.specSavedTitle', 'Đã lưu đặc tả'),
+        t('bible.detailModal.specSavedDesc', 'Đã tạo bản nháp mới với các trường vừa nhập.'),
+      );
+      setRefreshTrigger((prev) => prev + 1);
+      setSelectedEntity((cur) =>
+        cur && cur.id === entity.id ? { ...cur, attributes: attributes as any } : cur,
+      );
+      return true;
+    } catch (err: any) {
+      const isConflict = err?.code === 'CONFLICT' || err?.status === 409;
+      onShowToast(
+        isConflict
+          ? t('bible.view.conflictTitleGeneric', 'Xung đột phiên bản')
+          : t('bible.detailModal.specSaveFailedTitle', 'Không lưu được đặc tả'),
+        err?.message || '',
+      );
+      // 409: tải lại dữ liệu mới nhất; giữ nguyên nội dung người dùng đang nhập.
+      if (isConflict) setRefreshTrigger((prev) => prev + 1);
+      return false;
+    }
+  };
+
+  const handleDeleteRevision = async (entity: BibleEntity, rev: BibleEntryRevisionDto) => {
+    if (!effectiveSeries?.id) return;
+    try {
+      await bibleService.deleteRevision(effectiveSeries.id, entity.id, rev.id);
+      onShowToast(
+        t('common.success', 'Thành công'),
+        t(
+          'bible.view.deleteRevisionSuccess',
+          { version: rev.versionNumber, name: entity.name },
+          'Đã xóa phiên bản v{version} của {name}.',
+        ),
+      );
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      onShowToast(
+        t('bible.view.deleteRevisionError', 'Lỗi xóa phiên bản'),
+        err.message || t('bible.view.deleteRevisionErrorDesc', 'Không thể xóa phiên bản này.'),
+      );
+      throw err;
+    }
+  };
+
   const handleOpenHistory = async (entity: BibleEntity) => {
     setHistoryEntity(entity);
     setHistoryEntityName(entity.name);
@@ -1244,6 +1312,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <input
                 data-testid='bible-search-input'
                 type='text'
+                data-testid='bible-search-input'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={getSearchPlaceholder()}
@@ -1379,6 +1448,20 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <span>{t('bible.view.resubmitBtn', 'Nộp lại')}</span>
                     </button>
                   )}
+                  {!isArtist && matchedEntity && (
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setSelectedEntity(matchedEntity);
+                        setWorkbenchOpen(true);
+                      }}
+                      className='px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-semibold shrink-0 cursor-pointer transition-colors border border-stone-300 flex items-center gap-1'
+                      data-testid={`view-concept-history-${item.entryId}`}
+                    >
+                      <Eye className='w-3 h-3' />
+                      <span>{t('bible.view.cardViewDetail', 'Xem chi tiết')}</span>
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -1444,11 +1527,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     <div className='flex items-start justify-between gap-2'>
                       <div className='flex items-center gap-2.5 min-w-0'>
                         <div className='w-10 h-10 rounded-lg bg-stone-900 text-orange-500 font-bold flex items-center justify-center text-xs shrink-0 border border-stone-800'>
-                          {activeTab === 'characters' ? (
+                          {entity.category === 'characters' ? (
                             <span>{initials}</span>
-                          ) : activeTab === 'locations' ? (
+                          ) : entity.category === 'locations' ? (
                             <MapPin className='w-5 h-5' />
-                          ) : activeTab === 'terminology' ? (
+                          ) : entity.category === 'terminology' ? (
                             <Wrench className='w-5 h-5' />
                           ) : (
                             <ShieldCheck className='w-5 h-5' />
@@ -1485,7 +1568,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     )}
 
                     {/* Timeline Variants if Character */}
-                    {activeTab === 'characters' && isSelected && (
+                    {entity.category === 'characters' && isSelected && (
                       <div className='pt-2 border-t border-stone-100 space-y-1.5'>
                         <div className='flex items-center justify-between text-xs font-semibold text-stone-600 px-0.5'>
                           <div className='flex items-center gap-1 text-orange-700'>
@@ -1550,7 +1633,21 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         </button>
                       )}
 
-                      {canCreateDraft && (
+                      {canCreateDraft && entity.isStub && (
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDefineTarget(entity);
+                          }}
+                          className='px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-semibold'
+                          data-testid={`define-stub-btn-${entity.id}`}
+                        >
+                          {t('bible.view.defineStubBtn', 'Định nghĩa')}
+                        </button>
+                      )}
+
+                      {canCreateDraft && !entity.isStub && (
                         <button
                           type='button'
                           onClick={(e) => {
@@ -1605,7 +1702,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-stone-200/80'>
                 <div className='flex items-start gap-4'>
                   <div className='w-14 h-14 rounded-xl bg-stone-900 text-orange-500 font-bold text-lg flex items-center justify-center shrink-0 border border-stone-800 shadow-xs'>
-                    {activeTab === 'characters' ? (
+                    {selectedEntity.category === 'characters' ? (
                       <span>
                         {selectedEntity.name
                           .split(' ')
@@ -1614,9 +1711,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           .substring(0, 2)
                           .toUpperCase()}
                       </span>
-                    ) : activeTab === 'locations' ? (
+                    ) : selectedEntity.category === 'locations' ? (
                       <MapPin className='w-6 h-6' />
-                    ) : activeTab === 'terminology' ? (
+                    ) : selectedEntity.category === 'terminology' ? (
                       <Wrench className='w-6 h-6' />
                     ) : (
                       <ShieldCheck className='w-6 h-6' />
@@ -1652,12 +1749,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     </div>
 
                     <div className='flex items-center gap-3 text-xs text-stone-500 mt-1.5 flex-wrap'>
-                      <span className='font-medium text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'>
-                        {activeTab === 'characters'
-                          ? t('bible.view.protagonist', 'Nhân vật chính (Protagonist)')
-                          : activeTab === 'locations'
-                            ? t('bible.view.primarySet', 'Bối cảnh chính (Primary Set)')
-                            : t('bible.view.signatureWeapon', 'Vũ khí chính (Signature Weapon)')}
+                      <span
+                        data-testid='bible-detail-category'
+                        className='font-medium text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'
+                      >
+                        {t(
+                          `bible.categories.${selectedEntity.category}`,
+                          String(selectedEntity.category),
+                        )}
                       </span>
                       <span>•</span>
                       <span className='font-mono'>
@@ -1697,10 +1796,20 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   >
                     <Download className='w-3.5 h-3.5' />
                     <span>
-                      {activeTab === 'characters'
+                      {selectedEntity.category === 'characters'
                         ? t('bible.view.exportModelSheet', 'Xuất Model Sheet (PDF/ZIP)')
                         : t('bible.view.downloadConcept', 'Tải Concept Art')}
                     </span>
+                  </button>
+
+                  <button
+                    type='button'
+                    onClick={() => setWorkbenchOpen(true)}
+                    className='px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer'
+                    data-testid='open-workbench-btn'
+                  >
+                    <PanelRightOpen className='w-3.5 h-3.5' />
+                    <span>{t('bible.view.openWorkbench', 'Bàn làm việc')}</span>
                   </button>
 
                   <button
@@ -1734,16 +1843,30 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     </button>
                   )}
 
+                  {canRequestRework && activeEffRev?.reviewStatus === 'ConceptSubmitted' && (
+                    <button
+                      type='button'
+                      onClick={() => handleOpenReworkModal(activeEffRev, selectedEntity)}
+                      title={t('bible.view.reworkTitle', 'Yêu cầu Artist vẽ lại concept')}
+                      className='px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer'
+                      data-testid={`btn-request-rework-${activeEffRev.id}`}
+                    >
+                      <RotateCcw className='w-3.5 h-3.5' />
+                      <span>{t('bible.detailModal.reworkBtn', 'Yêu cầu vẽ lại (Rework)')}</span>
+                    </button>
+                  )}
+
                   {canEndorse && activeEffRev?.reviewStatus === 'ConceptSubmitted' && (
                     <button
                       type='button'
                       onClick={() => void handleConfirmCanon(activeEffRev, selectedEntity)}
+                      title={t('bible.view.endorseTitle', 'Writer/Editor duyệt concept art này')}
                       className='px-4 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer'
                       data-testid={`btn-lock-canon-${activeEffRev.id}`}
                     >
                       <Lock className='w-3.5 h-3.5' />
                       <span>
-                        {activeTab === 'locations'
+                        {selectedEntity.category === 'locations'
                           ? t('bible.view.actionLockLocation', 'Khóa bối cảnh')
                           : t('bible.view.actionLockCanon', 'Khóa chuẩn (Lock Canon)')}
                       </span>
@@ -1818,7 +1941,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 {/* Cột phải (5 cols): Specs & Guidance Cards */}
                 <div className='xl:col-span-5 space-y-4 text-xs'>
                   {/* Character Specs */}
-                  {activeTab === 'characters' && (
+                  {selectedEntity.category === 'characters' && (
                     <div className='p-5 rounded-xl bg-white border border-stone-200/80 shadow-xs space-y-4 text-xs'>
                       <div className='space-y-3'>
                         <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
@@ -1893,7 +2016,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   )}
 
                   {/* Location Specs */}
-                  {activeTab === 'locations' && (
+                  {selectedEntity.category === 'locations' && (
                     <div className='p-4 rounded-xl bg-stone-50/70 border border-stone-200/80 space-y-3'>
                       <div className='flex items-center gap-2 text-stone-900 font-bold uppercase tracking-wider text-xs pb-2 border-b border-stone-200/80'>
                         <FileText className='w-4 h-4 text-blue-600' />
@@ -1921,7 +2044,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   )}
 
                   {/* Prop / Weapon Specs */}
-                  {activeTab === 'terminology' && (
+                  {selectedEntity.category === 'terminology' && (
                     <div className='space-y-4'>
                       <div className='p-4 rounded-xl bg-stone-50/70 border border-stone-200/80 space-y-3'>
                         <div className='flex items-center gap-2 text-stone-900 font-bold uppercase tracking-wider text-xs pb-2 border-b border-stone-200/80'>
@@ -1988,7 +2111,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   )}
 
                   {/* Style / Rules Specs */}
-                  {activeTab === 'style' && (
+                  {selectedEntity.category === 'style' && (
                     <div className='p-4 rounded-xl bg-stone-50/70 border border-stone-200/80 space-y-3'>
                       <div className='flex items-center gap-2 text-stone-900 font-bold uppercase tracking-wider text-xs pb-2 border-b border-stone-200/80'>
                         <ShieldCheck className='w-4 h-4 text-stone-700' />
@@ -2046,6 +2169,54 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* DETAIL WORKBENCH: phiên bản concept, góp ý, đặc tả, khoá Canon / vẽ lại */}
+      {workbenchOpen && selectedEntity && (
+        <BibleEntityDetailModal
+          key={selectedEntity.id}
+          entity={selectedEntity}
+          entities={localEntities}
+          onSelectEntity={setSelectedEntity}
+          rawEntry={rawEntries[selectedEntity.id]}
+          isProducer={isProducer}
+          isArtist={isArtist}
+          isWriter={isWriter}
+          isEditor={isEditor}
+          canCreateDraft={canCreateDraft}
+          canEndorse={canEndorse}
+          canRequestRework={canRequestRework}
+          seriesId={effectiveSeries?.id}
+          onClose={() => setWorkbenchOpen(false)}
+          onOpenHistory={(e) => {
+            void handleOpenHistory(e);
+          }}
+          onOpenAddRevision={(
+            e,
+            supersede,
+            fromQueue,
+            reworkFeedback,
+            isResubmit,
+            isNewVariant,
+          ) => {
+            void handleOpenAddRevision(
+              e,
+              supersede,
+              fromQueue,
+              reworkFeedback,
+              isResubmit,
+              isNewVariant,
+            );
+          }}
+          onOpenDefineStub={(ent) => setDefineTarget(ent)}
+          onRequestRework={(ent, rev) => handleOpenReworkModal(rev, ent)}
+          onConfirmCanon={(rev) => handleConfirmCanon(rev, selectedEntity)}
+          onShowToast={onShowToast}
+          onToggleCrowd={handleToggleCrowd}
+          onZoomImage={(img) => setSelectedImageZoom(img)}
+          onDeleteRevision={(ent, rev) => handleDeleteRevision(ent, rev)}
+          onSaveSpecFields={handleSaveSpecFields}
+        />
       )}
 
       {/* DEFINE STUB MODAL */}
