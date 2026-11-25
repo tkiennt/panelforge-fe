@@ -868,7 +868,11 @@
     "writerApprovedMechanism": "Writer approved mechanism",
     "artistLabel": "Artist:",
     "artworkUploaded": "Artwork uploaded",
-    "artworkMissing": "No artwork yet"
+    "artworkMissing": "No artwork yet",
+    "reworkTitle": "Ask the Artist to redraw this concept",
+    "endorseTitle": "Writer/Editor approves this concept art",
+    "defineStubBtn": "Define",
+    "openWorkbench": "Workbench"
   },
   "isCrowdHelp": "Crowd entities do not require a Model Sheet",
   "crowd": {
