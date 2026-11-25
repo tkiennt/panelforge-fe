@@ -9,6 +9,8 @@ import {
   Clapperboard,
   Compass,
   PanelLeft,
+  Lock,
+  AlertTriangle,
 } from 'lucide-react';
 import { ChapterCastDto, chapterCastService } from '@/services/chapterCast.service';
 import {
@@ -74,6 +76,7 @@ import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
 import { parseScenePanelRange, formatSceneSummaryWithPanels } from '../utils/sceneUtils';
 import {
   useScriptDrawers,
+  isTestEnvironment,
   type LeftDrawer,
   type RightDrawer,
 } from '../components/script/useScriptDrawers';
@@ -537,7 +540,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     toggleLeftDrawer,
     toggleRightDrawer,
   } = useScriptDrawers({
-    initialLeftDrawer: typeof window !== 'undefined' && window.innerWidth >= 1280 ? 'scenes' : null,
+    initialLeftDrawer:
+      isTestEnvironment || (typeof window !== 'undefined' && window.innerWidth >= 1280)
+        ? 'scenes'
+        : null,
   });
   const [importRequestKey, setImportRequestKey] = useState(0);
 
@@ -2003,42 +2009,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         </div>
       )}
 
-      {isScriptFrozen && (
-        <div
-          data-testid='script-frozen-banner'
-          className='w-full bg-sky-50 border-b border-sky-200 px-4 py-1.5 flex items-center justify-between gap-3 text-xs text-sky-900 shrink-0'
-        >
-          <span>
-            {t(
-              'scriptStudio.lifecycle.frozenHint',
-              'Kịch bản đã đóng băng (chỉ đọc). Thẻ xem nhanh vẫn dùng được qua hover hoặc Ctrl+.',
-            )}
-          </span>
-        </div>
-      )}
-
-      {isStartBlocked && (
-        <div
-          data-testid='start-blocked-banner'
-          className='w-full bg-amber-50/90 border-b border-amber-200 px-4 py-1.5 flex items-center justify-between gap-3 text-xs text-amber-900 shrink-0'
-        >
-          <span>
-            {t(
-              'scriptStudio.gate1.blockedHint',
-              'Cổng kiểm duyệt Gate 1 có mục chưa khoá Canon.',
-            )}
-          </span>
-          {workspaceId && (seriesId || currentChapter?.seriesId) && (
-            <Link
-              to={`/workspaces/${workspaceId}/series/${seriesId || currentChapter?.seriesId}/bible`}
-              className='font-semibold text-primary hover:underline shrink-0'
-            >
-              {t('scriptStudio.gate1.openBibleLink', 'Mở Series Bible để duyệt Canon')}
-            </Link>
-          )}
-        </div>
-      )}
-
       {/* Toolbar row full-width: Chuẩn Stitch Writer Studio (Phân cảnh toggle + Series Bible / Góp ý / Version + Ctrl+S + Lưu) */}
       <div className='w-full bg-[#FBF9F4] border-b border-[#E8E3DA] px-4 py-2 flex items-center justify-between text-[13px] select-none shrink-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'>
         {/* Left: Phân cảnh toggle */}
@@ -2151,6 +2121,57 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         </div>
       </div>
 
+      {/* Kịch bản đã chốt (Gate 1): giải thích vì sao editor chỉ đọc */}
+      {isScriptFrozen && (
+        <div
+          data-testid='script-frozen-banner'
+          role='status'
+          className='shrink-0 border-b border-stone-300 bg-stone-100 px-4 py-2 text-xs text-stone-800 flex items-start gap-2'
+        >
+          <Lock className='w-3.5 h-3.5 mt-0.5 shrink-0 text-stone-600' aria-hidden='true' />
+          <div className='min-w-0'>
+            <span className='font-bold'>{t('writer.statusDrawer.frozenBadge')}</span>
+            {currentChapter?.scriptContentHash && (
+              <span
+                className='ml-2 font-mono text-[11px] text-stone-600'
+                title={`SHA-256: ${currentChapter.scriptContentHash}`}
+              >
+                #{currentChapter.scriptContentHash.slice(0, 8)}
+              </span>
+            )}
+            <span className='ml-2'>{t('writer.statusDrawer.frozenHandoffDesc')}</span>{' '}
+            <span className='text-stone-600'>{t('writer.statusDrawer.frozenReadOnlyDesc')}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Gate 1 bị chặn: còn biến thể Bible chưa khoá Canon (F#24) */}
+      {isStartBlocked && (chapterCast?.gate?.blockers?.length ?? 0) > 0 && (
+        <div
+          data-testid='start-blocked-banner'
+          role='status'
+          className='shrink-0 border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-900 flex flex-wrap items-center gap-x-3 gap-y-1'
+        >
+          <AlertTriangle className='w-3.5 h-3.5 shrink-0 text-rose-600' aria-hidden='true' />
+          <span>
+            <strong>
+              {t('scriptStudio.cast.startBlockedBanner', 'Chưa thể bắt đầu sản xuất')}:
+            </strong>{' '}
+            {t('writer.statusDrawer.startBlockedCount', {
+              count: chapterCast?.gate?.blockers?.length ?? 0,
+            })}
+          </span>
+          {workspaceId && seriesId && (
+            <Link
+              to={`/workspaces/${workspaceId}/series/${seriesId}/bible`}
+              className='font-semibold text-rose-700 hover:text-rose-900 underline'
+            >
+              {t('writer.statusDrawer.openBibleForCanon')}
+            </Link>
+          )}
+        </div>
+      )}
+
       {/* 3. Bàn viết: ngăn kéo phân cảnh (trái) | editor surface (giữa) | drawers (phải) */}
       <div className='flex-1 flex overflow-hidden relative'>
         {activeLeftDrawer === 'scenes' && (
@@ -2195,7 +2216,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </div>
         )}
 
-        <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-white'>
+        <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-[#F4EFE8]/70'>
           {(loadingScenes || loadingChapters || loadingDetail) &&
           chapterScenesDetail.length === 0 &&
           !selectedScene ? (

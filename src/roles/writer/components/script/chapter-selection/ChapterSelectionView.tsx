@@ -24,6 +24,7 @@ import { ChapterDto, CreateChapterRequest } from '@/services/chapter.service';
 import { SeriesDetailDto } from '@/services/series.service';
 import { formatChapterOption } from '@/roles/writer/utils/chapterFormat';
 import { Modal } from '@/shared/ui';
+import { formatSeriesFormat } from '@/shared/utils/seriesFormat';
 import { useTranslation } from '@/lib/i18n';
 
 interface ChapterSelectionViewProps {
@@ -599,9 +600,11 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                       <span className='font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-200/60 text-[#EA580C] group-hover:border-[#EA580C]/40 transition-colors'>
                         CH.{chapter.chapterNumber}
                       </span>
-                      <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 font-label-sm text-xs font-semibold'>
-                        Manga B5
-                      </span>
+                      {seriesDetail?.format && (
+                        <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 font-label-sm text-xs font-semibold'>
+                          {formatSeriesFormat(seriesDetail.format)}
+                        </span>
+                      )}
                     </div>
                     <span className='font-mono text-xs text-stone-500 bg-[#FAF9F5] px-2 py-0.5 rounded-md border border-stone-200/80'>
                       v{chapter.versionVector || 1}

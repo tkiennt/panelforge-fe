@@ -245,13 +245,23 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         attributes: updatedAttrs,
       });
 
+      // Biến thể có sẵn: gửi stageName gốc, không gửi nhãn hiển thị. Biến thể mặc định có stageName null,
+      // nhãn hiển thị là chữ đã dịch ("Mặc định") nên gửi lên sẽ bị BE coi là đổi biến thể và trả 409.
+      const selectedExistingVariant =
+        variantMode === 'existing' && !supersedeTarget
+          ? existingVariants.find((variant) => variant.variantKey === selectedExistingVariantKey)
+          : undefined;
+      const payloadVariantLabel = selectedExistingVariant
+        ? (selectedExistingVariant.latestRevision.stageName ?? '').trim()
+        : variantLabel.trim();
+
       const submissionPayload = {
         expectedVersionNumber: expectedVersionNumber ?? undefined,
         name: revisionTarget.name,
         subtitle: subtitle.trim() || revisionTarget.subtitle || '',
         description: description.trim() || revisionTarget.description || '',
         referenceImageUrl: referenceImageUrl || undefined,
-        variantLabel: variantLabel.trim(),
+        variantLabel: payloadVariantLabel,
         summary: summary.trim(),
         detailsJson: detailsPayload,
         attributes: updatedAttrs,

@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import type { NotificationDto, NotificationListDto } from '@/types';
 import { notificationService } from '@/services/notification.service';
 import { chapterService } from '@/services/chapter.service';
+import { workspaceService } from '@/services/workspace.service';
 import type { ComponentProps } from 'react';
 import { NotificationBell } from './NotificationBell';
 import { getNotificationBadge } from './notificationBadge';
@@ -21,6 +22,12 @@ vi.mock('@/services/notification.service', () => ({
 vi.mock('@/services/chapter.service', () => ({
   chapterService: {
     getChapterById: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/workspace.service', () => ({
+  workspaceService: {
+    getPendingInvitations: vi.fn(),
   },
 }));
 
@@ -75,6 +82,33 @@ describe('NotificationBell', () => {
     vi.mocked(notificationService.markAsRead).mockResolvedValue(1);
     vi.mocked(notificationService.markAllAsRead).mockResolvedValue(2);
     vi.mocked(chapterService.getChapterById).mockResolvedValue(null as any);
+    vi.mocked(workspaceService.getPendingInvitations).mockResolvedValue([]);
+  });
+
+  it('lời mời vào Studio đang chờ hiện trong chuông, cộng vào số chưa đọc và mở trang Workspace', async () => {
+    const user = userEvent.setup();
+    vi.mocked(notificationService.getNotifications).mockResolvedValue(list([], 0));
+    vi.mocked(workspaceService.getPendingInvitations).mockResolvedValue([
+      {
+        workspaceId: 'ws-9',
+        workspaceName: 'E2E Test Studio',
+        ownerName: 'Producer A',
+        ownerEmail: 'producer@example.test',
+        role: 'Artist',
+        invitedAt: new Date().toISOString(),
+      },
+    ]);
+    renderBell();
+
+    expect(await screen.findByTestId('notification-badge')).toHaveTextContent('1');
+    await user.click(screen.getByTestId('notification-bell'));
+    const row = await screen.findByTestId('notification-invitation-ws-9');
+    expect(row).toHaveTextContent('Lời mời Studio');
+    expect(row).toHaveTextContent('Mời bạn vào E2E Test Studio (Artist)');
+    expect(screen.queryByText('Chưa có thông báo nào.')).not.toBeInTheDocument();
+
+    await user.click(row);
+    expect(screen.getByTestId('location')).toHaveTextContent('/workspaces');
   });
 
   afterEach(() => {

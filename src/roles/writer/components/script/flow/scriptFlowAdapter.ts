@@ -209,15 +209,35 @@ export function collectLines(scenes: SceneDetailDto[]): ServerLine[] {
     .flatMap((s) =>
       [...(s.scriptLines ?? [])]
         .sort((a, b) => a.lineOrder - b.lineOrder)
-        .map((l) => ({
-          id: l.id,
-          lineOrder: l.lineOrder,
-          kind: toKind(l.kind, l.dialogueText, l.speakerLabel),
-          speakerLabel: l.speakerLabel ?? null,
-          text: (l.text ?? l.dialogueText ?? l.stageDirection ?? '').trim(),
-          panelId: l.panelId ?? null,
-          refs: (l as any).refs ?? null,
-        })),
+        .flatMap((l): ServerLine[] => {
+          const kind = toKind(l.kind, l.dialogueText, l.speakerLabel);
+          const main: ServerLine = {
+            id: l.id,
+            lineOrder: l.lineOrder,
+            kind,
+            speakerLabel: l.speakerLabel ?? null,
+            text: (l.text ?? l.dialogueText ?? l.stageDirection ?? '').trim(),
+            panelId: l.panelId ?? null,
+            refs: (l as any).refs ?? null,
+          };
+          // Dòng cũ có cả thoại lẫn chỉ dẫn cảnh: editor mỗi dòng một loại, nên tách chỉ dẫn thành dòng
+          // hành động đứng trước (id mới khi lưu) — nếu không, lưu lại sẽ xoá mất stageDirection.
+          const direction = (l.stageDirection ?? '').trim();
+          const isSpeech = kind === ScriptLineKind.Dialogue || kind === ScriptLineKind.Thought;
+          if (!isSpeech || !direction || direction === main.text) return [main];
+          return [
+            {
+              id: '',
+              lineOrder: l.lineOrder,
+              kind: ScriptLineKind.Action,
+              speakerLabel: null,
+              text: direction,
+              panelId: l.panelId ?? null,
+              refs: null,
+            },
+            main,
+          ];
+        }),
     )
     .filter((l) => l.text.length > 0);
 }
@@ -246,7 +266,7 @@ export function linesToNodes(lines: ServerLine[]): JSONContent[] {
         : l.kind === ScriptLineKind.Sfx
           ? 'sfx'
           : 'action';
-    out.push(line(el, l.text, l.id, l.refs));
+    out.push(line(el, l.text, l.id || null, l.refs));
   }
   return out;
 }

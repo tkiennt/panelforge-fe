@@ -231,6 +231,7 @@
     "reasonHint": "Bắt buộc khi đổi loại hoặc giá của ấn bản đã phát hành; được ghi vào lịch sử.",
     "save": "Lưu cấu hình",
     "publish": "Phát hành bản {lang}",
-    "publishBlocked": "Cần đặt giá trước khi phát hành."
+    "publishBlocked": "Cần đặt giá trước khi phát hành.",
+    "publishWithChapterHint": "Ấn bản gốc được phát hành cùng chương: dùng \"Phát hành chương\" ở Bàn Publisher để chương lên Catalog."
   }
 }

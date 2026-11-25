@@ -45,7 +45,7 @@ describe('FocusWorkspaceLayout Component', () => {
 
     const header = screen.getByTestId('focus-studio-header');
     expect(header).toHaveClass('bg-white', 'border-stone-200');
-    expect(screen.getByTestId('focus-back-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('focus-back-btn')).not.toBeInTheDocument();
 
     // Series link points directly to ARTIST role series path
     const seriesLink = screen.getByTestId('focus-series-link');
@@ -124,8 +124,8 @@ describe('FocusWorkspaceLayout Component', () => {
     expect(screen.getByTestId('focus-studio-header')).toBeInTheDocument();
     expect(screen.queryByTestId('focus-zen-pill')).not.toBeInTheDocument();
 
-    // Studio back crumb
-    expect(screen.getByTestId('focus-back-btn')).toHaveTextContent('Studio MAPPA');
+    // Topbar omits redundant Studio back crumb (sidebar already has "Về Sảnh Studio")
+    expect(screen.queryByTestId('focus-back-btn')).not.toBeInTheDocument();
 
     // Series link
     expect(screen.getByTestId('focus-series-link')).toHaveTextContent('Shibuya Overdrive');

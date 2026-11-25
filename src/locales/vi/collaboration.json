@@ -215,7 +215,11 @@
       "AssignmentOverdue": "Đã quá hạn",
       "ChangeRequestDueSoon": "Sửa sắp đến hạn",
       "ChangeRequestOverdue": "Sửa đã quá hạn",
-      "AssignmentReady": "Đến lượt bạn"
+      "AssignmentReady": "Đến lượt bạn",
+      "ExportCompleted": "Xuất file xong",
+      "ExportFailed": "Xuất file lỗi",
+      "ChapterHandedOff": "Chương được bàn giao",
+      "WorkspaceInvitation": "Lời mời Studio"
     },
     "defaultLabel": "Thông báo",
     "bellAriaUnread": "Thông báo, {count} chưa đọc",
@@ -223,7 +227,9 @@
     "tabAll": "Tất cả",
     "tabUnread": "Chưa đọc ({count})",
     "markAllRead": "Đánh dấu đã đọc tất cả",
-    "empty": "Chưa có thông báo nào."
+    "empty": "Chưa có thông báo nào.",
+    "invitationTitle": "Mời bạn vào {workspace} ({role})",
+    "invitationDesc": "Từ {owner} · bấm để chấp nhận hoặc từ chối"
   },
   "bibleDrawer": {
     "loadPanelError": "Không thể tải thiết kế nhân vật trong khung tranh.",

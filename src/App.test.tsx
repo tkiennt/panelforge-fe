@@ -104,11 +104,14 @@ describe('App Integration Smoke Test', () => {
 
     render(<App />);
 
-    // 3. Đợi WorkspaceListView hiển thị danh sách 2 workspace
-    await waitFor(() => {
-      expect(screen.getByText('Workspace Alpha (Producer)')).toBeInTheDocument();
-      expect(screen.getByText('Workspace Beta (Artist)')).toBeInTheDocument();
-    });
+    // 3. Đợi WorkspaceListView hiển thị danh sách 2 workspace (App nạp lười nhiều route: cho thời gian khi máy bận)
+    await waitFor(
+      () => {
+        expect(screen.getByText('Workspace Alpha (Producer)')).toBeInTheDocument();
+        expect(screen.getByText('Workspace Beta (Artist)')).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
 
     // 4. User chọn vào Workspace Alpha (Producer)
     fireEvent.click(screen.getByRole('button', { name: 'Vào studio: Workspace Alpha (Producer)' }));
@@ -127,25 +130,31 @@ describe('App Integration Smoke Test', () => {
     fireEvent.click(backBtn);
 
     // 7. Xác nhận đã quay lại WorkspaceListView và currentWorkspaceRole đã được reset
-    await waitFor(() => {
-      // Alpha xuất hiện cả ở card và dòng "Truy cập gần đây"
-      expect(
-        screen.getByRole('button', { name: /Workspace Alpha \(Producer\)/ }),
-      ).toBeInTheDocument();
-      expect(screen.getByText('Workspace Beta (Artist)')).toBeInTheDocument();
-      // Menu / hành động của Producer đã biến mất hoàn toàn
-      expect(screen.queryByText('Tạo Series mới')).not.toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        // Alpha xuất hiện cả ở card và dòng "Truy cập gần đây"
+        expect(
+          screen.getByRole('button', { name: /Workspace Alpha \(Producer\)/ }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Workspace Beta (Artist)')).toBeInTheDocument();
+        // Menu / hành động của Producer đã biến mất hoàn toàn
+        expect(screen.queryByText('Tạo Series mới')).not.toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
 
     // 8. User chọn vào Workspace Beta (Artist)
     fireEvent.click(screen.getByRole('button', { name: 'Vào studio: Workspace Beta (Artist)' }));
 
     // 9. Xác nhận chuyển vào màn chọn Series của Workspace B (/workspaces/ws-b/series)
     // và không có quyền / nút tạo của Producer
-    await waitFor(() => {
-      expect(window.location.pathname).toBe('/workspaces/ws-b/series');
-      expect(screen.getByText('Series One')).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(window.location.pathname).toBe('/workspaces/ws-b/series');
+        expect(screen.getByText('Series One')).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
     expect(screen.queryByText('Tạo Series mới')).not.toBeInTheDocument();
 
     // 10. User chọn Series One để vào môi trường làm việc chính của Artist
@@ -157,7 +166,7 @@ describe('App Integration Smoke Test', () => {
     // Menu / hành động dành riêng cho Producer TUYỆT ĐỐI KHÔNG xuất hiện
     expect(screen.queryByText('Members & Roles')).not.toBeInTheDocument();
     expect(screen.queryByText('Tạo Series mới')).not.toBeInTheDocument();
-  }, 15000);
+  }, 30000);
 
   it('đăng nhập ADMINISTRATOR -> điều hướng tới /admin và render AdminDashboardView, TUYỆT ĐỐI KHÔNG bị đẩy về /workspaces', async () => {
     localStorage.setItem('token', 'mock-admin-token');

@@ -957,3 +957,17 @@ export const resolveViewMode = (raw: string | null): ViewMode =>
 
 export const resolveGroupBy = (raw: string | null): GroupBy =>
   GROUP_BYS.find((g) => g === raw) ?? 'none';
+
+/**
+ * Thành viên vai trò `memberRole` có được nhận việc của công đoạn dành cho `stageRole` không.
+ * BR-31: Lettering mặc định do Artist làm, Letterer là phụ việc tuỳ chọn (khớp PipelineStage.CanBeHeldBy ở BE).
+ */
+export const canHoldStageRole = (
+  stageRole: string | number | null | undefined,
+  memberRole: string | number | null | undefined,
+): boolean => {
+  if (!stageRole) return true;
+  const stage = String(stageRole).toUpperCase();
+  const member = String(memberRole || '').toUpperCase();
+  return member === stage || (stage === 'LETTERER' && member === 'ARTIST');
+};

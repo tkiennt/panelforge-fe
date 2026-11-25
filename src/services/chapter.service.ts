@@ -107,6 +107,10 @@ export interface ChapterDto {
   /** Phiên bản đã gửi duyệt (push) gần nhất và lần trước — để so sánh từng dòng. */
   lastSubmittedVersionId?: string | null;
   previousSubmittedVersionId?: string | null;
+  /** D1: Producer đã bàn giao chương cho Publisher (ChapterHandedOff). */
+  isHandedOff?: boolean;
+  handedOffAt?: string | null;
+  handedOffById?: string | null;
 }
 
 export interface ScriptVersionRowRef {

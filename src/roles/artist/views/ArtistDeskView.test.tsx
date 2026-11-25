@@ -46,11 +46,11 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
     // Main desk container
     expect(screen.getByTestId('artist-desk')).toBeInTheDocument();
 
-    // Left Sidebar (ArtistCanvaSidebar) exists with Script and Bible tabs ONLY
+    // Left Sidebar (ArtistCanvaSidebar) exists with Pages, Script, and Bible tabs (Stitch rail)
     expect(screen.getByTestId('artist-desk-sidebar')).toBeInTheDocument();
+    expect(screen.getByTestId('canva-tab-pages')).toBeInTheDocument();
     expect(screen.getByTestId('canva-tab-script')).toBeInTheDocument();
     expect(screen.getByTestId('canva-tab-bible')).toBeInTheDocument();
-    expect(screen.queryByTestId('canva-tab-pages')).not.toBeInTheDocument();
 
     // Canvas Shell & Clean Blank Manga Paper
     expect(screen.getByTestId('artist-canvas-shell')).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
     // Select page 2
     const card2 = screen.getByTestId('canva-page-card-2');
     const card2Btn = card2.querySelector('[role="button"]')!;
-    expect(card2Btn).toHaveClass('w-[58px]', 'h-[82px]');
+    expect(card2Btn).toHaveClass('w-7', 'h-8');
     fireEvent.click(card2Btn);
     expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('2 / 6');
 
@@ -804,9 +804,7 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId('artist-script-coverage')).toHaveTextContent(
-      'Script Coverage: 1/2 dòng thoại · 50%',
-    );
+    expect(screen.queryByTestId('artist-script-coverage')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
 
     expect(await screen.findByText('Chưa thể nộp Pencil')).toBeInTheDocument();
@@ -1428,13 +1426,11 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         </MemoryRouter>,
       );
 
-      // Right script reference sidebar is open by default
+      // Right script reference sidebar is open by default with panel cards (Stitch design)
       const scriptRefSidebar = screen.getByTestId('artist-script-ref-sidebar');
       expect(scriptRefSidebar).toBeInTheDocument();
-      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveTextContent('[Mô tả cảnh]');
-      expect(screen.getByTestId('artist-script-ref-line-line-2')).toHaveTextContent(
-        '[Thoại · Minh Triết]',
-      );
+      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveTextContent('[Mô tả]');
+      expect(screen.getByTestId('artist-script-ref-line-line-2')).toHaveTextContent('MINH TRIẾT:');
 
       // Apply a 3-panel template so panels exist on Page 1
       fireEvent.click(screen.getByTestId('canva-tab-templates'));
@@ -1621,10 +1617,11 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         'false',
       );
 
-      // Switch to Page 2 -> shows Page 2 line (even though getPanelsByPage returned [] for pg-2) with K3
+      // Switch to Page 2 -> shows Page 2 line in Panel 3 card
       const card2 = screen.getByTestId('canva-page-card-2');
       fireEvent.click(card2.querySelector('[role="button"]')!);
-      expect(screen.getByTestId('artist-script-ref-line-ln-p2-k3')).toHaveTextContent('K3');
+      expect(screen.getByTestId('artist-script-ref-panel-btn-3')).toHaveTextContent('Khung 3');
+      expect(screen.getByTestId('artist-script-ref-line-ln-p2-k3')).toBeInTheDocument();
       expect(screen.queryByTestId('artist-script-ref-line-ln-p1-k1')).not.toBeInTheDocument();
 
       // Switch to Page 3 (no assigned lines) -> falls back to unpaged line only
@@ -1798,6 +1795,18 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         });
         expect(screen.getByTestId('panel-dropzone-1')).toBeDisabled();
         expect(screen.getByTestId('btn-open-templates-simple')).toBeDisabled();
+
+        // Ô Assigned đã đến lượt → banner có nút Bắt đầu ngay trên bàn vẽ, không phải sang màn khác
+        const startSpy = vi.spyOn(assignmentService, 'startStageTask').mockResolvedValue({
+          id: 'cell-p1-pencil',
+          status: 'InProgress',
+        } as any);
+        fireEvent.click(await screen.findByTestId('artist-start-cell-btn'));
+        await waitFor(() => {
+          expect(startSpy).toHaveBeenCalledWith('chap-1', 'cell-p1-pencil');
+          expect(screen.queryByTestId('artist-page-readonly-banner')).not.toBeInTheDocument();
+        });
+        expect(screen.getByTestId('panel-dropzone-1')).not.toBeDisabled();
 
         // Switch to Page 2 (status InProgress) -> editable & upload enabled
         const card2 = screen.getByTestId('canva-page-card-2');
@@ -1995,14 +2004,16 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         expect(screen.queryByText('Đã rút bài')).not.toBeInTheDocument();
         expect(getGridSpy).toHaveBeenCalledTimes(2);
 
-        // Lần 2: 200 OK -> rút bài thành công, cập nhật ô trực tiếp từ DTO trả về, ẩn nút Rút bài
+        // Lần 2: 200 OK -> rút bài thành công, cập nhật ô trực tiếp từ DTO trả về, nút Rút bài chuyển sang disabled
         fireEvent.click(screen.getByTestId('artist-withdraw-btn'));
         await waitFor(() => {
           expect(withdrawSpy).toHaveBeenCalledWith('chap-1', 'cell-p1-pencil');
           expect(screen.getByText('Đã rút bài')).toBeInTheDocument();
         });
         expect(getGridSpy).toHaveBeenCalledTimes(2);
-        expect(screen.queryByTestId('artist-withdraw-btn')).not.toBeInTheDocument();
+        const disabledWithdrawBtn = screen.getByTestId('artist-withdraw-btn');
+        expect(disabledWithdrawBtn).toBeDisabled();
+        expect(disabledWithdrawBtn).toHaveAttribute('title');
       } finally {
         localStorage.removeItem('user');
       }
@@ -2104,15 +2115,26 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         );
 
         await waitFor(() => {
-          expect(screen.getByTestId('artist-layout-locked-notice')).toHaveTextContent(
-            /Chỉ công đoạn Pencil mới được sửa bố cục khung/i,
-          );
+          expect(screen.getByTestId('btn-upload-sketch-simple')).toBeDisabled();
         });
 
-        // Thao tác bố cục khung bị khoá ở công đoạn Color
-        expect(screen.getByTestId('btn-upload-sketch-simple')).toBeDisabled();
+        expect(screen.queryByTestId('artist-layout-locked-notice')).not.toBeInTheDocument();
+
+        // Thao tác bố cục khung bị khoá ở công đoạn Color (vẫn hiện tab mờ kèm tooltip lý do)
+        expect(screen.getByTestId('btn-upload-sketch-simple')).toHaveAttribute(
+          'title',
+          'Chỉ công đoạn Pencil mới được sửa bố cục khung',
+        );
         expect(screen.getByTestId('btn-open-templates-simple')).toBeDisabled();
+        expect(screen.getByTestId('btn-open-templates-simple')).toHaveAttribute(
+          'title',
+          'Chỉ công đoạn Pencil mới được sửa bố cục khung',
+        );
         expect(screen.getByTestId('btn-split-panels-simple')).toBeDisabled();
+        expect(screen.getByTestId('btn-split-panels-simple')).toHaveAttribute(
+          'title',
+          'Chỉ công đoạn Pencil mới được sửa bố cục khung',
+        );
         expect(screen.getByTestId('canvas-btn-save-layout')).toBeDisabled();
         expect(screen.getByTestId('canva-tab-templates')).toBeDisabled();
 

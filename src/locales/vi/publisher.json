@@ -157,7 +157,17 @@
     "importantNoteBefore": "Trạng thái",
     "importantNoteAfter": "là kết quả cuối cùng của quy trình sản xuất manga. Sau khi xuất bản, chương không thể mở lại được nữa (theo quy tắc phê duyệt V1.2).",
     "confirmPublish": "Xác Nhận Xuất Bản",
-    "confirmSchedule": "Xác Nhận Lên Lịch"
+    "confirmSchedule": "Xác Nhận Lên Lịch",
+    "pricingLabel": "Giá ấn bản gốc ({lang})",
+    "pricingFree": "Free",
+    "pricingPaid": "Trả phí",
+    "pricingRequired": "Chọn Free hoặc Trả phí cho ấn bản gốc trước khi phát hành.",
+    "priceLabel": "Giá mở khóa (VNĐ)",
+    "previewLabel": "Số trang đầu xem trước (tổng {total} trang)",
+    "priceInvalid": "Giá phải là số nguyên từ {min} đến {max} VNĐ.",
+    "previewInvalid": "Số trang xem trước phải từ 0 đến {max}.",
+    "pricingFreeSummary": "Đã đặt: Free — độc giả đọc miễn phí.",
+    "pricingPaidSummary": "Đã đặt: Trả phí {price} VNĐ, {preview} trang đầu xem trước."
   },
   "catalog": {
     "loadErrorTitle": "Không thể tải danh mục bộ truyện",

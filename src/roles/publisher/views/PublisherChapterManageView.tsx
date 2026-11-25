@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ImageOff,
 } from 'lucide-react';
+import { seriesService } from '@/services/series.service';
 import { useTranslation } from '@/lib/i18n';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useToast } from '@/shared/context/ToastContext';
@@ -242,8 +243,20 @@ const EditionsSection: React.FC<{
   const [draft, setDraft] = useState<Draft>(() => draftOf(edition));
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [originalLanguage, setOriginalLanguage] = useState<string | null>(null);
 
   useEffect(() => setDraft(draftOf(edition)), [edition]);
+
+  useEffect(() => {
+    let alive = true;
+    seriesService
+      .getSeriesById(manage.seriesId)
+      .then((s) => alive && setOriginalLanguage(s?.originalLanguage ?? 'vi'))
+      .catch(() => alive && setOriginalLanguage('vi'));
+    return () => {
+      alive = false;
+    };
+  }, [manage.seriesId]);
 
   const pageCount = manage.pages.length;
   const maxPreview = Math.max(0, pageCount - 1);
@@ -292,7 +305,10 @@ const EditionsSection: React.FC<{
     }
   };
 
-  const canPublish = !edition?.isAvailable && edition?.editionStatus === 'Approved';
+  // Bản gốc phát hành cùng chương ("Phát hành chương" ở bàn Publisher) để chương lên Catalog (BR-24, BR-34)
+  const isOriginalBeforeRelease = !manage.isPublished && language === originalLanguage;
+  const canPublish =
+    !edition?.isAvailable && edition?.editionStatus === 'Approved' && !isOriginalBeforeRelease;
   const publish = async () => {
     setPublishing(true);
     try {
@@ -491,6 +507,14 @@ const EditionsSection: React.FC<{
             onClick={save}
             label={t('edition.save')}
           />
+          {isOriginalBeforeRelease && edition?.editionStatus === 'Approved' && (
+            <span
+              className='text-xs text-[#737373]'
+              data-testid='edition-publish-with-chapter-hint'
+            >
+              {t('edition.publishWithChapterHint')}
+            </span>
+          )}
           {canPublish && (
             <div className='flex items-center gap-2'>
               {!edition?.isMonetizationConfigured && (
