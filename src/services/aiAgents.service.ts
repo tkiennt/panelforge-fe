@@ -26,6 +26,7 @@ export type AiSuggestionKind =
   | 'ImagePrompt'
   | 'Lettering'
   | 'LineRewrite'
+  | 'ScriptLineInsert'
   | 'SeriesMetadata'
   | 'Thumbnail'
   | 'BibleStub'
@@ -35,6 +36,7 @@ export type AiSuggestionKind =
 export const SCRIPT_VERSION_AI_KINDS: readonly AiSuggestionKind[] = [
   'Script',
   'LineRewrite',
+  'ScriptLineInsert',
   'Layout',
 ];
 
@@ -266,6 +268,30 @@ export interface RunCopilotRequest {
   pageId?: string;
   elementId?: string;
   revisionOfSuggestionId?: string;
+}
+
+export type NextLineKind = 'Dialogue' | 'Sfx' | 'Action';
+
+/** Payload của AiSuggestion kind ScriptLineInsert (TASK-358: writer.next_line). */
+export interface NextLineSuggestion {
+  schemaVersion: number;
+  runId: string;
+  sceneId: string;
+  afterLineId?: string | null;
+  kind: NextLineKind | string;
+  speaker?: string | null;
+  text: string;
+  reason: string;
+  allowedSpeakers?: string[];
+}
+
+export interface RunNextLineRequest {
+  sceneId: string;
+  kind: NextLineKind;
+  afterLineId?: string | null;
+  speaker?: string | null;
+  instruction?: string | null;
+  revisionOfSuggestionId?: string | null;
 }
 
 /** Payload của AiSuggestion kind Lettering đơn lẻ (BubbleShortenSuggestion trên một bóng thoại). */
@@ -669,6 +695,16 @@ export const aiAgentsService = {
       return res.data;
     } catch (e) {
       throw toError(e, translate('errors.services.aiAgents.runCopilotFailed'));
+    }
+  },
+
+  /** TASK-358: Copilot sinh 1 dòng kịch bản mới (Dialogue | Sfx | Action) sau afterLineId (null = cuối Scene). Trả về AiSuggestionDto (Pending, kind: ScriptLineInsert). */
+  async runNextLine(seriesId: string, body: RunNextLineRequest): Promise<AiSuggestionDto> {
+    try {
+      const res = await axiosClient.post(`/series/${seriesId}/ai/copilot/next-line`, body);
+      return res.data;
+    } catch (e) {
+      throw toError(e, translate('errors.services.aiAgents.runNextLineFailed'));
     }
   },
 

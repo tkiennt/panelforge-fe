@@ -42,7 +42,13 @@ import {
   createsScriptVersionOnAccept,
   type AiSuggestionDto,
   type AiSuggestionKind,
+  type NextLineKind,
 } from '@/services/aiAgents.service';
+import {
+  AiAssistPanel,
+  type AiScriptDraftContext,
+} from '@/shared/features/ai-agents/AiAssistPanel';
+import { toAiReadingDirection } from '@/shared/features/ai-agents/aiViewUtils';
 import { pageService, PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { PanelDto } from '@/types/pipeline';
@@ -70,7 +76,6 @@ import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
 import { parseScenePanelRange, formatSceneSummaryWithPanels } from '../utils/sceneUtils';
 import {
   useScriptDrawers,
-  isTestEnvironment,
   type LeftDrawer,
   type RightDrawer,
 } from '../components/script/useScriptDrawers';
@@ -534,10 +539,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     toggleLeftDrawer,
     toggleRightDrawer,
   } = useScriptDrawers({
-    initialLeftDrawer:
-      isTestEnvironment || (typeof window !== 'undefined' && window.innerWidth >= 1280)
-        ? 'scenes'
-        : null,
+    initialLeftDrawer: typeof window !== 'undefined' && window.innerWidth >= 1280 ? 'scenes' : null,
   });
   const [importRequestKey, setImportRequestKey] = useState(0);
 
@@ -1652,8 +1654,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     });
   };
 
-  // Copilot viết lại 1 dòng thoại (task: writer.rewrite)
+  // Copilot viết lại 1 dòng thoại (writer.rewrite) hoặc gợi ý dòng tiếp theo (writer.next_line)
   const [rewritingLineId, setRewritingLineId] = useState<string | null>(null);
+  const [runningNextLineKind, setRunningNextLineKind] = useState<NextLineKind | null>(null);
   const [decidingLineId, setDecidingLineId] = useState<string | null>(null);
   const [activeCopilotLineId, setActiveCopilotLineId] = useState<string | null>(null);
   const [lineCopilotSuggestions, setLineCopilotSuggestions] = useState<
@@ -1666,6 +1669,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setLineCopilotSuggestions({});
     setLineCopilotErrors({});
     setActiveCopilotLineId(null);
+    setRunningNextLineKind(null);
   }, [currentChapter?.id]);
 
   const handleRewriteLineById = async (lineId: string) => {
@@ -1697,6 +1701,45 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   };
 
+  const handleRunNextLine = async ({
+    sceneId,
+    kind,
+    afterLineId,
+  }: {
+    sceneId: string;
+    kind: NextLineKind;
+    afterLineId: string | null;
+  }) => {
+    const effectiveSeriesId = seriesId || currentChapter?.seriesId;
+    if (!effectiveSeriesId || !sceneId) return;
+    const slotKey = afterLineId || `scene-end:${sceneId}`;
+    setRunningNextLineKind(kind);
+    setActiveCopilotLineId(slotKey);
+    setLineCopilotErrors((prev) => {
+      const next = { ...prev };
+      delete next[slotKey];
+      return next;
+    });
+    try {
+      const sug = await aiAgentsService.runNextLine(effectiveSeriesId, {
+        sceneId,
+        kind,
+        afterLineId,
+      });
+      setLineCopilotSuggestions((prev) => ({ ...prev, [slotKey]: sug }));
+    } catch (err: any) {
+      const msg = err?.message || t('writer.scriptEditor.aiCopilotFallback');
+      setLineCopilotErrors((prev) => ({ ...prev, [slotKey]: msg }));
+      notify(t('writer.scriptEditor.aiCopilotErrorTitle'), msg);
+      if (err?.status === 409) {
+        setConcurrencyError(msg);
+        await handleAiReload();
+      }
+    } finally {
+      setRunningNextLineKind(null);
+    }
+  };
+
   const handleDecideLineCopilot = async (
     lineId: string,
     suggestion: AiSuggestionDto,
@@ -1723,7 +1766,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           delete next[lineId];
           return next;
         });
-        await handleAiReload('LineRewrite');
+        await handleAiReload(suggestion.kind);
       } else {
         setLineCopilotSuggestions((prev) => ({
           ...prev,
@@ -1768,14 +1811,48 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const scriptPreviewSuggestion =
     aiScriptPreview ?? (pendingLineRewrite?.status === 'Pending' ? pendingLineRewrite : null);
   const scriptPreviewScene = previewScenes.find((s) =>
-    aiScriptPreview
-      ? s.id === aiScriptPreview.sceneId
+    scriptPreviewSuggestion?.sceneId
+      ? s.id === scriptPreviewSuggestion.sceneId
       : s.scriptLines?.some((l) => l.id === activeCopilotLineId),
   );
 
+  const aiReadingDirection = toAiReadingDirection(seriesDetail?.readingDirection);
   const aiNameById = Object.fromEntries(
     allBibleEntries.map((e) => [e.id, getBibleEntryNameWithStage(e)]),
   );
+  const scriptAiContext = useMemo<AiScriptDraftContext | undefined>(() => {
+    if (!selectedScene) return undefined;
+    const parsedSummary = parseScenePanelRange(selectedScene.summary);
+    const sceneLines = Array.isArray(selectedScene.scriptLines) ? selectedScene.scriptLines : null;
+    return {
+      sceneTitle:
+        selectedScene.heading || t('scriptStudio.scenes.scene', { n: selectedScene.sceneNumber }),
+      sceneSummary: parsedSummary.cleanSummary || selectedScene.summary?.trim() || null,
+      onOpenScenes: () => setActiveLeftDrawer('scenes'),
+      hasStoryArc: seriesDetail ? Boolean(seriesDetail.storyArc?.trim()) : undefined,
+      hasChapterOutline: currentChapter ? Boolean(currentChapter.outline?.trim()) : undefined,
+      chapterOutline: currentChapter?.outline?.trim() || '',
+      bibleEntryCount: allBibleEntries.filter((e) => e.isActive !== false).length,
+      sceneLineCount: sceneLines ? sceneLines.length : undefined,
+      linkedPanelLineCount: sceneLines
+        ? sceneLines.filter((l) => l.panelId != null && l.panelId !== '').length
+        : undefined,
+      bibleCharacters: characters
+        .filter((c) => c.isActive !== false)
+        .map((c) => ({ id: c.id, name: getBibleEntryNameWithStage(c) })),
+      onOpenBible: () => setActiveRightDrawer('bible'),
+      onOpenStoryboard: () => setActiveRightDrawer('ai-storyboard'),
+    };
+  }, [
+    selectedScene,
+    t,
+    setActiveLeftDrawer,
+    seriesDetail,
+    currentChapter,
+    allBibleEntries,
+    characters,
+    setActiveRightDrawer,
+  ]);
 
   // Lọc danh sách phân cảnh
   const filteredScenes = scenes
@@ -1901,6 +1978,32 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   return (
     <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
       <h1 className='sr-only'>{t('writer.scriptEditor.srHeading')}</h1>
+
+      {concurrencyError && (
+        <div
+          data-testid='concurrency-error-banner'
+          role='alert'
+          className='w-full bg-amber-50 border-b border-amber-200 px-4 py-1.5 flex items-center justify-between gap-3 text-xs text-amber-900 shrink-0'
+        >
+          <span>{concurrencyError}</span>
+          <div className='flex items-center gap-2 shrink-0'>
+            <button
+              type='button'
+              onClick={() => void handleReloadLatestWorkingCopy()}
+              className='font-semibold underline hover:text-amber-950 cursor-pointer'
+            >
+              {t('scriptStudio.gn.reloadLatest', 'Tải lại bản mới nhất')}
+            </button>
+            <button
+              type='button'
+              onClick={() => setConcurrencyError(null)}
+              className='text-amber-700 hover:text-amber-950 cursor-pointer'
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Toolbar row full-width: Chuẩn Stitch Writer Studio (Phân cảnh toggle + Series Bible / Góp ý / Version + Ctrl+S + Lưu) */}
       <div className='w-full bg-[#FBF9F4] border-b border-[#E8E3DA] px-4 py-2 flex items-center justify-between text-[13px] select-none shrink-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'>
@@ -2205,6 +2308,26 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 currentChapter.chapterNumber,
                 currentChapter.title,
               )}
+              selectedSceneId={selectedScene?.id}
+              selectedSceneHeading={selectedScene?.heading}
+              onCaretSceneChange={handleCaretSceneChange}
+              onRunNextLine={canEditScript && !isChapterLocked ? handleRunNextLine : undefined}
+              runningNextLineKind={runningNextLineKind}
+              onOpenAiPromptModal={
+                canEditScript && !isChapterLocked
+                  ? () => setActiveRightDrawer('ai-draft')
+                  : undefined
+              }
+              onOpenAiDraft={
+                canEditScript && !isChapterLocked
+                  ? () => setActiveRightDrawer('ai-draft')
+                  : undefined
+              }
+              onOpenAiStoryboard={
+                canEditScript && !isChapterLocked
+                  ? () => setActiveRightDrawer('ai-storyboard')
+                  : undefined
+              }
               sceneCount={filteredScenes.length}
               onToggleSceneOutline={() => toggleLeftDrawer('scenes')}
               isSceneOutlineOpen={activeLeftDrawer === 'scenes'}
@@ -2271,6 +2394,55 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           />
         )}
       </div>
+
+      {activeRightDrawer === 'ai-draft' &&
+        (seriesId || currentChapter?.seriesId) &&
+        currentChapter?.id &&
+        selectedScene?.id && (
+          <AiAssistPanel
+            key={selectedScene.id}
+            seriesId={(seriesId || currentChapter.seriesId)!}
+            chapterId={currentChapter.id}
+            sceneId={selectedScene.id}
+            workflowType='Script'
+            suggestionKind='Script'
+            title={t('writer.scriptEditor.aiDraftTitle')}
+            briefLabel={t('writer.scriptEditor.aiDraftBriefLabel')}
+            briefPlaceholder={t('writer.scriptEditor.aiDraftBriefPlaceholder')}
+            runLabel={t('writer.scriptEditor.aiDraftRunLabel')}
+            readingDirection={aiReadingDirection}
+            chapterVersion={currentChapter.versionVector}
+            nameById={aiNameById}
+            scriptContext={scriptAiContext}
+            onClose={() => setActiveRightDrawer(null)}
+            onReload={handleAiReload}
+            onScriptPreview={setAiScriptPreview}
+          />
+        )}
+
+      {activeRightDrawer === 'ai-storyboard' &&
+        (seriesId || currentChapter?.seriesId) &&
+        currentChapter?.id &&
+        selectedScene?.id && (
+          <AiAssistPanel
+            key={`storyboard-${selectedScene.id}`}
+            seriesId={(seriesId || currentChapter.seriesId)!}
+            chapterId={currentChapter.id}
+            sceneId={selectedScene.id}
+            workflowType='Storyboard'
+            suggestionKind='Layout'
+            title={t('writer.scriptEditor.aiStoryboardTitle')}
+            briefLabel={t('writer.scriptEditor.aiStoryboardBriefLabel')}
+            briefPlaceholder={t('writer.scriptEditor.aiStoryboardBriefPlaceholder')}
+            runLabel={t('writer.scriptEditor.aiStoryboardRunLabel')}
+            readingDirection={aiReadingDirection}
+            chapterVersion={currentChapter.versionVector}
+            nameById={aiNameById}
+            hasPanels={sceneHasPanels}
+            onClose={() => setActiveRightDrawer(null)}
+            onReload={handleAiReload}
+          />
+        )}
 
       {/* MODAL: Tạo / Sửa Phân cảnh (Ghi chú phân đoạn từ panel đến panel) */}
       <Modal

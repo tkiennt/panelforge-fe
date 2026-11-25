@@ -100,6 +100,7 @@ export const KIND_META: Record<
   ImagePrompt: kindMetaEntry('ImagePrompt'),
   Lettering: kindMetaEntry('Lettering'),
   LineRewrite: kindMetaEntry('LineRewrite'),
+  ScriptLineInsert: kindMetaEntry('ScriptLineInsert'),
   SeriesMetadata: kindMetaEntry('SeriesMetadata'),
   Thumbnail: kindMetaEntry('Thumbnail'),
   BibleStub: kindMetaEntry('BibleStub'),

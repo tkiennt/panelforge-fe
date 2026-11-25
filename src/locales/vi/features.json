@@ -64,6 +64,11 @@
         "applyLabel": "Accept (cập nhật dòng thoại)",
         "applyNote": "Tạo revision Script mới (append-only) và cập nhật dòng thoại đã chọn."
       },
+      "ScriptLineInsert": {
+        "title": "Dòng kịch bản mới",
+        "applyLabel": "Accept (chèn dòng mới)",
+        "applyNote": "Tạo revision Script mới (append-only) và chèn dòng mới sau vị trí đã chọn."
+      },
       "SeriesMetadata": {
         "title": "Metadata phát hành",
         "applyLabel": "Accept (cập nhật Series)",
@@ -214,6 +219,8 @@
         "lineRewriteShortenMax": "Rút gọn thoại (tối đa {maxChars} ký tự)",
         "lineRewriteShortenFrame": "Rút gọn thoại (theo khung)",
         "lineRewriteVoice": "Viết lại thoại theo giọng nhân vật",
+        "scriptLineInsertSpeaker": "Chèn dòng {kind} · Người nói: {speaker}",
+        "scriptLineInsertKind": "Chèn dòng {kind} mới",
         "seriesMetadataGenre": "Thể loại: {genre} · Cập nhật tóm tắt & thể loại",
         "seriesMetadataFallback": "Gợi ý thông tin phát hành Series",
         "thumbnailModel": "Model: {model} ({provider})",

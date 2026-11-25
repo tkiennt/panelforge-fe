@@ -190,16 +190,16 @@ describe('adminService', () => {
       expect(result.usedImagesCurrentMonth).toBe(5);
     });
 
-    it('cập nhật cấu hình AI của Workspace có monthlyImageQuota', async () => {
+    it('cập nhật cấu hình AI của Workspace có monthlyImageQuota (không gửi provider/apiKey riêng)', async () => {
       const mockUpdated = {
         id: 'cfg-1',
         workspaceId,
-        provider: 'Google Gemini',
+        provider: 'Gemini',
         hasApiKey: true,
         isEnabled: true,
         monthlyTokenQuota: 800000,
         usedTokensCurrentMonth: 12000,
-        allowedModels: ['gemini-1.5-pro', 'gemini-1.5-flash'],
+        allowedModels: ['gemini-3.8-flash'],
         monthlyImageQuota: 250,
         usedImagesCurrentMonth: 5,
         createdAt: '2026-10-01T00:00:00Z',
@@ -207,17 +207,43 @@ describe('adminService', () => {
       put.mockResolvedValueOnce({ data: mockUpdated });
 
       const payload = {
-        provider: 'Google Gemini',
         isEnabled: true,
         monthlyTokenQuota: 800000,
         monthlyImageQuota: 250,
-        allowedModels: ['gemini-1.5-pro', 'gemini-1.5-flash'],
+        allowedModels: ['gemini-3.8-flash'],
       };
 
       const result = await adminService.updateWorkspaceAiConfig(workspaceId, payload);
 
       expect(put).toHaveBeenCalledWith(`/Admin/workspaces/${workspaceId}/ai-config`, payload);
       expect(result.monthlyImageQuota).toBe(250);
+    });
+
+    it('gọi PUT /Admin/ai-providers/default để đặt hoặc bỏ API AI mặc định cho chữ/ảnh', async () => {
+      const mockProviders = [
+        {
+          id: 'cred-1',
+          name: 'Gemini Mặc định',
+          providerType: 'Gemini',
+          keyHint: '••••1234',
+          textModel: 'gemini-3.8-flash',
+          imageModel: 'gemini-2.5-flash-image',
+          isEnabled: true,
+          workspaceCount: 0,
+          createdAt: '2026-11-25T00:00:00Z',
+          isDefaultText: true,
+          isDefaultImage: false,
+        },
+      ];
+      put.mockResolvedValueOnce({ data: mockProviders });
+
+      const result = await adminService.setDefaultAiProvider('text', 'cred-1');
+
+      expect(put).toHaveBeenCalledWith('/Admin/ai-providers/default', {
+        kind: 'text',
+        providerCredentialId: 'cred-1',
+      });
+      expect(result[0].isDefaultText).toBe(true);
     });
 
     it('gọi GET /Admin/workspaces và trả về danh sách Studio Workspaces (BR-16)', async () => {

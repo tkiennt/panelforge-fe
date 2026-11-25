@@ -29,6 +29,7 @@ import {
   ScriptDraft,
   StoryboardLayout,
   LineRewriteSuggestion,
+  NextLineSuggestion,
   SeriesMetadataSuggestion,
   ThumbnailSuggestion,
 } from '@/services/aiAgents.service';
@@ -49,6 +50,7 @@ const KIND_ICON: Record<AiSuggestionKind, React.ElementType> = {
   ImagePrompt: ImageIcon,
   Lettering: Scissors,
   LineRewrite: Sparkles,
+  ScriptLineInsert: Sparkles,
   SeriesMetadata: BookOpen,
   Thumbnail: Palette,
   BibleStub: BookOpen,
@@ -112,6 +114,18 @@ function detailOf(
           : t('aiAgents.suggestionCard.detail.lineRewriteShortenFrame');
       }
       return t('aiAgents.suggestionCard.detail.lineRewriteVoice');
+    }
+    case 'ScriptLineInsert': {
+      const nl = s.payload as NextLineSuggestion | undefined;
+      if (nl?.speaker) {
+        return t('aiAgents.suggestionCard.detail.scriptLineInsertSpeaker', {
+          kind: nl.kind,
+          speaker: nl.speaker,
+        });
+      }
+      return t('aiAgents.suggestionCard.detail.scriptLineInsertKind', {
+        kind: nl?.kind ?? 'Action',
+      });
     }
     case 'SeriesMetadata': {
       const sm = s.payload as SeriesMetadataSuggestion | undefined;
@@ -185,6 +199,7 @@ export const SuggestionCard: React.FC<Props> = ({
   const [reason, setReason] = useState('');
   const inlineOpenByDefault =
     s.kind === 'LineRewrite' ||
+    s.kind === 'ScriptLineInsert' ||
     s.kind === 'BibleStub' ||
     s.kind === 'ImpactRipple' ||
     (s.kind === 'Lettering' && isBubbleShortenPayload(s.payload));
@@ -218,6 +233,7 @@ export const SuggestionCard: React.FC<Props> = ({
     s.kind === 'ImagePrompt' ||
     s.kind === 'Lettering' ||
     s.kind === 'LineRewrite' ||
+    s.kind === 'ScriptLineInsert' ||
     s.kind === 'SeriesMetadata' ||
     s.kind === 'Thumbnail' ||
     s.kind === 'Layout' ||
@@ -373,6 +389,23 @@ export const SuggestionCard: React.FC<Props> = ({
                     </div>
                   )}
                 </div>
+              ) : s.kind === 'ScriptLineInsert' ? (
+                (() => {
+                  const nl = s.payload as NextLineSuggestion | undefined;
+                  return (
+                    <div className='rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs space-y-1'>
+                      <div className='font-medium text-emerald-800'>
+                        {nl?.speaker ? `${nl.speaker}: ` : nl?.kind === 'Sfx' ? 'SFX: ' : ''}
+                        {nl?.text}
+                      </div>
+                      {nl?.reason && (
+                        <div className='text-[11px] italic text-[#525252]'>
+                          {t('aiAgents.suggestionCard.reasonLabel')} {nl.reason}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
               ) : s.kind === 'Layout' ? (
                 <LayoutPreview
                   layout={s.payload as StoryboardLayout}
