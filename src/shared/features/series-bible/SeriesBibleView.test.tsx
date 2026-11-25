@@ -198,8 +198,10 @@ describe('SeriesBibleView UX/UI improvements', () => {
 
     // Tàn Lão Thôn has no image, so the detail shows the compact placeholder, not an image frame
     fireEvent.click(screen.getByTestId('bible-card-entry-loc-1'));
-    expect(await screen.findByText('LOC-01')).toBeDefined();
-    expect(screen.getAllByText('Ngôi làng bí ẩn ở trung tâm Đại Khư.').length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getByText('LOC-01')).toBeDefined();
+      expect(screen.getAllByText('Ngôi làng bí ẩn ở trung tâm Đại Khư.').length).toBeGreaterThan(0);
+    });
     expect(screen.getByText('Chưa có ảnh Reference Sheet cho mục này')).toBeDefined();
     expect(screen.getByTestId('bible-detail-category')).toHaveTextContent('Bối cảnh & Địa điểm');
   });
