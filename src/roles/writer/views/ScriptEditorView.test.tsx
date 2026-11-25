@@ -281,11 +281,10 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(
       await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)'),
     ).toBeInTheDocument();
-    const headings = await screen.findAllByText('Cảnh 1: Neo Tokyo - Đêm');
-    expect(headings.length).toBeGreaterThanOrEqual(1);
+    // Tiêu đề cảnh nằm trong ngăn kéo phân cảnh; bàn viết hiện thoại và chỉ dẫn cảnh của dòng
     expect(await screen.findByText(/Họ đang di chuyển/)).toBeInTheDocument();
     expect(screen.getByText(/Akira nhìn xuống đoàn xe/)).toBeInTheDocument();
-    expect(screen.getAllByText('Akira').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^AKIRA:?$/).length).toBeGreaterThan(0);
   });
 
   it('formatChapterOption không làm lặp "Chương 1: Chương 1"', async () => {
@@ -364,7 +363,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
   it('không cho phép Writer tạo chapter, chỉ Producer mới có quyền tạo và xoá chapter (Zero-Trust RBAC)', async () => {
     // 1. Khi vai trò là WRITER
     renderView({ workspaceRole: 'WRITER' });
-    await screen.findByText(/Khởi đầu/i);
+    await screen.findByText(/Họ đang di chuyển/);
     fireEvent.click(await screen.findByTestId('rail-scenes-btn'));
     await screen.findByTestId('script-scenes-drawer');
     // Nút xoá chapter không xuất hiện cho Writer
@@ -403,7 +402,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
   it('bàn viết dựng sẵn paper-editor-sheet cho chương', async () => {
     renderView({ workspaceRole: 'WRITER' });
-    await screen.findByText(/Khởi đầu/i);
+    await screen.findByText(/Họ đang di chuyển/);
 
     const sheet = await screen.findByTestId('paper-editor-sheet');
     expect(sheet).toBeInTheDocument();
@@ -412,7 +411,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
   it('hỗ trợ tạo mã tạm và lưu vào tempBibleCodes', async () => {
     const { getTempBibleCodes, saveTempBibleCode } = await import('@/shared/utils/tempBibleCodes');
     renderView({ workspaceRole: 'WRITER' });
-    await screen.findByText(/Khởi đầu/i);
+    await screen.findByText(/Họ đang di chuyển/);
 
     saveTempBibleCode({
       code: 'CHR-LAM-DU',
@@ -446,7 +445,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     });
 
     renderView({ workspaceRole: 'WRITER' });
-    await screen.findByText(/Khởi đầu/i);
+    await screen.findByText(/Họ đang di chuyển/);
 
     const topBanner = await screen.findByTestId('script-frozen-banner');
     expect(topBanner).toBeInTheDocument();
