@@ -150,6 +150,7 @@
     "stageProgressAria": "Stage progress",
     "autosaved": "Autosaved",
     "withdrawTooltip": "Withdraw submission to continue editing",
+    "withdrawDisabledTooltip": "No submission to withdraw for this stage, or you do not have permission",
     "withdrawing": "Withdrawing...",
     "withdrawBtn": "Withdraw",
     "submittedBadge": "Submitted for review",

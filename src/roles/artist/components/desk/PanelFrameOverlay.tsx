@@ -138,13 +138,13 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
               }}
               data-testid={`canvas-panel-badge-${panelNum}`}
               title={t('panelFrame.selectPanelTitle', { panelNum })}
-              className={`absolute top-1 left-1.5 z-20 px-1 rounded text-xs font-mono font-bold border cursor-pointer transition-colors ${
-                isSelected
-                  ? 'bg-[#F97316] text-white border-[#EA580C]'
-                  : 'bg-white/95 text-stone-800 border-stone-300/80 hover:border-[#F97316]'
+              className={`absolute top-2 left-2 z-20 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center cursor-pointer transition-colors shadow-2xs ${
+                isSelected || !artwork
+                  ? 'bg-[#EA580C] text-white'
+                  : 'bg-white text-stone-900 border border-stone-200 hover:border-[#EA580C]'
               }`}
             >
-              #{panelNum}
+              {panelNum}
             </button>
 
             {artwork ? (
@@ -221,18 +221,20 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                 onClick={openPicker}
                 data-testid={`panel-dropzone-${panelNum}`}
                 title={canUploadArtwork ? undefined : t('common.noOpenSlotForPageStage')}
-                className='focus-ring w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-50/50 cursor-pointer transition-colors border border-dashed border-stone-300 hover:border-stone-500 disabled:opacity-40 disabled:cursor-not-allowed'
+                className='group focus-ring w-full h-full flex flex-col items-center justify-center gap-1 p-2 bg-white text-stone-600 hover:text-stone-900 hover:bg-orange-50/30 cursor-pointer transition-colors border-2 border-dashed border-stone-300 hover:border-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed'
               >
                 <span
-                  className='p-2 rounded-full bg-white/80 border border-stone-200/80'
+                  className='w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 group-hover:text-[#EA580C] transition-colors'
                   aria-hidden='true'
                 >
-                  <ImagePlus className='w-4 h-4 text-stone-600' />
+                  <ImagePlus className='w-4 h-4' />
                 </span>
-                <span className='text-xs font-semibold'>
+                <span className='text-xs font-semibold text-stone-800 text-center'>
                   {t('panelFrame.uploadPanel', { panelNum })}
                 </span>
-                <span className='text-xs text-stone-500'>{t('panelFrame.dropOrClick')}</span>
+                <span className='text-[11px] text-stone-500 text-center'>
+                  {t('panelFrame.dropOrClick')}
+                </span>
               </button>
             ) : null}
 

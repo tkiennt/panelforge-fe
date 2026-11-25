@@ -1580,7 +1580,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       onSubmitStage: handleSubmitStage,
       onSelectStage: handleSelectStage,
       submitButtonLabel: t('artist.deskView.submitButtonLabel'),
+      showWithdrawButton: true,
       onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
+      isWithdrawDisabled: !withdrawableCell,
+      withdrawDisabledReason: t('artist.deskView.withdrawDisabledTooltip'),
       isWithdrawingStage,
       withdrawButtonLabel: t('artist.deskView.withdrawButtonLabel'),
     });
@@ -2868,7 +2871,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   return (
     <div
       ref={containerRef}
-      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-col bg-[#F3F0E9] text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
+      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-col bg-[#FAF9F5] text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
       data-testid='artist-desk'
     >
       {/* Fallback Header khi màn hình ArtistDeskView được render độc lập bên ngoài FocusWorkspaceLayout */}
@@ -2894,35 +2897,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             onSubmitStage: handleSubmitStage,
             onSelectStage: handleSelectStage,
             submitButtonLabel: t('artist.deskView.submitButtonLabel'),
+            showWithdrawButton: true,
             onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
+            isWithdrawDisabled: !withdrawableCell,
+            withdrawDisabledReason: t('artist.deskView.withdrawDisabledTooltip'),
             isWithdrawingStage,
             withdrawButtonLabel: t('artist.deskView.withdrawButtonLabel'),
           }}
           showFocusControls={false}
         />
-      )}
-
-      {!isStageFlowCompleted && artistStages[currentStageIndex]?.key === 'pencil' && (
-        <div
-          data-testid='artist-script-coverage'
-          role='status'
-          className={`shrink-0 border-b px-4 py-2 text-xs font-semibold ${
-            scriptCoverage.percent === 100
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-              : 'border-amber-200 bg-amber-50 text-amber-900'
-          }`}
-        >
-          {t('artist.deskView.scriptCoverageLabel', {
-            covered: scriptCoverage.covered,
-            total: scriptCoverage.total,
-            percent: scriptCoverage.percent,
-          })}
-          {scriptCoverage.percent < 100 && (
-            <span className='ml-2 font-medium'>
-              {t('artist.deskView.scriptCoverageLockedHint')}
-            </span>
-          )}
-        </div>
       )}
 
       {isPageReadOnly && (
@@ -3003,7 +2986,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onDeletePage={(id) => handleDeletePage(id)}
           onMovePage={() => {}}
           onToggleVisibility={() => {}}
-          hidePagesTab={true}
+          hidePagesTab={false}
           scriptLines={resolvedScriptLines}
           sceneTitle={firstSceneMeta.title}
           sceneSlugline={firstSceneMeta.slugline}
