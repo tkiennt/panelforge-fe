@@ -312,6 +312,7 @@ const AiProvidersPanel: React.FC<{
     accountId?: string;
     apiKey?: string;
     textModel?: string;
+    imageModel?: string;
   }>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -366,7 +367,7 @@ const AiProvidersPanel: React.FC<{
     setCfModels([]);
     setCfModelsError(false);
     setModal({ kind: 'edit', item });
-    if (type === 'Cloudflare') {
+    if (type === 'Cloudflare' && item.keyDecryptable !== false) {
       loadCloudflareModels(item.id);
     }
   };
@@ -396,11 +397,19 @@ const AiProvidersPanel: React.FC<{
     if (providerType === 'Cloudflare' && !accountId.trim()) {
       errs.accountId = t('admin.aiConfig.providers.validationAccountId');
     }
-    if (modal.kind === 'add' && !apiKey.trim()) {
+    const trimmedKey = apiKey.trim();
+    if (modal.kind === 'add' && !trimmedKey) {
       errs.apiKey = t('admin.aiConfig.providers.validationApiKey');
+    } else if (trimmedKey.startsWith('••••')) {
+      errs.apiKey = t('admin.aiConfig.providers.validationMaskedKey');
+    } else if (trimmedKey && (trimmedKey.length > 512 || !/^[\x21-\x7E]+$/.test(trimmedKey))) {
+      errs.apiKey = t('admin.aiConfig.providers.validationInvalidKeyChars');
     }
     if (!textModel.trim() || textModel.trim().length > 200) {
       errs.textModel = t('admin.aiConfig.providers.validationTextModel');
+    }
+    if (modal.kind === 'edit' && modal.item.isDefaultImage && !imageModel.trim()) {
+      errs.imageModel = t('admin.aiConfig.providers.validationDefaultImageModelRequired');
     }
     setFieldErrors(errs);
     setSubmitError(null);
@@ -515,10 +524,14 @@ const AiProvidersPanel: React.FC<{
   const currentDefaultTextId = providers.find((p) => p.isDefaultText)?.id ?? '';
   const currentDefaultImageId = providers.find((p) => p.isDefaultImage)?.id ?? '';
   const eligibleDefaultImageProviders = providers.filter(
-    (p) => p.isEnabled && !!p.imageModel?.trim(),
+    (p) => p.isEnabled && p.keyDecryptable !== false && !!p.imageModel?.trim(),
   );
   const staleDefaultImage =
-    providers.find((p) => p.isDefaultImage && (!p.isEnabled || !p.imageModel?.trim())) ?? null;
+    providers.find(
+      (p) =>
+        p.isDefaultImage &&
+        (!p.isEnabled || p.keyDecryptable === false || !p.imageModel?.trim()),
+    ) ?? null;
 
   const handleDefaultChange = async (kind: 'text' | 'image', nextId: string | null) => {
     if (savingDefaultKind || !adminService.setDefaultAiProvider) return;
@@ -572,15 +585,23 @@ const AiProvidersPanel: React.FC<{
                 className={adminFieldClass}
               >
                 <option value=''>{t('admin.aiConfig.providers.defaultNoneOption')}</option>
-                {providers.map((p) => (
-                  <option
-                    key={p.id}
-                    value={p.id}
-                    disabled={!p.isEnabled && !p.isDefaultText}
-                  >
-                    {`${p.name} (${p.providerType} · ${p.textModel}${p.keyHint ? ` · ${p.keyHint}` : ''})${!p.isEnabled ? t('admin.aiConfig.studio.credentialDisabledSuffix') : ''}`}
-                  </option>
-                ))}
+                {providers.map((p) => {
+                  const broken = p.keyDecryptable === false;
+                  const suffix = broken
+                    ? t('admin.aiConfig.providers.credentialKeyBrokenSuffix')
+                    : !p.isEnabled
+                      ? t('admin.aiConfig.studio.credentialDisabledSuffix')
+                      : '';
+                  return (
+                    <option
+                      key={p.id}
+                      value={p.id}
+                      disabled={(!p.isEnabled || broken) && !p.isDefaultText}
+                    >
+                      {`${p.name} (${p.providerType} · ${p.textModel}${p.keyHint ? ` · ${p.keyHint}` : ''})${suffix}`}
+                    </option>
+                  );
+                })}
               </select>
             </AdminField>
 
@@ -599,7 +620,11 @@ const AiProvidersPanel: React.FC<{
                 <option value=''>{t('admin.aiConfig.providers.defaultImageNoneOption')}</option>
                 {staleDefaultImage && (
                   <option value={staleDefaultImage.id} disabled>
-                    {`${staleDefaultImage.name}${t('admin.aiConfig.studio.imageCredentialInvalidSuffix')}`}
+                    {`${staleDefaultImage.name}${
+                      staleDefaultImage.keyDecryptable === false
+                        ? t('admin.aiConfig.providers.credentialKeyBrokenSuffix')
+                        : t('admin.aiConfig.studio.imageCredentialInvalidSuffix')
+                    }`}
                   </option>
                 )}
                 {eligibleDefaultImageProviders.map((p) => (
@@ -696,11 +721,17 @@ const AiProvidersPanel: React.FC<{
                       {p.workspaceCount}
                     </td>
                     <td className={adminTable.td}>
-                      <AdminBadge tone={p.isEnabled ? 'success' : 'neutral'}>
-                        {p.isEnabled
-                          ? t('admin.aiConfig.providers.statusEnabled')
-                          : t('admin.aiConfig.providers.statusDisabled')}
-                      </AdminBadge>
+                      {p.keyDecryptable === false ? (
+                        <AdminBadge tone='danger'>
+                          {t('admin.aiConfig.providers.statusKeyBroken')}
+                        </AdminBadge>
+                      ) : (
+                        <AdminBadge tone={p.isEnabled ? 'success' : 'neutral'}>
+                          {p.isEnabled
+                            ? t('admin.aiConfig.providers.statusEnabled')
+                            : t('admin.aiConfig.providers.statusDisabled')}
+                        </AdminBadge>
+                      )}
                     </td>
                     <td className={`${adminTable.td} text-right whitespace-nowrap`}>
                       <div className='inline-flex items-center justify-end gap-1.5'>
@@ -724,6 +755,12 @@ const AiProvidersPanel: React.FC<{
                           size='sm'
                           variant='danger'
                           icon={<Trash2 className='w-3.5 h-3.5' />}
+                          disabled={!!(p.isDefaultText || p.isDefaultImage)}
+                          title={
+                            p.isDefaultText || p.isDefaultImage
+                              ? t('admin.aiConfig.providers.deleteDisabledDefaultHint')
+                              : undefined
+                          }
                           onClick={() => setDeleting(p)}
                         >
                           {t('admin.aiConfig.providers.deleteButton')}
@@ -839,9 +876,11 @@ const AiProvidersPanel: React.FC<{
               hint={
                 modal.kind === 'add'
                   ? t('admin.aiConfig.providers.fieldApiKeyCreateHint')
-                  : t('admin.aiConfig.providers.fieldApiKeyEditHint', {
-                      hint: modal.item.keyHint || '••••',
-                    })
+                  : modal.item.keyDecryptable === false
+                    ? t('admin.aiConfig.providers.fieldApiKeyBrokenHint')
+                    : t('admin.aiConfig.providers.fieldApiKeyEditHint', {
+                        hint: modal.item.keyHint || '••••',
+                      })
               }
               error={fieldErrors.apiKey}
             >
@@ -903,7 +942,9 @@ const AiProvidersPanel: React.FC<{
               <AdminField
                 label={t('admin.aiConfig.providers.fieldImageModel')}
                 htmlFor='aip-image-model'
+                required={modal.kind === 'edit' && !!modal.item.isDefaultImage}
                 hint={t('admin.aiConfig.providers.fieldImageModelHint')}
+                error={fieldErrors.imageModel}
               >
                 {modal.kind === 'edit' &&
                 providerType === 'Cloudflare' &&
@@ -913,7 +954,7 @@ const AiProvidersPanel: React.FC<{
                   <CloudflareModelPicker
                     id='aip-image-model'
                     value={imageModel}
-                    allowEmpty
+                    allowEmpty={!modal.item.isDefaultImage}
                     options={cfModels.filter((m) => m.kind === 'image')}
                     placeholder={DEFAULT_IMAGE_PLACEHOLDER.Cloudflare}
                     onChange={setImageModel}
@@ -981,19 +1022,38 @@ const AiProvidersPanel: React.FC<{
               </fieldset>
             )}
 
-            {modal.kind === 'edit' && (
-              <label className='flex items-center gap-3 cursor-pointer pt-1'>
-                <input
-                  type='checkbox'
-                  checked={isEnabled}
-                  onChange={(e) => setIsEnabled(e.target.checked)}
-                  className='w-4 h-4 accent-[#F97316]'
-                />
-                <span className='text-sm font-medium text-admin-ink'>
-                  {t('admin.aiConfig.providers.fieldEnabled')}
-                </span>
-              </label>
-            )}
+            {modal.kind === 'edit' &&
+              (() => {
+                const lockDefaultEnabled =
+                  modal.item.isEnabled &&
+                  !!(modal.item.isDefaultText || modal.item.isDefaultImage);
+                return (
+                  <div>
+                    <label
+                      className={cn(
+                        'flex items-center gap-3 pt-1',
+                        lockDefaultEnabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer',
+                      )}
+                    >
+                      <input
+                        type='checkbox'
+                        checked={isEnabled}
+                        disabled={lockDefaultEnabled}
+                        onChange={(e) => setIsEnabled(e.target.checked)}
+                        className='w-4 h-4 accent-[#F97316]'
+                      />
+                      <span className='text-sm font-medium text-admin-ink'>
+                        {t('admin.aiConfig.providers.fieldEnabled')}
+                      </span>
+                    </label>
+                    {lockDefaultEnabled && (
+                      <p className='mt-1 text-xs text-admin-muted'>
+                        {t('admin.aiConfig.providers.defaultCannotDisableHint')}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
           </form>
         </AdminModal>
       )}
@@ -1097,7 +1157,13 @@ const StudioAiConfigPanel: React.FC<{
 
   const defaultTextProvider = providers.find((p) => p.isDefaultText && p.isEnabled) ?? null;
   const defaultImageProvider =
-    providers.find((p) => p.isDefaultImage && p.isEnabled && !!p.imageModel?.trim()) ?? null;
+    providers.find(
+      (p) =>
+        p.isDefaultImage &&
+        p.isEnabled &&
+        p.keyDecryptable !== false &&
+        !!p.imageModel?.trim(),
+    ) ?? null;
 
   const usingSharedApi = credentialId !== '';
   const selectedProvider = usingSharedApi
@@ -1105,7 +1171,9 @@ const StudioAiConfigPanel: React.FC<{
     : null;
   const effectiveTextProvider = usingSharedApi ? selectedProvider : defaultTextProvider;
 
-  const eligibleImageProviders = providers.filter((p) => p.isEnabled && !!p.imageModel?.trim());
+  const eligibleImageProviders = providers.filter(
+    (p) => p.isEnabled && p.keyDecryptable !== false && !!p.imageModel?.trim(),
+  );
   const usingDedicatedImageApi = imageCredentialId !== '';
   const selectedImageProvider = usingDedicatedImageApi
     ? providers.find((p) => p.id === imageCredentialId) ?? null
@@ -1113,6 +1181,7 @@ const StudioAiConfigPanel: React.FC<{
   const isSelectedImageProviderUsable =
     !!selectedImageProvider &&
     selectedImageProvider.isEnabled &&
+    selectedImageProvider.keyDecryptable !== false &&
     !!selectedImageProvider.imageModel?.trim();
   const effectiveImageProvider = usingDedicatedImageApi
     ? selectedImageProvider
@@ -1148,6 +1217,16 @@ const StudioAiConfigPanel: React.FC<{
   const resolveKeyState = (enabled: boolean, credId: string) => {
     if (!credId) {
       if (defaultTextProvider) {
+        if (defaultTextProvider.keyDecryptable === false) {
+          return {
+            label: t('admin.aiConfig.studio.sharedKeyStatus', {
+              name: defaultTextProvider.name,
+              hint: defaultTextProvider.keyHint || '—',
+              state: t('admin.aiConfig.providers.statusKeyBroken'),
+            }),
+            tone: 'danger' as AdminTone,
+          };
+        }
         return {
           label: t('admin.aiConfig.studio.defaultKeyStatus', {
             name: defaultTextProvider.name,
@@ -1179,15 +1258,18 @@ const StudioAiConfigPanel: React.FC<{
         tone: 'danger' as AdminTone,
       };
     }
+    const broken = found.keyDecryptable === false;
     return {
       label: t('admin.aiConfig.studio.sharedKeyStatus', {
         name: found.name,
-        hint: found.keyHint || '••••',
-        state: found.isEnabled
-          ? t('admin.aiConfig.providers.statusEnabled')
-          : t('admin.aiConfig.providers.statusDisabled'),
+        hint: found.keyHint || '—',
+        state: broken
+          ? t('admin.aiConfig.providers.statusKeyBroken')
+          : found.isEnabled
+            ? t('admin.aiConfig.providers.statusEnabled')
+            : t('admin.aiConfig.providers.statusDisabled'),
       }),
-      tone: (found.isEnabled ? 'success' : 'danger') as AdminTone,
+      tone: (found.isEnabled && !broken ? 'success' : 'danger') as AdminTone,
     };
   };
 
@@ -1368,15 +1450,23 @@ const StudioAiConfigPanel: React.FC<{
                       {t('admin.aiConfig.studio.credentialMissingOption')}
                     </option>
                   )}
-                  {providers.map((p) => (
-                    <option
-                      key={p.id}
-                      value={p.id}
-                      disabled={!p.isEnabled && p.id !== config?.providerCredentialId}
-                    >
-                      {`${p.name} (${p.providerType} · ${p.textModel}${p.keyHint ? ` · ${p.keyHint}` : ''})${!p.isEnabled ? t('admin.aiConfig.studio.credentialDisabledSuffix') : ''}`}
-                    </option>
-                  ))}
+                  {providers.map((p) => {
+                    const broken = p.keyDecryptable === false;
+                    const suffix = broken
+                      ? t('admin.aiConfig.providers.credentialKeyBrokenSuffix')
+                      : !p.isEnabled
+                        ? t('admin.aiConfig.studio.credentialDisabledSuffix')
+                        : '';
+                    return (
+                      <option
+                        key={p.id}
+                        value={p.id}
+                        disabled={(!p.isEnabled || broken) && p.id !== config?.providerCredentialId}
+                      >
+                        {`${p.name} (${p.providerType} · ${p.textModel}${p.keyHint ? ` · ${p.keyHint}` : ''})${suffix}`}
+                      </option>
+                    );
+                  })}
                 </select>
               </AdminField>
 
@@ -1410,7 +1500,11 @@ const StudioAiConfigPanel: React.FC<{
                   {staleBoundImageId && (
                     <option value={staleBoundImageId} disabled>
                       {staleBoundImageProvider
-                        ? `${staleBoundImageProvider.name}${t('admin.aiConfig.studio.imageCredentialInvalidSuffix')}`
+                        ? `${staleBoundImageProvider.name}${
+                            staleBoundImageProvider.keyDecryptable === false
+                              ? t('admin.aiConfig.providers.credentialKeyBrokenSuffix')
+                              : t('admin.aiConfig.studio.imageCredentialInvalidSuffix')
+                          }`
                         : t('admin.aiConfig.studio.imageCredentialMissingOption')}
                     </option>
                   )}

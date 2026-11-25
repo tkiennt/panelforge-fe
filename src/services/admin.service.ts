@@ -204,6 +204,7 @@ export interface AiProviderCredentialDto {
   updatedAt?: string | null;
   isDefaultText?: boolean;
   isDefaultImage?: boolean;
+  keyDecryptable?: boolean;
 }
 
 export interface CreateAiProviderCredentialRequest {

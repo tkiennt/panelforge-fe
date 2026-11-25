@@ -586,7 +586,9 @@ describe('AIConfigurationView', () => {
     expect(screen.getByText(/Mặc định ảnh|Default image/i)).toBeInTheDocument();
 
     // Studio có providerCredentialId = null -> dropdown hiện Theo mặc định kèm tên API, Trạng thái key xanh (không còn Chưa chọn API)
-    const studioTextSelect = screen.getByLabelText(/API cho chữ|Text API/i) as HTMLSelectElement;
+    const studioTextSelect = (await screen.findByLabelText(
+      /API cho chữ|Text API/i,
+    )) as HTMLSelectElement;
     expect(studioTextSelect.value).toBe('');
     expect(studioTextSelect.options[0].textContent).toMatch(/Theo mặc định.*Gemini Chính/i);
 
@@ -646,5 +648,176 @@ describe('AIConfigurationView', () => {
     expect(summaryBadge.className).toContain('max-w-full');
     expect(summaryBadge.className).toContain('whitespace-normal');
     expect(summaryBadge.className).not.toContain('whitespace-nowrap');
+  });
+
+  it('hiển thị cảnh báo đỏ "Lỗi giải mã khóa" khi API mất key ring Data Protection (keyDecryptable = false)', async () => {
+    vi.mocked(adminService.getAiProviders).mockResolvedValue([
+      {
+        id: 'cred-broken',
+        name: 'Gemini Mất Khóa',
+        providerType: 'Gemini',
+        keyHint: '',
+        keyDecryptable: false,
+        textModel: 'gemini-3.8-flash',
+        imageModel: null,
+        isEnabled: true,
+        isDefaultText: true,
+        isDefaultImage: false,
+        workspaceCount: 1,
+        createdAt: '2026-11-25T00:00:00Z',
+      },
+    ]);
+    vi.mocked(adminService.getWorkspaceAiConfig).mockResolvedValue({
+      id: 'cfg-1',
+      workspaceId: 'ws-1',
+      provider: 'Gemini',
+      hasApiKey: true,
+      apiKeyUsable: false,
+      providerCredentialId: 'cred-broken',
+      isEnabled: true,
+      monthlyTokenQuota: 1000000,
+      usedTokensCurrentMonth: 0,
+      monthlyImageQuota: 0,
+      usedImagesCurrentMonth: 0,
+      allowedModels: ['gemini-3.8-flash'],
+      createdAt: '2026-11-25T00:00:00Z',
+    });
+
+    render(<AIConfigurationView />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Lỗi giải mã khóa/i).length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  it('chặn lưu API key chứa chuỗi gợi ý ••••, khoảng trắng hoặc ký tự ngoài ASCII ngay trên form', async () => {
+    render(<AIConfigurationView />);
+    await screen.findByText('Gemini Chính');
+
+    fireEvent.click(screen.getByRole('button', { name: /Thêm API|Add API/i }));
+    fireEvent.change(screen.getByLabelText(/Tên hiển thị|Display name/i), {
+      target: { value: 'Gemini Kiểm Tra Key' },
+    });
+
+    const keyInput = screen.getByLabelText(/API Key \/ Token/i);
+
+    // 1. Dán nhầm chuỗi mask ••••
+    fireEvent.change(keyInput, { target: { value: '••••9a1f' } });
+    fireEvent.click(screen.getByRole('button', { name: /Lưu API|Save API/i }));
+    expect(await screen.findByText(/Không thể lưu chuỗi gợi ý ••••/i)).toBeInTheDocument();
+    expect(adminService.createAiProvider).not.toHaveBeenCalled();
+
+    // 2. Dán key có khoảng trắng / ký tự ngoài ASCII
+    fireEvent.change(keyInput, { target: { value: 'AIzaSy co khoang trang' } });
+    fireEvent.click(screen.getByRole('button', { name: /Lưu API|Save API/i }));
+    expect(
+      await screen.findByText(/không được chứa khoảng trắng hoặc ký tự ngoài ASCII/i),
+    ).toBeInTheDocument();
+    expect(adminService.createAiProvider).not.toHaveBeenCalled();
+  });
+
+  it('khoá nút Xoá, không cho tắt trạng thái bật và không cho xoá model ảnh đối với API đang làm mặc định', async () => {
+    vi.mocked(adminService.getAiProviders).mockResolvedValue([
+      {
+        ...MOCK_PROVIDERS[0],
+        isDefaultText: true,
+        isDefaultImage: true,
+      },
+      MOCK_PROVIDERS[1],
+    ]);
+
+    render(<AIConfigurationView />);
+    await screen.findByText('Gemini Chính');
+
+    const deleteButtons = screen.getAllByRole('button', { name: /^Xoá$|^Delete$/i });
+    expect(deleteButtons[0]).toBeDisabled();
+    expect(deleteButtons[1]).not.toBeDisabled();
+
+    // Mở Sửa trên API đang làm mặc định cả chữ lẫn ảnh
+    const editButtons = screen.getAllByRole('button', { name: /^Sửa$|^Edit$/i });
+    fireEvent.click(editButtons[0]);
+
+    const enabledCheckbox = screen.getByRole('checkbox', {
+      name: /Cho phép sử dụng API này|Enable this API/i,
+    });
+    expect(enabledCheckbox).toBeDisabled();
+    expect(
+      screen.getByText(/Đang là API mặc định — hãy đổi mặc định ở trên trước khi tắt/i),
+    ).toBeInTheDocument();
+
+    // Xoá trống model sinh ảnh khi đang là Mặc định ảnh -> báo lỗi tại chỗ, không gọi PUT
+    const imageModelInput = screen.getByLabelText(/Model sinh ảnh|Image model/i);
+    fireEvent.change(imageModelInput, { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: /Lưu API|Save API/i }));
+
+    expect(
+      await screen.findByText(/không thể để trống model sinh ảnh/i),
+    ).toBeInTheDocument();
+    expect(adminService.updateAiProvider).not.toHaveBeenCalled();
+  });
+
+  it('vô hiệu hoá chọn mới API bị lỗi giải mã khóa ở các ô chọn và nhắc nhập lại key khi Sửa', async () => {
+    vi.mocked(adminService.getAiProviders).mockResolvedValue([
+      MOCK_PROVIDERS[0],
+      {
+        id: 'cred-cf-broken',
+        name: 'Cloudflare Mất Khóa',
+        providerType: 'Cloudflare',
+        accountId: 'cf-acc-broken',
+        keyHint: '',
+        keyDecryptable: false,
+        textModel: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+        imageModel: '@cf/black-forest-labs/flux-1-schnell',
+        isEnabled: true,
+        isDefaultText: false,
+        isDefaultImage: false,
+        workspaceCount: 0,
+        createdAt: '2026-11-25T00:00:00Z',
+      },
+    ]);
+
+    render(<AIConfigurationView />);
+    await screen.findByText('Cloudflare Mất Khóa');
+
+    // Ô chọn Mặc định chữ & API chữ của Studio: option bị khoá kèm hậu tố (lỗi giải mã khóa)
+    const defaultTextSelect = screen.getByLabelText(
+      /API mặc định cho chữ|Default text API/i,
+    ) as HTMLSelectElement;
+    const brokenDefaultOpt = Array.from(defaultTextSelect.options).find(
+      (o) => o.value === 'cred-cf-broken',
+    );
+    expect(brokenDefaultOpt?.disabled).toBe(true);
+    expect(brokenDefaultOpt?.textContent).toMatch(/lỗi giải mã khóa/i);
+
+    const studioTextSelect = (await screen.findByLabelText(
+      /API cho chữ|Text API/i,
+    )) as HTMLSelectElement;
+    const brokenStudioOpt = Array.from(studioTextSelect.options).find(
+      (o) => o.value === 'cred-cf-broken',
+    );
+    expect(brokenStudioOpt?.disabled).toBe(true);
+
+    // Ô chọn Mặc định ảnh & API ảnh của Studio: không liệt kê API lỗi giải mã khóa
+    const defaultImageSelect = screen.getByLabelText(
+      /API mặc định cho ảnh|Default image API/i,
+    ) as HTMLSelectElement;
+    expect(
+      Array.from(defaultImageSelect.options).some((o) => o.value === 'cred-cf-broken'),
+    ).toBe(false);
+
+    const studioImageSelect = screen.getByLabelText(
+      /API cho ảnh|Image API/i,
+    ) as HTMLSelectElement;
+    expect(
+      Array.from(studioImageSelect.options).some((o) => o.value === 'cred-cf-broken'),
+    ).toBe(false);
+
+    // Mở Sửa trên Cloudflare Mất Khóa -> hiện nhắc nhập lại key mới và không gọi GET /models vô ích
+    const editButtons = screen.getAllByRole('button', { name: /^Sửa$|^Edit$/i });
+    fireEvent.click(editButtons[1]);
+    expect(
+      screen.getByText(/Khóa hiện tại không giải mã được — hãy nhập lại API key mới để khôi phục/i),
+    ).toBeInTheDocument();
+    expect(adminService.getAiProviderModels).not.toHaveBeenCalled();
   });
 });
