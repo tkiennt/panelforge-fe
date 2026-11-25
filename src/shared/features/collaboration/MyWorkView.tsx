@@ -20,6 +20,8 @@ import { assignmentService } from '@/services/assignment.service';
 import { chapterService, type ChapterDto } from '@/services/chapter.service';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
+import { seriesService } from '@/services/series.service';
+import { formatSeriesFormat } from '@/shared/utils/seriesFormat';
 import { scriptLineService, type SceneDto } from '@/services/scriptLine.service';
 import { pageService, type PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
@@ -70,6 +72,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [stages, setStages] = useState<PipelineStageDto[]>([]);
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
+  const [seriesFormat, setSeriesFormat] = useState('');
   const [scenes, setScenes] = useState<SceneDto[]>([]);
   const [pages, setPages] = useState<PageDto[]>([]);
   const [panels, setPanels] = useState<PanelDto[]>([]);
@@ -91,6 +94,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const highlightedId = searchParams.get('taskId') || searchParams.get('assignmentId');
   const chaptersRef = useRef<ChapterDto[]>([]);
   chaptersRef.current = chapters;
+
+  useEffect(() => {
+    if (!seriesId) return;
+    seriesService
+      .getSeriesById(seriesId)
+      .then((s) => setSeriesFormat(s?.format ?? ''))
+      .catch(() => setSeriesFormat(''));
+  }, [seriesId]);
 
   // Chương, pipeline và thành viên của Series
   useEffect(() => {
@@ -868,9 +879,11 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   <div className='flex items-start justify-between gap-4'>
                     <div className='space-y-1.5 min-w-0'>
                       <div className='flex items-center gap-2 flex-wrap'>
-                        <span className='px-2 py-0.5 rounded bg-stone-100 text-[#EA580C] text-xs font-semibold'>
-                          {t('writerStudio.formatB5')}
-                        </span>
+                        {seriesFormat && (
+                          <span className='px-2 py-0.5 rounded bg-stone-100 text-[#EA580C] text-xs font-semibold'>
+                            {formatSeriesFormat(seriesFormat)}
+                          </span>
+                        )}
                         <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 text-xs'>
                           {c.isScriptFrozen
                             ? t('myWork.scriptLocked')

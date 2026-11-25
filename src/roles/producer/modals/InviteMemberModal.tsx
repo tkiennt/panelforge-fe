@@ -33,8 +33,8 @@ const ROLE_OPTIONS: RoleOption[] = [
   },
   {
     value: 'Letterer',
-    titleKey: 'members.studioInviteModal.roles.inkerTitle',
-    descKey: 'members.studioInviteModal.roles.inkerDesc',
+    titleKey: 'members.studioInviteModal.roles.lettererTitle',
+    descKey: 'members.studioInviteModal.roles.lettererDesc',
   },
   {
     value: 'Editor',
