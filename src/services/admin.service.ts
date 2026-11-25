@@ -222,6 +222,13 @@ export interface UpdateAiProviderCredentialRequest {
   isEnabled: boolean;
 }
 
+export interface AiProviderModelDto {
+  id: string;
+  kind: 'text' | 'image' | string;
+  free: boolean;
+  description?: string | null;
+}
+
 export interface WorkspaceAiConfigDto {
   id: string;
   workspaceId: string;
@@ -230,6 +237,7 @@ export interface WorkspaceAiConfigDto {
   /** Máy chủ giải mã được key đã lưu, tức AI dùng được key này. */
   apiKeyUsable?: boolean;
   providerCredentialId?: string | null;
+  imageProviderCredentialId?: string | null;
   isEnabled: boolean;
   monthlyTokenQuota: number;
   usedTokensCurrentMonth: number;
@@ -546,6 +554,17 @@ export const adminService = {
     }
   },
 
+  getAiProviderModels: async (id: string): Promise<AiProviderModelDto[]> => {
+    try {
+      const response = await axiosClient.get(`/Admin/ai-providers/${id}/models`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.getAiProviderModelsFailed')),
+      );
+    }
+  },
+
   testAiProvider: async (id: string): Promise<{ ok: boolean }> => {
     try {
       const response = await axiosClient.post(`/Admin/ai-providers/${id}/test`);
@@ -567,6 +586,23 @@ export const adminService = {
     } catch (error) {
       throw new Error(
         extractError(error, translate('errors.services.admin.setWorkspaceAiProviderFailed')),
+      );
+    }
+  },
+
+  setWorkspaceAiImageProvider: async (
+    workspaceId: string,
+    providerCredentialId: string | null,
+  ): Promise<WorkspaceAiConfigDto> => {
+    try {
+      const response = await axiosClient.put(
+        `/Admin/workspaces/${workspaceId}/ai-image-provider`,
+        { providerCredentialId },
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.setWorkspaceAiImageProviderFailed')),
       );
     }
   },
