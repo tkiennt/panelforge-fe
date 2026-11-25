@@ -510,6 +510,7 @@
     "stageDirectionPrefix": "[Direction]:"
   },
   "statusDrawer": {
+    "unsaved": "Unsaved",
     "retry": "Retry",
     "frozenBadge": "🔒 Script Frozen (Read-only)",
     "frozenHandoffDesc": "Handed off to Artist for penciling & panel layout.",

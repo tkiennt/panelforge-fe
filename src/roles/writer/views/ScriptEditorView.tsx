@@ -1993,7 +1993,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               data-testid='unsaved-badge'
               className='px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-medium'
             >
-              Chưa lưu
+              {t('writer.statusDrawer.unsaved', 'Chưa lưu')}
             </span>
           )}
 
@@ -2087,7 +2087,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             onClick={() => void handleReloadLatestWorkingCopy()}
             className='text-orange-600 font-semibold underline hover:text-orange-700 cursor-pointer'
           >
-            Tải lại
+            {t('common.actions.reload', 'Tải lại')}
           </button>
         </div>
       )}
