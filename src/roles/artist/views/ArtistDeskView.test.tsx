@@ -1799,6 +1799,18 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         expect(screen.getByTestId('panel-dropzone-1')).toBeDisabled();
         expect(screen.getByTestId('btn-open-templates-simple')).toBeDisabled();
 
+        // Ô Assigned đã đến lượt → banner có nút Bắt đầu ngay trên bàn vẽ, không phải sang màn khác
+        const startSpy = vi.spyOn(assignmentService, 'startStageTask').mockResolvedValue({
+          id: 'cell-p1-pencil',
+          status: 'InProgress',
+        } as any);
+        fireEvent.click(await screen.findByTestId('artist-start-cell-btn'));
+        await waitFor(() => {
+          expect(startSpy).toHaveBeenCalledWith('chap-1', 'cell-p1-pencil');
+          expect(screen.queryByTestId('artist-page-readonly-banner')).not.toBeInTheDocument();
+        });
+        expect(screen.getByTestId('panel-dropzone-1')).not.toBeDisabled();
+
         // Switch to Page 2 (status InProgress) -> editable & upload enabled
         const card2 = screen.getByTestId('canva-page-card-2');
         fireEvent.click(card2.querySelector('[role="button"]')!);

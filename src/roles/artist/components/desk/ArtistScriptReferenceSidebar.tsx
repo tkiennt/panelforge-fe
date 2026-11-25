@@ -256,6 +256,10 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
                     const meta = resolveScriptLineMeta(line);
                     const isHighlighted = isLineMatchedToSelectedPanel(line);
                     const pNum = line.panelNumber;
+                    // SFX/thoại/dẫn chuyện có thể lưu chữ trong stageDirection: hiển thị theo loại dòng,
+                    // chỉ gắn nhãn "Mô tả cảnh" cho dòng hành động hoặc chỉ dẫn phụ đi kèm thoại.
+                    const stageText = meta.kind === 'action' ? meta.text : meta.secondaryAction;
+                    const showTyped = meta.kind !== 'action' && Boolean(meta.text);
 
                     return (
                       <div
@@ -271,7 +275,7 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
                         }`}
                       >
                         {/* Dòng mô tả cảnh (nếu có cả stageDirection và dialogueText thì hiện thành 2 dòng chảy liền) */}
-                        {line.stageDirection && (
+                        {stageText && (
                           <p className='leading-relaxed'>
                             {typeof pNum === 'number' && pNum > 0 && (
                               <span className='font-mono text-[10px] text-stone-400 mr-1'>
@@ -281,13 +285,13 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
                             <span className='font-mono text-[10px] font-bold uppercase tracking-wider text-stone-500 mr-1.5'>
                               {t('scriptRefSidebar.sceneDescriptionTag')}
                             </span>
-                            <span className='italic text-stone-700'>{line.stageDirection}</span>
+                            <span className='italic text-stone-700'>{stageText}</span>
                           </p>
                         )}
 
-                        {(line.dialogueText || (line.text && !line.stageDirection)) && (
+                        {showTyped && (
                           <p className='leading-relaxed'>
-                            {!line.stageDirection && typeof pNum === 'number' && pNum > 0 && (
+                            {!stageText && typeof pNum === 'number' && pNum > 0 && (
                               <span className='font-mono text-[10px] text-stone-400 mr-1'>
                                 K{pNum}
                               </span>
@@ -306,7 +310,7 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
                               [{meta.typeLabel}]
                             </span>
                             <span className='font-serif text-stone-900'>
-                              &ldquo;{line.dialogueText || line.text}&rdquo;
+                              &ldquo;{meta.text}&rdquo;
                             </span>
                           </p>
                         )}

@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationService } from '@/services/notification.service';
+import { workspaceService } from '@/services/workspace.service';
 import { useTranslation } from '@/lib/i18n';
 import type { NotificationDto } from '@/types';
 import { formatRelativeTime } from './collaborationRules';
@@ -32,7 +33,12 @@ const KNOWN_NOTIFICATION_TYPES = new Set<string>([
   'ChangeRequestDueSoon',
   'ChangeRequestOverdue',
   'AssignmentReady',
+  'ExportCompleted',
+  'ExportFailed',
+  'ChapterHandedOff',
 ]);
+
+type PendingInvitation = Awaited<ReturnType<typeof workspaceService.getPendingInvitations>>[number];
 
 /**
  * Chuông thông báo chuẩn Lucian UX/UI Element #074 kết hợp logic Backend thực tế (UC-14).
@@ -50,6 +56,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
 
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationDto[]>([]);
+  // Lời mời vào Studio đang chờ: BE chưa sinh Notification cho lời mời nên lấy từ pending-invitations
+  const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
   const [isRinging, setIsRinging] = useState(false);
@@ -58,9 +66,13 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
 
   const refresh = useCallback(async () => {
     try {
-      const res = await notificationService.getNotifications(false, 1, 20);
+      const [res, pending] = await Promise.all([
+        notificationService.getNotifications(false, 1, 20),
+        workspaceService.getPendingInvitations().catch(() => [] as PendingInvitation[]),
+      ]);
       setItems(res.items);
-      const newUnread = res.unreadCount;
+      setInvitations(pending ?? []);
+      const newUnread = res.unreadCount + (pending?.length ?? 0);
       if (newUnread > prevCountRef.current) {
         setIsRinging(true);
         window.setTimeout(() => setIsRinging(false), 1000);
@@ -107,7 +119,13 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     await notificationService.markAllAsRead();
     const now = new Date().toISOString();
     setItems((prev) => prev.map((x) => (x.readAt ? x : { ...x, readAt: now })));
-    setUnreadCount(0);
+    // Lời mời chỉ hết "chưa đọc" khi người dùng chấp nhận hoặc từ chối
+    setUnreadCount(invitations.length);
+  };
+
+  const handleInvitationClick = () => {
+    setOpen(false);
+    navigate('/workspaces');
   };
 
   // Phím Escape để đóng popover
@@ -214,7 +232,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
           <button
             className='u074-all'
             type='button'
-            disabled={unreadCount === 0}
+            disabled={unreadCount - invitations.length <= 0}
             onClick={() => void handleReadAll()}
           >
             {t('notifications.markAllRead')}
@@ -223,7 +241,59 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
 
         {/* Notification List */}
         <ul className='u074-list' aria-live='polite' style={{ maxHeight: '380px' }}>
-          {filteredItems.length === 0 ? (
+          {invitations.map((inv) => (
+            <li key={`inv-${inv.workspaceId}`} className='u074-it'>
+              <div>
+                <button
+                  type='button'
+                  onClick={handleInvitationClick}
+                  data-testid={`notification-invitation-${inv.workspaceId}`}
+                  className='u074-row flex items-start'
+                  style={{ padding: '10px 14px', background: 'rgba(249, 115, 22, 0.05)' }}
+                >
+                  <span
+                    className='w-9 h-9 rounded-full flex items-center justify-center shrink-0 border bg-orange-50 border-orange-200 text-orange-700 shadow-xs mt-0.5 text-sm font-bold'
+                    aria-hidden='true'
+                  >
+                    ✉
+                  </span>
+                  <div className='u074-tx' style={{ flex: 1 }}>
+                    <div className='flex items-center justify-between text-[11px] mb-0.5'>
+                      <span className='text-orange-700 font-bold'>
+                        {t('notifications.types.WorkspaceInvitation')}
+                      </span>
+                      <small className='font-mono text-[10.5px] text-[#8E8A97]'>
+                        {formatRelativeTime(inv.invitedAt)}
+                      </small>
+                    </div>
+                    <b
+                      style={{
+                        display: 'block',
+                        fontSize: '12.5px',
+                        lineHeight: '1.35',
+                        marginBottom: '2px',
+                        color: '#1C1917',
+                      }}
+                    >
+                      {t('notifications.invitationTitle', {
+                        workspace: inv.workspaceName,
+                        role: inv.role,
+                      })}
+                    </b>
+                    <p
+                      style={{ margin: 0, fontSize: '11.5px', color: '#57534E', lineHeight: '1.4' }}
+                    >
+                      {t('notifications.invitationDesc', {
+                        owner: inv.ownerName || inv.ownerEmail,
+                      })}
+                    </p>
+                  </div>
+                  <span className='u074-dot' aria-hidden='true' />
+                </button>
+              </div>
+            </li>
+          ))}
+          {filteredItems.length === 0 && invitations.length === 0 ? (
             <li className='p-6 text-center text-xs text-[#888888] font-medium'>
               {t('notifications.empty')}
             </li>

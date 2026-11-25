@@ -876,7 +876,11 @@
     "tabRules": "Quy tắc",
     "statusAll": "Tất cả trạng thái",
     "statusPending": "Chờ khóa chuẩn",
-    "statusLocked": "Đã khóa chuẩn"
+    "statusLocked": "Đã khóa chuẩn",
+    "reworkTitle": "Yêu cầu Artist vẽ lại concept",
+    "endorseTitle": "Writer/Editor duyệt concept art này",
+    "defineStubBtn": "Định nghĩa",
+    "openWorkbench": "Bàn làm việc"
   },
   "isCrowdHelp": "Thực thể quần chúng không bắt buộc Model Sheet",
   "crowd": {

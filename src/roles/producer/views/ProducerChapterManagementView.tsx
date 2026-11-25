@@ -387,6 +387,13 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   const scriptStatus: ScriptStatus =
     chapter?.scriptStatus ?? (chapter?.isScriptFrozen ? 'Frozen' : 'Draft');
   const isScriptFrozen = chapter?.isScriptFrozen === true || scriptStatus === 'Frozen';
+  // Gate 3 đã qua khi chương đã được Producer nghiệm thu (hoặc đã bàn giao / phát hành)
+  const isGate3Passed = [
+    'ChapterApproved',
+    'Approved',
+    'HandedOffAndPublished',
+    'Published',
+  ].includes(String(chapter?.status ?? ''));
   const isInReview = scriptStatus === 'InReview';
   const isGatePassed = cast?.gate?.canStart ?? false;
   const blockers: ChapterCastBlockerDto[] = cast?.gate?.blockers ?? [];
@@ -1335,19 +1342,28 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     {t('producer.chapterManagement.gate3CardTitle')}
                   </span>
                   <span
+                    data-testid='gate3-status-badge'
                     className={`rounded-md px-1.5 py-0.2 text-xs font-bold ${
-                      lockGate?.canApprove
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-stone-100 text-stone-600'
+                      isGate3Passed
+                        ? 'bg-violet-100 text-violet-800'
+                        : lockGate?.canApprove
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-stone-100 text-stone-600'
                     }`}
                   >
-                    {lockGate?.canApprove
-                      ? t('producer.chapterManagement.gate3Eligible')
-                      : t('producer.chapterManagement.gateNotReady')}
+                    {isGate3Passed
+                      ? t('producer.chapterManagement.gatePassed')
+                      : lockGate?.canApprove
+                        ? t('producer.chapterManagement.gate3Eligible')
+                        : t('producer.chapterManagement.gateNotReady')}
                   </span>
                 </div>
 
-                {!lockGate ? (
+                {isGate3Passed ? (
+                  <p className='text-emerald-700 font-semibold text-center py-2'>
+                    {t('producer.chapterManagement.gate3ApprovedTitle')}
+                  </p>
+                ) : !lockGate ? (
                   <p className='text-stone-400 text-center py-2'>
                     {t('producer.chapterManagement.loadingLockGate')}
                   </p>

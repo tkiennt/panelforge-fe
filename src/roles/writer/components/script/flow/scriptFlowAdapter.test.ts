@@ -100,6 +100,41 @@ describe('scriptFlowAdapter', () => {
     ]);
   });
 
+  it('dòng cũ có cả thoại lẫn chỉ dẫn cảnh: tách chỉ dẫn thành dòng hành động, lưu lại không mất chữ', () => {
+    const doc = scriptToDoc(
+      [
+        scene([
+          {
+            speakerLabel: 'Akira',
+            dialogueText: 'Chuẩn bị đi!',
+            stageDirection: 'Akira nhìn xuống đoàn xe',
+            panelId: PANEL_1,
+          },
+        ]),
+      ],
+      [page],
+      panels,
+    );
+    const shape = (doc.content ?? []).map((n) => [n.attrs?.el, n.content?.[0]?.text ?? '']);
+    expect(shape).toEqual([
+      ['page', ''],
+      ['panel', 'Toàn cảnh mái nhà'],
+      ['action', 'Akira nhìn xuống đoàn xe'],
+      ['character', 'AKIRA:'],
+      ['dialogue', 'Chuẩn bị đi!'],
+      ['panel', ''],
+    ]);
+
+    const saved = docToScript(toNode(doc), 'scene-1').lines;
+    expect(saved.map((l) => [l.kind, l.text])).toEqual([
+      [ScriptLineKind.Action, 'Akira nhìn xuống đoàn xe'],
+      [ScriptLineKind.Dialogue, 'Chuẩn bị đi!'],
+    ]);
+    // Dòng thoại giữ id cũ; dòng chỉ dẫn tách ra nhận id mới
+    expect(saved[1].scriptLineId).toBe('l0');
+    expect(saved[0].scriptLineId).not.toBe('l0');
+  });
+
   it('chương trống mở sẵn một Trang và một Panel', () => {
     const doc = scriptToDoc([], [], []);
     expect((doc.content ?? []).map((n) => n.attrs?.el)).toEqual(['page', 'panel']);

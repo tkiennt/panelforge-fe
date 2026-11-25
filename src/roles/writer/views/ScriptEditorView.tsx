@@ -9,6 +9,8 @@ import {
   Clapperboard,
   Compass,
   PanelLeft,
+  Lock,
+  AlertTriangle,
 } from 'lucide-react';
 import { ChapterCastDto, chapterCastService } from '@/services/chapterCast.service';
 import {
@@ -2011,6 +2013,57 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Kịch bản đã chốt (Gate 1): giải thích vì sao editor chỉ đọc */}
+      {isScriptFrozen && (
+        <div
+          data-testid='script-frozen-banner'
+          role='status'
+          className='shrink-0 border-b border-stone-300 bg-stone-100 px-4 py-2 text-xs text-stone-800 flex items-start gap-2'
+        >
+          <Lock className='w-3.5 h-3.5 mt-0.5 shrink-0 text-stone-600' aria-hidden='true' />
+          <div className='min-w-0'>
+            <span className='font-bold'>{t('writer.statusDrawer.frozenBadge')}</span>
+            {currentChapter?.scriptContentHash && (
+              <span
+                className='ml-2 font-mono text-[11px] text-stone-600'
+                title={`SHA-256: ${currentChapter.scriptContentHash}`}
+              >
+                #{currentChapter.scriptContentHash.slice(0, 8)}
+              </span>
+            )}
+            <span className='ml-2'>{t('writer.statusDrawer.frozenHandoffDesc')}</span>{' '}
+            <span className='text-stone-600'>{t('writer.statusDrawer.frozenReadOnlyDesc')}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Gate 1 bị chặn: còn biến thể Bible chưa khoá Canon (F#24) */}
+      {isStartBlocked && (chapterCast?.gate?.blockers?.length ?? 0) > 0 && (
+        <div
+          data-testid='start-blocked-banner'
+          role='status'
+          className='shrink-0 border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-900 flex flex-wrap items-center gap-x-3 gap-y-1'
+        >
+          <AlertTriangle className='w-3.5 h-3.5 shrink-0 text-rose-600' aria-hidden='true' />
+          <span>
+            <strong>
+              {t('scriptStudio.cast.startBlockedBanner', 'Chưa thể bắt đầu sản xuất')}:
+            </strong>{' '}
+            {t('writer.statusDrawer.startBlockedCount', {
+              count: chapterCast?.gate?.blockers?.length ?? 0,
+            })}
+          </span>
+          {workspaceId && seriesId && (
+            <Link
+              to={`/workspaces/${workspaceId}/series/${seriesId}/bible`}
+              className='font-semibold text-rose-700 hover:text-rose-900 underline'
+            >
+              {t('writer.statusDrawer.openBibleForCanon')}
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* 3. Bàn viết: ngăn kéo phân cảnh (trái) | editor surface (giữa) | drawers (phải) */}
       <div className='flex-1 flex overflow-hidden relative'>
