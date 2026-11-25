@@ -25,29 +25,29 @@ export interface ProducerSharedHeaderProps {
   loadingChapters?: boolean;
 }
 
-const CHAPTER_STATUS_META: Record<string, { label: string; cls: string }> = {
+const CHAPTER_STATUS_META: Record<string, { labelKey: string; cls: string }> = {
   PreProduction: {
-    label: 'Tiền kỳ (viết kịch bản)',
+    labelKey: 'workbench.chapterStatus.PreProduction',
     cls: 'text-stone-800 bg-stone-100 border-stone-200',
   },
   InProduction: {
-    label: 'Đang sản xuất',
+    labelKey: 'workbench.chapterStatus.InProduction',
     cls: 'text-amber-800 bg-amber-50 border-amber-200',
   },
   ChapterApproved: {
-    label: 'Đã nghiệm thu (Gate 3)',
+    labelKey: 'workbench.chapterStatus.ChapterApproved',
     cls: 'text-emerald-800 bg-emerald-50 border-emerald-200',
   },
   Approved: {
-    label: 'Đã duyệt hoàn tất',
+    labelKey: 'workbench.chapterStatus.Approved',
     cls: 'text-emerald-800 bg-emerald-50 border-emerald-200',
   },
   HandedOffAndPublished: {
-    label: 'Đã bàn giao & phát hành',
+    labelKey: 'workbench.chapterStatus.HandedOffAndPublished',
     cls: 'text-stone-800 bg-stone-100 border-stone-200',
   },
   Published: {
-    label: 'Đã xuất bản',
+    labelKey: 'workbench.chapterStatus.Published',
     cls: 'text-emerald-800 bg-emerald-50 border-emerald-200',
   },
 };
@@ -78,14 +78,22 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
   const chapterQuery = effectiveChapterId ? `?chapterId=${effectiveChapterId}` : '';
 
   const currentChapterFormattedTitle = resolvedChapter
-    ? formatChapterLabel(resolvedChapter.chapterNumber, resolvedChapter.title || 'Bản thảo')
-    : 'Chọn chương';
+    ? formatChapterLabel(
+        resolvedChapter.chapterNumber,
+        resolvedChapter.title || t('workbench.draftTitle'),
+      )
+    : t('workbench.selectChapter');
 
   const statusMeta = resolvedChapter
-    ? (CHAPTER_STATUS_META[String(resolvedChapter.status)] ?? {
-        label: String(resolvedChapter.status),
-        cls: 'text-stone-800 bg-stone-100 border-stone-200',
-      })
+    ? (() => {
+        const meta = CHAPTER_STATUS_META[String(resolvedChapter.status)];
+        return meta
+          ? { label: t(meta.labelKey), cls: meta.cls }
+          : {
+              label: String(resolvedChapter.status),
+              cls: 'text-stone-800 bg-stone-100 border-stone-200',
+            };
+      })()
     : null;
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -188,22 +196,25 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
           {/* Chapter Selector Dropdown */}
           <div className='relative flex items-center'>
             <label htmlFor='producer-chapter-select' className='sr-only'>
-              Chương:
+              {t('workbench.chapterSelectLabel')}
             </label>
             <select
               id='producer-chapter-select'
-              aria-label='Chương:'
+              aria-label={t('workbench.chapterSelectLabel')}
               value={effectiveChapterId}
               onChange={handleSelectChange}
               disabled={loadingChapters || chapters.length === 0}
               className='px-3 py-1.5 rounded-lg bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium focus:outline-none focus:border-stone-400 cursor-pointer shadow-2xs'
             >
               {chapters.length === 0 ? (
-                <option value=''>Đang nạp danh sách chương...</option>
+                <option value=''>{t('workbench.loadingChapters')}</option>
               ) : (
                 chapters.map((chap) => (
                   <option key={chap.id} value={chap.id}>
-                    {formatChapterLabel(chap.chapterNumber, chap.title || 'Bản thảo')}
+                    {formatChapterLabel(
+                      chap.chapterNumber,
+                      chap.title || t('workbench.draftTitle'),
+                    )}
                   </option>
                 ))
               )}

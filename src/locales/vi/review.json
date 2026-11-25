@@ -173,7 +173,13 @@
       "sceneLabel": "CẢNH {number}",
       "emptyScene": "Phân cảnh chưa có dòng kịch bản.",
       "emptyTitle": "Chương chưa có kịch bản",
-      "emptyBody": "Bản đã gửi duyệt chưa có dòng nào."
+      "emptyBody": "Bản đã gửi duyệt chưa có dòng nào.",
+      "viewerTitle": "Nội dung kịch bản & Góp ý biên tập",
+      "viewerSubtitle": "Chế độ chỉ đọc (Read-only Script Viewer)",
+      "itemCount": "{count} mục",
+      "pageNumber": "Trang {page}",
+      "panelCode": "Khung {page}.{panel}",
+      "defaultAuthor": "Biên tập viên"
     },
     "location": {
       "line": "Cảnh {scene} · dòng {line}",
@@ -242,7 +248,23 @@
       "rejectReopen": "Từ chối",
       "recheck": "Kiểm tra lại",
       "checkedAt": "Đã kiểm tra lúc {time} · luật bằng code, không dùng AI",
-      "codeRules": "Luật bằng code, không dùng AI. Tự chạy khi mở duyệt."
+      "codeRules": "Luật bằng code, không dùng AI. Tự chạy khi mở duyệt.",
+      "entitiesTitle": "Thực thể trong kịch bản ({count})",
+      "entitiesSubtitle": "Kiểm tra tính sẵn sàng của bản vẽ & hồ sơ nhân vật (Bible Gate)",
+      "filterAll": "Tất cả ({count})",
+      "filterMain": "Chính ({count})",
+      "filterCrowd": "Quần chúng ({count})",
+      "entityCategoryFallback": "Nhân vật",
+      "entitySourceSpeaker": "Người thoại",
+      "entitySourceMentioned": "Nhắc tới",
+      "entityStatusIncomplete": "Chưa hoàn thiện",
+      "entityStatusLocked": "Đã khóa chuẩn ✓",
+      "entityStatusExempt": "Miễn trừ",
+      "entityStatusPending": "Chờ duyệt",
+      "entityRoleCrowd": "Quần chúng",
+      "entityRoleMain": "Chính",
+      "blockedByEntitiesPrefix": "Kịch bản đang bị chặn duyệt do",
+      "blockedByEntitiesSuffix": "chưa hoàn thiện hồ sơ thiết kế chuẩn."
     },
     "severity": {
       "Blocking": "Chặn",
@@ -389,7 +411,8 @@
       "compare": "So với bản trước",
       "zoomIn": "Phóng to",
       "zoomOut": "Thu nhỏ",
-      "zoomReset": "Về 100%"
+      "zoomReset": "Về 100%",
+      "reworkCount": "Yêu cầu vẽ lại ({count})"
     },
     "canvas": {
       "drawHint": "Kéo chuột trên bản nộp để khoanh vùng cần sửa.",
@@ -412,7 +435,8 @@
       "describe": "Mô tả vùng cần sửa",
       "layerLabel": "Lớp bị ảnh hưởng",
       "layerArtwork": "Tranh vẽ",
-      "layerLettering": "Chữ thoại"
+      "layerLettering": "Chữ thoại",
+      "selectedPanelBadge": "Đang chọn: Khung #{number}"
     },
     "checks": {
       "title": "Nhất quán hình ảnh",
@@ -717,7 +741,38 @@
     "btnRequestRework": "Yêu cầu vẽ lại",
     "threadsTitle": "Danh sách trao đổi ({count})",
     "waitingArtist": "Chờ họa sĩ sửa lại",
-    "shortcutsHint": "Phím tắt: 1 2 3 chuyển khung tranh"
+    "shortcutsHint": "Phím tắt: 1 2 3 chuyển khung tranh",
+    "loadErrorTitle": "Lỗi nạp dữ liệu",
+    "loadErrorDesc": "Không thể tải chi tiết chương",
+    "reworkRequestedTitle": "Đã yêu cầu vẽ lại",
+    "commentSentTitle": "Đã gửi góp ý",
+    "commentForPanelDesc": "Góp ý cho Khung {number}",
+    "commentErrorTitle": "Lỗi gửi góp ý",
+    "commentErrorDesc": "Không thể lưu góp ý",
+    "approvePageSuccessTitle": "Duyệt đạt trang",
+    "approvePageSuccessDesc": "Trang {page} đã được phê duyệt",
+    "approvePageErrorTitle": "Lỗi duyệt trang",
+    "emptyDraftTitle": "Chưa có bản thảo nào cho chương này",
+    "emptyDraftDesc": "Chương này chưa có trang hoặc đang chờ họa sĩ nộp bài bản thảo. Bạn có thể quay lại khi các bản vẽ đã được nộp.",
+    "draftFallback": "Bản thảo",
+    "pageShort": "Trang {page}",
+    "noMatchingScript": "Chưa có kịch bản khớp với trang này.",
+    "panelCode": "Khung {page}.{panel}",
+    "hasReworkFlag": "Có góp ý sửa ⚑",
+    "matchedBadge": "Đã khớp ✓",
+    "actionPanelNoDialogue": "Khung hành động (không có lời thoại).",
+    "noPanelsInPage": "Chưa có khung tranh nào trong trang này.",
+    "panelAlt": "Khung {number}",
+    "panelHash": "Khung #{number}",
+    "statusNeedsRework": "Cần sửa",
+    "statusNeedsReworkFlag": "Cần sửa ⚑",
+    "needsReworkPin": "⚑ Cần sửa lại",
+    "pageReworkSuffix": "(1 sửa ⚑)",
+    "itemCount": "{count} mục",
+    "defaultArtistName": "Họa sĩ",
+    "noPanelFeedback": "Chưa có góp ý nào cho khung tranh này.",
+    "defaultEditorName": "Biên tập viên",
+    "statusCompleted": "Đã hoàn tất"
   },
   "handoffView": {
     "title": "Đóng gói bản thảo gửi nhà xuất bản",

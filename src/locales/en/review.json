@@ -173,7 +173,13 @@
       "sceneLabel": "SCENE {number}",
       "emptyScene": "This scene has no script lines.",
       "emptyTitle": "This chapter has no script",
-      "emptyBody": "The submitted version has no lines."
+      "emptyBody": "The submitted version has no lines.",
+      "viewerTitle": "Script content & Editorial notes",
+      "viewerSubtitle": "Read-only Script Viewer",
+      "itemCount": "{count} items",
+      "pageNumber": "Page {page}",
+      "panelCode": "Panel {page}.{panel}",
+      "defaultAuthor": "Editor"
     },
     "location": {
       "line": "Scene {scene} · line {line}",
@@ -242,7 +248,23 @@
       "rejectReopen": "Decline",
       "recheck": "Check again",
       "checkedAt": "Checked at {time} · code rules, no AI",
-      "codeRules": "Code rules, no AI. Runs when the review opens."
+      "codeRules": "Code rules, no AI. Runs when the review opens.",
+      "entitiesTitle": "Entities in script ({count})",
+      "entitiesSubtitle": "Check artwork & character sheet readiness (Bible Gate)",
+      "filterAll": "All ({count})",
+      "filterMain": "Main ({count})",
+      "filterCrowd": "Crowd ({count})",
+      "entityCategoryFallback": "Character",
+      "entitySourceSpeaker": "Speaker",
+      "entitySourceMentioned": "Mentioned",
+      "entityStatusIncomplete": "Incomplete",
+      "entityStatusLocked": "Canon locked ✓",
+      "entityStatusExempt": "Exempt",
+      "entityStatusPending": "Pending review",
+      "entityRoleCrowd": "Crowd",
+      "entityRoleMain": "Main",
+      "blockedByEntitiesPrefix": "Script approval is blocked because",
+      "blockedByEntitiesSuffix": "has incomplete canon design sheets."
     },
     "severity": {
       "Blocking": "Blocking",
@@ -389,7 +411,8 @@
       "compare": "Compare with previous",
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
-      "zoomReset": "Reset to 100%"
+      "zoomReset": "Reset to 100%",
+      "reworkCount": "Rework requests ({count})"
     },
     "canvas": {
       "drawHint": "Drag on the submission to mark an area that needs changes.",
@@ -412,7 +435,8 @@
       "describe": "Describe the change needed",
       "layerLabel": "Affected layer",
       "layerArtwork": "Artwork",
-      "layerLettering": "Lettering"
+      "layerLettering": "Lettering",
+      "selectedPanelBadge": "Selected: Panel #{number}"
     },
     "checks": {
       "title": "Visual consistency",
@@ -717,7 +741,38 @@
     "btnRequestRework": "Request rework",
     "threadsTitle": "Discussion threads ({count})",
     "waitingArtist": "Waiting for artist fix",
-    "shortcutsHint": "Shortcuts: 1 2 3 switch panels"
+    "shortcutsHint": "Shortcuts: 1 2 3 switch panels",
+    "loadErrorTitle": "Data load error",
+    "loadErrorDesc": "Unable to load chapter details",
+    "reworkRequestedTitle": "Rework requested",
+    "commentSentTitle": "Comment sent",
+    "commentForPanelDesc": "Feedback for Panel {number}",
+    "commentErrorTitle": "Failed to send feedback",
+    "commentErrorDesc": "Unable to save feedback",
+    "approvePageSuccessTitle": "Page approved",
+    "approvePageSuccessDesc": "Page {page} has been approved",
+    "approvePageErrorTitle": "Page approval error",
+    "emptyDraftTitle": "No drafts for this chapter yet",
+    "emptyDraftDesc": "This chapter has no pages yet or is waiting for artist submissions. Check back once drafts are submitted.",
+    "draftFallback": "Draft",
+    "pageShort": "Page {page}",
+    "noMatchingScript": "No script matched this page yet.",
+    "panelCode": "Panel {page}.{panel}",
+    "hasReworkFlag": "Rework flagged ⚑",
+    "matchedBadge": "Matched ✓",
+    "actionPanelNoDialogue": "Action panel (no dialogue).",
+    "noPanelsInPage": "No panels on this page yet.",
+    "panelAlt": "Panel {number}",
+    "panelHash": "Panel #{number}",
+    "statusNeedsRework": "Needs rework",
+    "statusNeedsReworkFlag": "Needs rework ⚑",
+    "needsReworkPin": "⚑ Needs rework",
+    "pageReworkSuffix": "(rework ⚑)",
+    "itemCount": "{count} items",
+    "defaultArtistName": "Artist",
+    "noPanelFeedback": "No feedback for this panel yet.",
+    "defaultEditorName": "Editor",
+    "statusCompleted": "Completed"
   },
   "handoffView": {
     "title": "Package manuscript for publisher",

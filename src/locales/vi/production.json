@@ -1982,6 +1982,10 @@
     "total": "tổng số",
     "variant": "Biến thể",
     "visualDescriptionRequired": "Mô tả & Đặc điểm nhận diện *",
-    "waitingForConfirmation": "Chờ xác nhận"
+    "waitingForConfirmation": "Chờ xác nhận",
+    "noCharactersInChapter": "Chưa có nhân vật nào trong chương này.",
+    "mainCharacter": "Nhân vật",
+    "lockedStatus": "Đã khóa",
+    "pendingStatus": "Chờ khóa"
   }
 }

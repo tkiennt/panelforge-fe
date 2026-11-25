@@ -868,7 +868,15 @@
     "writerApprovedMechanism": "Writer chuẩn thuận cơ chế",
     "artistLabel": "Họa sĩ:",
     "artworkUploaded": "Đã có bản vẽ",
-    "artworkMissing": "Chưa có ảnh"
+    "artworkMissing": "Chưa có ảnh",
+    "tabAll": "Tất cả",
+    "tabCharacters": "Nhân vật",
+    "tabLocations": "Địa điểm",
+    "tabProps": "Đạo cụ",
+    "tabRules": "Quy tắc",
+    "statusAll": "Tất cả trạng thái",
+    "statusPending": "Chờ khóa chuẩn",
+    "statusLocked": "Đã khóa chuẩn"
   },
   "isCrowdHelp": "Thực thể quần chúng không bắt buộc Model Sheet",
   "crowd": {

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ShieldAlert, X } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import type { KeepOutZone, Rect } from '@/shared/lib/lettering/keepOutZones';
 
 interface KeepOutZoneOverlayProps {
@@ -25,6 +26,7 @@ export const KeepOutZoneOverlay: React.FC<KeepOutZoneOverlayProps> = ({
   onDeleteZone,
   onExitDrawingMode,
 }) => {
+  const { t } = useTranslation('artist');
   const layerRef = useRef<HTMLDivElement>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const [drawingRect, setDrawingRect] = useState<Rect | null>(null);
@@ -116,7 +118,7 @@ export const KeepOutZoneOverlay: React.FC<KeepOutZoneOverlayProps> = ({
           <div className='flex items-center justify-between text-[11px] font-bold text-red-700 bg-white/95 px-1.5 py-0.5 rounded shadow-xs max-w-full pointer-events-auto'>
             <span className='truncate flex items-center gap-1'>
               <ShieldAlert className='w-3 h-3 text-red-500 shrink-0' aria-hidden='true' />
-              <span className='truncate'>{kz.label || 'Vùng cấm'}</span>
+              <span className='truncate'>{kz.label || t('keepOut.zoneFallbackLabel')}</span>
             </span>
             {!readOnly && (
               <button
@@ -126,8 +128,10 @@ export const KeepOutZoneOverlay: React.FC<KeepOutZoneOverlayProps> = ({
                   e.stopPropagation();
                   onDeleteZone(kz.id);
                 }}
-                aria-label={`Xoá ${kz.label || 'vùng cấm'}`}
-                title='Xoá vùng cấm này'
+                aria-label={t('keepOut.deleteZoneAria', {
+                  label: kz.label || t('keepOut.zoneFallbackLower'),
+                })}
+                title={t('keepOut.deleteZoneTitle')}
                 className='ml-1 text-stone-400 hover:text-red-600 cursor-pointer'
               >
                 <X className='w-3 h-3' />
@@ -156,7 +160,7 @@ export const KeepOutZoneOverlay: React.FC<KeepOutZoneOverlayProps> = ({
           onPointerDown={handlePointerDown}
           onClick={(e) => e.stopPropagation()}
           className='absolute inset-0 z-35 pointer-events-auto cursor-crosshair'
-          title='Kéo chuột trên trang để vẽ vùng cấm chữ (Esc để thoát)'
+          title={t('keepOut.drawLayerTitle')}
         />
       )}
     </div>

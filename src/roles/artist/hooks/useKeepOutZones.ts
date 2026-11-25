@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { translate } from '@/lib/i18n';
 import { isGuid, pageService, type KeepOutZoneDto, type PageDto } from '@/services/page.service';
 import type { PanelDto } from '@/types/pipeline';
 import {
@@ -148,20 +149,20 @@ export function useKeepOutZones(
     ): Promise<boolean> => {
       if (!pageId) return false;
       if (readOnly) {
-        toast.error?.('Bạn không có quyền chỉnh sửa vùng cấm trên trang này', '');
+        toast.error?.(translate('artist.keepOut.noPermissionOnPage'), '');
         return false;
       }
       if (!isGuid(pageId)) {
         toast.error?.(
-          'Trang chưa được tạo',
-          'Hãy tạo trang thật trên máy chủ trước khi lưu vùng cấm chữ.',
+          translate('artist.keepOut.pageNotCreatedTitle'),
+          translate('artist.keepOut.pageNotCreatedDesc'),
         );
         return false;
       }
       if (nextEntries.length > MAX_KEEP_OUT_ZONES) {
         toast.error?.(
-          'Không lưu được vùng cấm',
-          `Tối đa ${MAX_KEEP_OUT_ZONES} vùng cấm mỗi trang.`,
+          translate('artist.keepOut.saveFailedTitle'),
+          translate('artist.keepOut.maxZonesError', { max: MAX_KEEP_OUT_ZONES }),
         );
         return false;
       }
@@ -198,19 +199,25 @@ export function useKeepOutZones(
         const serverMsg = err?.response?.data?.error || err?.message;
 
         if (status === 409) {
-          const msg = serverMsg || 'Vùng cấm chữ đã được người khác cập nhật. Tải lại rồi thử lại.';
+          const msg = serverMsg || translate('artist.keepOut.conflictDefaultMsg');
           if (code === 'CHAPTER_READ_ONLY') {
-            toast.error?.('Chương đang ở chế độ chỉ đọc', msg);
+            toast.error?.(translate('artist.keepOut.chapterReadOnlyTitle'), msg);
           } else {
             setConflictByPageId((prev) => ({ ...prev, [pageId]: msg }));
-            toast.error?.('Vùng cấm đã thay đổi — vui lòng tải lại', msg);
+            toast.error?.(translate('artist.keepOut.conflictTitle'), msg);
           }
         } else if (status === 400) {
-          toast.error?.('Không lưu được vùng cấm', serverMsg || 'Dữ liệu vùng cấm không hợp lệ.');
+          toast.error?.(
+            translate('artist.keepOut.saveFailedTitle'),
+            serverMsg || translate('artist.keepOut.invalidDataDesc'),
+          );
         } else if (status === 403 || code === 'FORBIDDEN') {
-          toast.error?.('Bạn không có quyền chỉnh sửa vùng cấm', serverMsg || '');
+          toast.error?.(translate('artist.keepOut.noPermissionTitle'), serverMsg || '');
         } else {
-          toast.error?.('Không lưu được vùng cấm', serverMsg || 'Thử lại sau ít phút.');
+          toast.error?.(
+            translate('artist.keepOut.saveFailedTitle'),
+            serverMsg || translate('artist.keepOut.tryAgainLater'),
+          );
         }
         return false;
       } finally {
@@ -225,7 +232,8 @@ export function useKeepOutZones(
       if (!pageId) return false;
       const current = entriesRef.current[pageId] || [];
       const panelId = findPanelIdForRect(rectPx, pagePanels, pageWidth, pageHeight);
-      const label = customLabel ?? `Vùng cấm ${current.length + 1}`;
+      const label =
+        customLabel ?? translate('artist.keepOut.defaultZoneLabel', { index: current.length + 1 });
       const dto = pixelToNormalizedZone(
         { id: 'draft', ...rectPx, label, panelId },
         pageWidth,
@@ -237,8 +245,12 @@ export function useKeepOutZones(
         { id: makeEntryId(dto, current.length), dto },
       ];
       return persistEntries(nextEntries, {
-        title: 'Đã thêm vùng cấm',
-        desc: `${label} (${Math.round(rectPx.width)}×${Math.round(rectPx.height)}px) đã được lưu.`,
+        title: translate('artist.keepOut.addedTitle'),
+        desc: translate('artist.keepOut.addedDesc', {
+          label,
+          width: Math.round(rectPx.width),
+          height: Math.round(rectPx.height),
+        }),
       });
     },
     [pageId, pagePanels, pageWidth, pageHeight, validPanelIds, persistEntries],
@@ -251,8 +263,8 @@ export function useKeepOutZones(
       const nextEntries = current.filter((e) => e.id !== zoneId);
       if (nextEntries.length === current.length) return false;
       return persistEntries(nextEntries, {
-        title: 'Đã xoá vùng cấm',
-        desc: 'Bóng thoại có thể đặt vào khu vực này.',
+        title: translate('artist.keepOut.deletedTitle'),
+        desc: translate('artist.keepOut.deletedDesc'),
       });
     },
     [pageId, persistEntries],

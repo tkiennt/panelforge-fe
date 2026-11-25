@@ -848,7 +848,11 @@
     },
     "seriesFallback": "Bộ truyện",
     "startProductionToastTitle": "Sản xuất bắt đầu",
-    "startProductionToastDesc": "Chương đã chuyển sang công đoạn vẽ phác thảo."
+    "startProductionToastDesc": "Chương đã chuyển sang công đoạn vẽ phác thảo.",
+    "draftTitle": "Bản thảo",
+    "selectChapter": "Chọn chương",
+    "chapterSelectLabel": "Chương:",
+    "loadingChapters": "Đang nạp danh sách chương..."
   },
   "revenueView": {
     "title": "Doanh thu & Thống kê độc giả",
@@ -866,6 +870,13 @@
     "thDigital": "Doanh thu đọc số",
     "thTotal": "Tổng doanh thu (VNĐ)",
     "thStatus": "Đánh giá & Tình trạng",
-    "cumulativeTotal": "Tổng tích lũy"
+    "cumulativeTotal": "Tổng tích lũy",
+    "loadError": "Không thể tải thống kê",
+    "viewsUnit": "lượt",
+    "uniqueReaders": "{count} độc giả riêng biệt",
+    "chapterCount": "{count} chương",
+    "emptyChapters": "Chưa có chương nào trong series.",
+    "chapterMeta": "Chương {number} • {status}",
+    "cumulativeTotalWithCount": "Tổng tích lũy {count} chương:"
   }
 }

@@ -264,12 +264,14 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
           >
             <div className='font-bold flex items-center gap-1.5 text-xs'>
               <ShieldAlert className='w-4 h-4 text-red-600 shrink-0' aria-hidden='true' />
-              <span>Bóng thoại che vùng cấm</span>
+              <span>{t('letteringProperty.keepOut.collisionTitle')}</span>
             </div>
             <p className='text-xs leading-relaxed'>
-              Bóng thoại đang che khuất{' '}
-              <strong>{keepOutCollision.label || 'mặt/tay nhân vật'}</strong>. Hãy dời bóng thoại
-              hoặc bấm nút gợi ý bên dưới.
+              {t('letteringProperty.keepOut.collisionPrefix')}{' '}
+              <strong>
+                {keepOutCollision.label || t('letteringProperty.keepOut.defaultTarget')}
+              </strong>
+              {t('letteringProperty.keepOut.collisionSuffix')}
             </p>
             {onSuggestPosition && (
               <button
@@ -278,7 +280,8 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
                 data-testid='suggest-position-btn-collision'
                 className='w-full py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs'
               >
-                <Compass className='w-3.5 h-3.5' aria-hidden='true' /> Gợi ý vị trí thoáng nhất
+                <Compass className='w-3.5 h-3.5' aria-hidden='true' />{' '}
+                {t('letteringProperty.keepOut.suggestPositionBtn')}
               </button>
             )}
           </div>

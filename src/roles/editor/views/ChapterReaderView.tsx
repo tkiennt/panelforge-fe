@@ -112,11 +112,11 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
         }
       }
     } catch (err: any) {
-      onShowToast('Lỗi nạp dữ liệu', err.message || 'Không thể tải chi tiết chương');
+      onShowToast(t('readerView.loadErrorTitle'), err.message || t('readerView.loadErrorDesc'));
     } finally {
       setLoading(false);
     }
-  }, [chapterId, seriesId, onShowToast]);
+  }, [chapterId, seriesId, onShowToast, t]);
 
   useEffect(() => {
     loadChapterData();
@@ -225,11 +225,14 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
       }
       setCommentText('');
       onShowToast(
-        type === 'rework' ? 'Đã yêu cầu vẽ lại' : 'Đã gửi góp ý',
-        `Góp ý cho Khung ${selectedPanel?.panelNumber ?? 1}`,
+        type === 'rework' ? t('readerView.reworkRequestedTitle') : t('readerView.commentSentTitle'),
+        t('readerView.commentForPanelDesc', { number: selectedPanel?.panelNumber ?? 1 }),
       );
     } catch (err: any) {
-      onShowToast('Lỗi gửi góp ý', err.message || 'Không thể lưu góp ý');
+      onShowToast(
+        t('readerView.commentErrorTitle'),
+        err.message || t('readerView.commentErrorDesc'),
+      );
     } finally {
       setSubmittingComment(false);
     }
@@ -245,10 +248,13 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
       await Promise.all(
         pageTasks.map((t) => assignmentService.approveStageTask(chapterId, t.id).catch(() => null)),
       );
-      onShowToast('Duyệt đạt trang', `Trang ${currentPage.pageNumber} đã được phê duyệt`);
+      onShowToast(
+        t('readerView.approvePageSuccessTitle'),
+        t('readerView.approvePageSuccessDesc', { page: currentPage.pageNumber }),
+      );
       loadChapterData();
     } catch (err: any) {
-      onShowToast('Lỗi duyệt trang', err.message);
+      onShowToast(t('readerView.approvePageErrorTitle'), err.message);
     }
   };
 
@@ -282,12 +288,9 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
             <div className='w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center mb-3 shadow-2xs'>
               <BookOpen className='w-6 h-6' />
             </div>
-            <h3 className='text-sm font-bold text-stone-900'>
-              Chưa có bản thảo nào cho chương này
-            </h3>
+            <h3 className='text-sm font-bold text-stone-900'>{t('readerView.emptyDraftTitle')}</h3>
             <p className='text-xs text-stone-500 max-w-sm mt-1.5 leading-relaxed'>
-              Chương này chưa có trang hoặc đang chờ họa sĩ nộp bài bản thảo. Bạn có thể quay lại
-              khi các bản vẽ đã được nộp.
+              {t('readerView.emptyDraftDesc')}
             </p>
           </div>
         </div>
@@ -304,7 +307,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                 <h2 className='text-xs font-bold text-stone-900 whitespace-nowrap'>
                   {t('readerView.title', {
                     number: chapter?.chapterNumber || 1,
-                    title: chapter?.title || 'Bản thảo',
+                    title: chapter?.title || t('readerView.draftFallback'),
                   })}
                 </h2>
               </div>
@@ -351,7 +354,9 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                       <span>{t('readerView.scriptRefTitle', 'Kịch bản đối chiếu')}</span>
                     </span>
                     <span className='text-[10px] font-mono px-1.5 py-0.5 bg-stone-200 text-stone-700 rounded font-semibold'>
-                      Trang {String(currentPage.pageNumber).padStart(2, '0')}
+                      {t('readerView.pageShort', {
+                        page: String(currentPage.pageNumber).padStart(2, '0'),
+                      })}
                     </span>
                   </div>
                   <p className='text-xs text-stone-500 mt-0.5'>
@@ -365,7 +370,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                 <div className='space-y-2'>
                   {currentPageScriptBlocks.length === 0 ? (
                     <div className='p-4 text-center text-xs text-stone-400'>
-                      Chưa có kịch bản khớp với trang này.
+                      {t('readerView.noMatchingScript')}
                     </div>
                   ) : (
                     currentPageScriptBlocks.map(({ panel, lines }, idx) => {
@@ -387,15 +392,18 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                         >
                           <div className='flex items-center justify-between'>
                             <span className='text-xs font-bold text-stone-900'>
-                              Khung {currentPage.pageNumber}.{panel.panelNumber}
+                              {t('readerView.panelCode', {
+                                page: currentPage.pageNumber,
+                                panel: panel.panelNumber,
+                              })}
                             </span>
                             {hasOpenCr ? (
                               <span className='px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold'>
-                                Có góp ý sửa ⚑
+                                {t('readerView.hasReworkFlag')}
                               </span>
                             ) : (
                               <span className='px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold'>
-                                Đã khớp ✓
+                                {t('readerView.matchedBadge')}
                               </span>
                             )}
                           </div>
@@ -425,7 +433,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                             ))
                           ) : (
                             <p className='text-stone-400 italic text-[11px]'>
-                              Khung hành động (không có lời thoại).
+                              {t('readerView.actionPanelNoDialogue')}
                             </p>
                           )}
                         </div>
@@ -499,7 +507,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                 >
                   {currentPagePanels.length === 0 ? (
                     <div className='flex-1 flex items-center justify-center text-xs text-stone-400 italic'>
-                      Chưa có khung tranh nào trong trang này.
+                      {t('readerView.noPanelsInPage')}
                     </div>
                   ) : (
                     currentPagePanels.map((panel, idx) => {
@@ -525,13 +533,15 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                           {artworkSrc ? (
                             <img
                               src={artworkSrc}
-                              alt={`Khung ${idx + 1}`}
+                              alt={t('readerView.panelAlt', { number: idx + 1 })}
                               className='w-full h-full object-cover object-center block'
                             />
                           ) : (
                             <div className='w-full h-full flex flex-col items-center justify-center p-4 text-stone-400 text-xs gap-1'>
                               <BookOpen className='w-5 h-5 opacity-40' />
-                              <span>Khung #{panel.panelNumber}</span>
+                              <span>
+                                {t('readerView.panelHash', { number: panel.panelNumber })}
+                              </span>
                             </div>
                           )}
 
@@ -547,7 +557,10 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                               }`}
                             />
                             <span>
-                              Khung #{panel.panelNumber} · {hasOpenCr ? 'Cần sửa' : 'Đạt ✓'}
+                              {t('readerView.panelHash', { number: panel.panelNumber })} ·{' '}
+                              {hasOpenCr
+                                ? t('readerView.statusNeedsRework')
+                                : t('readerView.statusApproved')}
                             </span>
                           </div>
 
@@ -555,7 +568,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                           {hasOpenCr && (
                             <div className='absolute top-7 right-3 px-2 py-1 border border-dashed border-rose-600 bg-rose-500/20 rounded pointer-events-none flex items-center gap-1'>
                               <span className='bg-rose-600 text-white font-mono text-[10px] font-bold px-1 rounded'>
-                                ⚑ Cần sửa lại
+                                {t('readerView.needsReworkPin')}
                               </span>
                             </div>
                           )}
@@ -585,8 +598,10 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                           : 'bg-stone-800 hover:bg-stone-700 text-stone-300'
                       }`}
                     >
-                      Trang {String(p.pageNumber).padStart(2, '0')}
-                      {pageHasRework ? ' (1 sửa ⚑)' : ''}
+                      {t('readerView.pageShort', {
+                        page: String(p.pageNumber).padStart(2, '0'),
+                      })}
+                      {pageHasRework ? ` ${t('readerView.pageReworkSuffix')}` : ''}
                     </button>
                   );
                 })}
@@ -604,7 +619,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                     </span>
                   </div>
                   <span className='px-1.5 py-0.5 rounded bg-stone-100 text-stone-700 font-semibold text-xs'>
-                    {currentPanelChangeRequests.length} mục
+                    {t('readerView.itemCount', { count: currentPanelChangeRequests.length })}
                   </span>
                 </div>
 
@@ -621,7 +636,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                     </span>
                     <span className='text-xs text-stone-500 font-mono'>
                       {t('readerView.artistLabel', {
-                        name: assignedArtistName || 'Họa sĩ',
+                        name: assignedArtistName || t('readerView.defaultArtistName'),
                       })}
                     </span>
                   </div>
@@ -669,7 +684,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                   <div id='panel-comments-list' className='space-y-2.5'>
                     {currentPanelChangeRequests.length === 0 ? (
                       <div className='p-4 text-center text-xs text-stone-400 italic'>
-                        Chưa có góp ý nào cho khung tranh này.
+                        {t('readerView.noPanelFeedback')}
                       </div>
                     ) : (
                       currentPanelChangeRequests.map((cr) => {
@@ -689,7 +704,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                                   PF
                                 </div>
                                 <div className='text-xs font-bold text-stone-900'>
-                                  {cr.createdByUserId || 'Biên tập viên'}
+                                  {cr.createdByUserId || t('readerView.defaultEditorName')}
                                 </div>
                               </div>
                               <span
@@ -699,7 +714,9 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                                     : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 }`}
                               >
-                                {isRework ? 'Cần sửa ⚑' : 'Đạt ✓'}
+                                {isRework
+                                  ? t('readerView.statusNeedsReworkFlag')
+                                  : t('readerView.statusApproved')}
                               </span>
                             </div>
                             <p className='text-xs text-stone-800 leading-relaxed'>
@@ -713,7 +730,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                               >
                                 {isRework
                                   ? t('readerView.waitingArtist', 'Chờ họa sĩ sửa lại')
-                                  : 'Đã hoàn tất'}
+                                  : t('readerView.statusCompleted')}
                               </span>
                               <span className='text-stone-400 font-mono'>
                                 {new Date(cr.createdAt).toLocaleTimeString([], {

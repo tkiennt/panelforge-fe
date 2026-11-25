@@ -91,11 +91,9 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
         <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-stone-200'>
           <div>
             <h3 className='text-sm font-bold text-stone-900'>
-              Thực thể trong kịch bản ({allEntities.length})
+              {t('scriptReview.checks.entitiesTitle', { count: allEntities.length })}
             </h3>
-            <p className='text-xs text-stone-500'>
-              Kiểm tra tính sẵn sàng của bản vẽ &amp; hồ sơ nhân vật (Bible Gate)
-            </p>
+            <p className='text-xs text-stone-500'>{t('scriptReview.checks.entitiesSubtitle')}</p>
           </div>
           {allEntities.length > 0 && (
             <div className='inline-flex p-0.5 rounded-lg bg-stone-100 border border-stone-200 text-xs shrink-0'>
@@ -108,7 +106,7 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                Tất cả ({allEntities.length})
+                {t('scriptReview.checks.filterAll', { count: allEntities.length })}
               </button>
               <button
                 type='button'
@@ -119,7 +117,7 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                Chính ({mainEntities.length})
+                {t('scriptReview.checks.filterMain', { count: mainEntities.length })}
               </button>
               <button
                 type='button'
@@ -130,7 +128,7 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                Quần chúng ({crowdEntities.length})
+                {t('scriptReview.checks.filterCrowd', { count: crowdEntities.length })}
               </button>
             </div>
           )}
@@ -192,9 +190,14 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
                           {initials}
                         </div>
                         <div className='min-w-0'>
-                          <div className='text-xs font-bold text-stone-900 truncate'>{ent.name}</div>
+                          <div className='text-xs font-bold text-stone-900 truncate'>
+                            {ent.name}
+                          </div>
                           <div className='text-[11px] text-stone-500 truncate'>
-                            {ent.category || 'Nhân vật'} · {ent.source === 'Speaker' ? 'Người thoại' : 'Nhắc tới'}
+                            {ent.category || t('scriptReview.checks.entityCategoryFallback')} ·{' '}
+                            {ent.source === 'Speaker'
+                              ? t('scriptReview.checks.entitySourceSpeaker')
+                              : t('scriptReview.checks.entitySourceMentioned')}
                           </div>
                         </div>
                       </div>
@@ -202,23 +205,25 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
                       <div className='flex items-center gap-1.5 shrink-0'>
                         {isBlocker ? (
                           <span className='bg-rose-50 text-rose-700 border border-rose-200 text-[11px] px-2 py-0.5 rounded-full font-semibold'>
-                            Chưa hoàn thiện
+                            {t('scriptReview.checks.entityStatusIncomplete')}
                           </span>
                         ) : isLocked ? (
                           <span className='bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] px-2 py-0.5 rounded-full font-semibold'>
-                            Đã khóa chuẩn ✓
+                            {t('scriptReview.checks.entityStatusLocked')}
                           </span>
                         ) : ent.isCrowd ? (
                           <span className='bg-stone-100 text-stone-600 border border-stone-200 text-[11px] px-2 py-0.5 rounded-full font-medium'>
-                            Miễn trừ
+                            {t('scriptReview.checks.entityStatusExempt')}
                           </span>
                         ) : (
                           <span className='bg-amber-50 text-amber-700 border border-amber-200 text-[11px] px-2 py-0.5 rounded-full font-medium'>
-                            Chờ duyệt
+                            {t('scriptReview.checks.entityStatusPending')}
                           </span>
                         )}
                         <span className='text-[11px] text-stone-500 font-medium bg-white px-1.5 py-0.5 rounded border border-stone-200'>
-                          {ent.isCrowd ? 'Quần chúng' : 'Chính'}
+                          {ent.isCrowd
+                            ? t('scriptReview.checks.entityRoleCrowd')
+                            : t('scriptReview.checks.entityRoleMain')}
                         </span>
                       </div>
                     </div>
@@ -231,7 +236,9 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
               <div className='p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-900 flex items-start gap-2 mt-3'>
                 <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0 mt-0.5' />
                 <p>
-                  Kịch bản đang bị chặn duyệt do <strong>{blockers.map((b) => b.entryName).join(', ')}</strong> chưa hoàn thiện hồ sơ thiết kế chuẩn.
+                  {t('scriptReview.checks.blockedByEntitiesPrefix')}{' '}
+                  <strong>{blockers.map((b) => b.entryName).join(', ')}</strong>{' '}
+                  {t('scriptReview.checks.blockedByEntitiesSuffix')}
                 </p>
               </div>
             )}

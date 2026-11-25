@@ -72,17 +72,6 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
     }
   }, [activeLineId]);
 
-  if (rows.length === 0) {
-    return (
-      <div className='m-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-stone-300 p-8 text-center'>
-        <p className='font-serif text-base font-bold text-stone-900'>
-          {t('scriptReview.manuscript.emptyTitle')}
-        </p>
-        <p className='mt-1 text-xs text-stone-500'>{t('scriptReview.manuscript.emptyBody')}</p>
-      </div>
-    );
-  }
-
   // Group rows into Pages and Panels for Stitch view-script card layout
   type ScriptBlock =
     | { kind: 'page'; row: ScriptVersionRow }
@@ -107,7 +96,13 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
           // Orphan line before any panel: create an implicit panel
           currentPanel = {
             kind: 'panel',
-            row: { key: `panel:auto:${r.page}:${r.panel}`, type: 'panel', page: r.page, panel: r.panel, text: `Khung ${r.page}.${r.panel}` },
+            row: {
+              key: `panel:auto:${r.page}:${r.panel}`,
+              type: 'panel',
+              page: r.page,
+              panel: r.panel,
+              text: t('scriptReview.manuscript.panelCode', { page: r.page, panel: r.panel }),
+            },
             lines: [r],
           };
           list.push(currentPanel);
@@ -115,7 +110,18 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
       }
     }
     return list;
-  }, [rows]);
+  }, [rows, t]);
+
+  if (rows.length === 0) {
+    return (
+      <div className='m-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-stone-300 p-8 text-center'>
+        <p className='font-serif text-base font-bold text-stone-900'>
+          {t('scriptReview.manuscript.emptyTitle')}
+        </p>
+        <p className='mt-1 text-xs text-stone-500'>{t('scriptReview.manuscript.emptyBody')}</p>
+      </div>
+    );
+  }
 
   return (
     <div className='mx-auto w-full max-w-4xl px-4 py-6 sm:px-6'>
@@ -123,15 +129,15 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
         <div className='flex items-center justify-between pb-3 border-b border-stone-200'>
           <div>
             <h3 className='text-sm font-bold text-stone-900'>
-              Nội dung kịch bản &amp; Góp ý biên tập
+              {t('scriptReview.manuscript.viewerTitle')}
             </h3>
             <p className='text-xs text-stone-500 mt-0.5'>
-              Chế độ chỉ đọc (Read-only Script Viewer)
+              {t('scriptReview.manuscript.viewerSubtitle')}
             </p>
           </div>
           <div className='flex items-center gap-2'>
             <span className='text-xs font-mono font-medium px-2 py-0.5 rounded bg-stone-100 text-stone-700'>
-              {rows.length} mục
+              {t('scriptReview.manuscript.itemCount', { count: rows.length })}
             </span>
           </div>
         </div>
@@ -145,7 +151,7 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
                     {renderText(block.row)}
                   </span>
                   <span className='text-xs text-stone-400 font-mono'>
-                    Trang {block.row.page}
+                    {t('scriptReview.manuscript.pageNumber', { page: block.row.page })}
                   </span>
                 </div>
               );
@@ -156,11 +162,12 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
               <div key={panelRow.key} className='space-y-2.5 pl-2 border-l-2 border-stone-200'>
                 <div className='p-3.5 rounded-lg bg-stone-50 border border-stone-200 space-y-2.5 shadow-2xs'>
                   <div className='flex justify-between items-center text-xs pb-1 border-b border-stone-200/70'>
-                    <span className='font-semibold text-stone-900'>
-                      {renderText(panelRow)}
-                    </span>
+                    <span className='font-semibold text-stone-900'>{renderText(panelRow)}</span>
                     <span className='text-stone-400 font-mono text-[11px]'>
-                      Khung {panelRow.page}.{panelRow.panel}
+                      {t('scriptReview.manuscript.panelCode', {
+                        page: panelRow.page,
+                        panel: panelRow.panel,
+                      })}
                     </span>
                   </div>
 
@@ -245,7 +252,10 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
                                   count: m!.comments,
                                 })}
                               >
-                                <MessageSquare className='h-3 w-3 text-orange-600' aria-hidden='true' />
+                                <MessageSquare
+                                  className='h-3 w-3 text-orange-600'
+                                  aria-hidden='true'
+                                />
                                 {m!.comments}
                               </span>
                             )}
@@ -262,7 +272,10 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
                                 title={t('scriptReview.manuscript.commentLineTitle')}
                                 className='inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-stone-700 transition-opacity duration-150 hover:border-orange-300 hover:text-orange-700 shadow-2xs focus:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 cursor-pointer'
                               >
-                                <MessageSquarePlus className='h-3 w-3 text-orange-600' aria-hidden='true' />
+                                <MessageSquarePlus
+                                  className='h-3 w-3 text-orange-600'
+                                  aria-hidden='true'
+                                />
                                 <span>{t('scriptReview.manuscript.commentLine')}</span>
                               </button>
                             )}
@@ -280,7 +293,7 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
                                 <MessageSquare className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
                                 <div className='min-w-0 flex-1'>
                                   <div className='font-semibold text-amber-800 text-[11px]'>
-                                    {c.authorName || 'Biên tập viên'}
+                                    {c.authorName || t('scriptReview.manuscript.defaultAuthor')}
                                   </div>
                                   <p className='mt-0.5 text-stone-800 leading-normal'>{c.body}</p>
                                 </div>

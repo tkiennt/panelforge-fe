@@ -44,7 +44,7 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = ({ onShowToas
       })
       .catch((err: any) => {
         if (!mounted) return;
-        setError(err.message || 'Không thể tải thống kê');
+        setError(err.message || t('revenueView.loadError'));
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -53,7 +53,7 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = ({ onShowToas
     return () => {
       mounted = false;
     };
-  }, [workspaceId, seriesId]);
+  }, [workspaceId, seriesId, t]);
 
   const currentSeriesStats = (readerStats?.series ?? []).find((s) => s.seriesId === seriesId);
 
@@ -164,11 +164,13 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = ({ onShowToas
                   <span className='text-2xl font-bold text-stone-900 font-mono'>
                     {totalViews !== null ? fmt(totalViews) : '—'}
                   </span>
-                  <span className='text-xs text-stone-500'>lượt</span>
+                  <span className='text-xs text-stone-500'>{t('revenueView.viewsUnit')}</span>
                 </div>
                 <div className='flex items-center justify-between text-xs pt-1 border-t border-stone-100'>
                   <span className='text-stone-500'>
-                    {uniqueReaders !== null ? `${fmt(uniqueReaders)} độc giả riêng biệt` : '—'}
+                    {uniqueReaders !== null
+                      ? t('revenueView.uniqueReaders', { count: fmt(uniqueReaders) })
+                      : '—'}
                   </span>
                   <span className='text-emerald-700 font-semibold font-mono'>—</span>
                 </div>
@@ -186,7 +188,7 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = ({ onShowToas
                     )}
                   </span>
                   <span className='text-xs px-2 py-0.5 rounded bg-stone-200 text-stone-700 font-mono'>
-                    {chapters.length} chương
+                    {t('revenueView.chapterCount', { count: chapters.length })}
                   </span>
                 </div>
                 <div className='flex items-center gap-2 text-xs text-stone-500'>
@@ -223,7 +225,7 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = ({ onShowToas
                     {chapters.length === 0 ? (
                       <tr>
                         <td colSpan={7} className='py-8 text-center text-xs text-stone-400'>
-                          Chưa có chương nào trong series.
+                          {t('revenueView.emptyChapters')}
                         </td>
                       </tr>
                     ) : (
@@ -231,10 +233,16 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = ({ onShowToas
                         <tr key={chap.id} className='hover:bg-stone-50/60 transition-colors'>
                           <td className='py-3 px-4'>
                             <div className='font-bold text-stone-900'>
-                              {formatChapterLabel(chap.chapterNumber, chap.title || 'Bản thảo')}
+                              {formatChapterLabel(
+                                chap.chapterNumber,
+                                chap.title || t('workbench.draftTitle'),
+                              )}
                             </div>
                             <div className='text-xs text-stone-500 font-mono'>
-                              Chương {chap.chapterNumber} • {chap.status}
+                              {t('revenueView.chapterMeta', {
+                                number: chap.chapterNumber,
+                                status: chap.status,
+                              })}
                             </div>
                           </td>
                           <td className='py-3 px-4 text-center font-mono text-stone-700'>—</td>
@@ -258,7 +266,7 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = ({ onShowToas
 
               <div className='p-3.5 bg-stone-50 border-t border-stone-200 flex flex-wrap items-center justify-between text-xs text-stone-500'>
                 <div className='font-semibold text-stone-700'>
-                  {t('revenueView.cumulativeTotal', 'Tổng tích lũy')} {chapters.length} chương:{' '}
+                  {t('revenueView.cumulativeTotalWithCount', { count: chapters.length })}{' '}
                   <span className='text-orange-700 font-mono font-bold text-sm'>—</span>
                 </div>
               </div>

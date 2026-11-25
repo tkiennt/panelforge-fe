@@ -143,7 +143,14 @@
     "alignLeftAriaLabel": "Align left",
     "alignCenterAriaLabel": "Align center",
     "alignRightAriaLabel": "Align right",
-    "deleteBalloon": "Delete balloon"
+    "deleteBalloon": "Delete balloon",
+    "keepOut": {
+      "collisionTitle": "Balloon overlaps keep-out zone",
+      "collisionPrefix": "This balloon overlaps",
+      "defaultTarget": "character face/hands",
+      "collisionSuffix": ". Move the balloon or click the suggest button below.",
+      "suggestPositionBtn": "Suggest clearest position"
+    }
   },
   "deskLayout": {
     "justNow": "Just now",
@@ -895,5 +902,33 @@
     "thought": "Thought Bubble",
     "narration": "Narration Box",
     "sfx": "SFX"
+  },
+  "keepOut": {
+    "noPermissionOnPage": "You do not have permission to edit keep-out zones on this page",
+    "pageNotCreatedTitle": "Page not created yet",
+    "pageNotCreatedDesc": "Create the page on the server before saving keep-out zones.",
+    "saveFailedTitle": "Could not save keep-out zones",
+    "maxZonesError": "Maximum {max} keep-out zones per page.",
+    "conflictDefaultMsg": "Keep-out zones were updated by someone else. Reload and try again.",
+    "chapterReadOnlyTitle": "Chapter is read-only",
+    "conflictTitle": "Keep-out zones changed — please reload",
+    "invalidDataDesc": "Invalid keep-out zone data.",
+    "noPermissionTitle": "You do not have permission to edit keep-out zones",
+    "tryAgainLater": "Please try again in a moment.",
+    "defaultZoneLabel": "Keep-out {index}",
+    "addedTitle": "Keep-out zone added",
+    "addedDesc": "{label} ({width}×{height}px) has been saved.",
+    "deletedTitle": "Keep-out zone deleted",
+    "deletedDesc": "Speech balloons can now be placed in this area.",
+    "zoneFallbackLabel": "Keep-out",
+    "zoneFallbackLower": "keep-out zone",
+    "deleteZoneAria": "Delete {label}",
+    "deleteZoneTitle": "Delete this keep-out zone",
+    "drawLayerTitle": "Drag on the page to draw a keep-out zone (Esc to exit)",
+    "balloonMovedTitle": "Balloon moved",
+    "balloonMovedDesc": "Selected the clearest position avoiding keep-out zones.",
+    "balloonMoveFailedTitle": "Could not move balloon",
+    "loadFailed": "Could not load page keep-out zones.",
+    "saveFailed": "Failed to save keep-out zones."
   }
 }

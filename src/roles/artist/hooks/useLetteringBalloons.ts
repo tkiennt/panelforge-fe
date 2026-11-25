@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from '@/lib/i18n';
+import { translate, useTranslation } from '@/lib/i18n';
 import type { PageDto } from '@/services/page.service';
 import {
   elementService,
@@ -890,14 +890,20 @@ export function useLetteringBalloons(
         if (res?.elementVersion) {
           updateElement(elementId, (item) => ({ ...item, version: res.elementVersion }));
         }
-        toast.success('Đã dời bóng thoại', 'Đã chọn vị trí thoáng nhất tránh vùng cấm.');
+        toast.success(
+          translate('artist.keepOut.balloonMovedTitle'),
+          translate('artist.keepOut.balloonMovedDesc'),
+        );
       } catch (err: any) {
         updateElement(elementId, (item) => ({ ...item, ...prevPos }));
         if (isForbiddenError(err)) {
           notifyForbidden(err);
           return;
         }
-        toast.error?.('Không thể dời bóng thoại', err?.message || 'Thử lại sau ít phút.');
+        toast.error?.(
+          translate('artist.keepOut.balloonMoveFailedTitle'),
+          err?.message || translate('artist.keepOut.tryAgainLater'),
+        );
       }
     },
     [selectedPage?.id, readOnly, notifyForbidden, pageElements, clampToPanel, updateElement, toast],

@@ -938,7 +938,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             }`}
           >
             <AlertTriangle className='w-3.5 h-3.5 text-rose-600' />
-            <span>Yêu cầu vẽ lại ({draftRequestCount + liveCrCount})</span>
+            <span>
+              {t('artworkReview.toolbar.reworkCount', { count: draftRequestCount + liveCrCount })}
+            </span>
           </button>
 
           <div className='flex items-center rounded-full border border-stone-200 bg-white'>

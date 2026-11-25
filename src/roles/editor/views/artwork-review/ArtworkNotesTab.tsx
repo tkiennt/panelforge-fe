@@ -185,7 +185,7 @@ export const ArtworkNotesTab: React.FC<{
               id='selected-panel-badge'
               className='text-[11px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'
             >
-              Đang chọn: Khung #1
+              {t('artworkReview.notes.selectedPanelBadge', { number: 1 })}
             </span>
           </div>
           <p className='mt-0.5 text-xs text-stone-500'>{t('artworkReview.notes.draftsHint')}</p>

@@ -286,7 +286,7 @@ export const pageService = {
       const response = await axiosClient.get(`/pages/${validPageId}/keep-out-zones`);
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Không tải được vùng cấm chữ của trang.');
+      throw await toPageError(error, translate('artist.keepOut.loadFailed'));
     }
   },
 
@@ -300,7 +300,7 @@ export const pageService = {
       const response = await axiosClient.put(`/pages/${validPageId}/keep-out-zones`, body);
       return response.data;
     } catch (error) {
-      throw await toPageError(error, 'Lưu vùng cấm chữ thất bại.');
+      throw await toPageError(error, translate('artist.keepOut.saveFailed'));
     }
   },
 };

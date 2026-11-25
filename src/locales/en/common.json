@@ -612,5 +612,7 @@
   "success": "Success",
   "errorOccurred": "An error occurred",
   "noOpenSlotForPage": "No open task slot for this page.",
-  "noOpenSlotForPageStage": "No open task slot for this stage on the page."
+  "noOpenSlotForPageStage": "No open task slot for this stage on the page.",
+  "details": "Details",
+  "noResults": "No results found"
 }

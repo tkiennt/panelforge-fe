@@ -1982,6 +1982,10 @@
     "total": "total",
     "variant": "Variant",
     "visualDescriptionRequired": "Description & Visual Traits *",
-    "waitingForConfirmation": "Awaiting confirmation"
+    "waitingForConfirmation": "Awaiting confirmation",
+    "noCharactersInChapter": "No characters in this chapter yet.",
+    "mainCharacter": "Character",
+    "lockedStatus": "Locked",
+    "pendingStatus": "Pending lock"
   }
 }

@@ -143,7 +143,14 @@
     "alignLeftAriaLabel": "Căn trái",
     "alignCenterAriaLabel": "Căn giữa",
     "alignRightAriaLabel": "Căn phải",
-    "deleteBalloon": "Xóa thoại"
+    "deleteBalloon": "Xóa thoại",
+    "keepOut": {
+      "collisionTitle": "Bóng thoại che vùng cấm",
+      "collisionPrefix": "Bóng thoại đang che khuất",
+      "defaultTarget": "mặt/tay nhân vật",
+      "collisionSuffix": ". Hãy dời bóng thoại hoặc bấm nút gợi ý bên dưới.",
+      "suggestPositionBtn": "Gợi ý vị trí thoáng nhất"
+    }
   },
   "deskLayout": {
     "justNow": "Vừa xong",
@@ -895,5 +902,33 @@
     "thought": "Suy nghĩ",
     "narration": "Dẫn truyện",
     "sfx": "SFX"
+  },
+  "keepOut": {
+    "noPermissionOnPage": "Bạn không có quyền chỉnh sửa vùng cấm trên trang này",
+    "pageNotCreatedTitle": "Trang chưa được tạo",
+    "pageNotCreatedDesc": "Hãy tạo trang thật trên máy chủ trước khi lưu vùng cấm chữ.",
+    "saveFailedTitle": "Không lưu được vùng cấm",
+    "maxZonesError": "Tối đa {max} vùng cấm mỗi trang.",
+    "conflictDefaultMsg": "Vùng cấm chữ đã được người khác cập nhật. Tải lại rồi thử lại.",
+    "chapterReadOnlyTitle": "Chương đang ở chế độ chỉ đọc",
+    "conflictTitle": "Vùng cấm đã thay đổi — vui lòng tải lại",
+    "invalidDataDesc": "Dữ liệu vùng cấm không hợp lệ.",
+    "noPermissionTitle": "Bạn không có quyền chỉnh sửa vùng cấm",
+    "tryAgainLater": "Thử lại sau ít phút.",
+    "defaultZoneLabel": "Vùng cấm {index}",
+    "addedTitle": "Đã thêm vùng cấm",
+    "addedDesc": "{label} ({width}×{height}px) đã được lưu.",
+    "deletedTitle": "Đã xoá vùng cấm",
+    "deletedDesc": "Bóng thoại có thể đặt vào khu vực này.",
+    "zoneFallbackLabel": "Vùng cấm",
+    "zoneFallbackLower": "vùng cấm",
+    "deleteZoneAria": "Xoá {label}",
+    "deleteZoneTitle": "Xoá vùng cấm này",
+    "drawLayerTitle": "Kéo chuột trên trang để vẽ vùng cấm chữ (Esc để thoát)",
+    "balloonMovedTitle": "Đã dời bóng thoại",
+    "balloonMovedDesc": "Đã chọn vị trí thoáng nhất tránh vùng cấm.",
+    "balloonMoveFailedTitle": "Không thể dời bóng thoại",
+    "loadFailed": "Không tải được vùng cấm chữ của trang.",
+    "saveFailed": "Lưu vùng cấm chữ thất bại."
   }
 }

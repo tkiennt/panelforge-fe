@@ -612,5 +612,7 @@
   "success": "Thành công",
   "errorOccurred": "Đã xảy ra lỗi",
   "noOpenSlotForPage": "Chưa có công việc đang mở cho trang này.",
-  "noOpenSlotForPageStage": "Chưa có công việc đang mở cho công đoạn này trên trang."
+  "noOpenSlotForPageStage": "Chưa có công việc đang mở cho công đoạn này trên trang.",
+  "details": "Chi tiết",
+  "noResults": "Không tìm thấy kết quả"
 }

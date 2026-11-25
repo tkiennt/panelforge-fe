@@ -848,7 +848,11 @@
     },
     "seriesFallback": "Series",
     "startProductionToastTitle": "Production started",
-    "startProductionToastDesc": "The chapter has moved to the sketching stage."
+    "startProductionToastDesc": "The chapter has moved to the sketching stage.",
+    "draftTitle": "Draft",
+    "selectChapter": "Select chapter",
+    "chapterSelectLabel": "Chapter:",
+    "loadingChapters": "Loading chapters..."
   },
   "revenueView": {
     "title": "Revenue & Reader Analytics",
@@ -866,6 +870,13 @@
     "thDigital": "Digital Revenue",
     "thTotal": "Total Revenue (VND)",
     "thStatus": "Review & Status",
-    "cumulativeTotal": "Cumulative Total"
+    "cumulativeTotal": "Cumulative Total",
+    "loadError": "Unable to load statistics",
+    "viewsUnit": "views",
+    "uniqueReaders": "{count} unique readers",
+    "chapterCount": "{count} chapters",
+    "emptyChapters": "No chapters in this series yet.",
+    "chapterMeta": "Chapter {number} • {status}",
+    "cumulativeTotalWithCount": "Cumulative total ({count} chapters):"
   }
 }
