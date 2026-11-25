@@ -337,6 +337,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [versionsTick, setVersionsTick] = useState(0);
   const [drawerRefreshTick, setDrawerRefreshTick] = useState(0);
   const [workingCopySyncTick, setWorkingCopySyncTick] = useState(0);
+  const [isScriptDirty, setIsScriptDirty] = useState(false);
   const flowDirtyRef = useRef(false);
   const reloadInFlightRef = useRef<{ chapterId: string; promise: Promise<void> } | null>(null);
   const [hasUnpushedChanges, setHasUnpushedChanges] = useState(false);
@@ -533,7 +534,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     toggleRightDrawer,
   } = useScriptDrawers({
     initialLeftDrawer:
-      isTestEnvironment || (typeof window !== 'undefined' && window.innerWidth >= 1280)
+      !isTestEnvironment && typeof window !== 'undefined' && window.innerWidth >= 1280
         ? 'scenes'
         : null,
   });
@@ -1985,6 +1986,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
           <span className='font-mono text-stone-400 text-xs hidden sm:inline'>Ctrl+S</span>
 
+          {isScriptDirty && (
+            <span
+              data-testid='unsaved-badge'
+              className='px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-medium'
+            >
+              Chưa lưu
+            </span>
+          )}
+
           {canEditScript && !isChapterLocked && (
             <button
               type='button'
@@ -2011,6 +2021,65 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* 2.5 Banners (Frozen / Blocked / Conflict) */}
+      {isScriptFrozen && (
+        <div
+          data-testid='script-frozen-banner'
+          role='alert'
+          className='w-full bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-900 flex items-center justify-between select-none'
+        >
+          <span>
+            {t(
+              'writer.scriptEditor.scriptFrozenBanner',
+              'Kịch bản chương này đã đóng băng (Frozen).',
+            )}
+          </span>
+          <span className='text-amber-700 font-mono'>
+            Thẻ xem nhanh vẫn dùng được qua hover hoặc Ctrl+.
+          </span>
+        </div>
+      )}
+
+      {isStartBlocked && (
+        <div
+          data-testid='start-blocked-banner'
+          role='alert'
+          className='w-full bg-rose-50 border-b border-rose-200 px-4 py-2 text-xs text-rose-900 flex items-center justify-between select-none'
+        >
+          <span>
+            {t(
+              'writer.scriptEditor.startBlockedBanner',
+              'Chưa thể bắt đầu sản xuất do có thực thể chưa khoá Canon.',
+            )}
+          </span>
+          <Link
+            to={
+              workspaceId && seriesId ? `/workspaces/${workspaceId}/series/${seriesId}/bible` : '#'
+            }
+            className='text-orange-600 font-semibold underline hover:text-orange-700'
+          >
+            Mở Series Bible để duyệt Canon
+          </Link>
+        </div>
+      )}
+
+      {concurrencyError && (
+        <div
+          data-testid='concurrency-error-banner'
+          role='alert'
+          className='w-full bg-rose-50 border-b border-rose-200 px-4 py-2 text-xs text-rose-900 flex items-center justify-between select-none'
+        >
+          <span>{concurrencyError}</span>
+          <button
+            type='button'
+            onClick={() => void handleReloadLatestWorkingCopy()}
+            className='text-orange-600 font-semibold underline hover:text-orange-700 cursor-pointer'
+          >
+            Tải lại
+          </button>
+        </div>
+      )}
 
       {/* 3. Bàn viết: ngăn kéo phân cảnh (trái) | editor surface (giữa) | drawers (phải) */}
       <div className='flex-1 flex overflow-hidden relative'>
@@ -2142,6 +2211,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               syncRevision={workingCopySyncTick}
               onDirtyChange={(dirty) => {
                 flowDirtyRef.current = dirty;
+                setIsScriptDirty(dirty);
               }}
               registerSave={registerEditorSave}
               registerGetPayload={(fn) => {

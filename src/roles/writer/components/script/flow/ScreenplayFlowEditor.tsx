@@ -348,27 +348,27 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         setActive(activeElement(ed));
         const parent = ed.state.selection.$from.parent;
         const refId = parent.attrs?.refId ? String(parent.attrs.refId) : '';
-        setActiveDialogueLineId(
+        if (
           parent.attrs?.el === 'dialogue' &&
-            Boolean(parent.textContent.trim()) &&
-            Boolean(refId) &&
-            !refId.startsWith('wc-')
-            ? refId
-            : null,
-        );
+          Boolean(parent.textContent.trim()) &&
+          Boolean(refId) &&
+          !refId.startsWith('wc-')
+        ) {
+          setActiveDialogueLineId(refId);
+        }
       },
       onTransaction: ({ editor: ed }) => {
         setActive(activeElement(ed));
         const parent = ed.state.selection.$from.parent;
         const refId = parent.attrs?.refId ? String(parent.attrs.refId) : '';
-        setActiveDialogueLineId(
+        if (
           parent.attrs?.el === 'dialogue' &&
-            Boolean(parent.textContent.trim()) &&
-            Boolean(refId) &&
-            !refId.startsWith('wc-')
-            ? refId
-            : null,
-        );
+          Boolean(parent.textContent.trim()) &&
+          Boolean(refId) &&
+          !refId.startsWith('wc-')
+        ) {
+          setActiveDialogueLineId(refId);
+        }
         const m = getElementMenu(ed.state);
         if (!m.open) {
           setMenu(null);
@@ -536,7 +536,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   }, [editor, serverDocJson, syncRevision, markDirty]);
 
   const handleSave = useCallback(async (): Promise<boolean> => {
-    if (!editor || isReadOnly || !dirtyRef.current) return true;
+    if (!editor || isReadOnly) return true;
     if (savingRef.current || isSaving) return false;
     savingRef.current = true;
     setIsSaving(true);

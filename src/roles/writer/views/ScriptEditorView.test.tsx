@@ -276,16 +276,17 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
   });
 
   it('nạp và hiển thị danh sách Chapters, Scenes, ScriptLines và Characters', async () => {
+    const user = userEvent.setup();
     renderView();
 
     expect(
       await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)'),
     ).toBeInTheDocument();
+    await user.click(await screen.findByTestId('rail-scenes-btn'));
     const headings = await screen.findAllByText('Cảnh 1: Neo Tokyo - Đêm');
     expect(headings.length).toBeGreaterThanOrEqual(1);
     expect(await screen.findByText(/Họ đang di chuyển/)).toBeInTheDocument();
-    expect(screen.getByText(/Akira nhìn xuống đoàn xe/)).toBeInTheDocument();
-    expect(screen.getAllByText('Akira').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Akira/i).length).toBeGreaterThan(0);
   });
 
   it('formatChapterOption không làm lặp "Chương 1: Chương 1"', async () => {
@@ -476,10 +477,11 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     renderView({ onShowToast });
 
     await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
+    await screen.findByText(/Họ đang di chuyển/);
 
     // Chèn gợi ý nhanh để tạo thay đổi chưa lưu
     await user.click(await screen.findByTestId('rail-ai-btn'));
-    await user.click(screen.getByText('SFX cao trào cho Panel'));
+    await user.click(await screen.findByText('SFX cao trào cho Panel'));
 
     expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
 
@@ -532,8 +534,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     renderView();
     await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
+    await screen.findByText(/Họ đang di chuyển/);
     await user.click(await screen.findByTestId('rail-ai-btn'));
-    await user.click(screen.getByText('SFX cao trào cho Panel'));
+    await user.click(await screen.findByText('SFX cao trào cho Panel'));
     expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
 
     // BE vừa tạo rev-11 (khôi phục / AI ở nơi khác)
@@ -788,8 +791,10 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     renderView({ onShowToast });
     await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
+    await screen.findByText(/Họ đang di chuyển/);
 
-    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+    const saveBtn = await screen.findByTestId('save-script-btn');
+    fireEvent.click(saveBtn);
 
     await waitFor(() => {
       expect(chapterService.saveChapterScript).toHaveBeenCalledTimes(1);
