@@ -46,7 +46,7 @@ import {
   resolveReworkDecisionComments,
   resolveReworkReasonDisplay,
 } from '@/types';
-import { formatPageRangeLabel } from './productionBoard.utils';
+import { canHoldStageRole, formatPageRangeLabel } from './productionBoard.utils';
 import { useTranslation } from '@/lib/i18n';
 import { chapterService } from '@/services/chapter.service';
 import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
@@ -408,9 +408,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
   const eligibleAssignees = useMemo(() => {
     if (!requiredRoleForSelection) return activeMembers;
-    return activeMembers.filter(
-      (m) => String(m.role || '').toUpperCase() === requiredRoleForSelection,
-    );
+    return activeMembers.filter((m) => canHoldStageRole(requiredRoleForSelection, m.role));
   }, [activeMembers, requiredRoleForSelection]);
 
   const toggleSelectUnassigned = (taskId: string) => {
@@ -877,10 +875,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   };
 
   const openReassignForm = (task: StageTaskDto, stage: TaskGridStageDto) => {
-    const allowedUpper = stage.allowedRole ? String(stage.allowedRole).toUpperCase() : null;
-    const candidates = activeMembers.filter(
-      (m) => !allowedUpper || String(m.role || '').toUpperCase() === allowedUpper,
-    );
+    const candidates = activeMembers.filter((m) => canHoldStageRole(stage.allowedRole, m.role));
     const defaultCandidate =
       candidates.find((m) => m.userId !== task.assigneeUserId) ?? candidates[0];
     const currentLot = task.lotId ? grid?.lots.find((l) => l.id === task.lotId) : undefined;
@@ -2031,11 +2026,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             >
               <option value=''>{t('taskGridV3.selectMemberPlaceholder')}</option>
               {activeMembers
-                .filter(
-                  (m) =>
-                    !stage.allowedRole ||
-                    String(m.role || '').toUpperCase() === String(stage.allowedRole).toUpperCase(),
-                )
+                .filter((m) => canHoldStageRole(stage.allowedRole, m.role))
                 .map((m) => (
                   <option key={m.userId} value={m.userId}>
                     {m.fullName || m.email.split('@')[0]} ({m.role})

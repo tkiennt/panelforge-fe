@@ -483,7 +483,13 @@
     "scriptCoverageLabel": "Script Coverage: {covered}/{total} lines · {percent}%",
     "scriptCoverageLockedHint": " — Pencil Submit is locked until all dialogue lines are mapped to panels.",
     "readOnlyBanner": "Read-only mode — You have no open slot for this page",
-    "pageLabel": "Page {page}"
+    "pageLabel": "Page {page}",
+    "readyToStartBanner": "Your {stage} work on this page is ready — press Start to begin editing",
+    "startCellBtn": "Start work",
+    "startingCell": "Starting…",
+    "startCellSuccessTitle": "Started",
+    "startCellSuccessDesc": "You can now edit the {stage} stage on this page.",
+    "startCellErrorTitle": "Could not start"
   },
   "canvaSidebar": {
     "narrationFlashback": "Flashback",

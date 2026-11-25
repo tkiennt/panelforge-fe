@@ -234,7 +234,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     Record<string, PanelDto[]>
   >({});
   const [panelPageMap, setPanelPageMap] = useState<
-    Record<string, { pageId?: string; pageNumber: number; panelNumber: number; sceneId?: string | null }>
+    Record<
+      string,
+      { pageId?: string; pageNumber: number; panelNumber: number; sceneId?: string | null }
+    >
   >({});
   const [rawBibleEntries, setRawBibleEntries] = useState<BibleEntryDto[]>([]);
   const [hasLoadedRealBible, setHasLoadedRealBible] = useState(false);
@@ -459,12 +462,21 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             );
             if (assignedCells.length === 0) return;
 
-            const activeCell = assignedCells.find(
-              (t) =>
-                t.status === 'InProgress' ||
-                t.status === 'ReworkRequired' ||
-                t.status === 'Assigned',
-            );
+            // Ưu tiên ô đang làm/đang sửa, rồi ô đã đến lượt bắt đầu, rồi ô đã giao; cùng hạng thì theo thứ tự công đoạn.
+            // (Artist có thể giữ cả Pencil, Ink và Lettering của cùng trang — BR-31.)
+            const cellRank = (t: (typeof assignedCells)[number]) =>
+              t.status === 'InProgress' || t.status === 'ReworkRequired'
+                ? 0
+                : t.status === 'Assigned' && t.isStartable
+                  ? 1
+                  : t.status === 'Assigned'
+                    ? 2
+                    : 9;
+            const stageOrder = (t: (typeof assignedCells)[number]) =>
+              artistStages.findIndex((s) => s.id === t.pipelineStageId);
+            const activeCell = [...assignedCells]
+              .filter((t) => cellRank(t) < 9)
+              .sort((a, b) => cellRank(a) - cellRank(b) || stageOrder(a) - stageOrder(b))[0];
             if (activeCell) {
               const idx = artistStages.findIndex((s) => s.id === activeCell.pipelineStageId);
               if (idx >= 0) {
@@ -1956,6 +1968,49 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     };
   }, [gridTasks, selectedPage, workspaceRole, currentStage?.id]);
 
+  // Ô của công đoạn hiện tại trên trang này đã giao cho mình và đến lượt làm nhưng chưa bấm Bắt đầu
+  const startableCurrentCell = useMemo(() => {
+    if (!isPageReadOnly || !selectedPage || !currentStage?.id) return null;
+    const me = getStoredCurrentUserId();
+    return (
+      gridTasks.find(
+        (t) =>
+          t.pipelineStageId === currentStage.id &&
+          (t.pageId === selectedPage.id || !t.pageId) &&
+          t.status === 'Assigned' &&
+          t.isStartable &&
+          (!me || t.assigneeUserId === me),
+      ) ?? null
+    );
+  }, [isPageReadOnly, selectedPage, currentStage?.id, gridTasks]);
+  const [isStartingCell, setIsStartingCell] = useState(false);
+
+  const handleStartCurrentCell = async () => {
+    if (!startableCurrentCell || !currentChapterId || isStartingCell) return;
+    setIsStartingCell(true);
+    try {
+      const started = await assignmentService.startStageTask(
+        currentChapterId,
+        startableCurrentCell.id,
+      );
+      setGridTasks((prev) =>
+        prev.map((t) =>
+          t.id === startableCurrentCell.id
+            ? { ...t, ...started, id: t.id, status: started?.status ?? 'InProgress' }
+            : t,
+        ),
+      );
+      toast.success(
+        t('artist.deskView.startCellSuccessTitle'),
+        t('artist.deskView.startCellSuccessDesc', { stage: currentStage?.label ?? '' }),
+      );
+    } catch (err: any) {
+      toast.error(t('artist.deskView.startCellErrorTitle'), err?.message || '');
+    } finally {
+      setIsStartingCell(false);
+    }
+  };
+
   const activeReworkDisplay = useMemo(() => {
     if (gridTasks.length === 0) return null;
     const me = getStoredCurrentUserId();
@@ -2882,7 +2937,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 { lang: activeLang.toUpperCase() },
                 `Chế độ dịch (${activeLang.toUpperCase()}) — Cho phép chỉnh sửa bản dịch; khung tranh và chữ gốc chỉ đọc`,
               )
-            : t('artist.deskView.readOnlyBanner')}
+            : startableCurrentCell
+              ? t('artist.deskView.readyToStartBanner', { stage: currentStage?.label ?? '' })
+              : t('artist.deskView.readOnlyBanner')}
+          {startableCurrentCell && !canEditCurrentTranslation && (
+            <button
+              type='button'
+              data-testid='artist-start-cell-btn'
+              disabled={isStartingCell}
+              onClick={() => void handleStartCurrentCell()}
+              className='ml-3 inline-flex items-center rounded-md bg-orange-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-60'
+            >
+              {isStartingCell
+                ? t('artist.deskView.startingCell')
+                : t('artist.deskView.startCellBtn')}
+            </button>
+          )}
         </div>
       )}
 

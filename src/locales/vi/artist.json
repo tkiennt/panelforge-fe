@@ -483,7 +483,13 @@
     "scriptCoverageLabel": "Script Coverage: {covered}/{total} dòng thoại · {percent}%",
     "scriptCoverageLockedHint": " — Submit Pencil bị khóa đến khi mọi dòng thoại được ánh xạ vào khung.",
     "readOnlyBanner": "Chế độ chỉ đọc — Bạn không có ô đang mở cho trang này",
-    "pageLabel": "Trang {page}"
+    "pageLabel": "Trang {page}",
+    "readyToStartBanner": "Đến lượt bạn làm công đoạn {stage} trên trang này — bấm Bắt đầu để mở chỉnh sửa",
+    "startCellBtn": "Bắt đầu làm",
+    "startingCell": "Đang mở…",
+    "startCellSuccessTitle": "Đã bắt đầu",
+    "startCellSuccessDesc": "Bạn có thể chỉnh sửa công đoạn {stage} ngay trên trang này.",
+    "startCellErrorTitle": "Không bắt đầu được"
   },
   "canvaSidebar": {
     "narrationFlashback": "Hồi tưởng",
