@@ -215,7 +215,11 @@
       "AssignmentOverdue": "Overdue",
       "ChangeRequestDueSoon": "Fix Due Soon",
       "ChangeRequestOverdue": "Fix Overdue",
-      "AssignmentReady": "Your Turn"
+      "AssignmentReady": "Your Turn",
+      "ExportCompleted": "Export ready",
+      "ExportFailed": "Export failed",
+      "ChapterHandedOff": "Chapter handed off",
+      "WorkspaceInvitation": "Studio invitation"
     },
     "defaultLabel": "Notification",
     "bellAriaUnread": "Notifications, {count} unread",
@@ -223,7 +227,9 @@
     "tabAll": "All",
     "tabUnread": "Unread ({count})",
     "markAllRead": "Mark all as read",
-    "empty": "No notifications yet."
+    "empty": "No notifications yet.",
+    "invitationTitle": "Invited to {workspace} ({role})",
+    "invitationDesc": "From {owner} · click to accept or decline"
   },
   "bibleDrawer": {
     "loadPanelError": "Failed to load character designs for this panel.",
