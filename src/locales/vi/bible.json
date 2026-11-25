@@ -894,7 +894,22 @@
     "notApprovedYet": "Chưa duyệt",
     "ageAndBirth": "Độ tuổi & Ngày sinh:",
     "heightAndWeight": "Chiều cao & Cân nặng:",
-    "buildAndRatio": "Thể trạng & Tỷ lệ:"
+    "buildAndRatio": "Thể trạng & Tỷ lệ:",
+    "hairColor": "Màu tóc:",
+    "eyeColor": ". Mắt:",
+    "identifyingMarks": "Vết sẹo nhận diện:",
+    "artistTipLocationDesc": "Khi dán trame mưa đêm, sử dụng nét gạch xiên song song 65 độ, không để mảng đen che lấp vết nứt lò phản ứng dưới lòng đường.",
+    "overallDimensions": "Kích thước tổng thể",
+    "drawnWeight": "Trọng lượng khi rút kiếm",
+    "screenToneEffect": "Hiệu ứng tia sáng trame",
+    "artistTipPropDesc": "Khi chém vào vật thể kim loại, viền nét kiếm không để đứt đoạn mà dùng nét brush xòe kết hợp tia lửa điện văng 4 góc.",
+    "styleRulesTitle": "Quy chuẩn mỹ thuật & Thiết lập thế giới",
+    "immutableConstraint": "Ràng buộc bất biến:",
+    "statusCanonLocked": "Đã khóa Canon",
+    "statusWaitingInker": "Chờ nét in",
+    "statusReworkNeeded": "Cần sửa",
+    "reworkComment": "Nhận xét sửa:",
+    "lockCanonBtn": "Khóa chuẩn"
   },
   "isCrowdHelp": "Thực thể quần chúng không bắt buộc Model Sheet",
   "crowd": {
