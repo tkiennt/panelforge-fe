@@ -3,6 +3,7 @@ import { render, screen, waitFor, within, cleanup, fireEvent, act } from '@testi
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ScriptEditorView } from './ScriptEditorView';
+import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
 import { scriptLineService } from '@/services/scriptLine.service';
 import { chapterService } from '@/services/chapter.service';
 import { bibleService } from '@/services/bible.service';
@@ -147,6 +148,12 @@ const mockSceneDetail = {
       lineOrder: 1,
       speakerLabel: 'Akira',
       dialogueText: 'Họ đang di chuyển. Chuẩn bị đi!',
+      panelId: null,
+    },
+    {
+      id: 'line-2',
+      lineOrder: 2,
+      kind: 'Action' as const,
       stageDirection: 'Akira nhìn xuống đoàn xe',
       panelId: null,
     },
@@ -285,7 +292,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(headings.length).toBeGreaterThanOrEqual(1);
     expect(await screen.findByText(/Họ đang di chuyển/)).toBeInTheDocument();
     expect(screen.getByText(/Akira nhìn xuống đoàn xe/)).toBeInTheDocument();
-    expect(screen.getAllByText('Akira').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Akira/i).length).toBeGreaterThan(0);
   });
 
   it('formatChapterOption không làm lặp "Chương 1: Chương 1"', async () => {
@@ -477,9 +484,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
 
-    // Chèn gợi ý nhanh để tạo thay đổi chưa lưu
+    // Chèn mẫu định dạng nhanh để tạo thay đổi chưa lưu
     await user.click(await screen.findByTestId('rail-ai-btn'));
-    await user.click(screen.getByText('SFX cao trào cho Panel'));
+    await user.click(screen.getByTestId('quick-template-sfx'));
 
     expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
 
@@ -533,7 +540,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     renderView();
     await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
     await user.click(await screen.findByTestId('rail-ai-btn'));
-    await user.click(screen.getByText('SFX cao trào cho Panel'));
+    await user.click(screen.getByTestId('quick-template-sfx'));
     expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
 
     // BE vừa tạo rev-11 (khôi phục / AI ở nơi khác)
@@ -958,6 +965,162 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       expect(
         (await screen.findAllByText('Kịch bản chương này đã đóng băng (Frozen).')).length,
       ).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('TASK-357 / TASK-358: Mẫu nhanh định dạng & AI Copilot sinh dòng tiếp theo', () => {
+    it('Mẫu nhanh chèn khung trống sạch, không chứa câu thoại mẫu cứng (Kael/SHAKIIIIN!!) hay nhãn Beta giả AI', async () => {
+      const user = userEvent.setup();
+      renderView({ workspaceRole: 'WRITER' });
+      await screen.findByText(/Họ đang di chuyển/);
+
+      const triggerBtn = await screen.findByTestId('rail-ai-btn');
+      expect(triggerBtn).toHaveTextContent('Mẫu & AI');
+      await user.click(triggerBtn);
+
+      expect(screen.queryByText('Beta')).not.toBeInTheDocument();
+      expect(screen.queryByText(/GỢI Ý NHANH THEO NGỮ CẢNH/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Kael/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/SHAKIIIIN/i)).not.toBeInTheDocument();
+
+      await user.click(screen.getByTestId('quick-template-dialogue'));
+
+      expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
+      const sheet = screen.getByTestId('paper-editor-sheet');
+      expect(sheet.textContent).not.toMatch(/Kael|Cổng đã đồng bộ|SHAKIIIIN/);
+    });
+
+    it('ẩn huy hiệu AI trên nút nổi khi ScreenplayFlowEditor không nhận callback AI thật', async () => {
+      const user = userEvent.setup();
+      render(
+        <ScreenplayFlowEditor
+          chapterId='chap-standalone'
+          scenes={[mockSceneDetail as any]}
+          pages={[]}
+          panels={[]}
+          canEditScript={true}
+          isChapterLocked={false}
+          onSave={vi.fn()}
+        />,
+      );
+
+      const triggerBtn = await screen.findByTestId('rail-ai-btn');
+      expect(triggerBtn).toHaveTextContent('Mẫu nhanh');
+      expect(within(triggerBtn).queryByText('AI')).not.toBeInTheDocument();
+
+      await user.click(triggerBtn);
+      expect(screen.getByTestId('quick-template-dialogue')).toBeInTheDocument();
+      expect(screen.queryByTestId('ai-next-line-Dialogue')).not.toBeInTheDocument();
+    });
+
+    it('nối nút "Viết nháp kịch bản" và "Phân khung bằng AI" mở AiAssistPanel thật cho Scene đang chọn', async () => {
+      const user = userEvent.setup();
+      vi.spyOn(aiAgentsService, 'getWorkflowAvailability').mockResolvedValue({
+        enabled: true,
+        canRunScript: true,
+        canRunStoryboard: true,
+        reasons: [],
+      } as any);
+      vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([]);
+
+      renderView({ workspaceRole: 'WRITER' });
+      await screen.findByText(/Họ đang di chuyển/);
+
+      await user.click(await screen.findByTestId('rail-ai-btn'));
+      await user.click(screen.getByTestId('open-ai-draft-btn'));
+      expect(await screen.findByText('Trợ lý AI · Viết nháp script')).toBeInTheDocument();
+
+      await user.click(await screen.findByTestId('rail-ai-btn'));
+      await user.click(screen.getByTestId('open-ai-storyboard-btn'));
+      expect(await screen.findByText('Trợ lý AI · Phân khung Storyboard')).toBeInTheDocument();
+    });
+
+    it('bấm gợi ý dòng tiếp theo gọi POST copilot/next-line, hiện SuggestionCard chờ Accept/Reject (BR-02) và tải lại sau Accept', async () => {
+      const user = userEvent.setup();
+      const nextLineSuggestion = {
+        id: 'sug-nl-1',
+        runId: 'run-nl-1',
+        stepId: 'step-nl-1',
+        sceneId: 'sc-1',
+        kind: 'ScriptLineInsert' as const,
+        status: 'Pending' as const,
+        summary: 'Gợi ý 1 dòng Sfx tiếp theo',
+        payload: {
+          schemaVersion: 1,
+          runId: 'run-nl-1',
+          sceneId: 'sc-1',
+          afterLineId: null,
+          kind: 'Sfx' as const,
+          speaker: null,
+          text: 'VÙÙÙ—RẦM!',
+          reason: 'Tiếng gió mưa quất mạnh trên mái nhà Neo Tokyo',
+          allowedSpeakers: ['Akira'],
+        },
+        payloadHash: 'hash-nl-1234',
+        baseChapterVersion: 5,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-11-25T08:00:00Z',
+        decisions: [],
+        canDecide: true,
+        canAccept: true,
+      };
+      const runNextLineSpy = vi
+        .spyOn(aiAgentsService, 'runNextLine')
+        .mockResolvedValueOnce(nextLineSuggestion);
+      const reviewSpy = vi.spyOn(aiAgentsService, 'review').mockResolvedValueOnce({
+        suggestionId: 'sug-nl-1',
+        status: 'Accepted',
+        decisionId: 'dec-nl-1',
+        resultRevisionId: 'rev-nl-1',
+        chapterVersion: 6,
+      });
+
+      renderView({ workspaceRole: 'WRITER' });
+      await screen.findByText(/Họ đang di chuyển/);
+
+      await user.click(await screen.findByTestId('rail-ai-btn'));
+      await user.click(screen.getByTestId('ai-next-line-Sfx'));
+
+      expect(runNextLineSpy).toHaveBeenCalledWith('se-1', {
+        sceneId: 'sc-1',
+        kind: 'Sfx',
+        afterLineId: null,
+      });
+
+      expect(await screen.findByText('Đề xuất Dòng kịch bản mới')).toBeInTheDocument();
+      expect(screen.getAllByText(/VÙÙÙ—RẦM!/).length).toBeGreaterThanOrEqual(1);
+
+      vi.mocked(chapterService.getScriptWorkingCopy).mockResolvedValueOnce({
+        contentHash: 'hash-after-nl',
+        lineCount: 2,
+        rows: [
+          {
+            key: 'line:line-1',
+            type: 'Dialogue',
+            page: 1,
+            panel: 1,
+            label: 'Akira',
+            text: 'Họ đang di chuyển. Chuẩn bị đi!',
+          },
+          {
+            key: 'line:line-3',
+            type: 'Sfx',
+            page: 1,
+            panel: 1,
+            text: 'VÙÙÙ—RẦM!',
+          },
+        ],
+      });
+
+      await user.click(screen.getByRole('button', { name: /Accept \(chèn dòng mới\)/ }));
+
+      expect(reviewSpy).toHaveBeenCalledWith('se-1', 'sug-nl-1', 'accept', {
+        chapterVersion: 5,
+      });
+      await waitFor(() => {
+        expect(chapterService.getScriptWorkingCopy).toHaveBeenCalledWith('chap-1');
+      });
     });
   });
 });

@@ -10,9 +10,10 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { ArrowRight, MessageSquare, Sparkles, X, Zap } from 'lucide-react';
+import { ArrowRight, Clapperboard, FileText, Loader2, MessageSquare, Sparkles, X, Zap } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { SceneDetailDto } from '@/services/scriptLine.service';
+import type { NextLineKind } from '@/services/aiAgents.service';
 import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
 import { ScriptCommentDto } from '@/services/chapter.service';
@@ -21,6 +22,7 @@ import { GN_ELEMENTS } from './grammar/scriptGrammar';
 import {
   BibleRefMark,
   BibleSpeakerRef,
+  GN_LINE,
   GnLabels,
   ScriptDocument,
   ScriptLineBlockNode,
@@ -82,6 +84,15 @@ export interface ScreenplayFlowEditorProps {
   onOpenAiPromptModal?: () => void;
   onOpenAiDraft?: () => void;
   onOpenAiStoryboard?: () => void;
+  selectedSceneId?: string | null;
+  selectedSceneHeading?: string | null;
+  onCaretSceneChange?: (sceneId: string) => void;
+  onRunNextLine?: (params: {
+    sceneId: string;
+    kind: NextLineKind;
+    afterLineId: string | null;
+  }) => void;
+  runningNextLineKind?: NextLineKind | null;
   registerSetPanelStage?: (
     fn:
       | ((
@@ -170,6 +181,11 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   onOpenAiPromptModal,
   onOpenAiDraft,
   onOpenAiStoryboard,
+  selectedSceneId,
+  selectedSceneHeading,
+  onCaretSceneChange,
+  onRunNextLine,
+  runningNextLineKind,
   registerSetPanelStage,
 }) => {
   const { t } = useTranslation('production');
@@ -179,9 +195,34 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [showAiPopover, setShowAiPopover] = useState(false);
   /** Menu chọn loại dòng (Enter trên dòng trống): vị trí neo theo con trỏ + mục đang chọn. */
   const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
+  const [cursorAnchor, setCursorAnchor] = useState<{
+    sceneId: string | null;
+    afterLineId: string | null;
+    rewriteLineId: string | null;
+  }>({ sceneId: null, afterLineId: null, rewriteLineId: null });
   const dirtyRef = useRef(false);
   const loadingRef = useRef(false);
   const savingRef = useRef(false);
+
+  const lineSceneMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const sc of scenes) {
+      for (const l of sc.scriptLines ?? []) {
+        if (l.id && !l.id.startsWith('wc-')) map.set(l.id, sc.id);
+      }
+    }
+    return map;
+  }, [scenes]);
+
+  const lineSceneMapRef = useRef(lineSceneMap);
+  lineSceneMapRef.current = lineSceneMap;
+  const onCaretSceneChangeRef = useRef(onCaretSceneChange);
+  onCaretSceneChangeRef.current = onCaretSceneChange;
+
+  const firstSavedLineId = useMemo(() => {
+    const first = lineSceneMap.keys().next();
+    return first.done ? null : first.value;
+  }, [lineSceneMap]);
 
   const bibleSpeakers = useMemo<BibleSpeakerRef[]>(() => {
     return (allBibleEntries || [])
@@ -314,6 +355,50 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         if (transaction.docChanged && !loadingRef.current) markDirty(true);
       },
       onTransaction: ({ editor: ed }) => {
+        const map = lineSceneMapRef.current;
+        const doc = ed.state.doc;
+        if (doc.childCount > 0) {
+          const curIdx = Math.min(ed.state.selection.$from.index(0), doc.childCount - 1);
+          const cur = doc.child(curIdx);
+          let rewriteLineId: string | null = null;
+          const curRef = cur.attrs.refId as string | null;
+          if (curRef && map.has(curRef)) {
+            rewriteLineId = curRef;
+          } else if (cur.attrs.el === 'character' || cur.attrs.el === 'parens') {
+            for (let j = curIdx + 1; j < doc.childCount; j += 1) {
+              const next = doc.child(j);
+              if (next.attrs.el === 'parens') continue;
+              if (next.attrs.el === 'dialogue' && next.attrs.refId && map.has(next.attrs.refId)) {
+                rewriteLineId = next.attrs.refId as string;
+              }
+              break;
+            }
+          }
+
+          let afterLineId: string | null = rewriteLineId;
+          let matchedSceneId: string | null = rewriteLineId ? (map.get(rewriteLineId) ?? null) : null;
+          if (!afterLineId) {
+            for (let j = curIdx; j >= 0; j -= 1) {
+              const r = doc.child(j).attrs.refId as string | null;
+              if (r && map.has(r)) {
+                afterLineId = r;
+                matchedSceneId = map.get(r) ?? null;
+                break;
+              }
+            }
+          }
+          setCursorAnchor((prev) =>
+            prev.sceneId === matchedSceneId &&
+            prev.afterLineId === afterLineId &&
+            prev.rewriteLineId === rewriteLineId
+              ? prev
+              : { sceneId: matchedSceneId, afterLineId, rewriteLineId },
+          );
+          if (rewriteLineId && matchedSceneId) {
+            onCaretSceneChangeRef.current?.(matchedSceneId);
+          }
+        }
+
         const m = getElementMenu(ed.state);
         if (!m.open) {
           setMenu(null);
@@ -480,33 +565,36 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     }
   }, [editor, serverDocJson, syncRevision, markDirty]);
 
-  const handleSave = useCallback(async (): Promise<boolean> => {
-    if (!editor || isReadOnly || !dirtyRef.current) return true;
-    if (savingRef.current || isSaving) return false;
-    savingRef.current = true;
-    setIsSaving(true);
-    try {
-      const snapshot = docToScript(editor.state.doc, scenes[0]?.id ?? '');
-      const saved = await onSave(snapshot);
-      if (saved === false) {
+  const handleSave = useCallback(
+    async (force = false): Promise<boolean> => {
+      if (!editor || isReadOnly || (!force && !dirtyRef.current)) return true;
+      if (savingRef.current || isSaving) return false;
+      savingRef.current = true;
+      setIsSaving(true);
+      try {
+        const snapshot = docToScript(editor.state.doc, scenes[0]?.id ?? '');
+        const saved = await onSave(snapshot);
+        if (saved === false) {
+          markDirty(true);
+          return false;
+        }
+        markDirty(false);
+        return true;
+      } catch (err: any) {
         markDirty(true);
+        onShowToast?.(t('scriptStudio.gn.saveFailed'), err?.message ?? '');
         return false;
+      } finally {
+        savingRef.current = false;
+        setIsSaving(false);
       }
-      markDirty(false);
-      return true;
-    } catch (err: any) {
-      markDirty(true);
-      onShowToast?.(t('scriptStudio.gn.saveFailed'), err?.message ?? '');
-      return false;
-    } finally {
-      savingRef.current = false;
-      setIsSaving(false);
-    }
-  }, [editor, isReadOnly, isSaving, scenes, onSave, onShowToast, t, markDirty]);
+    },
+    [editor, isReadOnly, isSaving, scenes, onSave, onShowToast, t, markDirty],
+  );
 
   useEffect(() => {
     if (!registerSave) return;
-    registerSave(handleSave);
+    registerSave(() => handleSave(false));
     return () => registerSave(null);
   }, [registerSave, handleSave]);
 
@@ -521,12 +609,47 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        void handleSave();
+        void handleSave(true);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [handleSave]);
+
+  const insertQuickTemplate = useCallback(
+    (kind: 'dialogue' | 'sfx' | 'action') => {
+      if (!editor || isReadOnly) return;
+      if (editor.state.selection.$from.parent.type.name !== GN_LINE) {
+        editor.commands.focus('end');
+      }
+      const { state, view } = editor;
+      const { $from } = state.selection;
+      if ($from.parent.type.name !== GN_LINE) return;
+      const after = $from.before() + $from.parent.nodeSize;
+      const lineType = state.schema.nodes[GN_LINE];
+      const nodes =
+        kind === 'dialogue'
+          ? [
+              lineType.create({ el: 'character', refId: null }),
+              lineType.create({ el: 'dialogue', refId: null }),
+            ]
+          : [lineType.create({ el: kind, refId: null })];
+      const tr = state.tr.insert(after, nodes);
+      tr.setSelection(TextSelection.create(tr.doc, after + 1)).scrollIntoView();
+      view.dispatch(tr);
+      editor.view.focus();
+      setShowAiPopover(false);
+    },
+    [editor, isReadOnly],
+  );
+
+  const effectiveRewriteLineId = cursorAnchor.rewriteLineId ?? firstSavedLineId;
+  const targetSceneId = cursorAnchor.sceneId ?? selectedSceneId ?? scenes[0]?.id ?? null;
+  const targetAfterLineId =
+    cursorAnchor.sceneId && cursorAnchor.sceneId === targetSceneId ? cursorAnchor.afterLineId : null;
+  const hasRealAi = Boolean(
+    onRunNextLine || onOpenAiDraft || onOpenAiStoryboard || onOpenAiPromptModal,
+  );
 
   // Cảnh báo khi rời trang còn chữ chưa lưu
   useEffect(() => {
@@ -559,7 +682,44 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           data-testid='paper-editor-sheet'
           className='gn-sheet w-full max-w-[760px] flex flex-col font-mono text-[#18181B] text-[13.5px] leading-relaxed cursor-text'
         >
-          <div className='border-b border-stone-200/80 pb-3 mb-6 select-none w-full'>
+          <div className='border-b border-stone-200/80 pb-3 mb-6 select-none w-full space-y-1.5'>
+            <div className='flex flex-wrap items-center justify-between gap-2 font-sans'>
+              <div className='flex flex-wrap items-center gap-2 min-w-0 text-xs text-stone-700'>
+                {manuscriptTitle && (
+                  <span className='font-serif font-semibold text-stone-900'>{manuscriptTitle}</span>
+                )}
+                {selectedSceneHeading && (
+                  <>
+                    {manuscriptTitle && <span className='text-stone-300'>·</span>}
+                    <span className='text-stone-600 truncate'>{selectedSceneHeading}</span>
+                  </>
+                )}
+              </div>
+              <div className='flex items-center gap-2 shrink-0'>
+                {isDirty && (
+                  <span className='px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium'>
+                    {t('collaboration.writerStudio.unsavedBadge', 'Chưa lưu')}
+                  </span>
+                )}
+                {!isReadOnly && onRewriteLineId && effectiveRewriteLineId && (
+                  <button
+                    type='button'
+                    data-testid={`ai-rewrite-line-${effectiveRewriteLineId}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => onRewriteLineId(effectiveRewriteLineId)}
+                    disabled={rewritingLineId === effectiveRewriteLineId}
+                    className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-violet-200 bg-violet-50/80 hover:bg-violet-100 text-violet-700 text-xs font-semibold transition-colors disabled:opacity-60 cursor-pointer'
+                  >
+                    {rewritingLineId === effectiveRewriteLineId ? (
+                      <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                    ) : (
+                      <Sparkles className='w-3.5 h-3.5' />
+                    )}
+                    <span>{t('collaboration.writerStudio.rewriteLineAiBtn', 'Viết lại bằng AI')}</span>
+                  </button>
+                )}
+              </div>
+            </div>
             <p className='font-sans text-xs text-stone-500'>
               {t(
                 'scriptStudio.gn.keyboardHint',
@@ -580,7 +740,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         </div>
       </main>
 
-      {/* AI script assistant floating button & popover */}
+      {/* Quick templates & AI script assistant floating button & popover */}
       {!isReadOnly && (
         <div
           className='fixed bottom-6 right-20 sm:right-88 z-40 flex flex-col items-end select-none'
@@ -593,12 +753,15 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             >
               <div className='px-4 py-3 bg-[#FBF9F4] border-b border-stone-200/80 flex items-center justify-between'>
                 <div className='flex items-center gap-2'>
-                  <Sparkles className='w-4 h-4 text-violet-600' />
+                  {hasRealAi ? (
+                    <Sparkles className='w-4 h-4 text-violet-600' />
+                  ) : (
+                    <FileText className='w-4 h-4 text-stone-700' />
+                  )}
                   <span className='font-headline-sm text-xs font-bold text-stone-900'>
-                    {t('collaboration.writerStudio.aiAssistantTitle', 'Trợ lý Kịch bản AI')}
-                  </span>
-                  <span className='px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-violet-50 text-violet-700 border border-violet-200'>
-                    {t('collaboration.writerStudio.beta', 'Beta')}
+                    {hasRealAi
+                      ? t('collaboration.writerStudio.templatesAndAi', 'Mẫu & AI')
+                      : t('collaboration.writerStudio.quickTemplatesTitle', 'Mẫu nhanh')}
                   </span>
                 </div>
                 <button
@@ -611,79 +774,148 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                 </button>
               </div>
 
-              <div className='p-3 space-y-2 text-xs'>
-                <div className='text-xs font-bold uppercase tracking-wider text-stone-400 px-1'>
-                  {t('collaboration.writerStudio.quickSuggestions', 'GỢI Ý NHANH THEO NGỮ CẢNH')}
-                </div>
-
-                <div
-                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-violet-500 hover:bg-violet-50/40 cursor-pointer transition-colors shadow-2xs group'
-                  onClick={() => {
-                    if (editor) {
-                      editor.commands.insertContent(
-                        `<p class="gn-dialogue">"${t('collaboration.writerStudio.sampleDialogue')}"</p>`,
-                      );
-                      setShowAiPopover(false);
-                    }
-                  }}
-                >
-                  <div className='flex items-center justify-between mb-1'>
-                    <span className='font-semibold text-stone-900 group-hover:text-violet-700 flex items-center gap-1.5'>
-                      <MessageSquare className='w-3.5 h-3.5 text-violet-600' />
-                      {t('collaboration.writerStudio.nextDialogue', 'Thoại đối kháng kế tiếp')}
+              <div className='p-3 space-y-3 text-xs'>
+                <div className='space-y-1.5'>
+                  <div className='flex items-center justify-between px-0.5'>
+                    <span className='text-xs font-bold uppercase tracking-wider text-stone-500'>
+                      {t('collaboration.writerStudio.quickTemplatesTitle', 'Mẫu nhanh')}
                     </span>
-                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-violet-600' />
+                    <span className='text-[11px] text-stone-400'>
+                      {t(
+                        'collaboration.writerStudio.quickTemplatesHint',
+                        'Chèn khung định dạng trống vào kịch bản',
+                      )}
+                    </span>
                   </div>
-                  <p className='text-xs text-stone-500 line-clamp-2'>
-                    Kael: "{t('collaboration.writerStudio.sampleDialogue')}"
-                  </p>
-                </div>
-
-                <div
-                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-violet-500 hover:bg-violet-50/40 cursor-pointer transition-colors shadow-2xs group'
-                  onClick={() => {
-                    if (editor) {
-                      editor.commands.insertContent('<p class="gn-sfx">SHAKIIIIN!!</p>');
-                      setShowAiPopover(false);
-                    }
-                  }}
-                >
-                  <div className='flex items-center justify-between mb-1'>
-                    <span className='font-semibold text-stone-900 group-hover:text-violet-700 flex items-center gap-1.5'>
+                  <div className='grid grid-cols-3 gap-1.5'>
+                    <button
+                      type='button'
+                      data-testid='quick-template-dialogue'
+                      onClick={() => insertQuickTemplate('dialogue')}
+                      title={t(
+                        'collaboration.writerStudio.templateDialogueDesc',
+                        'Dòng Nhân vật + Thoại trống',
+                      )}
+                      className='flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-stone-200/90 bg-white hover:border-stone-400 hover:bg-stone-50 text-stone-800 font-semibold transition-colors cursor-pointer'
+                    >
+                      <MessageSquare className='w-3.5 h-3.5 text-stone-600' />
+                      <span>{t('collaboration.writerStudio.templateDialogue', 'Thoại')}</span>
+                    </button>
+                    <button
+                      type='button'
+                      data-testid='quick-template-sfx'
+                      onClick={() => insertQuickTemplate('sfx')}
+                      title={t(
+                        'collaboration.writerStudio.templateSfxDesc',
+                        'Dòng hiệu ứng âm thanh trống',
+                      )}
+                      className='flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-stone-200/90 bg-white hover:border-stone-400 hover:bg-stone-50 text-stone-800 font-semibold transition-colors cursor-pointer'
+                    >
                       <Zap className='w-3.5 h-3.5 text-amber-600' />
-                      {t('collaboration.writerStudio.climaxSfx', 'SFX cao trào cho Panel')}
-                    </span>
-                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-violet-600' />
+                      <span>{t('collaboration.writerStudio.templateSfx', 'SFX')}</span>
+                    </button>
+                    <button
+                      type='button'
+                      data-testid='quick-template-action'
+                      onClick={() => insertQuickTemplate('action')}
+                      title={t(
+                        'collaboration.writerStudio.templateActionDesc',
+                        'Dòng mô tả hành động trống',
+                      )}
+                      className='flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-stone-200/90 bg-white hover:border-stone-400 hover:bg-stone-50 text-stone-800 font-semibold transition-colors cursor-pointer'
+                    >
+                      <Clapperboard className='w-3.5 h-3.5 text-emerald-600' />
+                      <span>{t('collaboration.writerStudio.templateAction', 'Hành động')}</span>
+                    </button>
                   </div>
-                  <p className='text-xs text-stone-500 line-clamp-2'>
-                    SHAKIIIIN!! {t('collaboration.writerStudio.sampleSfxDesc')}
-                  </p>
                 </div>
 
-                <div
-                  className='p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-violet-500 hover:bg-violet-50/40 cursor-pointer transition-colors shadow-2xs group'
-                  onClick={() => {
-                    if (editor) {
-                      editor.commands.insertContent(
-                        `<p class="gn-action">${t('collaboration.writerStudio.sampleAction')}</p>`,
+                {onRunNextLine && targetSceneId && (
+                  <div className='space-y-1.5 pt-2 border-t border-stone-200/70'>
+                    <div className='text-xs font-bold uppercase tracking-wider text-violet-700 px-0.5 flex items-center gap-1'>
+                      <Sparkles className='w-3 h-3' />
+                      <span>
+                        {t(
+                          'collaboration.writerStudio.aiNextLineSection',
+                          'Gợi ý dòng tiếp theo (AI)',
+                        )}
+                      </span>
+                    </div>
+
+                    {(
+                      [
+                        {
+                          kind: 'Dialogue' as NextLineKind,
+                          icon: <MessageSquare className='w-3.5 h-3.5 text-violet-600' />,
+                          label: t(
+                            'collaboration.writerStudio.aiNextDialogue',
+                            'Dòng Thoại tiếp theo',
+                          ),
+                          desc: t(
+                            'collaboration.writerStudio.aiNextDialogueDesc',
+                            'AI đề xuất 1 câu thoại mới (chờ Nhận/Bỏ)',
+                          ),
+                        },
+                        {
+                          kind: 'Sfx' as NextLineKind,
+                          icon: <Zap className='w-3.5 h-3.5 text-amber-600' />,
+                          label: t('collaboration.writerStudio.aiNextSfx', 'SFX tiếp theo'),
+                          desc: t(
+                            'collaboration.writerStudio.aiNextSfxDesc',
+                            'AI đề xuất âm thanh ≤ 40 ký tự (chờ Nhận/Bỏ)',
+                          ),
+                        },
+                        {
+                          kind: 'Action' as NextLineKind,
+                          icon: <Clapperboard className='w-3.5 h-3.5 text-emerald-600' />,
+                          label: t(
+                            'collaboration.writerStudio.aiNextAction',
+                            'Hành động tiếp theo',
+                          ),
+                          desc: t(
+                            'collaboration.writerStudio.aiNextActionDesc',
+                            'AI đề xuất mô tả hành động kế tiếp (chờ Nhận/Bỏ)',
+                          ),
+                        },
+                      ] as const
+                    ).map((item) => {
+                      const busy = runningNextLineKind === item.kind;
+                      return (
+                        <button
+                          key={item.kind}
+                          type='button'
+                          data-testid={`ai-next-line-${item.kind}`}
+                          disabled={Boolean(runningNextLineKind)}
+                          onClick={() => {
+                            setShowAiPopover(false);
+                            onRunNextLine({
+                              sceneId: targetSceneId,
+                              kind: item.kind,
+                              afterLineId: targetAfterLineId,
+                            });
+                          }}
+                          className='w-full text-left p-2.5 rounded-lg border border-stone-200/80 bg-white hover:border-violet-500 hover:bg-violet-50/40 disabled:opacity-60 cursor-pointer transition-colors shadow-2xs group'
+                        >
+                          <div className='flex items-center justify-between mb-0.5'>
+                            <span className='font-semibold text-stone-900 group-hover:text-violet-700 flex items-center gap-1.5'>
+                              {busy ? (
+                                <Loader2 className='w-3.5 h-3.5 animate-spin text-violet-600' />
+                              ) : (
+                                item.icon
+                              )}
+                              {item.label}
+                            </span>
+                            <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-violet-600' />
+                          </div>
+                          <p className='text-xs text-stone-500 line-clamp-1'>{item.desc}</p>
+                        </button>
                       );
-                      setShowAiPopover(false);
-                    }
-                  }}
-                >
-                  <div className='flex items-center justify-between mb-1'>
-                    <span className='font-semibold text-stone-900 group-hover:text-violet-700 flex items-center gap-1.5'>
-                      <Sparkles className='w-3.5 h-3.5 text-emerald-600' />
-                      {t('collaboration.writerStudio.reflexAction', 'Hành động phản xạ nhân vật')}
-                    </span>
-                    <ArrowRight className='w-3.5 h-3.5 text-stone-400 group-hover:text-violet-600' />
+                    })}
                   </div>
-                  <p className='text-xs text-stone-500 line-clamp-2'>
-                    {t('collaboration.writerStudio.sampleAction')}
-                  </p>
-                </div>
+                )}
+
                 {(onOpenAiDraft || onOpenAiStoryboard) && (
-                  <div className='p-2 bg-stone-50/80 border-t border-stone-200/60 flex items-center justify-between gap-1'>
+                  <div className='pt-2 border-t border-stone-200/70 flex items-center justify-between gap-1'>
                     {onOpenAiDraft && (
                       <button
                         type='button'
@@ -716,8 +948,11 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
               <div className='p-2.5 bg-[#FAF9F5] border-t border-stone-200/80 flex items-center justify-between text-xs'>
                 <span className='text-stone-500 flex items-center gap-1'>
-                  <Zap className='w-3 h-3 text-stone-400' />
-                  {t('collaboration.writerStudio.clickToInsert', 'Nhấn để chèn vào kịch bản')}
+                  <FileText className='w-3 h-3 text-stone-400' />
+                  {t(
+                    'collaboration.writerStudio.clickToInsert',
+                    'Chọn mẫu trống hoặc gọi AI đề xuất',
+                  )}
                 </span>
                 {onOpenAiPromptModal && (
                   <button
@@ -740,13 +975,23 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             id='btn-ai-script-assistant'
             data-testid='rail-ai-btn'
             onClick={() => setShowAiPopover(!showAiPopover)}
-            className='flex items-center gap-2 px-4 py-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white font-semibold text-xs shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 hover:scale-105 active:scale-95 cursor-pointer'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-semibold text-xs shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 hover:scale-105 active:scale-95 cursor-pointer ${
+              hasRealAi
+                ? 'bg-violet-600 hover:bg-violet-700 text-white'
+                : 'bg-stone-800 hover:bg-stone-900 text-white'
+            }`}
           >
-            <Sparkles className='w-4 h-4 animate-pulse' />
-            <span>{t('collaboration.writerStudio.scriptSuggestions', 'Gợi ý kịch bản')}</span>
-            <span className='px-1.5 py-0.5 rounded-full bg-white/20 text-white text-xs font-mono font-bold'>
-              AI
+            {hasRealAi ? <Sparkles className='w-4 h-4' /> : <FileText className='w-4 h-4' />}
+            <span>
+              {hasRealAi
+                ? t('collaboration.writerStudio.templatesAndAi', 'Mẫu & AI')
+                : t('collaboration.writerStudio.quickTemplatesTitle', 'Mẫu nhanh')}
             </span>
+            {hasRealAi && (
+              <span className='px-1.5 py-0.5 rounded-full bg-white/20 text-white text-xs font-mono font-bold'>
+                AI
+              </span>
+            )}
           </button>
         </div>
       )}

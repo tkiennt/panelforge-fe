@@ -64,6 +64,11 @@
         "applyLabel": "Accept (update dialogue line)",
         "applyNote": "Creates a new append-only Script revision and updates the selected dialogue line."
       },
+      "ScriptLineInsert": {
+        "title": "New Script Line",
+        "applyLabel": "Accept (insert new line)",
+        "applyNote": "Creates a new append-only Script revision and inserts the new line after the selected position."
+      },
       "SeriesMetadata": {
         "title": "Publishing Metadata",
         "applyLabel": "Accept (update Series)",
@@ -214,6 +219,8 @@
         "lineRewriteShortenMax": "Shorten dialogue (max {maxChars} chars)",
         "lineRewriteShortenFrame": "Shorten dialogue (fit frame)",
         "lineRewriteVoice": "Rewrite dialogue in character voice",
+        "scriptLineInsertSpeaker": "Insert {kind} line · Speaker: {speaker}",
+        "scriptLineInsertKind": "Insert new {kind} line",
         "seriesMetadataGenre": "Genre: {genre} · Update synopsis & genre",
         "seriesMetadataFallback": "Suggested Series publishing info",
         "thumbnailModel": "Model: {model} ({provider})",

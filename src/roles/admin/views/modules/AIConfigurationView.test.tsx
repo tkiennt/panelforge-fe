@@ -15,6 +15,7 @@ vi.mock('@/services/admin.service', () => ({
     deleteAiProvider: vi.fn(),
     getAiProviderModels: vi.fn(),
     testAiProvider: vi.fn(),
+    setDefaultAiProvider: vi.fn(),
     setWorkspaceAiProvider: vi.fn(),
     setWorkspaceAiImageProvider: vi.fn(),
     getAiUsage: vi.fn(),
@@ -68,7 +69,7 @@ describe('AIConfigurationView', () => {
     vi.mocked(adminService.getWorkspaceAiConfig).mockResolvedValue({
       id: 'cfg-1',
       workspaceId: 'ws-1',
-      provider: 'Google Gemini',
+      provider: '',
       hasApiKey: false,
       providerCredentialId: null,
       isEnabled: true,
@@ -81,7 +82,58 @@ describe('AIConfigurationView', () => {
     });
   });
 
-  it('hiển thị đúng bộ KNOWN_MODELS mặc định (dòng 3.x trước, giữ dòng 2.5 cho key cũ)', async () => {
+  it('gọn màn Studio khi chưa gán API: bỏ key Gemini riêng, mô tả checkbox theo trạng thái hiện tại và cảnh báo Chưa chọn API', async () => {
+    render(<AIConfigurationView />);
+
+    // Không còn ô Nhà cung cấp, API key riêng hay option Key Gemini riêng; mặc định đầu tiên là Theo mặc định
+    const textSelect = (await screen.findByLabelText(/API cho chữ|Text API/i)) as HTMLSelectElement;
+    const optionTexts = Array.from(textSelect.options).map((o) => o.textContent || '');
+    expect(optionTexts.some((t) => /Key Gemini riêng|dedicated Gemini key/i.test(t))).toBe(false);
+    expect(optionTexts[0]).toMatch(/Theo mặc định|Use default/i);
+    expect(screen.queryByLabelText(/^Nhà cung cấp$|^Provider$/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^API key$/i)).not.toBeInTheDocument();
+
+    // Trạng thái key: hiện 'Chưa chọn API' (cảnh báo) khi Studio bật AI nhưng chưa gán API
+    const keyStatus = screen.getByTestId('ai-key-status');
+    expect(keyStatus).toHaveTextContent(/Chưa chọn API|No API selected/i);
+    expect(keyStatus.querySelector('span')?.className).toMatch(/amber/);
+
+    // Mô tả checkbox phản ánh trạng thái hiện tại thay vì 'Khi tắt...'
+    expect(
+      screen.getByText(/Đang bật: thành viên Studio dùng được AI|Enabled: Studio members can use AI/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Khi tắt, mọi yêu cầu AI/i)).not.toBeInTheDocument();
+
+    // Tắt checkbox -> mô tả đổi sang Đang tắt và badge không còn cảnh báo amber
+    const enableCheckbox = screen.getByRole('checkbox', {
+      name: /Bật AI cho Studio|Enable AI for Studio/i,
+    });
+    fireEvent.click(enableCheckbox);
+    expect(
+      screen.getByText(
+        /Đang tắt: thành viên Studio không dùng được AI|Disabled: Studio members cannot use AI/i,
+      ),
+    ).toBeInTheDocument();
+    expect(keyStatus.querySelector('span')?.className).not.toMatch(/amber/);
+  });
+
+  it('lấy danh sách Model được phép theo API Gemini đã chọn (dòng 3.x trước, giữ dòng 2.5)', async () => {
+    vi.mocked(adminService.getWorkspaceAiConfig).mockResolvedValue({
+      id: 'cfg-1',
+      workspaceId: 'ws-1',
+      provider: 'Gemini',
+      hasApiKey: true,
+      apiKeyUsable: true,
+      providerCredentialId: 'cred-gemini-1',
+      isEnabled: true,
+      monthlyTokenQuota: 1000000,
+      usedTokensCurrentMonth: 0,
+      monthlyImageQuota: 0,
+      usedImagesCurrentMonth: 0,
+      allowedModels: ['gemini-3.8-flash', 'gemini-2.5-flash-image'],
+      createdAt: '2026-11-01T00:00:00Z',
+    });
+
     render(<AIConfigurationView />);
 
     expect(await screen.findByText('gemini-3.8-flash', { selector: 'span' })).toBeInTheDocument();
@@ -94,6 +146,9 @@ describe('AIConfigurationView', () => {
     expect(screen.queryByText('gemini-1.5-flash')).not.toBeInTheDocument();
     expect(screen.queryByText('claude-3-5-sonnet')).not.toBeInTheDocument();
     expect(screen.queryByText('gpt-4o')).not.toBeInTheDocument();
+
+    const keyStatus = screen.getByTestId('ai-key-status');
+    expect(keyStatus).toHaveTextContent('Gemini Chính · ••••9a1f · Đang bật');
   });
 
   it('hiển thị danh sách API AI với keyHint (không lộ key) và gọi POST /test khi bấm Kiểm tra', async () => {
@@ -169,54 +224,62 @@ describe('AIConfigurationView', () => {
     expect(adminService.deleteAiProvider).toHaveBeenCalledWith('cred-gemini-1');
   });
 
-  it('gán API AI dùng chung cho Studio qua PUT /workspaces/{id}/ai-provider khi lưu cấu hình', async () => {
+  it('gán API cho chữ qua PUT /workspaces/{id}/ai-provider và PUT /ai-config không gửi provider/apiKey', async () => {
     vi.mocked(adminService.setWorkspaceAiProvider).mockResolvedValue({
       id: 'cfg-1',
       workspaceId: 'ws-1',
-      provider: 'Google Gemini',
-      hasApiKey: false,
+      provider: 'Cloudflare',
+      hasApiKey: true,
+      apiKeyUsable: true,
       providerCredentialId: 'cred-cf-1',
       isEnabled: true,
       monthlyTokenQuota: 1000000,
       usedTokensCurrentMonth: 0,
       monthlyImageQuota: 0,
       usedImagesCurrentMonth: 0,
-      allowedModels: [],
+      allowedModels: ['@cf/meta/llama-3.3-70b-instruct-fp8-fast'],
       createdAt: '2026-11-01T00:00:00Z',
     });
     vi.mocked(adminService.updateWorkspaceAiConfig).mockResolvedValue({
       id: 'cfg-1',
       workspaceId: 'ws-1',
-      provider: 'Google Gemini',
-      hasApiKey: false,
+      provider: 'Cloudflare',
+      hasApiKey: true,
+      apiKeyUsable: true,
       providerCredentialId: 'cred-cf-1',
       isEnabled: true,
       monthlyTokenQuota: 1000000,
       usedTokensCurrentMonth: 0,
       monthlyImageQuota: 0,
       usedImagesCurrentMonth: 0,
-      allowedModels: [],
+      allowedModels: ['@cf/meta/llama-3.3-70b-instruct-fp8-fast'],
       createdAt: '2026-11-01T00:00:00Z',
     });
 
     render(<AIConfigurationView />);
 
-    const select = await screen.findByLabelText(/Nguồn API sử dụng|API source/i);
+    const select = await screen.findByLabelText(/API cho chữ|Text API/i);
     fireEvent.change(select, { target: { value: 'cred-cf-1' } });
     fireEvent.click(screen.getByRole('button', { name: /Lưu cấu hình|Save configuration/i }));
 
     await waitFor(() => {
       expect(adminService.setWorkspaceAiProvider).toHaveBeenCalledWith('ws-1', 'cred-cf-1');
-      expect(adminService.updateWorkspaceAiConfig).toHaveBeenCalled();
+      expect(adminService.updateWorkspaceAiConfig).toHaveBeenCalledWith('ws-1', {
+        isEnabled: true,
+        monthlyTokenQuota: 1000000,
+        monthlyImageQuota: 0,
+        allowedModels: ['@cf/meta/llama-3.3-70b-instruct-fp8-fast'],
+      });
     });
   });
 
-  it('ẩn các ô Gemini riêng, hiện khung Đang dùng và Trạng thái key theo API dùng chung khi providerCredentialId khác null', async () => {
+  it('hiển thị Model được phép và Trạng thái key theo API Cloudflare đã chọn (không lẫn model Gemini)', async () => {
     vi.mocked(adminService.getWorkspaceAiConfig).mockResolvedValue({
       id: 'cfg-1',
       workspaceId: 'ws-1',
-      provider: 'Google Gemini',
-      hasApiKey: false,
+      provider: 'Cloudflare',
+      hasApiKey: true,
+      apiKeyUsable: true,
       providerCredentialId: 'cred-cf-1',
       isEnabled: true,
       monthlyTokenQuota: 1000000,
@@ -229,27 +292,24 @@ describe('AIConfigurationView', () => {
 
     render(<AIConfigurationView />);
 
-    const banner = await screen.findByTestId('studio-shared-api-banner');
-    expect(banner).toHaveTextContent('Đang dùng: Cloudflare Dự phòng · Cloudflare · ••••77bc');
-    expect(banner).toHaveTextContent('Chữ:');
-    expect(banner).toHaveTextContent('@cf/meta/llama-3.3-70b-instruct-fp8-fast');
-    expect(banner).toHaveTextContent('[Miễn phí]');
-    expect(banner).toHaveTextContent('Ảnh:');
-    expect(banner).toHaveTextContent('mặc định');
+    expect(
+      await screen.findByText('@cf/meta/llama-3.3-70b-instruct-fp8-fast', { selector: 'span' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('[Miễn phí]')).toBeInTheDocument();
+    expect(screen.queryByText('gemini-3.1-pro-preview')).not.toBeInTheDocument();
 
-    // Ẩn Nhà cung cấp, API key riêng và Model được phép
+    // Không có Nhà cung cấp hay API key riêng
     expect(screen.queryByLabelText(/^Nhà cung cấp$|^Provider$/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/^API key$/i)).not.toBeInTheDocument();
-    expect(screen.queryByText('gemini-3.1-pro-preview')).not.toBeInTheDocument();
 
     // Giữ nguyên 2 ô quota
     expect(screen.getByLabelText(/Quota token mỗi tháng|Monthly token quota/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Quota sinh ảnh mỗi tháng|Monthly image quota/i)).toBeInTheDocument();
 
-    // Dòng Trạng thái key hiện theo API dùng chung (tên + keyHint + Bật/Tắt), không hiện Chưa có API key
+    // Dòng Trạng thái key hiện theo API đã chọn
     const keyStatus = screen.getByTestId('ai-key-status');
     expect(keyStatus).toHaveTextContent('Cloudflare Dự phòng · ••••77bc · Đang bật');
-    expect(keyStatus).not.toHaveTextContent(/Chưa có API key|No API key/i);
+    expect(keyStatus).not.toHaveTextContent(/Chưa chọn API|No API selected/i);
   });
 
   it('cho phép chọn nhiều Studio khi Thêm API và báo lỗi riêng nếu gán Studio thất bại sau khi đã tạo API', async () => {
@@ -365,35 +425,37 @@ describe('AIConfigurationView', () => {
     render(<AIConfigurationView />);
 
     const imageSelect = (await screen.findByLabelText(
-      /API sinh ảnh|Image generation API/i,
+      /API cho ảnh|Image API/i,
     )) as HTMLSelectElement;
     const optionTexts = Array.from(imageSelect.options).map((o) => o.textContent || '');
 
-    // Có lựa chọn Giống API chữ + các API đang bật có imageModel
-    expect(optionTexts.some((t) => /Giống API chữ|Same as text API/i.test(t))).toBe(true);
+    // Có lựa chọn Theo mặc định (giống API chữ) + các API đang bật có imageModel
+    expect(optionTexts.some((t) => /Theo mặc định.*giống API chữ|Use default.*same as text API/i.test(t))).toBe(true);
     expect(optionTexts.some((t) => t.includes('Gemini Chính'))).toBe(true);
     expect(optionTexts.some((t) => t.includes('Cloudflare FLUX'))).toBe(true);
     // Không liệt kê Cloudflare Dự phòng (imageModel: null) và Ảnh Đang Tắt (isEnabled: false)
     expect(optionTexts.some((t) => t.includes('Cloudflare Dự phòng'))).toBe(false);
     expect(optionTexts.some((t) => t.includes('Ảnh Đang Tắt'))).toBe(false);
 
-    // Chữ giữ nguyên key Gemini riêng, ảnh chọn Cloudflare FLUX -> 1 khung gộp duy nhất
+    // Chọn Cloudflare FLUX cho ảnh -> Model được phép hiện model ảnh Cloudflare kèm [Miễn phí]
     fireEvent.change(imageSelect, { target: { value: 'cred-cf-flux' } });
-    const unifiedBanner = await screen.findByTestId('studio-shared-api-banner');
-    expect(unifiedBanner).toHaveTextContent('Chữ:');
-    expect(unifiedBanner).toHaveTextContent('Key Gemini riêng của Studio');
-    expect(unifiedBanner).toHaveTextContent('Ảnh:');
-    expect(unifiedBanner).toHaveTextContent('Cloudflare FLUX (Cloudflare · ••••f10x)');
-    expect(unifiedBanner).toHaveTextContent('@cf/black-forest-labs/flux-1-schnell');
-    expect(unifiedBanner).toHaveTextContent('[Miễn phí]');
-    expect(screen.getByLabelText(/^API key$/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText('@cf/black-forest-labs/flux-1-schnell', { selector: 'span' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('[Miễn phí]')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^API key$/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Lưu cấu hình|Save configuration/i }));
 
     await waitFor(() => {
       expect(adminService.setWorkspaceAiImageProvider).toHaveBeenCalledWith('ws-1', 'cred-cf-flux');
       expect(adminService.setWorkspaceAiProvider).not.toHaveBeenCalled();
-      expect(adminService.updateWorkspaceAiConfig).toHaveBeenCalled();
+      expect(adminService.updateWorkspaceAiConfig).toHaveBeenCalledWith('ws-1', {
+        isEnabled: true,
+        monthlyTokenQuota: 1000000,
+        monthlyImageQuota: 0,
+        allowedModels: ['@cf/black-forest-labs/flux-1-schnell'],
+      });
     });
   });
 
@@ -467,5 +529,122 @@ describe('AIConfigurationView', () => {
     ).toBeInTheDocument();
     const fallbackInput = screen.getByLabelText(/Model văn bản|Text model/i);
     expect(fallbackInput.tagName).toBe('INPUT');
+  });
+
+  it('đặt API AI mặc định cho chữ và ảnh qua PUT /ai-providers/default và hiển thị Theo mặc định cho Studio chưa chọn API', async () => {
+    const updatedWithDefaults = [
+      { ...MOCK_PROVIDERS[0], isDefaultText: true, isDefaultImage: true },
+      { ...MOCK_PROVIDERS[1], isDefaultText: false, isDefaultImage: false },
+    ];
+    vi.mocked(adminService.setDefaultAiProvider).mockResolvedValueOnce(updatedWithDefaults);
+    vi.mocked(adminService.getWorkspaceAiConfig)
+      .mockResolvedValueOnce({
+        id: 'cfg-1',
+        workspaceId: 'ws-1',
+        provider: '',
+        hasApiKey: false,
+        providerCredentialId: null,
+        imageProviderCredentialId: null,
+        isEnabled: true,
+        monthlyTokenQuota: 1000000,
+        usedTokensCurrentMonth: 0,
+        monthlyImageQuota: 0,
+        usedImagesCurrentMonth: 0,
+        allowedModels: [],
+        createdAt: '2026-11-01T00:00:00Z',
+      })
+      .mockResolvedValueOnce({
+        id: 'cfg-1',
+        workspaceId: 'ws-1',
+        provider: 'Gemini',
+        hasApiKey: true,
+        apiKeyUsable: true,
+        providerCredentialId: null,
+        imageProviderCredentialId: null,
+        isEnabled: true,
+        monthlyTokenQuota: 1000000,
+        usedTokensCurrentMonth: 0,
+        monthlyImageQuota: 0,
+        usedImagesCurrentMonth: 0,
+        allowedModels: ['gemini-3.8-flash'],
+        createdAt: '2026-11-01T00:00:00Z',
+      });
+
+    render(<AIConfigurationView />);
+
+    const defaultTextSelect = await screen.findByLabelText(
+      /API mặc định cho chữ|Default text API/i,
+    );
+    fireEvent.change(defaultTextSelect, { target: { value: 'cred-gemini-1' } });
+
+    await waitFor(() => {
+      expect(adminService.setDefaultAiProvider).toHaveBeenCalledWith('text', 'cred-gemini-1');
+    });
+
+    // Hiển thị badge trên bảng Danh sách API AI
+    expect(await screen.findByText(/Mặc định chữ|Default text/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mặc định ảnh|Default image/i)).toBeInTheDocument();
+
+    // Studio có providerCredentialId = null -> dropdown hiện Theo mặc định kèm tên API, Trạng thái key xanh (không còn Chưa chọn API)
+    const studioTextSelect = screen.getByLabelText(/API cho chữ|Text API/i) as HTMLSelectElement;
+    expect(studioTextSelect.value).toBe('');
+    expect(studioTextSelect.options[0].textContent).toMatch(/Theo mặc định.*Gemini Chính/i);
+
+    const studioImageSelect = screen.getByLabelText(/API cho ảnh|Image API/i) as HTMLSelectElement;
+    expect(studioImageSelect.value).toBe('');
+    expect(studioImageSelect.options[0].textContent).toMatch(
+      /Theo mặc định.*Gemini Chính.*gemini-2\.5-flash-image/i,
+    );
+
+    const keyStatus = screen.getByTestId('ai-key-status');
+    expect(keyStatus).toHaveTextContent(/Theo mặc định: Gemini Chính · ••••9a1f/i);
+    expect(keyStatus).not.toHaveTextContent(/Chưa chọn API/i);
+
+    // Model được phép của Studio tự lấy theo API mặc định
+    expect(screen.getByText('gemini-3.8-flash', { selector: 'span' })).toBeInTheDocument();
+  });
+
+  it('không làm tràn ngang thẻ Tháng này khi tên API AI dài (vd Gemini – PanelForge_FA26SE251)', async () => {
+    vi.mocked(adminService.getAiProviders).mockResolvedValue([
+      {
+        id: 'cred-long',
+        name: 'Gemini – PanelForge_FA26SE251',
+        providerType: 'Gemini',
+        accountId: null,
+        keyHint: '••••q7CA',
+        textModel: 'gemini-3.8-flash',
+        imageModel: 'gemini-2.5-flash-image',
+        isEnabled: true,
+        workspaceCount: 1,
+        createdAt: '2026-11-25T00:00:00Z',
+      },
+    ]);
+    vi.mocked(adminService.getWorkspaceAiConfig).mockResolvedValue({
+      id: 'cfg-1',
+      workspaceId: 'ws-1',
+      provider: 'Gemini',
+      hasApiKey: true,
+      apiKeyUsable: true,
+      providerCredentialId: 'cred-long',
+      isEnabled: true,
+      monthlyTokenQuota: 1000000,
+      usedTokensCurrentMonth: 62813,
+      monthlyImageQuota: 0,
+      usedImagesCurrentMonth: 3,
+      allowedModels: ['gemini-3.8-flash'],
+      createdAt: '2026-11-01T00:00:00Z',
+    });
+
+    render(<AIConfigurationView />);
+
+    const badges = await screen.findAllByText(
+      /Gemini – PanelForge_FA26SE251 · ••••q7CA · Đang bật/i,
+    );
+    expect(badges.length).toBeGreaterThanOrEqual(2);
+    // Badge trong thẻ Tháng này cho phép xuống dòng trong khung 320px thay vì whitespace-nowrap gây tràn
+    const summaryBadge = badges[badges.length - 1].closest('span.inline-flex')!;
+    expect(summaryBadge.className).toContain('max-w-full');
+    expect(summaryBadge.className).toContain('whitespace-normal');
+    expect(summaryBadge.className).not.toContain('whitespace-nowrap');
   });
 });

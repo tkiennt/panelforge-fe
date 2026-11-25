@@ -202,6 +202,8 @@ export interface AiProviderCredentialDto {
   workspaceCount: number;
   createdAt: string;
   updatedAt?: string | null;
+  isDefaultText?: boolean;
+  isDefaultImage?: boolean;
 }
 
 export interface CreateAiProviderCredentialRequest {
@@ -232,11 +234,15 @@ export interface AiProviderModelDto {
 export interface WorkspaceAiConfigDto {
   id: string;
   workspaceId: string;
+  /** TASK-350/355: loại API chữ thực sự dùng (Studio tự chọn hoặc mặc định; rỗng nếu chưa có). */
   provider: string;
+  /** TASK-350/355: có API chữ dùng được (Studio tự chọn hoặc mặc định). */
   hasApiKey: boolean;
-  /** Máy chủ giải mã được key đã lưu, tức AI dùng được key này. */
+  /** TASK-350/355: API chữ thực sự dùng đang bật (isEnabled). */
   apiKeyUsable?: boolean;
+  /** Lựa chọn riêng của Studio; null = theo API mặc định. */
   providerCredentialId?: string | null;
+  /** Lựa chọn ảnh riêng của Studio; null = theo API mặc định. */
   imageProviderCredentialId?: string | null;
   isEnabled: boolean;
   monthlyTokenQuota: number;
@@ -250,8 +256,6 @@ export interface WorkspaceAiConfigDto {
 }
 
 export interface UpdateWorkspaceAiConfigRequest {
-  provider: string;
-  apiKey?: string;
   isEnabled: boolean;
   monthlyTokenQuota: number;
   allowedModels: string[];
@@ -571,6 +575,23 @@ export const adminService = {
       return response.data;
     } catch (error) {
       throw new Error(extractError(error, translate('errors.services.admin.testAiProviderFailed')));
+    }
+  },
+
+  setDefaultAiProvider: async (
+    kind: 'text' | 'image',
+    providerCredentialId: string | null,
+  ): Promise<AiProviderCredentialDto[]> => {
+    try {
+      const response = await axiosClient.put('/Admin/ai-providers/default', {
+        kind,
+        providerCredentialId,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.setDefaultAiProviderFailed')),
+      );
     }
   },
 

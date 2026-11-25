@@ -1,4 +1,8 @@
-import type { LineRewriteSuggestion, ScriptDraft } from '@/services/aiAgents.service';
+import type {
+  LineRewriteSuggestion,
+  NextLineSuggestion,
+  ScriptDraft,
+} from '@/services/aiAgents.service';
 import { SceneDetailDto, ScriptLineKind } from '@/services/scriptLine.service';
 import type { JSONContent } from '@tiptap/core';
 import { collectLines, linesToNodes, ServerLine, splitSpeakerLabel } from './scriptFlowAdapter';
@@ -66,6 +70,23 @@ export function rewriteRows(scene: SceneDetailDto, s: LineRewriteSuggestion): Sc
       l.id === s.sourceScriptLineId ? { ...l, text: s.suggestedText } : l,
     ),
   );
+}
+
+export function insertRows(scene: SceneDetailDto, s: NextLineSuggestion): ScriptPaperRow[] {
+  const existing = collectLines([scene]);
+  const inserted: ServerLine = {
+    id: `insert-${s.runId}`,
+    lineOrder: existing.length + 1,
+    kind: (s.kind && KINDS[s.kind]) || ScriptLineKind.Action,
+    speakerLabel: s.kind === 'Dialogue' ? (s.speaker ?? null) : null,
+    text: s.text,
+    panelId: null,
+    refs: null,
+  };
+  const idx = s.afterLineId ? existing.findIndex((l) => l.id === s.afterLineId) : existing.length - 1;
+  const pos = idx >= 0 ? idx + 1 : existing.length;
+  const next = [...existing.slice(0, pos), inserted, ...existing.slice(pos)];
+  return toRows(next);
 }
 
 /** Tên mục Bible sẽ được tạo nháp khi Accept. */

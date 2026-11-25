@@ -81,7 +81,7 @@ export const AdminField: React.FC<{
   className?: string;
   children: React.ReactNode;
 }> = ({ label, htmlFor, required, hint, error, className, children }) => (
-  <div className={cn('space-y-1.5', className)}>
+  <div className={cn('space-y-1.5 min-w-0', className)}>
     <label htmlFor={htmlFor} className='block text-sm font-semibold text-admin-ink'>
       {label}
       {required && (
@@ -126,17 +126,17 @@ export const AdminCard: React.FC<{
   bodyClassName?: string;
   children: React.ReactNode;
 }> = ({ title, description, actions, className, bodyClassName, children }) => (
-  <section className={cn('bg-admin-card border border-admin-line rounded-2xl', className)}>
+  <section className={cn('bg-admin-card border border-admin-line rounded-2xl min-w-0', className)}>
     {(title || actions) && (
       <header className='flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-admin-line'>
         <div className='min-w-0'>
           {title && <h2 className='text-base font-semibold text-admin-ink-strong'>{title}</h2>}
           {description && <p className='mt-0.5 text-sm text-admin-muted'>{description}</p>}
         </div>
-        {actions && <div className='flex flex-wrap items-center gap-2'>{actions}</div>}
+        {actions && <div className='flex flex-wrap items-center gap-2 min-w-0 max-w-full'>{actions}</div>}
       </header>
     )}
-    <div className={cn('p-5', bodyClassName)}>{children}</div>
+    <div className={cn('p-5 min-w-0', bodyClassName)}>{children}</div>
   </section>
 );
 
@@ -179,7 +179,7 @@ export const AdminBadge: React.FC<{
   <span
     title={title}
     className={cn(
-      'inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs font-medium whitespace-nowrap',
+      'inline-flex items-center gap-1 max-w-full min-w-0 px-2 py-0.5 rounded-md border text-xs font-medium whitespace-normal [overflow-wrap:anywhere] [&>svg]:shrink-0',
       TONES[tone],
       className,
     )}

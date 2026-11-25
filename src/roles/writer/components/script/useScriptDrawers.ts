@@ -2,7 +2,7 @@
 import { useState } from 'react';
 
 export type LeftDrawer = 'scenes' | null;
-export type RightDrawer = 'bible' | 'comments' | 'versions' | null;
+export type RightDrawer = 'bible' | 'comments' | 'versions' | 'ai-draft' | 'ai-storyboard' | null;
 
 export const isTestEnvironment =
   typeof process !== 'undefined' &&
