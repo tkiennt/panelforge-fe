@@ -82,3 +82,6 @@ output/
 # Local service
 page-diff/
 
+
+# Cloudflare Wrangler local state
+.wrangler/

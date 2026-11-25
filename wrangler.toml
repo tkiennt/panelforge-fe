@@ -1,0 +1,5 @@
+# Cloudflare Pages project for the PanelForge web app.
+# SPA fallback and security headers live in public/_redirects and public/_headers.
+name = "panelforge-fe"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-11-01"
