@@ -18,6 +18,8 @@ lerna-debug.log*
 .env
 .env.*
 !.env.example
+!.env.staging.example
+!.env.development.example
 
 # Tests: reports, coverage, screenshots
 coverage/

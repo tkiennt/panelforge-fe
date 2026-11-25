@@ -2,9 +2,9 @@ name: Frontend CI
 
 on:
   pull_request:
-    branches: [ "**" ]
+    branches: [ "main", "stg", "dev" ]
   push:
-    branches: [ "main", "develop", "tam", "trungkien" ]
+    branches: [ "main", "stg", "dev", "trungkien" ]
 
 jobs:
   quality-assurance:
@@ -27,6 +27,9 @@ jobs:
       - name: Type Checking (TypeScript)
         run: npm run typecheck
 
+      - name: i18n Parity Check (vi/en)
+        run: npm run i18n:check
+
       - name: Linting (ESLint)
         run: npm run lint
 
@@ -35,6 +38,14 @@ jobs:
 
       - name: Production Bundle Verification (Vite Build)
         run: npm run build
+
+      - name: Upload Build Artifacts (Staging & Production)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/stg' || github.ref == 'refs/heads/dev')
+        uses: actions/upload-artifact@v4
+        with:
+          name: panelforge-fe-${{ github.ref_name }}
+          path: dist/
+          retention-days: 7
 
       - name: Install Playwright Browsers
         run: npx playwright install chromium --with-deps
