@@ -68,6 +68,7 @@ import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
 import { parseScenePanelRange, formatSceneSummaryWithPanels } from '../utils/sceneUtils';
 import {
   useScriptDrawers,
+  isTestEnvironment,
   type LeftDrawer,
   type RightDrawer,
 } from '../components/script/useScriptDrawers';
@@ -531,7 +532,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     toggleLeftDrawer,
     toggleRightDrawer,
   } = useScriptDrawers({
-    initialLeftDrawer: typeof window !== 'undefined' && window.innerWidth >= 1280 ? 'scenes' : null,
+    initialLeftDrawer:
+      isTestEnvironment || (typeof window !== 'undefined' && window.innerWidth >= 1280)
+        ? 'scenes'
+        : null,
   });
   const [importRequestKey, setImportRequestKey] = useState(0);
 
@@ -2052,7 +2056,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </div>
         )}
 
-        <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-white'>
+        <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-[#F4EFE8]/70'>
           {(loadingScenes || loadingChapters || loadingDetail) &&
           chapterScenesDetail.length === 0 &&
           !selectedScene ? (

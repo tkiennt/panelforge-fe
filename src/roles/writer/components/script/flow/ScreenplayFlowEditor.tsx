@@ -10,14 +10,14 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { ArrowRight, MessageSquare, Sparkles, X, Zap } from 'lucide-react';
+import { ArrowRight, Loader2, MessageSquare, Sparkles, X, Zap } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { SceneDetailDto } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
 import { ScriptCommentDto } from '@/services/chapter.service';
 import { BibleEntryDto } from '@/services/bible.service';
-import { GN_ELEMENTS } from './grammar/scriptGrammar';
+import { GN_ELEMENTS, GnElement } from './grammar/scriptGrammar';
 import {
   BibleRefMark,
   BibleSpeakerRef,
@@ -25,8 +25,10 @@ import {
   ScriptDocument,
   ScriptLineBlockNode,
   ScriptTypingBehavior,
+  activeElement,
   chooseElement,
   getElementMenu,
+  setLineElement,
 } from './nodes/ScriptLineBlockNode';
 import {
   ScriptDocSnapshot,
@@ -176,6 +178,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const isReadOnly = !canEditScript || isChapterLocked || Boolean(diffPreview);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [active, setActive] = useState<GnElement | null>(null);
+  const [activeDialogueLineId, setActiveDialogueLineId] = useState<string | null>(null);
   const [showAiPopover, setShowAiPopover] = useState(false);
   /** Menu chọn loại dòng (Enter trên dòng trống): vị trí neo theo con trỏ + mục đang chọn. */
   const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
@@ -310,10 +314,61 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           spellcheck: 'false',
         },
       },
+      onCreate: ({ editor: ed }) => {
+        setActive(activeElement(ed));
+        const parent = ed.state.selection.$from.parent;
+        const refId = parent.attrs?.refId ? String(parent.attrs.refId) : '';
+        if (
+          parent.attrs?.el === 'dialogue' &&
+          Boolean(parent.textContent.trim()) &&
+          Boolean(refId) &&
+          !refId.startsWith('wc-')
+        ) {
+          setActiveDialogueLineId(refId);
+        } else {
+          let firstDialogueId: string | null = null;
+          ed.state.doc.descendants((node) => {
+            if (
+              !firstDialogueId &&
+              node.attrs?.el === 'dialogue' &&
+              Boolean(node.textContent.trim()) &&
+              node.attrs?.refId &&
+              !String(node.attrs.refId).startsWith('wc-')
+            ) {
+              firstDialogueId = String(node.attrs.refId);
+            }
+          });
+          if (firstDialogueId) setActiveDialogueLineId(firstDialogueId);
+        }
+      },
       onUpdate: ({ transaction }) => {
         if (transaction.docChanged && !loadingRef.current) markDirty(true);
       },
+      onSelectionUpdate: ({ editor: ed }) => {
+        setActive(activeElement(ed));
+        const parent = ed.state.selection.$from.parent;
+        const refId = parent.attrs?.refId ? String(parent.attrs.refId) : '';
+        setActiveDialogueLineId(
+          parent.attrs?.el === 'dialogue' &&
+            Boolean(parent.textContent.trim()) &&
+            Boolean(refId) &&
+            !refId.startsWith('wc-')
+            ? refId
+            : null,
+        );
+      },
       onTransaction: ({ editor: ed }) => {
+        setActive(activeElement(ed));
+        const parent = ed.state.selection.$from.parent;
+        const refId = parent.attrs?.refId ? String(parent.attrs.refId) : '';
+        setActiveDialogueLineId(
+          parent.attrs?.el === 'dialogue' &&
+            Boolean(parent.textContent.trim()) &&
+            Boolean(refId) &&
+            !refId.startsWith('wc-')
+            ? refId
+            : null,
+        );
         const m = getElementMenu(ed.state);
         if (!m.open) {
           setMenu(null);
@@ -539,8 +594,67 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   }, [isDirty]);
 
   return (
-    <div className='relative flex-1 min-h-0 flex flex-col bg-white'>
+    <div className='relative flex-1 min-h-0 flex flex-col bg-[#FAF9F5]'>
       <style>{SHEET_CSS}</style>
+
+      {/* Header thanh định dạng loại dòng (Trang, Panel, Hành động, Nhân vật, Thoại, ...) */}
+      <div
+        className='shrink-0 flex items-center justify-between border-b border-stone-200/90 bg-[#FAF9F5] px-4 py-2 overflow-x-auto custom-scrollbar select-none z-20 shadow-2xs'
+        id='script-flow-editor-toolbar'
+      >
+        <div className='flex items-center gap-2 shrink-0'>
+          {dockLeading}
+          {dockLeading && <div className='h-4 w-px bg-stone-300 mx-1' />}
+          <div
+            role='toolbar'
+            aria-label={t('scriptStudio.gn.toolbar')}
+            className='flex items-center gap-1 shrink-0'
+          >
+            {GN_ELEMENTS.map((el, i) => {
+              const isActive = active === el;
+              return (
+                <button
+                  key={el}
+                  type='button'
+                  disabled={isReadOnly}
+                  aria-pressed={isActive}
+                  data-element={el}
+                  title={`${t(`scriptStudio.gn.el.${el}`)} · Ctrl+${i + 1}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => editor && setLineElement(editor, el)}
+                  className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer disabled:cursor-default disabled:opacity-50 ${
+                    isActive
+                      ? 'border border-[#EA580C] bg-[#EA580C]/10 text-[#EA580C] shadow-2xs font-bold'
+                      : 'text-stone-600 hover:bg-stone-200/60'
+                  }`}
+                >
+                  {t(`scriptStudio.gn.el.${el}`)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className='flex items-center gap-2 shrink-0'>
+          {!isReadOnly && activeDialogueLineId && onRewriteLineId && (
+            <button
+              type='button'
+              data-testid={`ai-rewrite-line-${activeDialogueLineId}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onRewriteLineId(activeDialogueLineId)}
+              disabled={rewritingLineId === activeDialogueLineId}
+              className='shrink-0 inline-flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100 cursor-pointer disabled:opacity-50'
+            >
+              {rewritingLineId === activeDialogueLineId ? (
+                <Loader2 className='w-3.5 h-3.5 animate-spin' />
+              ) : (
+                <Sparkles className='w-3.5 h-3.5' />
+              )}
+              {t('scriptStudio.ai.rewriteDialogue', 'Viết lại bằng AI')}
+            </button>
+          )}
+        </div>
+      </div>
 
       {flowAiSlot && (
         <div className='shrink-0 border-b border-[#D4CBBF] bg-[#FAF8F5] px-4 py-3'>
@@ -548,25 +662,32 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         </div>
       )}
 
-      {/* Center White Editor Surface */}
+      {/* Center Paper Sheet Surface: Nền bàn làm việc #F4EFE8/70, Trang giấy trắng tinh bg-white với viền & đổ bóng */}
       <main
-        className='flex-1 min-h-0 overflow-y-auto bg-white p-8 flex flex-col items-center custom-scrollbar'
+        className='flex-1 min-h-0 overflow-y-auto bg-[#F4EFE8]/70 px-4 sm:px-8 py-6 sm:py-8 flex flex-col items-center pb-32 custom-scrollbar'
         onClick={() => {
           if (editor && !editor.isFocused) editor.commands.focus();
         }}
       >
         <div
           data-testid='paper-editor-sheet'
-          className='gn-sheet w-full max-w-[760px] flex flex-col font-mono text-[#18181B] text-[13.5px] leading-relaxed cursor-text'
+          className='gn-sheet paper-editor-sheet w-full max-w-3xl shrink-0 bg-white rounded-lg shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-[#E8E3DA] px-6 sm:px-14 py-12 sm:py-16 my-2 sm:my-4 transition-all duration-150 min-h-[960px] cursor-text'
         >
-          <div className='border-b border-stone-200/80 pb-3 mb-6 select-none w-full'>
-            <p className='font-sans text-xs text-stone-500'>
-              {t(
-                'scriptStudio.gn.keyboardHint',
-                'Enter: dòng kế tiếp · Tab: nhân vật / ( ) · Ctrl+1..8: đổi loại dòng · Ctrl+S: lưu',
+          {manuscriptTitle && (
+            <header className='text-center mb-10 select-none'>
+              <h1 className='font-serif text-2xl font-medium tracking-tight text-stone-900 mb-2'>
+                {manuscriptTitle}
+              </h1>
+              {!isReadOnly && (
+                <p className='font-sans text-xs text-stone-500'>
+                  {t(
+                    'scriptStudio.gn.keyboardHint',
+                    'Enter: dòng kế tiếp · Tab: nhân vật / ( ) · Ctrl+1..8: đổi loại dòng · Ctrl+S: lưu',
+                  )}
+                </p>
               )}
-            </p>
-          </div>
+            </header>
+          )}
           {diffPreview}
           <div className={diffPreview ? 'hidden' : undefined}>
             <EditorContent editor={editor} />
