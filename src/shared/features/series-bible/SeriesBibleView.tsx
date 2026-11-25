@@ -2079,7 +2079,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               {t('bible.view.overallDimensions', 'Kích thước tổng thể')}
                             </span>
                             <span className='font-semibold text-stone-800 text-right'>
-                              Tổng dài 140 cm (Chuôi 28 cm, Lưỡi 112 cm)
+                              {t(
+                                'bible.view.overallDimensionsVal',
+                                'Tổng dài 140 cm (Chuôi 28 cm, Lưỡi 112 cm)',
+                              )}
                             </span>
                           </div>
                           <div className='py-2 flex items-center justify-between gap-4'>
@@ -2087,7 +2090,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               {t('bible.view.drawnWeight', 'Trọng lượng khi rút kiếm')}
                             </span>
                             <span className='font-semibold text-stone-800 text-right'>
-                              1.85 kg (Vỏ hợp kim siêu nhẹ)
+                              {t('bible.view.drawnWeightVal', '1.85 kg (Vỏ hợp kim siêu nhẹ)')}
                             </span>
                           </div>
                           <div className='py-2 flex items-center justify-between gap-4'>
@@ -2095,7 +2098,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               {t('bible.view.screenToneEffect', 'Hiệu ứng tia sáng trame')}
                             </span>
                             <span className='font-semibold text-stone-800 text-right'>
-                              Radial Gradient 85L / 15% tia sét
+                              {t(
+                                'bible.view.screenToneEffectVal',
+                                'Radial Gradient 85L / 15% tia sét',
+                              )}
                             </span>
                           </div>
                         </div>
