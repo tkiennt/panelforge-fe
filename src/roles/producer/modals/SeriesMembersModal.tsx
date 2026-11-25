@@ -38,11 +38,11 @@ export interface SeriesMembersModalProps {
 const PALETTE = ['#F97316', '#6366F1', '#EC4899', '#0EA5E9', '#10B981', '#8B5CF6'];
 
 export const SERIES_ROLES = [
-  { value: 'Writer', label: 'Writer (Biên kịch)', slug: 'writer' },
-  { value: 'Artist', label: 'Artist (Họa sĩ)', slug: 'artist' },
-  { value: 'Letterer', label: 'Letterer (Thoại & FX)', slug: 'letterer' },
-  { value: 'Editor', label: 'Editor (Biên tập)', slug: 'editor' },
-  { value: 'Publisher', label: 'Publisher (Xuất bản)', slug: 'publisher' },
+  { value: 'Writer', label: 'Writer', slug: 'writer' },
+  { value: 'Artist', label: 'Artist', slug: 'artist' },
+  { value: 'Letterer', label: 'Letterer', slug: 'letterer' },
+  { value: 'Editor', label: 'Editor', slug: 'editor' },
+  { value: 'Publisher', label: 'Publisher', slug: 'publisher' },
 ];
 
 export const isProducerMember = (
@@ -494,10 +494,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                         {tProd('producer.seriesMembersModal.candidatePoolTitle')}
                       </h4>
                       <p className='text-xs text-[#737373]'>
-                        {tProd(
-                          'members.candidatePool.subtitle',
-                          'Chọn vai trò và thêm trực tiếp vào Series',
-                        )}
+                        {tProd('producer.seriesMembersModal.candidatePoolSubtitle')}
                       </p>
                     </div>
                   </div>
@@ -659,10 +656,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                         {tProd('producer.seriesMembersModal.rosterTitle')}
                       </h4>
                       <p className='text-xs text-[#737373]'>
-                        {tProd(
-                          'members.seriesRoster.subtitle',
-                          'Đang tham gia sản xuất và phân quyền trong Series',
-                        )}
+                        {tProd('producer.seriesMembersModal.rosterSubtitle')}
                       </p>
                     </div>
                   </div>

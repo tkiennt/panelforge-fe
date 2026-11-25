@@ -145,6 +145,9 @@
     "alignRightAriaLabel": "Căn phải",
     "deleteBalloon": "Xóa thoại",
     "keepOut": {
+      "button": "Vùng cấm",
+      "title": "Vẽ vùng cấm chữ trên tranh (tránh mặt/tay nhân vật)",
+      "reload": "Tải lại",
       "collisionTitle": "Bóng thoại che vùng cấm",
       "collisionPrefix": "Bóng thoại đang che khuất",
       "defaultTarget": "mặt/tay nhân vật",

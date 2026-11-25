@@ -145,6 +145,9 @@
     "alignRightAriaLabel": "Align right",
     "deleteBalloon": "Delete balloon",
     "keepOut": {
+      "button": "Keep-out zone",
+      "title": "Draw text keep-out zone on artwork (avoid face/hands)",
+      "reload": "Reload",
       "collisionTitle": "Balloon overlaps keep-out zone",
       "collisionPrefix": "This balloon overlaps",
       "defaultTarget": "character face/hands",
