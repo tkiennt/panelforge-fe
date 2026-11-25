@@ -216,14 +216,31 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         ? String(Number(cleanChapterNum))
         : null;
 
-  const userRoleDisplay = currentUser.workspaceRole
-    ? t(
-        `navigation.roles.${String(currentUser.workspaceRole).toLowerCase()}`,
-        String(currentUser.workspaceRole),
-      )
-    : currentUser.role
-      ? t(`navigation.roles.${String(currentUser.role).toLowerCase()}`, String(currentUser.role))
-      : t('navigation.roles.member');
+  const KNOWN_ROLE_KEYS = new Set([
+    'producer',
+    'writer',
+    'artist',
+    'letterer',
+    'editor',
+    'publisher',
+    'admin',
+    'reader',
+    'member',
+  ]);
+  const resolvedRoleKey = (() => {
+    const candidates = [currentUser.workspaceRole, currentUser.activeRoles?.[0], currentUser.role];
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      const lower = String(candidate).trim().toLowerCase();
+      if (KNOWN_ROLE_KEYS.has(lower)) return lower;
+    }
+    if (location.pathname.includes('/artist')) return 'artist';
+    if (location.pathname.includes('/letterer')) return 'letterer';
+    if (location.pathname.includes('/editor')) return 'editor';
+    if (location.pathname.includes('/script')) return 'writer';
+    return 'member';
+  })();
+  const userRoleDisplay = t(`navigation.roles.${resolvedRoleKey}`, t('navigation.roles.member'));
 
   const seriesLabel = `Series: ${seriesId ? activeSeries?.title || t('navigation.sidebar.activeSeriesFallback', 'Bộ truyện') : t('navigation.sidebar.chooseSeries', 'Chọn Series')}`;
   const themeLabel = t('navigation.sidebar.appearance', 'Giao diện thanh bên');

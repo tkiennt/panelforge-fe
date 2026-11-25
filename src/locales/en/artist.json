@@ -440,6 +440,7 @@
     "withdrawErrorFallback": "Could not withdraw submission.",
     "submitButtonLabel": "Submit Draft",
     "withdrawButtonLabel": "Withdraw",
+    "withdrawDisabledTooltip": "Only available after submitting your draft for this stage",
     "characterFallback": "Character",
     "narratorFallback": "Narrator",
     "addPageError": "Could not add new page.",

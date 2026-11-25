@@ -150,6 +150,7 @@
     "stageProgressAria": "Tiến độ công đoạn",
     "autosaved": "Đã lưu tự động",
     "withdrawTooltip": "Rút bài nộp để tiếp tục chỉnh sửa",
+    "withdrawDisabledTooltip": "Chưa có bài nộp ở công đoạn này hoặc bạn không có quyền rút bài",
     "withdrawing": "Đang rút...",
     "withdrawBtn": "Rút bài",
     "submittedBadge": "Đã nộp chờ duyệt",

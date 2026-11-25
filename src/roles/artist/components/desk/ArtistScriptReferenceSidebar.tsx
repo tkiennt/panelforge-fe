@@ -144,14 +144,14 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
       className='w-72 h-full border-l border-[#E7E5E4] bg-white text-stone-900 flex flex-col shrink-0 z-10 select-none'
     >
       {/* Header chuẩn Stitch: Icon + Kịch bản tham chiếu | Toggle Cả trang / Tất cả */}
-      <div className='px-2.5 py-2.5 border-b border-[#E7E5E4] flex items-center justify-between gap-1.5 shrink-0'>
-        <div className='flex items-center gap-1.5 min-w-0 text-stone-900 font-semibold text-xs'>
+      <div className='px-2 py-2.5 border-b border-[#E7E5E4] flex items-center justify-between gap-1 shrink-0'>
+        <div className='flex items-center gap-1 text-stone-900 font-semibold text-xs whitespace-nowrap shrink-0'>
           <FileText className='w-3.5 h-3.5 text-[#EA580C] shrink-0' />
-          <span className='truncate'>{t('scriptRefSidebar.headerTitle')}</span>
+          <span>{t('scriptRefSidebar.headerTitle')}</span>
         </div>
 
-        <div className='flex items-center gap-1 shrink-0'>
-          <div className='flex items-center bg-[#FAF9F5] border border-[#E7E5E4] p-0.5 rounded text-[11px]'>
+        <div className='flex items-center gap-0.5 shrink-0'>
+          <div className='flex items-center bg-[#FAF9F5] border border-[#E7E5E4] p-0.5 rounded text-[10.5px]'>
             <button
               type='button'
               data-testid='artist-script-ref-filter-all'
@@ -187,7 +187,7 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
             data-testid='artist-script-ref-toggle'
             title={t('scriptRefSidebar.collapseTitle')}
             aria-label={t('scriptRefSidebar.collapseTitle')}
-            className='p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-700 cursor-pointer transition-colors'
+            className='p-0.5 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-700 cursor-pointer transition-colors shrink-0'
           >
             <ChevronRight className='w-3.5 h-3.5' />
           </button>
@@ -288,15 +288,7 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
                             }`}
                           >
                             {speakerLabel && (
-                              <span
-                                className='font-bold mr-1'
-                                style={{
-                                  color:
-                                    meta.kind === 'narration'
-                                      ? '#4F46E5'
-                                      : line.characterColor || '#EA580C',
-                                }}
-                              >
+                              <span className='font-bold uppercase text-[#EA580C] mr-1'>
                                 {speakerLabel}:
                               </span>
                             )}

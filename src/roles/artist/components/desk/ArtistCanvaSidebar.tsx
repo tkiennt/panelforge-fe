@@ -1041,7 +1041,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   >('all');
 
   // Trạng thái cho Yêu cầu chỉnh sửa (Tab Changes)
-  const [changeFilterStatus, setChangeFilterStatus] = useState<'all' | 'open' | 'resolved'>('all');
   const [resolveNoteByCrId, setResolveNoteByCrId] = useState<Record<string, string>>({});
   const [activeResolveInputId, setActiveResolveInputId] = useState<string | null>(null);
 
@@ -1055,17 +1054,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
       return s === 'open' || s === '0' || cr.status === 0;
     }).length;
   }, [changeRequests]);
-
-  // Danh sách Change Requests sau khi lọc
-  const filteredChangeRequests = useMemo(() => {
-    return changeRequests.filter((cr) => {
-      const s = String(cr.status).toLowerCase();
-      const isOpen = s === 'open' || s === '0' || cr.status === 0;
-      if (changeFilterStatus === 'open') return isOpen;
-      if (changeFilterStatus === 'resolved') return !isOpen;
-      return true;
-    });
-  }, [changeRequests, changeFilterStatus]);
 
   // Xử lý khi nhấn nút Tab Canva Dock
   const handleTabClick = (tab: CanvaSidebarTab) => {
@@ -2050,38 +2038,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               <p className='text-xs text-stone-500 leading-relaxed'>
                 {t('canvaSidebar.changesSubtitle')}
               </p>
-
-              {/* Filter Chips */}
-              {changeRequests.length > 0 && (
-                <div className='flex items-center gap-1.5 pt-0.5'>
-                  {(
-                    [
-                      { key: 'all', label: t('canvaSidebar.changesFilterAll') },
-                      {
-                        key: 'open',
-                        label: t('canvaSidebar.changesFilterOpen', {
-                          count: openChangeRequestsCount,
-                        }),
-                      },
-                      { key: 'resolved', label: t('canvaSidebar.changesFilterResolved') },
-                    ] as const
-                  ).map((chip) => (
-                    <button
-                      key={chip.key}
-                      type='button'
-                      onClick={() => setChangeFilterStatus(chip.key)}
-                      data-testid={`btn-filter-cr-${chip.key}`}
-                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
-                        changeFilterStatus === chip.key
-                          ? 'bg-[#EA580C] text-white font-semibold'
-                          : 'bg-[#FAF9F5] text-stone-600 hover:text-stone-900 border border-[#E7E5E4]'
-                      }`}
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Danh sách Yêu cầu chỉnh sửa */}
@@ -2091,7 +2047,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   <Loader2 className='w-5 h-5 animate-spin text-[#EA580C]' />
                   <span className='text-xs'>{t('canvaSidebar.changesLoading')}</span>
                 </div>
-              ) : filteredChangeRequests.length === 0 ? (
+              ) : changeRequests.length === 0 ? (
                 <div className='flex flex-col items-center justify-center py-12 text-center p-4 space-y-2'>
                   <div className='w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center'>
                     <CheckCircle2 className='w-5 h-5' />
@@ -2100,13 +2056,11 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     {t('canvaSidebar.changesEmptyTitle')}
                   </div>
                   <div className='text-xs text-stone-500 max-w-[220px]'>
-                    {changeFilterStatus === 'open'
-                      ? t('canvaSidebar.changesEmptyOpen')
-                      : t('canvaSidebar.changesEmptyAll')}
+                    {t('canvaSidebar.changesEmptyAll')}
                   </div>
                 </div>
               ) : (
-                filteredChangeRequests.map((cr) => {
+                changeRequests.map((cr) => {
                   const statusStr = String(cr.status).toLowerCase();
                   const isOpen = statusStr === 'open' || statusStr === '0' || cr.status === 0;
                   const isResolved =

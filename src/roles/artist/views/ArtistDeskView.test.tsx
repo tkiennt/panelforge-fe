@@ -103,7 +103,7 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
     // Select page 2
     const card2 = screen.getByTestId('canva-page-card-2');
     const card2Btn = card2.querySelector('[role="button"]')!;
-    expect(card2Btn).toHaveClass('w-8', 'h-10');
+    expect(card2Btn).toHaveClass('w-7', 'h-8');
     fireEvent.click(card2Btn);
     expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('2 / 6');
 
@@ -1992,14 +1992,16 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         expect(screen.queryByText('Đã rút bài')).not.toBeInTheDocument();
         expect(getGridSpy).toHaveBeenCalledTimes(2);
 
-        // Lần 2: 200 OK -> rút bài thành công, cập nhật ô trực tiếp từ DTO trả về, ẩn nút Rút bài
+        // Lần 2: 200 OK -> rút bài thành công, cập nhật ô trực tiếp từ DTO trả về, nút Rút bài chuyển sang disabled
         fireEvent.click(screen.getByTestId('artist-withdraw-btn'));
         await waitFor(() => {
           expect(withdrawSpy).toHaveBeenCalledWith('chap-1', 'cell-p1-pencil');
           expect(screen.getByText('Đã rút bài')).toBeInTheDocument();
         });
         expect(getGridSpy).toHaveBeenCalledTimes(2);
-        expect(screen.queryByTestId('artist-withdraw-btn')).not.toBeInTheDocument();
+        const disabledWithdrawBtn = screen.getByTestId('artist-withdraw-btn');
+        expect(disabledWithdrawBtn).toBeDisabled();
+        expect(disabledWithdrawBtn).toHaveAttribute('title');
       } finally {
         localStorage.removeItem('user');
       }

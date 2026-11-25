@@ -59,6 +59,9 @@ export interface FocusHeaderConfig {
   onSelectStage?: (stageIndex: number) => void;
   submitButtonLabel?: string;
   onWithdrawStage?: () => void;
+  showWithdrawButton?: boolean;
+  isWithdrawDisabled?: boolean;
+  withdrawDisabledReason?: string;
   isWithdrawingStage?: boolean;
   withdrawButtonLabel?: string;
 }
@@ -137,13 +140,10 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
   workspaceName,
   activeSeriesTitle,
   headerConfig,
-  isExiting = false,
-  onBack,
   onEnterFocusMode,
   showFocusControls = true,
 }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const resolvedUserName = userName || t('navigation.focus.defaultUser');
 
   const isWriterScriptEditor =
@@ -185,54 +185,26 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
   const isSubmittingStage = Boolean(headerConfig?.isSubmittingStage);
   const isLastStage = stages.length > 0 && currentStageIndex >= stages.length - 1;
 
-  const isEditorDesk = pathname.includes('/editor/desk');
-  const isEditorReview =
-    String(userRole ?? '').toUpperCase() === 'EDITOR' &&
-    (pathname.includes('/script/review') ||
-      pathname.includes('/review/') ||
-      pathname.includes('/editor/bible'));
-  const backPath =
-    isEditorDesk && workspaceId ? `/workspaces/${workspaceId}/series` : resolvedSeriesPath;
-
-  const handleBackClick = () => {
-    if (onBack) {
-      onBack();
-    } else {
-      navigate(backPath);
-    }
-  };
+  const canWithdraw = Boolean(headerConfig?.onWithdrawStage) && !headerConfig?.isWithdrawDisabled;
+  const showWithdrawBtn = Boolean(
+    headerConfig?.onWithdrawStage || headerConfig?.showWithdrawButton,
+  );
 
   return (
     <header
-      className='h-16 bg-white border-b border-stone-200 px-4 flex items-center justify-between gap-2 shrink-0 z-30 select-none'
+      className='h-16 bg-white border-b border-stone-200 px-3 flex items-center justify-between gap-2 shrink-0 z-30 select-none'
       data-testid='focus-studio-header'
     >
-      {/* Phía trái: Breadcrumb Studio › Series › Chương n: <title> */}
+      {/* Phía trái: Breadcrumb Series › Chương n: <title> (Stitch) */}
       <nav
         aria-label={t('navigation.focus.breadcrumbAria')}
-        className='flex items-center gap-1.5 min-w-0 text-xs text-stone-600'
+        className='flex items-center gap-1 min-w-0 shrink-0 text-xs text-stone-600'
       >
-        <button
-          type='button'
-          onClick={handleBackClick}
-          disabled={isExiting}
-          data-testid='focus-back-btn'
-          title={t('navigation.sidebar.backToStudio', 'Về Sảnh Studio')}
-          className='font-medium text-stone-500 hover:text-stone-900 transition-colors cursor-pointer truncate max-w-[100px] sm:max-w-[140px] disabled:opacity-60 flex items-center gap-1 shrink-0'
-        >
-          {isExiting && <Loader2 className='w-3 h-3 animate-spin text-orange-600 shrink-0' />}
-          <span className='truncate'>
-            {workspaceName || t('navigation.breadcrumbs.studios', 'Studio')}
-          </span>
-        </button>
-
-        <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0' aria-hidden='true' />
-
         <Link
           to={resolvedSeriesPath}
           data-testid='focus-series-link'
           title={t('navigation.focus.openSeriesTooltip', { title: resolvedSeriesTitle })}
-          className='font-semibold text-stone-900 hover:text-[#EA580C] transition-colors truncate max-w-[130px] sm:max-w-[180px] shrink-0'
+          className='font-semibold text-stone-900 hover:text-[#EA580C] transition-colors truncate max-w-[140px] sm:max-w-[165px] shrink-0'
         >
           {resolvedSeriesTitle}
         </Link>
@@ -242,7 +214,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0' aria-hidden='true' />
             <div
               data-testid='focus-chapter-breadcrumb'
-              className='inline-flex items-center min-w-0 max-w-[175px] sm:max-w-[230px]'
+              className='inline-flex items-center min-w-0 shrink-0 max-w-[240px]'
             >
               {chapters.length > 0 && headerConfig?.onSelectChapter ? (
                 <select
@@ -250,7 +222,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                   data-testid='focus-chapter-select'
                   value={activeChapterId || chapters[0].id}
                   onChange={(e) => headerConfig.onSelectChapter?.(e.target.value)}
-                  className='bg-[#FAF9F5] border border-[#E7E5E4] hover:border-orange-300 rounded px-2 py-1 text-xs font-medium text-stone-800 hover:text-[#EA580C] focus:outline-none focus:ring-1 focus:ring-[#EA580C] cursor-pointer truncate max-w-full transition-colors'
+                  className='w-auto max-w-[240px] bg-[#FAF9F5] border border-[#E7E5E4] hover:border-orange-300 rounded px-2 py-1 text-xs font-medium text-stone-800 hover:text-[#EA580C] focus:outline-none focus:ring-1 focus:ring-[#EA580C] cursor-pointer transition-colors'
                 >
                   {chapters.map((ch) => {
                     const baseLabel = formatChapterLabel(ch.chapterNumber, ch.title);
@@ -303,7 +275,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             data-testid='focus-stage-stepper'
             role='list'
             aria-label={t('navigation.focus.stageProgressAria')}
-            className='hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FAF9F5] border border-[#E7E5E4] text-xs shrink-0'
+            className='hidden md:flex items-center gap-1 px-2 py-1 rounded-full bg-[#FAF9F5] border border-[#E7E5E4] text-[11px] shrink-0'
           >
             {stages.map((stage, idx) => {
               const isCompleted = isStageFlowCompleted || idx < currentStageIndex;
@@ -313,10 +285,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
               return (
                 <React.Fragment key={stage.id}>
                   {idx > 0 && (
-                    <ChevronRight
-                      className='w-3.5 h-3.5 text-stone-400 shrink-0'
-                      aria-hidden='true'
-                    />
+                    <ChevronRight className='w-3 h-3 text-stone-400 shrink-0' aria-hidden='true' />
                   )}
                   <div
                     role='listitem'
@@ -325,14 +294,14 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                     data-stage-state={stepState}
                     aria-current={isCurrent ? 'step' : undefined}
                     onClick={() => headerConfig?.onSelectStage?.(idx)}
-                    className={`flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                    className={`flex items-center gap-1 transition-all whitespace-nowrap ${
                       headerConfig?.onSelectStage ? 'cursor-pointer hover:opacity-90' : ''
                     } ${
                       isCurrent
-                        ? 'bg-[#EA580C] text-white px-2.5 py-0.5 rounded-full font-semibold shadow-2xs'
+                        ? 'bg-[#EA580C] text-white px-2 py-0.5 rounded-full font-semibold shadow-2xs'
                         : isCompleted
-                          ? 'text-emerald-600 font-medium px-1'
-                          : 'text-stone-400 font-medium px-1'
+                          ? 'text-emerald-600 font-medium px-0.5'
+                          : 'text-stone-400 font-medium px-0.5'
                     }`}
                   >
                     {isCompleted ? (
@@ -364,25 +333,30 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
       )}
 
       {/* Phía phải: Nút Rút bài / Nộp qua công đoạn / Gửi duyệt kịch bản */}
-      <div className='flex items-center gap-2 shrink-0'>
-        {headerConfig?.onWithdrawStage && (
+      <div className='flex items-center gap-1.5 shrink-0'>
+        {showWithdrawBtn && (
           <button
             type='button'
-            onClick={headerConfig.onWithdrawStage}
-            disabled={Boolean(headerConfig.isWithdrawingStage)}
+            onClick={canWithdraw ? headerConfig?.onWithdrawStage : undefined}
+            disabled={Boolean(headerConfig?.isWithdrawingStage) || !canWithdraw}
             data-testid='artist-withdraw-btn'
-            title={t('navigation.focus.withdrawTooltip')}
-            className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-white hover:bg-stone-50 border border-[#E7E5E4] text-stone-700 text-xs font-medium active:scale-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0'
+            title={
+              canWithdraw
+                ? t('navigation.focus.withdrawTooltip')
+                : headerConfig?.withdrawDisabledReason ||
+                  t('navigation.focus.withdrawDisabledTooltip')
+            }
+            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-white hover:bg-stone-50 border border-[#E7E5E4] text-stone-700 text-xs font-medium active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 shrink-0 whitespace-nowrap'
           >
-            {headerConfig.isWithdrawingStage ? (
+            {headerConfig?.isWithdrawingStage ? (
               <Loader2 className='w-3.5 h-3.5 animate-spin' />
             ) : (
               <RotateCcw className='w-3.5 h-3.5' />
             )}
             <span>
-              {headerConfig.isWithdrawingStage
+              {headerConfig?.isWithdrawingStage
                 ? t('navigation.focus.withdrawing')
-                : headerConfig.withdrawButtonLabel || t('navigation.focus.withdrawBtn')}
+                : headerConfig?.withdrawButtonLabel || t('navigation.focus.withdrawBtn')}
             </span>
           </button>
         )}
@@ -411,7 +385,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                     ? t('navigation.focus.submitFinalTooltip')
                     : t('navigation.focus.submitStageTooltip')
               }
-              className='inline-flex items-center gap-1.5 px-3.5 py-2 rounded bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold shadow-2xs active:scale-95 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0'
+              className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold shadow-2xs active:scale-95 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
             >
               {isSubmittingStage ? (
                 <Loader2 className='w-3.5 h-3.5 animate-spin' />
@@ -443,7 +417,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
         )}
 
         {!isWriterScriptEditor && (
-          <div className='flex items-center gap-2 pl-1.5'>
+          <div className='flex items-center gap-1.5 pl-0.5'>
             <div
               className='w-8 h-8 rounded-full bg-[#EA580C] text-white flex items-center justify-center text-xs font-semibold shrink-0'
               title={resolvedUserName}

@@ -440,6 +440,7 @@
     "withdrawErrorFallback": "Không thể rút bài.",
     "submitButtonLabel": "Nộp bản thảo",
     "withdrawButtonLabel": "Rút bài",
+    "withdrawDisabledTooltip": "Chỉ rút được bài sau khi đã nộp bản thảo của bạn ở công đoạn này",
     "characterFallback": "Nhân vật",
     "narratorFallback": "Người dẫn",
     "addPageError": "Không thể thêm trang mới.",

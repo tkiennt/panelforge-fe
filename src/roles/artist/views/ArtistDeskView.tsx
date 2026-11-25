@@ -1571,7 +1571,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       onSubmitStage: handleSubmitStage,
       onSelectStage: handleSelectStage,
       submitButtonLabel: t('artist.deskView.submitButtonLabel'),
+      showWithdrawButton: true,
       onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
+      isWithdrawDisabled: !withdrawableCell,
+      withdrawDisabledReason: t('artist.deskView.withdrawDisabledTooltip'),
       isWithdrawingStage,
       withdrawButtonLabel: t('artist.deskView.withdrawButtonLabel'),
     });
@@ -2842,7 +2845,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             onSubmitStage: handleSubmitStage,
             onSelectStage: handleSelectStage,
             submitButtonLabel: t('artist.deskView.submitButtonLabel'),
+            showWithdrawButton: true,
             onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
+            isWithdrawDisabled: !withdrawableCell,
+            withdrawDisabledReason: t('artist.deskView.withdrawDisabledTooltip'),
             isWithdrawingStage,
             withdrawButtonLabel: t('artist.deskView.withdrawButtonLabel'),
           }}

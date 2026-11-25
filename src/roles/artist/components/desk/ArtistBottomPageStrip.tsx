@@ -58,12 +58,12 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
 
   return (
     <footer
-      className='w-full h-16 shrink-0 bg-white border-t border-[#E7E5E4] px-3 flex items-center justify-between gap-2 select-none z-20'
+      className='w-full h-16 shrink-0 bg-white border-t border-[#E7E5E4] px-2 flex items-center justify-between gap-1.5 select-none z-20'
       data-testid='canva-bottom-page-manager'
     >
       {/* 1. HÀNG THUMBNAIL CÁC TRANG (COMPACT STITCH STRIP) */}
       <div
-        className='flex-1 min-w-0 flex items-center gap-2 overflow-x-auto py-1'
+        className='flex-1 min-w-0 flex items-center justify-start gap-1.5 overflow-x-auto py-1'
         data-testid='canva-page-filmstrip'
       >
         {isFilmstripOpen && (
@@ -87,7 +87,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                         onSelectPage(page);
                       }
                     }}
-                    className={`relative w-8 h-10 rounded-sm cursor-pointer transition-colors flex items-center justify-center text-[10px] ${
+                    className={`relative w-7 h-8 rounded-sm cursor-pointer transition-colors flex items-center justify-center text-[10px] ${
                       isSelected
                         ? 'bg-orange-50 border-2 border-[#EA580C] font-bold text-[#EA580C]'
                         : 'bg-[#FAF9F5] border border-[#E7E5E4] text-stone-400 group-hover:border-stone-400 group-hover:text-stone-700'
@@ -130,7 +130,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                   </div>
 
                   <span
-                    className={`text-[11px] leading-tight whitespace-nowrap transition-colors ${
+                    className={`text-[10px] leading-tight whitespace-nowrap transition-colors ${
                       isSelected
                         ? 'font-semibold text-[#EA580C]'
                         : 'text-stone-600 group-hover:text-stone-900'
@@ -151,10 +151,10 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                 data-testid='canva-add-page-btn'
                 className='flex flex-col items-center gap-0.5 shrink-0 group cursor-pointer'
               >
-                <div className='w-8 h-10 rounded-sm border border-dashed border-stone-300 group-hover:border-[#EA580C] group-hover:bg-orange-50/50 text-stone-400 group-hover:text-[#EA580C] flex items-center justify-center transition-colors'>
-                  <Plus className='w-4 h-4' />
+                <div className='w-7 h-8 rounded-sm border border-dashed border-stone-300 group-hover:border-[#EA580C] group-hover:bg-orange-50/50 text-stone-400 group-hover:text-[#EA580C] flex items-center justify-center transition-colors'>
+                  <Plus className='w-3.5 h-3.5' />
                 </div>
-                <span className='text-[11px] leading-tight text-stone-500 group-hover:text-[#EA580C] whitespace-nowrap'>
+                <span className='text-[10px] leading-tight text-stone-500 group-hover:text-[#EA580C] whitespace-nowrap'>
                   {t('bottomPageStrip.addPageShort')}
                 </span>
               </button>
@@ -181,7 +181,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
 
       {/* 2. ZOOM & FULLSCREEN CONTROLS (STITCH PILL) */}
       <div
-        className='flex items-center gap-1.5 shrink-0 bg-[#FAF9F5] border border-[#E7E5E4] px-2 py-1 rounded text-xs text-stone-700'
+        className='flex items-center gap-0.5 shrink-0 bg-[#FAF9F5] border border-[#E7E5E4] px-1.5 py-1 rounded text-xs text-stone-700'
         data-testid='canva-bottom-bar'
       >
         <span className='sr-only' data-testid='canva-page-counter'>
@@ -191,21 +191,21 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
         <button
           type='button'
           onClick={() => onZoomChange(Math.max(0.3, Math.round((zoomScale - 0.1) * 100) / 100))}
-          className='w-6 h-6 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors font-bold text-xs cursor-pointer'
+          className='w-5 h-5 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors font-bold text-xs cursor-pointer'
           title={t('bottomPageStrip.zoomOutTitle')}
           aria-label={t('bottomPageStrip.zoomOutTitle')}
         >
           −
         </button>
 
-        <span className='font-mono text-xs font-semibold text-stone-800 px-1.5 min-w-[44px] text-center'>
+        <span className='font-mono text-[11px] font-semibold text-stone-800 px-1 min-w-[36px] text-center'>
           {Math.round(zoomScale * 100)}%
         </span>
 
         <button
           type='button'
           onClick={() => onZoomChange(Math.min(2.0, Math.round((zoomScale + 0.1) * 100) / 100))}
-          className='w-6 h-6 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors font-bold text-xs cursor-pointer'
+          className='w-5 h-5 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors font-bold text-xs cursor-pointer'
           title={t('bottomPageStrip.zoomInTitle')}
           aria-label={t('bottomPageStrip.zoomInTitle')}
         >
@@ -218,7 +218,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
             <button
               type='button'
               onClick={onToggleFullscreen}
-              className='w-6 h-6 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors cursor-pointer'
+              className='w-5 h-5 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors cursor-pointer'
               title={
                 isFullscreen ? t('bottomPageStrip.exitFullscreen') : t('bottomPageStrip.fullscreen')
               }
@@ -226,11 +226,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                 isFullscreen ? t('bottomPageStrip.exitFullscreen') : t('bottomPageStrip.fullscreen')
               }
             >
-              {isFullscreen ? (
-                <Minimize2 className='w-3.5 h-3.5' />
-              ) : (
-                <Maximize2 className='w-3.5 h-3.5' />
-              )}
+              {isFullscreen ? <Minimize2 className='w-3 h-3' /> : <Maximize2 className='w-3 h-3' />}
             </button>
           </>
         )}
