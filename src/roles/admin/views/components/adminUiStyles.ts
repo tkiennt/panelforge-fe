@@ -6,7 +6,7 @@ export const adminFocusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent focus-visible:ring-offset-2 focus-visible:ring-offset-admin-card';
 
 export const adminFieldClass = cn(
-  'w-full min-h-11 px-3 rounded-xl border border-admin-line bg-admin-field text-sm text-admin-ink placeholder:text-admin-muted/80',
+  'w-full max-w-full min-w-0 min-h-11 px-3 rounded-xl border border-admin-line bg-admin-field text-sm text-admin-ink placeholder:text-admin-muted/80',
   'focus:outline-none focus:border-admin-accent focus:ring-2 focus:ring-admin-accent/25 disabled:opacity-60 disabled:cursor-not-allowed',
 );
 

@@ -3,10 +3,18 @@ import { useTranslation } from '@/lib/i18n';
 import type {
   AiSuggestionDto,
   LineRewriteSuggestion,
+  NextLineSuggestion,
   ScriptDraft,
 } from '@/services/aiAgents.service';
 import type { SceneDetailDto } from '@/services/scriptLine.service';
-import { diffScriptRows, draftRows, newBibleNames, rewriteRows, sceneRows } from './scriptDiff';
+import {
+  diffScriptRows,
+  draftRows,
+  insertRows,
+  newBibleNames,
+  rewriteRows,
+  sceneRows,
+} from './scriptDiff';
 
 /** Xem đề xuất AI trên trang script: dòng bỏ màu đỏ, dòng thêm màu xanh. Chỉ đọc, chưa ghi gì. */
 export const ScriptDiffPreview: React.FC<{
@@ -19,7 +27,9 @@ export const ScriptDiffPreview: React.FC<{
   const draft = suggestion.kind === 'Script' ? (suggestion.payload as ScriptDraft) : null;
   const after = draft
     ? draftRows(draft, nameById)
-    : rewriteRows(scene, suggestion.payload as LineRewriteSuggestion);
+    : suggestion.kind === 'ScriptLineInsert'
+      ? insertRows(scene, suggestion.payload as NextLineSuggestion)
+      : rewriteRows(scene, suggestion.payload as LineRewriteSuggestion);
   const rows = diffScriptRows(sceneRows(scene), after);
   const newNames = draft ? newBibleNames(draft) : [];
 

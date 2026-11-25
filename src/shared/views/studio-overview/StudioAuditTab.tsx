@@ -20,6 +20,8 @@ export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
   const { t, lang } = useTranslation();
   const [renderTime] = React.useState(() => Date.now());
 
+  // Mốc "bây giờ" cố định cho một lần mount, để render thuần (react-hooks/purity).
+  const [now] = React.useState(() => Date.now());
   const filteredLogs = React.useMemo(() => {
     if (!filterEntity.trim()) return logs;
     const q = filterEntity.toLowerCase().trim();
