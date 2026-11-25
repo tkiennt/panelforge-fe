@@ -157,7 +157,17 @@
     "importantNoteBefore": "The",
     "importantNoteAfter": "status is the final stage of the manga production workflow. Once published, a chapter cannot be reopened (per Approval Policy V1.2).",
     "confirmPublish": "Confirm Publish",
-    "confirmSchedule": "Confirm Schedule"
+    "confirmSchedule": "Confirm Schedule",
+    "pricingLabel": "Original edition pricing ({lang})",
+    "pricingFree": "Free",
+    "pricingPaid": "Paid",
+    "pricingRequired": "Choose Free or Paid for the original edition before publishing.",
+    "priceLabel": "Unlock price (VND)",
+    "previewLabel": "Free preview pages (of {total})",
+    "priceInvalid": "Price must be a whole number from {min} to {max} VND.",
+    "previewInvalid": "Preview pages must be between 0 and {max}.",
+    "pricingFreeSummary": "Set: Free — readers read at no cost.",
+    "pricingPaidSummary": "Set: Paid {price} VND, first {preview} pages free."
   },
   "catalog": {
     "loadErrorTitle": "Unable to load series catalog",

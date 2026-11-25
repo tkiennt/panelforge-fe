@@ -231,6 +231,7 @@
     "reasonHint": "Required when changing the type or price of a published edition; recorded in history.",
     "save": "Save settings",
     "publish": "Publish {lang} edition",
-    "publishBlocked": "Set pricing before publishing."
+    "publishBlocked": "Set pricing before publishing.",
+    "publishWithChapterHint": "The original edition is released with the chapter: use \"Publish chapter\" on the Publisher desk so it appears in the Catalog."
   }
 }

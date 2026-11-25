@@ -1,6 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Send, Calendar, Clock, Loader2, Sparkles } from 'lucide-react';
 import { chapterService } from '@/services/chapter.service';
+import {
+  monetizationService,
+  type ChapterLanguageStatusDto,
+  type ChapterManageDto,
+  type ContentLanguage,
+} from '@/services/payment.service';
+import { seriesService } from '@/services/series.service';
 import { Modal } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
 
@@ -36,6 +43,58 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // D4: ấn bản ngôn ngữ gốc phải được chốt Free/Trả phí trước khi chương phát hành
+  const [manage, setManage] = useState<ChapterManageDto | null>(null);
+  const [originalLanguage, setOriginalLanguage] = useState<ContentLanguage>('vi');
+  const [priceType, setPriceType] = useState<'free' | 'paid' | null>(null);
+  const [price, setPrice] = useState('');
+  const [previewPages, setPreviewPages] = useState(1);
+
+  useEffect(() => {
+    if (!isOpen || !chapterId) return;
+    let alive = true;
+    (async () => {
+      try {
+        const m = await monetizationService.getChapterManage(chapterId);
+        if (!alive) return;
+        setManage(m);
+        const series = await seriesService.getSeriesById(m.seriesId).catch(() => null);
+        if (alive && series?.originalLanguage) {
+          setOriginalLanguage(series.originalLanguage as ContentLanguage);
+        }
+      } catch {
+        // Không đọc được cấu hình giá: BE vẫn chặn phát hành nếu chưa đặt giá (D4)
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [isOpen, chapterId]);
+
+  const originalEdition: ChapterLanguageStatusDto | undefined = manage?.languages.find(
+    (l) => l.language === originalLanguage,
+  );
+  const needsPricing = !!manage && !originalEdition?.isMonetizationConfigured;
+  const pageCount = manage?.pages.length ?? 0;
+  const priceNumber = Number(price);
+  const pricingError = !needsPricing
+    ? null
+    : priceType === null
+      ? t('scheduleModal.pricingRequired')
+      : priceType === 'paid' &&
+          !(
+            Number.isInteger(priceNumber) &&
+            priceNumber >= (manage?.minPriceVnd ?? 1) &&
+            priceNumber <= (manage?.maxPriceVnd ?? Number.MAX_SAFE_INTEGER)
+          )
+        ? t('scheduleModal.priceInvalid', {
+            min: manage?.minPriceVnd ?? 0,
+            max: manage?.maxPriceVnd ?? 0,
+          })
+        : priceType === 'paid' && !(previewPages >= 0 && previewPages < pageCount)
+          ? t('scheduleModal.previewInvalid', { max: Math.max(0, pageCount - 1) })
+          : null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -56,6 +115,19 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
           return;
         }
         isoUtc = selected.toISOString();
+      }
+
+      if (needsPricing) {
+        if (pricingError) {
+          setError(pricingError);
+          setLoading(false);
+          return;
+        }
+        await monetizationService.setEditionMonetization(chapterId, originalLanguage, {
+          isPaid: priceType === 'paid',
+          priceVnd: priceType === 'paid' ? priceNumber : 0,
+          freePreviewPages: priceType === 'paid' ? previewPages : 0,
+        });
       }
 
       await chapterService.publishChapter(chapterId, isoUtc);
@@ -163,6 +235,80 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
           </div>
         )}
 
+        {manage && (
+          <div className='space-y-2' data-testid='publish-pricing-section'>
+            <label className='block text-xs font-bold text-[#1C1917]'>
+              {t('scheduleModal.pricingLabel', { lang: originalLanguage.toUpperCase() })}
+            </label>
+            {!needsPricing && originalEdition ? (
+              <p className='text-xs text-[#57534E]' data-testid='publish-pricing-summary'>
+                {originalEdition.isPaid
+                  ? t('scheduleModal.pricingPaidSummary', {
+                      price: originalEdition.priceVnd.toLocaleString(
+                        lang === 'en' ? 'en-US' : 'vi-VN',
+                      ),
+                      preview: originalEdition.freePreviewPages,
+                    })
+                  : t('scheduleModal.pricingFreeSummary')}
+              </p>
+            ) : (
+              <>
+                <div className='grid grid-cols-2 gap-2.5'>
+                  {(['free', 'paid'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type='button'
+                      data-testid={`publish-pricing-${type}`}
+                      aria-pressed={priceType === type}
+                      disabled={type === 'paid' && pageCount < 2}
+                      onClick={() => setPriceType(type)}
+                      className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                        priceType === type
+                          ? 'border-[#F97316] bg-[#FFF2E6] ring-1 ring-[#F97316]'
+                          : 'border-[#D8D2C5] hover:border-[#F97316]/60 bg-[#FCFBF8]'
+                      }`}
+                    >
+                      {type === 'free'
+                        ? t('scheduleModal.pricingFree')
+                        : t('scheduleModal.pricingPaid')}
+                    </button>
+                  ))}
+                </div>
+                {priceType === 'paid' && (
+                  <div className='grid grid-cols-2 gap-2.5'>
+                    <label className='flex flex-col gap-1 text-[11px] text-[#57534E]'>
+                      {t('scheduleModal.priceLabel')}
+                      <input
+                        type='number'
+                        inputMode='numeric'
+                        data-testid='publish-pricing-price'
+                        min={manage.minPriceVnd}
+                        max={manage.maxPriceVnd}
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        className='px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] text-xs font-mono'
+                      />
+                    </label>
+                    <label className='flex flex-col gap-1 text-[11px] text-[#57534E]'>
+                      {t('scheduleModal.previewLabel', { total: pageCount })}
+                      <input
+                        type='number'
+                        inputMode='numeric'
+                        data-testid='publish-pricing-preview'
+                        min={0}
+                        max={Math.max(0, pageCount - 1)}
+                        value={previewPages}
+                        onChange={(e) => setPreviewPages(Number(e.target.value))}
+                        className='px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] text-xs font-mono'
+                      />
+                    </label>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         <div className='p-3 bg-amber-50/60 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed'>
           <strong>{t('scheduleModal.importantNoteLabel')}</strong>{' '}
           {t('scheduleModal.importantNoteBefore')} <code>Published</code>{' '}
@@ -181,7 +327,8 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
           </button>
           <button
             type='submit'
-            disabled={loading}
+            data-testid='publish-submit'
+            disabled={loading || (needsPricing && priceType === null)}
             className='px-4 py-1.5 text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl shadow-xs flex items-center gap-1.5 disabled:opacity-50 transition-colors cursor-pointer active:scale-95'
           >
             {loading ? (

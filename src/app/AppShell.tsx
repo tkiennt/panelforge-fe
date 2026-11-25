@@ -293,6 +293,34 @@ export function AppShell({
       return roleNavConfig['ADMINISTRATOR'] || [];
     }
 
+    // Publisher (vai trò hệ thống) không có vai trò Workspace: effectiveRole mặc định là PRODUCER,
+    // nên phải xét trước nhánh Producer để không hiện menu Studio.
+    if (isPublisher || effectiveRole === 'PUBLISHER') {
+      return [
+        {
+          section: t('navigation.sections.publisherDesk'),
+          items: [
+            {
+              icon: BookMarked,
+              label: t('navigation.menu.publisherManagement'),
+              href: '/publisher/series',
+              badge: { type: 'dot', color: 'bg-orange-500' },
+            },
+            {
+              icon: BookOpen,
+              label: t('navigation.menu.publicCatalog'),
+              href: '/publisher/catalog',
+            },
+            {
+              icon: CreditCard,
+              label: t('navigation.menu.revenue'),
+              href: '/publisher/revenue',
+            },
+          ],
+        },
+      ];
+    }
+
     if (effectiveRole === 'PRODUCER') {
       if (isSeriesContext) {
         return [
@@ -349,7 +377,6 @@ export function AppShell({
                 icon: Users,
                 label: t('navigation.sidebar.crew', 'Đội ngũ'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/workspace?tab=crew`,
-                badge: { type: 'count', count: 5 },
               },
             ],
           },
@@ -375,32 +402,6 @@ export function AppShell({
       }
     }
 
-    if (isPublisher || effectiveRole === 'PUBLISHER') {
-      return [
-        {
-          section: t('navigation.sections.publisherDesk'),
-          items: [
-            {
-              icon: BookMarked,
-              label: t('navigation.menu.publisherManagement'),
-              href: '/publisher/series',
-              badge: { type: 'dot', color: 'bg-orange-500' },
-            },
-            {
-              icon: BookOpen,
-              label: t('navigation.menu.publicCatalog'),
-              href: '/publisher/catalog',
-            },
-            {
-              icon: CreditCard,
-              label: t('navigation.menu.revenue'),
-              href: '/publisher/revenue',
-            },
-          ],
-        },
-      ];
-    }
-
     if (effectiveRole === 'EDITOR') {
       if (isSeriesContext) {
         return [
@@ -411,7 +412,6 @@ export function AppShell({
                 icon: Layers,
                 label: t('navigation.menu.myWork', 'Việc của tôi'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
-                badge: { type: 'count', count: 3 },
               },
             ],
           },
@@ -478,7 +478,6 @@ export function AppShell({
                 icon: Layers,
                 label: t('navigation.menu.myWork', 'Việc của tôi'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
-                badge: { type: 'count', count: 3 },
               },
             ],
           },
@@ -535,7 +534,6 @@ export function AppShell({
                 icon: Layers,
                 label: t('navigation.menu.myWork', 'Việc của tôi'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
-                badge: { type: 'count', count: 4 },
               },
             ],
           },
@@ -591,7 +589,6 @@ export function AppShell({
                 icon: Layers,
                 label: t('navigation.menu.myWork', 'Việc của tôi'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
-                badge: { type: 'count', count: 2 },
               },
             ],
           },
