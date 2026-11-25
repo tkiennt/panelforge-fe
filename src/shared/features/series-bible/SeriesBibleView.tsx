@@ -1675,9 +1675,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             ? 'bg-emerald-100 text-emerald-800'
                             : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                         }`}
-                        data-testid={`toggle-crowd-btn-${entity.id}`}
+                        data-testid={`crowd-badge-${entity.id}`}
                       >
-                        {entity.isCrowd ? '✓ Quần chúng' : 'Đặt Quần chúng'}
+                        {entity.isCrowd ? 'Quần chúng' : 'Đặt Quần chúng'}
                       </button>
                     </div>
                   </div>
