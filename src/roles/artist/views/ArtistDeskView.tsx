@@ -234,7 +234,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     Record<string, PanelDto[]>
   >({});
   const [panelPageMap, setPanelPageMap] = useState<
-    Record<string, { pageId?: string; pageNumber: number; panelNumber: number; sceneId?: string | null }>
+    Record<
+      string,
+      { pageId?: string; pageNumber: number; panelNumber: number; sceneId?: string | null }
+    >
   >({});
   const [rawBibleEntries, setRawBibleEntries] = useState<BibleEntryDto[]>([]);
   const [hasLoadedRealBible, setHasLoadedRealBible] = useState(false);
@@ -2813,7 +2816,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   return (
     <div
       ref={containerRef}
-      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-col bg-[#F3F0E9] text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
+      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-col bg-[#FAF9F5] text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
       data-testid='artist-desk'
     >
       {/* Fallback Header khi màn hình ArtistDeskView được render độc lập bên ngoài FocusWorkspaceLayout */}
@@ -2933,7 +2936,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onDeletePage={(id) => handleDeletePage(id)}
           onMovePage={() => {}}
           onToggleVisibility={() => {}}
-          hidePagesTab={true}
+          hidePagesTab={false}
           scriptLines={resolvedScriptLines}
           sceneTitle={firstSceneMeta.title}
           sceneSlugline={firstSceneMeta.slugline}

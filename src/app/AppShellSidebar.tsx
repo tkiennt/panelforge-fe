@@ -57,6 +57,8 @@ export interface AppShellSidebarProps {
   isMobileDrawer?: boolean;
   theme?: SidebarTheme;
   onChangeTheme?: (theme: SidebarTheme) => void;
+  activeChapterNumber?: number | null;
+  surfaceClassName?: string;
 }
 
 type FloatPos = { left: number; top: number; width?: number };
@@ -87,6 +89,8 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   isMobileDrawer = false,
   theme = 'ink',
   onChangeTheme,
+  activeChapterNumber,
+  surfaceClassName,
 }) => {
   const { t } = useTranslation();
   const location = useLocation();
@@ -197,9 +201,20 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
   const searchParams = new URLSearchParams(location.search);
   const chapterId = searchParams.get('chapterId');
-  // chapterId is usually a GUID; only show a chapter chip when the URL carries a real chapter number.
+  // chapterId is usually a GUID; prefer explicit activeChapterNumber when available.
   const rawChapterNum = chapterId?.replace(/^chapter-?/i, '').replace(/^chap-?/i, '') ?? '';
-  const cleanChapterNum = /^\d+$/.test(rawChapterNum) ? rawChapterNum.padStart(2, '0') : null;
+  const cleanChapterNum =
+    typeof activeChapterNumber === 'number' && activeChapterNumber > 0
+      ? String(activeChapterNumber).padStart(2, '0')
+      : /^\d+$/.test(rawChapterNum)
+        ? rawChapterNum.padStart(2, '0')
+        : null;
+  const displayChapterNum =
+    typeof activeChapterNumber === 'number' && activeChapterNumber > 0
+      ? String(activeChapterNumber)
+      : cleanChapterNum
+        ? String(Number(cleanChapterNum))
+        : null;
 
   const userRoleDisplay = currentUser.workspaceRole
     ? t(
@@ -237,10 +252,10 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       style={{ width: isMobileDrawer ? '100%' : showFullContent ? '256px' : '64px' }}
       className={
         isMobileDrawer
-          ? 'pf-sidebar w-full flex flex-col select-none h-full overflow-hidden bg-white'
-          : `pf-sidebar hidden md:flex flex-col shrink-0 select-none z-20 h-full bg-white border-r border-stone-200 overflow-hidden relative transition-[width] duration-200 ${
+          ? `pf-sidebar w-full flex flex-col select-none h-full overflow-hidden bg-white ${surfaceClassName || ''}`
+          : `pf-sidebar hidden md:flex flex-col shrink-0 select-none z-20 h-full bg-white border-r border-[#E7E5E4] overflow-hidden relative transition-[width] duration-200 ${
               showFullContent ? 'w-64' : 'w-16'
-            }`
+            } ${surfaceClassName || ''}`
       }
       data-collapsed={isCollapsed ? 'true' : 'false'}
       data-testid={isMobileDrawer ? 'mobile-sidebar-nav' : 'app-shell-sidebar'}
@@ -310,16 +325,16 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         </div>
 
         {/* Card: BỘ TRUYỆN ĐANG MỞ */}
-        <div className={`shrink-0 ${showFullContent ? 'p-3.5' : 'p-2'}`}>
+        <div className={`shrink-0 ${showFullContent ? 'px-4 py-3' : 'p-2'}`}>
           {showFullContent ? (
-            <div className='p-3 rounded-lg bg-[#FAF9F5] border border-stone-200'>
-              <div className='flex items-center justify-between mb-1.5'>
-                <span className='text-xs uppercase tracking-wider text-stone-500 font-bold truncate'>
+            <div className='p-3.5 rounded-lg bg-[#FAF9F5] border border-[#E7E5E4]'>
+              <div className='flex items-center justify-between gap-2 mb-1.5'>
+                <span className='text-[11px] uppercase tracking-wider text-stone-500 font-semibold truncate'>
                   {t('navigation.sidebar.activeSeriesLabel', 'BỘ TRUYỆN ĐANG MỞ')}
                 </span>
-                {cleanChapterNum ? (
-                  <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-orange-50 text-orange-600 border border-orange-200/60 shrink-0'>
-                    {`${t('navigation.breadcrumbs.chapters')} ${cleanChapterNum}`}
+                {displayChapterNum ? (
+                  <span className='px-2 py-0.5 rounded text-xs font-medium bg-[#EA580C] text-white shrink-0'>
+                    {`${t('navigation.breadcrumbs.chapters')} ${displayChapterNum}`}
                   </span>
                 ) : (
                   <span className='flex items-center gap-1 text-xs text-emerald-700 font-semibold shrink-0'>
@@ -345,18 +360,13 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 title={seriesLabel}
                 aria-label={seriesLabel}
               >
-                <div className='flex items-center gap-2 min-w-0'>
-                  <div className='w-7 h-7 rounded-md bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 group-hover:bg-orange-200 transition-colors'>
-                    <BookOpen className='w-4 h-4 text-orange-700' />
-                  </div>
-                  <span className='text-xs font-bold text-stone-900 truncate group-hover:text-orange-700 transition-colors'>
-                    {seriesId
-                      ? activeSeries?.title || 'Active Series'
-                      : activeWorkspace?.name ||
-                        t('navigation.sidebar.chooseSeries', 'Chọn Series...')}
-                  </span>
-                </div>
-                <ChevronsUpDown className='w-4 h-4 text-stone-400 group-hover:text-stone-700 transition-colors shrink-0' />
+                <span className='text-[15px] font-bold text-stone-900 truncate group-hover:text-[#EA580C] transition-colors'>
+                  {seriesId
+                    ? activeSeries?.title || 'Active Series'
+                    : activeWorkspace?.name ||
+                      t('navigation.sidebar.chooseSeries', 'Chọn Series...')}
+                </span>
+                <ChevronsUpDown className='w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 transition-colors shrink-0' />
               </button>
             </div>
           ) : (
@@ -515,18 +525,18 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         </nav>
 
         {/* Footer: User Card (Avatar initials, name, role line, settings icon) + Logout */}
-        <div className='p-3 border-t border-stone-200 bg-white shrink-0 space-y-1.5'>
+        <div className='p-3.5 border-t border-[#E7E5E4] bg-white shrink-0 space-y-1.5'>
           {showFullContent ? (
-            <div className='flex items-center justify-between p-2 rounded-lg hover:bg-stone-50 transition-colors'>
+            <div className='flex items-center justify-between p-2.5 rounded-lg bg-[#FAF9F5] border border-[#E7E5E4] transition-colors'>
               <div className='flex items-center gap-2.5 min-w-0'>
-                <div className='w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center font-bold text-xs shrink-0'>
+                <div className='w-8 h-8 rounded-full bg-[#EA580C] text-white flex items-center justify-center font-semibold text-xs shrink-0'>
                   {currentUser.avatarInitials}
                 </div>
                 <div className='flex flex-col min-w-0'>
                   <span className='text-xs font-semibold text-stone-900 truncate leading-tight'>
                     {currentUser.name}
                   </span>
-                  <span className='text-xs text-stone-500 truncate leading-tight'>
+                  <span className='text-[11px] text-stone-500 truncate leading-tight'>
                     {userRoleDisplay}
                   </span>
                 </div>

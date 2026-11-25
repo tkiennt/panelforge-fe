@@ -1136,43 +1136,40 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
 
   return (
     <div
-      className='pf-sidebar flex h-full select-none z-30 shrink-0 font-sans shadow-xl relative'
+      className='pf-sidebar !bg-white flex h-full select-none z-20 shrink-0 font-sans relative'
       data-sb-theme={currentTheme}
       data-testid='artist-desk-sidebar'
     >
       {/* =========================================================================
-          1. CANVA PRIMARY DOCK (Thanh biểu tượng chính 72px)
-          - Sử dụng các biến CSS chuẩn hệ thống: var(--sb-bg), var(--sb-border), var(--sb-accent)...
+          1. CANVA PRIMARY DOCK (Thanh biểu tượng chính 56px chuẩn Stitch)
           ========================================================================= */}
       <CollapsibleSidebar
         collapsed
         label={t('canvaSidebar.dockLabel')}
         data-testid='canva-primary-dock'
-        className='bg-[var(--sb-bg)] text-[var(--sb-muted)] flex flex-col items-center py-3 border-r border-[var(--sb-border)] justify-between transition-colors'
+        className='!w-14 bg-white text-stone-500 flex flex-col items-center py-3 border-r border-[#E7E5E4] justify-between transition-colors shrink-0'
       >
         <SidebarSection
           collapsed
           label={t('canvaSidebar.toolsSectionLabel')}
-          className='w-full flex flex-col items-center gap-2'
+          className='w-full flex flex-col items-center gap-1.5'
         >
-          {/* Nút Tab 1: Pages (Trang) - Có thể ẩn nếu đã có quản lý trang ở đáy */}
+          {/* Nút Tab 1: Pages (Trang) */}
           {!hidePagesTab && (
             <button
               type='button'
               onClick={() => handleTabClick('pages')}
               data-testid='canva-tab-pages'
-              className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+              className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center transition-colors cursor-pointer ${
                 activeTab === 'pages' && isDrawerOpen
-                  ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
-                  : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
+                  ? 'bg-orange-50 text-[#EA580C] border border-orange-200 font-semibold'
+                  : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
-              <Layers
-                className={`w-5 h-5 mb-1 ${
-                  activeTab === 'pages' && isDrawerOpen ? 'text-[var(--sb-accent)]' : 'text-current'
-                }`}
-              />
-              <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabPages')}</span>
+              <Layers className='w-[18px] h-[18px] mb-0.5' />
+              <span className='text-[10px] leading-tight tracking-tight'>
+                {t('canvaSidebar.tabPages')}
+              </span>
             </button>
           )}
 
@@ -1181,37 +1178,33 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             type='button'
             onClick={() => handleTabClick('script')}
             data-testid='canva-tab-script'
-            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+            className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center transition-colors cursor-pointer ${
               activeTab === 'script' && isDrawerOpen
-                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
-                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
+                ? 'bg-orange-50 text-[#EA580C] border border-orange-200 font-semibold'
+                : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
             }`}
           >
-            <FileText
-              className={`w-5 h-5 mb-1 ${
-                activeTab === 'script' && isDrawerOpen ? 'text-[var(--sb-accent)]' : 'text-current'
-              }`}
-            />
-            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabScript')}</span>
+            <FileText className='w-[18px] h-[18px] mb-0.5' />
+            <span className='text-[10px] leading-tight tracking-tight'>
+              {t('canvaSidebar.tabScript')}
+            </span>
           </button>
 
-          {/* Nút Tab 3: Series Bible */}
+          {/* Nút Tab 3: Series Bible (Hồ sơ) */}
           <button
             type='button'
             onClick={() => handleTabClick('bible')}
             data-testid='canva-tab-bible'
-            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+            className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center transition-colors cursor-pointer ${
               activeTab === 'bible' && isDrawerOpen
-                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
-                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
+                ? 'bg-orange-50 text-[#EA580C] border border-orange-200 font-semibold'
+                : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
             }`}
           >
-            <Sparkles
-              className={`w-5 h-5 mb-1 ${
-                activeTab === 'bible' && isDrawerOpen ? 'text-[var(--sb-accent)]' : 'text-current'
-              }`}
-            />
-            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabBible')}</span>
+            <User className='w-[18px] h-[18px] mb-0.5' />
+            <span className='text-[10px] leading-tight tracking-tight'>
+              {t('canvaSidebar.tabBible')}
+            </span>
           </button>
 
           {/* Nút Tab 4: Mẫu Khung Tranh */}
@@ -1225,98 +1218,88 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             }
             onClick={() => !layoutLocked && handleTabClick('templates')}
             data-testid='canva-tab-templates'
-            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+            className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
               layoutLocked ? 'cursor-not-allowed' : 'cursor-pointer'
             } ${
               activeTab === 'templates' && isDrawerOpen
-                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
-                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
+                ? 'bg-orange-50 text-[#EA580C] border border-orange-200 font-semibold'
+                : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
             }`}
           >
-            <LayoutTemplate
-              className={`w-5 h-5 mb-1 ${
-                activeTab === 'templates' && isDrawerOpen
-                  ? 'text-[var(--sb-accent)]'
-                  : 'text-current'
-              }`}
-            />
-            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabTemplates')}</span>
+            <LayoutGrid className='w-[18px] h-[18px] mb-0.5' />
+            <span className='text-[10px] leading-tight tracking-tight'>
+              {t('canvaSidebar.tabTemplates')}
+            </span>
           </button>
 
-          {/* Nút Tab: Chèn thoại & Bóng thoại (Lettering Sidetab P0) */}
+          {/* Nút Tab: Chèn thoại & Bóng thoại (Thoại) */}
           <button
             type='button'
             onClick={() => handleTabClick('lettering')}
             data-testid='canva-tab-lettering'
-            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+            className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center transition-colors cursor-pointer ${
               activeTab === 'lettering' && isDrawerOpen
-                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
-                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
+                ? 'bg-orange-50 text-[#EA580C] border border-orange-200 font-semibold'
+                : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
             }`}
             title={t('canvaSidebar.tabLetteringTitle')}
           >
-            <Type
-              className={`w-5 h-5 mb-1 ${
-                activeTab === 'lettering' && isDrawerOpen
-                  ? 'text-[var(--sb-accent)]'
-                  : 'text-current'
-              }`}
-            />
-            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabLettering')}</span>
+            <MessageSquare className='w-[18px] h-[18px] mb-0.5' />
+            <span className='text-[10px] leading-tight tracking-tight'>
+              {t('canvaSidebar.tabLettering')}
+            </span>
           </button>
 
-          {/* Nút Tab 5: Yêu cầu chỉnh sửa (Sidetab Change Requests) */}
+          {/* Nút Tab 5: Yêu cầu chỉnh sửa (Sửa đổi) */}
           <button
             type='button'
             onClick={() => handleTabClick('changes')}
             data-testid='canva-tab-changes'
-            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer relative ${
+            className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center transition-colors cursor-pointer relative ${
               activeTab === 'changes' && isDrawerOpen
-                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
-                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
+                ? 'bg-orange-50 text-[#EA580C] border border-orange-200 font-semibold'
+                : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
             }`}
             title={t('canvaSidebar.tabChangesTitle')}
           >
-            <div className='relative'>
-              <AlertCircle
-                className={`w-5 h-5 mb-1 ${
-                  activeTab === 'changes' && isDrawerOpen
-                    ? 'text-[var(--sb-accent)]'
-                    : openChangeRequestsCount > 0
-                      ? 'text-rose-500'
-                      : 'text-current'
-                }`}
-              />
-              {openChangeRequestsCount > 0 && (
-                <span
-                  data-testid='changes-badge-counter'
-                  className='absolute -top-1 -right-2 px-1 min-w-[15px] h-[15px] rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center shadow-xs animate-in zoom-in-75'
-                >
-                  {openChangeRequestsCount > 9 ? '9+' : openChangeRequestsCount}
-                </span>
-              )}
-            </div>
-            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabChanges')}</span>
+            <AlertCircle
+              className={`w-[18px] h-[18px] mb-0.5 ${
+                activeTab === 'changes' && isDrawerOpen
+                  ? 'text-[#EA580C]'
+                  : openChangeRequestsCount > 0
+                    ? 'text-rose-500'
+                    : 'text-current'
+              }`}
+            />
+            {openChangeRequestsCount > 0 && (
+              <span
+                data-testid='changes-badge-counter'
+                className='absolute top-0.5 right-0.5 px-1 min-w-[16px] h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center'
+              >
+                {openChangeRequestsCount > 9 ? '9+' : openChangeRequestsCount}
+              </span>
+            )}
+            <span className='text-[10px] leading-tight tracking-tight'>
+              {t('canvaSidebar.tabChanges')}
+            </span>
           </button>
 
-          {/* Nút Tab 6: Lịch sử phiên bản trang (Page History Drawer) */}
+          {/* Nút Tab 6: Lịch sử phiên bản trang */}
           <button
             type='button'
             onClick={() => handleTabClick('history')}
             data-testid='canva-tab-history'
-            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+            className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center transition-colors cursor-pointer ${
               activeTab === 'history' && isDrawerOpen
-                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
-                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
+                ? 'bg-orange-50 text-[#EA580C] border border-orange-200 font-semibold'
+                : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
             }`}
             title={t('canvaSidebar.tabHistoryTitle')}
           >
-            <HistoryIcon
-              className={`w-5 h-5 mb-1 ${
-                activeTab === 'history' && isDrawerOpen ? 'text-[var(--sb-accent)]' : 'text-current'
-              }`}
-            />
-            <span className='text-[10px] tracking-tight'>{t('canvaSidebar.tabHistory')}</span>
+            <HistoryIcon className='w-[18px] h-[18px] mb-0.5' />
+            <span className='text-[10px] leading-tight tracking-tight'>
+              {t('canvaSidebar.tabHistory')}
+            </span>
           </button>
         </SidebarSection>
 
@@ -1330,26 +1313,25 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               : t('canvaSidebar.expandDrawerTitle')
           }
           data-testid='canva-drawer-toggle'
-          className='w-10 h-10 rounded-lg hover:bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] flex items-center justify-center transition-colors cursor-pointer'
+          className='w-9 h-9 rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 flex items-center justify-center transition-colors cursor-pointer'
         >
           {isDrawerOpen ? (
-            <ChevronLeft className='w-5 h-5' />
+            <ChevronLeft className='w-4 h-4' />
           ) : (
-            <ChevronRight className='w-5 h-5' />
+            <ChevronRight className='w-4 h-4' />
           )}
         </button>
       </CollapsibleSidebar>
 
       {/* =========================================================================
-          2. CANVA SECONDARY DRAWER (Ngăn nội dung chi tiết: History là drawer nhỏ 280-290px, các tab khác 330-350px)
-          - Hiệu ứng trượt mở mượt mà (transition-all duration-300 ease-in-out)
+          2. CANVA SECONDARY DRAWER (Cột docked trong layout flex, không đè canvas)
           ========================================================================= */}
       <aside
         data-testid='canva-secondary-drawer'
         aria-hidden={!isDrawerOpen}
-        className={`bg-[var(--sb-popover,var(--sb-bg))] text-[var(--sb-text)] border-r border-[var(--sb-border)] flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
+        className={`bg-white text-stone-900 border-r border-[#E7E5E4] flex flex-col h-full overflow-hidden transition-all duration-200 ease-out shrink-0 ${
           isDrawerOpen
-            ? `${activeTab === 'history' ? 'w-[280px] sm:w-[290px]' : activeTab === 'script' ? '' : 'w-[330px] sm:w-[350px]'} opacity-100 shadow-xl`
+            ? `${activeTab === 'history' ? 'w-[280px]' : activeTab === 'script' ? '' : 'w-[330px]'} opacity-100`
             : 'w-0 opacity-0 pointer-events-none border-r-0'
         }`}
         style={isDrawerOpen && activeTab === 'script' ? { width: scriptDrawerWidth } : undefined}
@@ -1769,37 +1751,37 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         {activeTab === 'templates' && (
           <div
             data-testid='canva-drawer-templates'
-            className='flex flex-col h-full overflow-hidden'
+            className='flex flex-col h-full overflow-hidden bg-white'
           >
             {/* Header Drawer Templates */}
-            <div className='p-3.5 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] shrink-0 space-y-1.5'>
+            <div className='p-3.5 border-b border-[#E7E5E4] bg-white shrink-0 flex flex-col gap-2.5'>
               <div className='flex items-center justify-between gap-2'>
                 <div className='flex items-center gap-1.5'>
-                  <span className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold'>
+                  <span className='font-mono text-[11px] font-semibold uppercase px-2 py-0.5 rounded bg-stone-100 text-stone-700 border border-[#E7E5E4] tracking-wider'>
                     {t('canvaSidebar.templatesBadge')}
                   </span>
                   {isLoadingTemplates && (
-                    <span className='text-[10px] text-[var(--sb-muted)] animate-pulse'>
+                    <span className='text-xs text-stone-500 animate-pulse'>
                       {t('canvaSidebar.templatesLoading')}
                     </span>
                   )}
                   {isApplyingTemplate && (
-                    <span className='text-[10px] text-[var(--sb-accent)] animate-pulse font-medium'>
+                    <span className='text-xs text-[#EA580C] animate-pulse font-medium'>
                       {t('canvaSidebar.templatesApplying')}
                     </span>
                   )}
                 </div>
-                <span className='text-[10px] font-semibold text-[var(--sb-accent)]'>
+                <span className='text-xs font-semibold text-[#EA580C]'>
                   {t('canvaSidebar.pageLabel', { page: activePageNumber })}
                 </span>
               </div>
 
-              <div className='flex items-center justify-between gap-2'>
-                <div>
-                  <h2 className='text-xs font-bold text-[var(--sb-text)] tracking-tight'>
+              <div className='flex items-start justify-between gap-2'>
+                <div className='min-w-0'>
+                  <h2 className='text-[14px] font-semibold text-stone-900 leading-tight'>
                     {t('canvaSidebar.templatesTitle')}
                   </h2>
-                  <p className='text-[10.5px] text-[var(--sb-muted)] mt-0.5'>
+                  <p className='text-xs text-stone-500 mt-0.5'>
                     {t('canvaSidebar.templatesSubtitle', { page: activePageNumber })}
                   </p>
                 </div>
@@ -1810,31 +1792,29 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     onClick={onClearTemplate}
                     data-testid='canva-btn-clear-template'
                     title={t('canvaSidebar.clearTemplateTitle')}
-                    className='px-2 py-1 rounded-lg text-[10px] font-semibold border border-[var(--sb-border)] bg-[var(--sb-hover)] hover:bg-rose-500/10 hover:text-rose-600 hover:border-rose-300 text-[var(--sb-muted)] flex items-center gap-1 transition-colors cursor-pointer shrink-0'
+                    className='shrink-0 inline-flex items-center gap-1 border border-[#E7E5E4] bg-white hover:bg-stone-50 text-stone-700 text-xs font-medium px-2 py-1 rounded transition-colors cursor-pointer'
                   >
-                    <RotateCcw className='w-3 h-3' />
+                    <RotateCcw className='w-3.5 h-3.5' />
                     <span>{t('canvaSidebar.resetBtn')}</span>
                   </button>
                 )}
               </div>
-            </div>
 
-            {/* Thanh tìm kiếm & lọc số lượng khung + nhóm mục đích kể chuyện */}
-            <div className='p-3 border-b border-[var(--sb-border)] flex flex-col gap-2 shrink-0'>
+              {/* Search Input */}
               <div className='relative'>
-                <Search className='w-3.5 h-3.5 text-[var(--sb-muted)] absolute left-2.5 top-2.5' />
+                <Search className='w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none' />
                 <input
                   type='text'
                   value={templateSearchQuery}
                   onChange={(e) => setTemplateSearchQuery(e.target.value)}
                   placeholder={t('canvaSidebar.searchTemplatesPlaceholder')}
                   data-testid='canva-input-search-templates'
-                  className='w-full h-8 bg-[var(--sb-surface)] border border-[var(--sb-border)] rounded-lg pl-8 pr-3 text-[11px] text-[var(--sb-text)] placeholder-[var(--sb-muted)] focus:outline-none focus:border-[var(--sb-accent)]'
+                  className='w-full text-xs pl-8 pr-2.5 py-1.5 bg-[#FAF9F5] border border-[#E7E5E4] rounded text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-[#EA580C] focus:border-[#EA580C]'
                 />
               </div>
 
-              {/* 1. Bộ lọc Nhóm Mục đích Kể chuyện (Koma-wari Storytelling Purpose) */}
-              <div className='flex items-center gap-1 overflow-x-auto custom-scrollbar pb-0.5 text-[9.5px]'>
+              {/* 1. Bộ lọc Nhóm Mục đích Kể chuyện */}
+              <div className='flex items-center gap-1 overflow-x-auto pb-0.5'>
                 {[
                   { id: 'all', label: t('canvaSidebar.tplCatAll') },
                   { id: 'narrative', label: t('canvaSidebar.tplCatNarrative') },
@@ -1846,10 +1826,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     key={cat.id}
                     type='button'
                     onClick={() => setTemplateCategoryFilter(cat.id as any)}
-                    className={`px-2 py-0.5 rounded-md font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                    className={`px-2.5 py-1 rounded text-xs whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
                       templateCategoryFilter === cat.id
-                        ? 'bg-[var(--sb-accent)] text-white shadow-xs'
-                        : 'bg-[var(--sb-surface)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
+                        ? 'bg-[#EA580C] text-white font-semibold'
+                        : 'bg-[#FAF9F5] text-stone-600 hover:text-stone-900 border border-[#E7E5E4] font-medium'
                     }`}
                   >
                     {cat.label}
@@ -1858,7 +1838,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               </div>
 
               {/* 2. Bộ lọc số lượng khung */}
-              <div className='flex items-center gap-1 text-[9.5px]'>
+              <div className='flex items-center gap-1.5'>
                 {[
                   { id: 'all', label: t('canvaSidebar.tplCountAll') },
                   { id: '1-2', label: t('canvaSidebar.tplCount12') },
@@ -1869,10 +1849,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     key={f.id}
                     type='button'
                     onClick={() => setTemplateCountFilter(f.id as any)}
-                    className={`px-2 py-0.5 rounded-full font-medium transition-colors cursor-pointer ${
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
                       templateCountFilter === f.id
-                        ? 'bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-900'
-                        : 'bg-[var(--sb-surface)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
+                        ? 'bg-stone-800 text-white'
+                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                     }`}
                   >
                     {f.label}
@@ -1881,7 +1861,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               </div>
 
               {templateError && (
-                <div className='px-2.5 py-1.5 rounded-lg bg-rose-500/10 border border-rose-300/60 flex items-center gap-1.5 text-[10.5px] text-rose-600'>
+                <div className='px-2.5 py-1.5 rounded bg-rose-50 border border-rose-200 flex items-center gap-1.5 text-xs text-rose-700'>
                   <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
                   <span className='truncate'>{templateError}</span>
                 </div>
@@ -1891,32 +1871,32 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             {/* Lưới thẻ mẫu khung */}
             <div className='flex-1 overflow-y-auto p-3 custom-scrollbar'>
               {filteredTemplates.length === 0 ? (
-                <div className='py-12 px-3 text-center text-[var(--sb-muted)] text-xs italic'>
+                <div className='py-12 px-3 text-center text-stone-500 text-xs italic'>
                   {t('canvaSidebar.templatesEmpty')}
                 </div>
               ) : (
-                <div className='grid grid-cols-2 gap-2.5'>
+                <div className='grid grid-cols-2 gap-2.5 content-start'>
                   {filteredTemplates.map((tpl) => {
                     const isSelected = tpl.id === activeTemplateId;
                     const catBadge =
                       tpl.category === 'action'
                         ? {
                             label: t('canvaSidebar.tplCatAction'),
-                            cls: 'bg-red-500/15 text-red-600 border-red-500/30',
+                            cls: 'bg-rose-50 text-rose-700',
                           }
                         : tpl.category === 'cinematic'
                           ? {
                               label: t('canvaSidebar.tplCatCinematic'),
-                              cls: 'bg-purple-500/15 text-purple-600 border-purple-500/30',
+                              cls: 'bg-stone-100 text-stone-700',
                             }
                           : tpl.category === 'webtoon'
                             ? {
                                 label: t('canvaSidebar.tplCatWebtoon'),
-                                cls: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
+                                cls: 'bg-emerald-50 text-emerald-700',
                               }
                             : {
                                 label: t('canvaSidebar.tplCatNarrative'),
-                                cls: 'bg-blue-500/15 text-blue-600 border-blue-500/30',
+                                cls: 'bg-blue-50 text-blue-700',
                               };
 
                     return (
@@ -1929,41 +1909,43 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                         }}
                         data-testid={`canva-template-card-${tpl.id}`}
                         title={tpl.description || tpl.name}
-                        className={`group p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between relative ${
+                        className={`group text-left rounded-lg p-2 flex flex-col gap-1.5 relative transition-colors ${
                           isSelected
-                            ? 'bg-[var(--sb-active-bg)] border-[var(--sb-accent)] ring-1 ring-[var(--sb-accent)]/60 shadow-sm cursor-pointer'
-                            : 'bg-[var(--sb-surface)] border-[var(--sb-border)] hover:border-[var(--sb-accent)]/50 hover:bg-[var(--sb-surface-hover)] cursor-pointer'
+                            ? 'bg-orange-50/60 border-2 border-[#EA580C] cursor-pointer'
+                            : 'bg-white border border-[#E7E5E4] hover:border-stone-400 cursor-pointer'
                         }`}
                       >
                         {/* Wireframe Preview tỷ lệ B5 / Spread */}
-                        <div className='w-full h-28 bg-stone-100/70 rounded-lg border border-[var(--sb-border)] flex items-center justify-center p-1.5 mb-1.5 relative overflow-hidden'>
+                        <div className='w-full h-28 bg-stone-100 rounded flex items-center justify-center p-2 relative overflow-hidden'>
                           <div
                             className={`${
                               tpl.layoutFormat === 'SpreadDouble'
                                 ? 'aspect-[3/2] w-full max-h-full'
                                 : 'aspect-[2/3] h-full'
-                            } bg-white border border-stone-300 rounded-xs relative overflow-hidden shadow-2xs`}
+                            } bg-white border ${
+                              isSelected ? 'border-[#EA580C]/40' : 'border-stone-300'
+                            } relative overflow-hidden`}
                           >
-                            {tpl.slots.map((s, idx) => {
+                            {(tpl.slots || []).map((s, idx) => {
                               const isInsetChild = tpl.code === 'TPL-MANGA-06' && idx > 0;
                               const hasCorners = Boolean(s.corners && s.corners.length >= 3);
                               return (
                                 <div
                                   key={idx}
-                                  className={`absolute flex items-center justify-center font-mono text-[8px] font-bold transition-colors ${
+                                  className={`absolute flex items-center justify-center font-mono text-[9px] font-semibold transition-colors ${
                                     hasCorners
                                       ? ''
                                       : s.borderless
-                                        ? 'border border-dashed border-orange-400'
+                                        ? 'border border-dashed border-[#EA580C]'
                                         : isSelected
-                                          ? 'border border-[var(--sb-accent)]'
-                                          : 'border border-stone-700'
+                                          ? 'border border-[#EA580C]'
+                                          : 'border border-stone-800'
                                   } ${
                                     isInsetChild
-                                      ? 'bg-white shadow-xs z-10 text-stone-800 border border-stone-800'
+                                      ? 'bg-white z-10 text-stone-700 border border-stone-800'
                                       : isSelected
-                                        ? 'bg-[var(--sb-accent)]/15 text-[var(--sb-accent)]'
-                                        : 'bg-stone-100/90 text-stone-600'
+                                        ? 'bg-white text-[#EA580C]'
+                                        : 'bg-white text-stone-700'
                                   }`}
                                   style={{
                                     left: `${s.x * 100}%`,
@@ -1985,9 +1967,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                                         points={s
                                           .corners!.map((c) => `${c.x * 100},${c.y * 100}`)
                                           .join(' ')}
-                                        fill={isSelected ? 'currentColor' : '#f5f5f4'}
-                                        fillOpacity={isSelected ? 0.15 : 0.9}
-                                        stroke={isSelected ? 'var(--sb-accent)' : '#44403c'}
+                                        fill='#ffffff'
+                                        stroke={isSelected ? '#EA580C' : '#292524'}
                                         strokeWidth='3'
                                         vectorEffect='non-scaling-stroke'
                                       />
@@ -2000,42 +1981,36 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           </div>
 
                           {isSelected && (
-                            <div className='absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[var(--sb-accent)] text-white flex items-center justify-center shadow-xs'>
-                              <CheckCircle2 className='w-3 h-3' />
+                            <div className='absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#EA580C] text-white flex items-center justify-center'>
+                              <Check className='w-3 h-3' />
                             </div>
                           )}
                         </div>
 
                         {/* Tên & Phân loại + số lượng khung */}
-                        <div className='w-full space-y-1'>
-                          <div
-                            className={`text-[11.5px] leading-tight truncate ${
-                              isSelected
-                                ? 'font-bold text-[var(--sb-accent)]'
-                                : 'font-semibold text-[var(--sb-text)]'
-                            }`}
-                            title={tpl.name}
+                        <div
+                          className='text-xs font-semibold text-stone-900 truncate w-full'
+                          title={tpl.name}
+                        >
+                          {tpl.name}
+                        </div>
+                        <div className='flex items-center justify-between w-full'>
+                          <span
+                            className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${catBadge.cls}`}
                           >
-                            {tpl.name}
-                          </div>
-                          <div className='flex items-center justify-between text-[9px]'>
-                            <span
-                              className={`text-[8.5px] font-semibold px-1.5 py-0.2 rounded border ${catBadge.cls}`}
-                            >
-                              {catBadge.label}
-                            </span>
-                            <span
-                              className={`font-mono font-bold px-1.5 py-0.2 rounded shrink-0 ${
-                                isSelected
-                                  ? 'bg-[var(--sb-accent)] text-white'
-                                  : 'bg-[var(--sb-surface-hover)] text-[var(--sb-muted)]'
-                              }`}
-                            >
-                              {t('canvaSidebar.templatePanelCount', {
-                                count: tpl.panelCount || tpl.slots.length,
-                              })}
-                            </span>
-                          </div>
+                            {catBadge.label}
+                          </span>
+                          <span
+                            className={`font-mono text-[11px] px-1.5 py-0.5 rounded shrink-0 ${
+                              isSelected
+                                ? 'bg-[#EA580C] text-white font-semibold'
+                                : 'bg-stone-100 text-stone-700'
+                            }`}
+                          >
+                            {t('canvaSidebar.templatePanelCount', {
+                              count: tpl.panelCount || (tpl.slots?.length ?? 0),
+                            })}
+                          </span>
                         </div>
                       </button>
                     );
@@ -2049,74 +2024,82 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               TAB 5: CHANGES (YÊU CẦU CHỈNH SỬA)
               ------------------------------------------------------------- */}
         {isDrawerOpen && activeTab === 'changes' && (
-          <div data-testid='canva-drawer-changes' className='flex flex-col h-full overflow-hidden'>
+          <div
+            data-testid='canva-drawer-changes'
+            className='flex flex-col h-full overflow-hidden bg-white'
+          >
             {/* Header Drawer */}
-            <div className='p-3.5 border-b border-[var(--sb-border)] shrink-0 space-y-2.5'>
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center gap-2'>
-                  <AlertCircle className='w-4 h-4 text-rose-500' />
-                  <h3 className='text-xs font-bold text-[var(--sb-text)] uppercase tracking-wider'>
-                    {t('canvaSidebar.changesTitle')}
-                  </h3>
+            <div className='p-4 pb-3 border-b border-[#E7E5E4] shrink-0 space-y-2'>
+              <div className='flex items-center justify-between gap-2'>
+                <div className='flex items-center gap-1.5 text-stone-900 font-semibold text-sm'>
+                  <AlertCircle className='w-4 h-4 text-[#EA580C] shrink-0' />
+                  <h3>{t('canvaSidebar.changesTitle')}</h3>
                 </div>
                 {openChangeRequestsCount > 0 && (
-                  <span className='px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[10px] font-bold border border-rose-500/20'>
-                    {t('canvaSidebar.changesOpenCount', { count: openChangeRequestsCount })}
+                  <span className='px-2 py-0.5 rounded bg-rose-50 text-rose-700 text-xs font-semibold border border-rose-200 shrink-0'>
+                    {changeRequests.length > 0
+                      ? t('canvaSidebar.changesRemainingRatio', {
+                          open: openChangeRequestsCount,
+                          total: changeRequests.length,
+                        })
+                      : t('canvaSidebar.changesOpenCount', { count: openChangeRequestsCount })}
                   </span>
                 )}
               </div>
 
-              <p className='text-[11px] text-[var(--sb-muted)] leading-relaxed'>
+              <p className='text-xs text-stone-500 leading-relaxed'>
                 {t('canvaSidebar.changesSubtitle')}
               </p>
 
               {/* Filter Chips */}
-              <div className='flex items-center gap-1.5 pt-1'>
-                {(
-                  [
-                    { key: 'all', label: t('canvaSidebar.changesFilterAll') },
-                    {
-                      key: 'open',
-                      label: t('canvaSidebar.changesFilterOpen', {
-                        count: openChangeRequestsCount,
-                      }),
-                    },
-                    { key: 'resolved', label: t('canvaSidebar.changesFilterResolved') },
-                  ] as const
-                ).map((chip) => (
-                  <button
-                    key={chip.key}
-                    type='button'
-                    onClick={() => setChangeFilterStatus(chip.key)}
-                    data-testid={`btn-filter-cr-${chip.key}`}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all cursor-pointer ${
-                      changeFilterStatus === chip.key
-                        ? 'bg-[var(--sb-accent)] text-white shadow-2xs'
-                        : 'bg-[var(--sb-surface)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] hover:bg-[var(--sb-surface-hover)] border border-[var(--sb-border)]'
-                    }`}
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
+              {changeRequests.length > 0 && (
+                <div className='flex items-center gap-1.5 pt-0.5'>
+                  {(
+                    [
+                      { key: 'all', label: t('canvaSidebar.changesFilterAll') },
+                      {
+                        key: 'open',
+                        label: t('canvaSidebar.changesFilterOpen', {
+                          count: openChangeRequestsCount,
+                        }),
+                      },
+                      { key: 'resolved', label: t('canvaSidebar.changesFilterResolved') },
+                    ] as const
+                  ).map((chip) => (
+                    <button
+                      key={chip.key}
+                      type='button'
+                      onClick={() => setChangeFilterStatus(chip.key)}
+                      data-testid={`btn-filter-cr-${chip.key}`}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                        changeFilterStatus === chip.key
+                          ? 'bg-[#EA580C] text-white font-semibold'
+                          : 'bg-[#FAF9F5] text-stone-600 hover:text-stone-900 border border-[#E7E5E4]'
+                      }`}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Danh sách Yêu cầu chỉnh sửa */}
-            <div className='flex-1 overflow-y-auto p-3 space-y-2.5'>
+            <div className='flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar'>
               {isLoadingChangeRequests ? (
-                <div className='flex flex-col items-center justify-center py-12 gap-2 text-[var(--sb-muted)]'>
-                  <Loader2 className='w-5 h-5 animate-spin text-[var(--sb-accent)]' />
+                <div className='flex flex-col items-center justify-center py-12 gap-2 text-stone-500'>
+                  <Loader2 className='w-5 h-5 animate-spin text-[#EA580C]' />
                   <span className='text-xs'>{t('canvaSidebar.changesLoading')}</span>
                 </div>
               ) : filteredChangeRequests.length === 0 ? (
                 <div className='flex flex-col items-center justify-center py-12 text-center p-4 space-y-2'>
-                  <div className='w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center'>
+                  <div className='w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center'>
                     <CheckCircle2 className='w-5 h-5' />
                   </div>
-                  <div className='text-xs font-semibold text-[var(--sb-text)]'>
+                  <div className='text-xs font-semibold text-stone-900'>
                     {t('canvaSidebar.changesEmptyTitle')}
                   </div>
-                  <div className='text-[11px] text-[var(--sb-muted)] max-w-[220px]'>
+                  <div className='text-xs text-stone-500 max-w-[220px]'>
                     {changeFilterStatus === 'open'
                       ? t('canvaSidebar.changesEmptyOpen')
                       : t('canvaSidebar.changesEmptyAll')}
@@ -2130,134 +2113,184 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     statusStr === 'resolved' || statusStr === '1' || cr.status === 1;
                   const isVerified =
                     statusStr === 'verified' || statusStr === '2' || cr.status === 2;
-                  const isInputOpen = activeResolveInputId === cr.id;
+                  const crAny = cr as ChangeRequestDto & {
+                    pageNumber?: number;
+                    panelNumber?: number;
+                    priority?: string;
+                  };
+                  const locationText =
+                    crAny.pageNumber && crAny.panelNumber
+                      ? `${t('canvaSidebar.pageLabel', { page: crAny.pageNumber })} · ${t('scriptRefSidebar.panelCardTitle', { panelNum: crAny.panelNumber })}`
+                      : crAny.pageNumber
+                        ? t('canvaSidebar.pageLabel', { page: crAny.pageNumber })
+                        : null;
+                  const isUrgent = isOpen && String(crAny.priority || '').toLowerCase() === 'high';
+                  const feedbackText = cr.reviewerComment || cr.description;
+                  const showSeparateDescription =
+                    Boolean(cr.description) &&
+                    Boolean(cr.reviewerComment) &&
+                    cr.description.trim() !== cr.reviewerComment?.trim();
 
                   return (
                     <div
                       key={cr.id}
                       data-testid={`change-request-card-${cr.id}`}
-                      className={`rounded-xl border p-3 space-y-2 transition-all ${
-                        isOpen
-                          ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/40'
-                          : isResolved
-                            ? 'bg-amber-50/40 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/40'
-                            : 'bg-[var(--sb-surface)] border-[var(--sb-border)] opacity-80'
-                      }`}
+                      className='bg-white border border-[#E7E5E4] rounded-lg p-3 flex flex-col gap-2.5 shadow-2xs'
                     >
                       <div className='flex items-center justify-between gap-2'>
-                        <span
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                            isOpen
-                              ? 'bg-rose-500 text-white'
+                        {locationText ? (
+                          <span
+                            className={`font-mono text-xs font-semibold px-2 py-0.5 rounded border ${
+                              isUrgent
+                                ? 'bg-rose-50 border-rose-200 text-rose-700'
+                                : isOpen
+                                  ? 'bg-amber-50 border-amber-200 text-amber-800'
+                                  : 'bg-stone-100 border-[#E7E5E4] text-stone-700'
+                            }`}
+                          >
+                            {locationText}
+                          </span>
+                        ) : (
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs font-semibold border ${
+                              isOpen
+                                ? 'bg-rose-50 border-rose-200 text-rose-700'
+                                : isResolved
+                                  ? 'bg-amber-50 border-amber-200 text-amber-800'
+                                  : isVerified
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                    : 'bg-stone-100 border-[#E7E5E4] text-stone-700'
+                            }`}
+                          >
+                            {isOpen
+                              ? t('canvaSidebar.crStatusOpen')
                               : isResolved
-                                ? 'bg-amber-500 text-white'
+                                ? t('canvaSidebar.crStatusResolved')
                                 : isVerified
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'bg-stone-500 text-white'
-                          }`}
-                        >
-                          {isOpen
-                            ? t('canvaSidebar.crStatusOpen')
-                            : isResolved
-                              ? t('canvaSidebar.crStatusResolved')
-                              : isVerified
-                                ? t('canvaSidebar.crStatusVerified')
-                                : t('canvaSidebar.crStatusClosed')}
-                        </span>
-                        {cr.dueDate && (
-                          <span className='text-[10px] text-[var(--sb-muted)] flex items-center gap-1'>
-                            <Clock className='w-3 h-3' />
-                            <span>
-                              {t('canvaSidebar.crDueDate', {
-                                date: new Date(cr.dueDate).toLocaleDateString(
-                                  lang === 'en' ? 'en-US' : 'vi-VN',
-                                ),
-                              })}
-                            </span>
+                                  ? t('canvaSidebar.crStatusVerified')
+                                  : t('canvaSidebar.crStatusClosed')}
                           </span>
                         )}
+
+                        <span
+                          className={`text-xs font-medium flex items-center gap-1 shrink-0 ${
+                            isUrgent
+                              ? 'text-rose-600'
+                              : isOpen
+                                ? 'text-amber-600'
+                                : isVerified
+                                  ? 'text-emerald-600'
+                                  : 'text-stone-500'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isUrgent
+                                ? 'bg-rose-600'
+                                : isOpen
+                                  ? 'bg-amber-500'
+                                  : isVerified
+                                    ? 'bg-emerald-600'
+                                    : 'bg-stone-400'
+                            }`}
+                          />
+                          {isUrgent
+                            ? t('canvaSidebar.crUrgentStatus')
+                            : isOpen
+                              ? t('canvaSidebar.crStatusOpen')
+                              : isResolved
+                                ? t('canvaSidebar.crStatusResolved')
+                                : isVerified
+                                  ? t('canvaSidebar.crStatusVerified')
+                                  : t('canvaSidebar.crStatusClosed')}
+                        </span>
                       </div>
 
-                      <p className='text-xs text-[var(--sb-text)] font-medium leading-relaxed whitespace-pre-wrap'>
-                        {cr.description}
-                      </p>
+                      {showSeparateDescription && (
+                        <p className='text-xs text-stone-900 font-medium leading-relaxed whitespace-pre-wrap'>
+                          {cr.description}
+                        </p>
+                      )}
 
-                      {cr.reviewerComment && (
-                        <div className='p-2 rounded-lg bg-[var(--sb-surface-hover)] border border-[var(--sb-border)] text-[11px] text-[var(--sb-muted)] space-y-0.5'>
-                          <div className='font-semibold text-[10px] text-[var(--sb-text)]'>
+                      {feedbackText && (
+                        <div>
+                          <span className='text-[11px] uppercase text-stone-500 block font-semibold'>
                             {t('canvaSidebar.crReviewerCommentLabel')}
-                          </div>
-                          <div className='italic'>{cr.reviewerComment}</div>
+                          </span>
+                          <p className='text-xs text-stone-800 mt-1 bg-[#FAF9F5] border border-[#E7E5E4] p-2 rounded leading-relaxed whitespace-pre-wrap'>
+                            &ldquo;{feedbackText}&rdquo;
+                          </p>
                         </div>
                       )}
 
-                      {cr.resolutionNote && (
-                        <div className='p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 space-y-0.5'>
-                          <div className='font-semibold text-[10px]'>
+                      {cr.resolutionNote && !isOpen && (
+                        <div>
+                          <span className='text-[11px] uppercase text-stone-500 block font-semibold'>
                             {t('canvaSidebar.crResolutionNoteLabel')}
-                          </div>
-                          <div>{cr.resolutionNote}</div>
+                          </span>
+                          <p className='text-xs text-emerald-800 mt-1 bg-emerald-50/70 border border-emerald-200 p-2 rounded leading-relaxed'>
+                            {cr.resolutionNote}
+                          </p>
                         </div>
                       )}
 
-                      {isInputOpen && (
-                        <div className='space-y-1.5 pt-1.5 border-t border-[var(--sb-border)] animate-in fade-in duration-150'>
-                          <input
-                            type='text'
+                      {isOpen && onResolveChangeRequest && (
+                        <div>
+                          <label
+                            htmlFor={`cr-note-${cr.id}`}
+                            className='text-[11px] uppercase text-stone-500 block mb-1 font-semibold'
+                          >
+                            {t('canvaSidebar.crResolutionNoteLabel')}
+                          </label>
+                          <textarea
+                            id={`cr-note-${cr.id}`}
+                            rows={2}
                             value={resolveNoteByCrId[cr.id] || ''}
                             onChange={(e) =>
                               setResolveNoteByCrId((prev) => ({ ...prev, [cr.id]: e.target.value }))
                             }
                             placeholder={t('canvaSidebar.crResolutionPlaceholder')}
-                            className='w-full px-2.5 py-1.5 rounded-lg border border-[var(--sb-border)] bg-[var(--sb-surface)] text-xs text-[var(--sb-text)] placeholder:text-[var(--sb-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--sb-accent)]'
+                            className='w-full text-xs p-2 bg-[#FAF9F5] border border-[#E7E5E4] rounded text-stone-900 focus:outline-none focus:ring-1 focus:ring-[#EA580C] focus:border-[#EA580C] resize-none placeholder:text-stone-400'
                           />
-                          <div className='flex items-center justify-end gap-1.5'>
-                            <button
-                              type='button'
-                              onClick={() => setActiveResolveInputId(null)}
-                              className='px-2 py-1 rounded-md text-[10px] text-[var(--sb-muted)] hover:bg-[var(--sb-surface-hover)] cursor-pointer'
-                            >
-                              {t('canvaSidebar.cancelBtn')}
-                            </button>
-                            <button
-                              type='button'
-                              disabled={isResolvingChangeRequest}
-                              onClick={() => {
-                                onResolveChangeRequest?.(cr.id, resolveNoteByCrId[cr.id]);
-                                setActiveResolveInputId(null);
-                              }}
-                              data-testid={`btn-confirm-resolve-${cr.id}`}
-                              className='px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors'
-                            >
-                              <Check className='w-3 h-3' />
-                              <span>{t('canvaSidebar.crConfirmResolveBtn')}</span>
-                            </button>
-                          </div>
                         </div>
                       )}
 
-                      <div className='flex items-center justify-end gap-1.5 pt-1'>
+                      {cr.dueDate && (
+                        <div className='text-xs text-stone-500 flex items-center gap-1'>
+                          <Clock className='w-3 h-3' />
+                          <span>
+                            {t('canvaSidebar.crDueDate', {
+                              date: new Date(cr.dueDate).toLocaleDateString(
+                                lang === 'en' ? 'en-US' : 'vi-VN',
+                              ),
+                            })}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className='flex items-center justify-end gap-2 pt-0.5'>
                         {onNavigateToChangeRequestTarget && hasChangeRequestLocation(cr) && (
                           <button
                             type='button'
                             onClick={() => onNavigateToChangeRequestTarget(cr)}
                             data-testid={`btn-navigate-cr-${cr.id}`}
-                            className='px-2 py-1 rounded-lg border border-[var(--sb-border)] hover:bg-[var(--sb-surface-hover)] text-[10px] font-semibold text-[var(--sb-text)] flex items-center gap-1 cursor-pointer transition-colors'
+                            className='border border-[#E7E5E4] bg-white hover:bg-stone-50 text-stone-700 text-xs px-2.5 py-1 rounded transition-colors cursor-pointer'
                           >
-                            <ArrowUpRight className='w-3 h-3 text-[var(--sb-accent)]' />
-                            <span>{t('canvaSidebar.crViewLocationBtn')}</span>
+                            {t('canvaSidebar.crViewLocationBtn')}
                           </button>
                         )}
 
-                        {isOpen && !isInputOpen && onResolveChangeRequest && (
+                        {isOpen && onResolveChangeRequest && (
                           <button
                             type='button'
-                            onClick={() => setActiveResolveInputId(cr.id)}
+                            disabled={isResolvingChangeRequest}
+                            onClick={() => {
+                              onResolveChangeRequest?.(cr.id, resolveNoteByCrId[cr.id]);
+                            }}
                             data-testid={`btn-resolve-cr-${cr.id}`}
-                            className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors'
+                            className='border border-[#EA580C] text-[#EA580C] bg-white hover:bg-orange-50 text-xs px-2.5 py-1 rounded transition-colors font-medium cursor-pointer disabled:opacity-50'
                           >
-                            <Check className='w-3 h-3' />
-                            <span>{t('canvaSidebar.crReportResolvedBtn')}</span>
+                            {t('canvaSidebar.crReportResolvedBtn')}
                           </button>
                         )}
                       </div>

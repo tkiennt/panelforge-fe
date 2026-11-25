@@ -46,11 +46,11 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
     // Main desk container
     expect(screen.getByTestId('artist-desk')).toBeInTheDocument();
 
-    // Left Sidebar (ArtistCanvaSidebar) exists with Script and Bible tabs ONLY
+    // Left Sidebar (ArtistCanvaSidebar) exists with Pages, Script, and Bible tabs (Stitch rail)
     expect(screen.getByTestId('artist-desk-sidebar')).toBeInTheDocument();
+    expect(screen.getByTestId('canva-tab-pages')).toBeInTheDocument();
     expect(screen.getByTestId('canva-tab-script')).toBeInTheDocument();
     expect(screen.getByTestId('canva-tab-bible')).toBeInTheDocument();
-    expect(screen.queryByTestId('canva-tab-pages')).not.toBeInTheDocument();
 
     // Canvas Shell & Clean Blank Manga Paper
     expect(screen.getByTestId('artist-canvas-shell')).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
     // Select page 2
     const card2 = screen.getByTestId('canva-page-card-2');
     const card2Btn = card2.querySelector('[role="button"]')!;
-    expect(card2Btn).toHaveClass('w-[58px]', 'h-[82px]');
+    expect(card2Btn).toHaveClass('w-8', 'h-10');
     fireEvent.click(card2Btn);
     expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('2 / 6');
 
@@ -1428,13 +1428,11 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         </MemoryRouter>,
       );
 
-      // Right script reference sidebar is open by default
+      // Right script reference sidebar is open by default with panel cards (Stitch design)
       const scriptRefSidebar = screen.getByTestId('artist-script-ref-sidebar');
       expect(scriptRefSidebar).toBeInTheDocument();
-      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveTextContent('[Mô tả cảnh]');
-      expect(screen.getByTestId('artist-script-ref-line-line-2')).toHaveTextContent(
-        '[Thoại · Minh Triết]',
-      );
+      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveTextContent('[Mô tả]');
+      expect(screen.getByTestId('artist-script-ref-line-line-2')).toHaveTextContent('MINH TRIẾT:');
 
       // Apply a 3-panel template so panels exist on Page 1
       fireEvent.click(screen.getByTestId('canva-tab-templates'));
@@ -1621,10 +1619,11 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         'false',
       );
 
-      // Switch to Page 2 -> shows Page 2 line (even though getPanelsByPage returned [] for pg-2) with K3
+      // Switch to Page 2 -> shows Page 2 line in Panel 3 card
       const card2 = screen.getByTestId('canva-page-card-2');
       fireEvent.click(card2.querySelector('[role="button"]')!);
-      expect(screen.getByTestId('artist-script-ref-line-ln-p2-k3')).toHaveTextContent('K3');
+      expect(screen.getByTestId('artist-script-ref-panel-btn-3')).toHaveTextContent('Khung 3');
+      expect(screen.getByTestId('artist-script-ref-line-ln-p2-k3')).toBeInTheDocument();
       expect(screen.queryByTestId('artist-script-ref-line-ln-p1-k1')).not.toBeInTheDocument();
 
       // Switch to Page 3 (no assigned lines) -> falls back to unpaged line only
