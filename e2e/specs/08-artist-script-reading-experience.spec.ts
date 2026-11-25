@@ -410,15 +410,10 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
   test('Mở bàn vẽ Artist, kiểm tra màn hình Chọn Chương, Kịch bản rõ ràng, Đồng bộ trang và Focus Mode', async ({
     page,
   }) => {
-    // Đảm bảo thư mục lưu ảnh tồn tại
-    const screenshotsDir = 'D:/FPT-STUDY/10_FALL-2026/SEP490/Github/panelforge-fe/e2e/screenshots';
-    const brainScreenshotsDir =
-      'C:/Users/ASUS/.gemini/antigravity/brain/ce620260-d9f4-4391-bf3a-2030e2a6001c';
+    // Đảm bảo thư mục lưu ảnh tồn tại (dùng relative path để tương thích CI/CD Linux)
+    const screenshotsDir = path.join(process.cwd(), 'e2e/screenshots');
     if (!fs.existsSync(screenshotsDir)) {
       fs.mkdirSync(screenshotsDir, { recursive: true });
-    }
-    if (!fs.existsSync(brainScreenshotsDir)) {
-      fs.mkdirSync(brainScreenshotsDir, { recursive: true });
     }
 
     await page.addInitScript(() => {
@@ -549,10 +544,6 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       path: path.join(screenshotsDir, '04-artist-desk-page-sync.png'),
       fullPage: true,
     });
-    await page.screenshot({
-      path: path.join(brainScreenshotsDir, '04-artist-desk-page-sync.png'),
-      fullPage: true,
-    });
 
     // 8. Kiểm tra Chế độ Đọc Toàn Văn Kịch Bản Chương (Focus Mode)
     const openFocusBtn = page.getByTestId('open-script-focus-mode-btn');
@@ -568,10 +559,6 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
     // Chụp ảnh màn hình Chế độ Focus Mode
     await page.screenshot({
       path: path.join(screenshotsDir, '05-artist-desk-focus-mode.png'),
-      fullPage: true,
-    });
-    await page.screenshot({
-      path: path.join(brainScreenshotsDir, '05-artist-desk-focus-mode.png'),
       fullPage: true,
     });
 

@@ -20,6 +20,7 @@ lerna-debug.log*
 !.env.example
 !.env.staging.example
 !.env.development.example
+!.env.production.example
 
 # Tests: reports, coverage, screenshots
 coverage/
@@ -81,3 +82,6 @@ output/
 # Local service
 page-diff/
 
+
+# Cloudflare Wrangler local state
+.wrangler/

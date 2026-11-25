@@ -56,6 +56,22 @@ Configured in `.env` (all optional for local development; defaults to `http://lo
 
 ---
 
+## Deploy (Cloudflare Pages)
+
+`.github/workflows/deploy-cloudflare.yml` deploys `dist/` to the Cloudflare Pages project `panelforge-fe` after **Frontend CI** passes on `main`, `stg`, `dev` or `trungkien` (or manually via *Run workflow*). `main` is the production deployment; other branches get a preview URL `https://<branch>.panelforge-fe.pages.dev`. SPA fallback and headers come from `public/_redirects` and `public/_headers`.
+
+One-time setup:
+
+1. Cloudflare dashboard → **Workers & Pages → Create → Pages → Direct Upload**, name the project `panelforge-fe`, production branch `main` (or run `npx wrangler pages project create panelforge-fe --production-branch=main`).
+2. Create an API token with **Account → Cloudflare Pages → Edit**; copy the Account ID from the dashboard sidebar.
+3. GitHub repo → **Settings → Environments**: create `production` and `preview`. In each, add:
+   - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_APP_ID`
+   - Variables: `VITE_API_URL`, `VITE_APP_URL`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`
+4. The workflow file must exist on the repo's **default branch**: GitHub only fires `workflow_run` triggers from there.
+5. Add the Pages domain (`panelforge-fe.pages.dev` or a custom domain) to Firebase Auth **Authorized domains** and to the backend CORS allow-list.
+
+---
+
 ## Project Structure
 
 ```text

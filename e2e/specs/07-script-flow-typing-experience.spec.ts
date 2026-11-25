@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
 
 test.describe('E2E: Kịch Bản Phân Cảnh & Trải Nghiệm Soạn Thảo (Script Flow Typing Experience)', () => {
   const seriesId = 'series-one-piece-live';
@@ -363,8 +365,12 @@ test.describe('E2E: Kịch Bản Phân Cảnh & Trải Nghiệm Soạn Thảo (S
     await expect(firstPageHeading).toContainText(/TRANG\s*1/i);
 
     // 6. Chụp ảnh màn hình bằng chứng trải nghiệm soạn kịch bản mượt mà
+    const screenshotsDir = path.join(process.cwd(), 'e2e/screenshots');
+    if (!fs.existsSync(screenshotsDir)) {
+      fs.mkdirSync(screenshotsDir, { recursive: true });
+    }
     await page.screenshot({
-      path: 'C:/Users/ASUS/.gemini/antigravity/brain/2daf86cc-4914-4b16-9509-f37be441782b/script-editor-typing-experience.png',
+      path: path.join(screenshotsDir, 'script-editor-typing-experience.png'),
       fullPage: true,
     });
   });
