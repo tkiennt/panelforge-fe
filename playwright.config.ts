@@ -6,6 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: process.env.CI ? ['**/06-real-db-collaboration.spec.ts'] : [],
   timeout: 30000,
   expect: {
     timeout: 5000,
