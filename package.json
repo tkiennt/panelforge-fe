@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "i18n:check": "node scripts/check-i18n-parity.mjs",
     "test": "vitest",
-    "test:run": "vitest run --pool=threads --maxWorkers=2",
+    "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
