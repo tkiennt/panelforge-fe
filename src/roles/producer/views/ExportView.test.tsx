@@ -6,7 +6,7 @@ import { chapterService } from '@/services/chapter.service';
 import { exportService, ExportJobDto } from '@/services/export.service';
 
 vi.mock('@/services/chapter.service', () => ({
-  chapterService: { getChaptersBySeries: vi.fn() },
+  chapterService: { getChaptersBySeries: vi.fn(), handOffChapter: vi.fn() },
 }));
 
 vi.mock('@/services/export.service', () => ({
@@ -110,5 +110,48 @@ describe('ExportView (UC-12)', () => {
 
     expect(await screen.findByTestId('export-no-chapter')).toBeInTheDocument();
     expect(screen.getByTestId('export-submit')).toBeDisabled();
+  });
+
+  it('D1: Producer bàn giao chương ChapterApproved cho Publisher sau khi xác nhận', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    (chapterService.handOffChapter as any).mockResolvedValue({ action: 'ProducerHandedOff' });
+
+    renderView();
+
+    fireEvent.click(await screen.findByTestId('handoff-submit'));
+
+    await waitFor(() => expect(chapterService.handOffChapter).toHaveBeenCalledWith('chap-2'));
+    expect(await screen.findByTestId('handoff-done')).toBeInTheDocument();
+    expect(screen.queryByTestId('handoff-submit')).not.toBeInTheDocument();
+    confirmSpy.mockRestore();
+  });
+
+  it('D1: huỷ xác nhận thì không bàn giao', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderView();
+
+    fireEvent.click(await screen.findByTestId('handoff-submit'));
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
+    expect(chapterService.handOffChapter).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it('D1: chương đã bàn giao hiện nhãn, không hiện nút bàn giao', async () => {
+    (chapterService.getChaptersBySeries as any).mockResolvedValue({
+      items: [
+        {
+          id: 'chap-2',
+          chapterNumber: 2,
+          status: 'ChapterApproved',
+          isHandedOff: true,
+          handedOffAt: '2026-11-25T03:54:57Z',
+        },
+      ],
+    });
+
+    renderView();
+
+    expect(await screen.findByTestId('handoff-done')).toBeInTheDocument();
+    expect(screen.queryByTestId('handoff-submit')).not.toBeInTheDocument();
   });
 });
