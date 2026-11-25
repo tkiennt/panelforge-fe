@@ -880,7 +880,21 @@
     "reworkTitle": "Ask the Artist to redraw this concept",
     "endorseTitle": "Writer/Editor approves this concept art",
     "defineStubBtn": "Define",
-    "openWorkbench": "Workbench"
+    "openWorkbench": "Workbench",
+    "hasDraftVersion": "Draft v{version} available",
+    "defaultVariant": "Default",
+    "statusCanon": "Canon",
+    "statusInUse": "In Use",
+    "standardSubtitle": "Standard",
+    "crowdStatusActive": "Crowd",
+    "crowdStatusSet": "Set Crowd",
+    "codePrefix": "Code:",
+    "noDownloadFile": "No download file available",
+    "addVariantBtn": "+ Variant",
+    "notApprovedYet": "Pending",
+    "ageAndBirth": "Age & Birth:",
+    "heightAndWeight": "Height & Weight:",
+    "buildAndRatio": "Build & Ratio:"
   },
   "isCrowdHelp": "Crowd entities do not require a Model Sheet",
   "crowd": {

@@ -193,12 +193,12 @@ describe('SeriesBibleView UX/UI improvements', () => {
     render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Tàn Lão Thôn')).toBeDefined();
+      expect(screen.getByTestId('bible-card-entry-loc-1')).toBeDefined();
     });
 
     // Tàn Lão Thôn has no image, so the detail shows the compact placeholder, not an image frame
-    fireEvent.click(screen.getByTestId('bible-card-entry-loc-1'));
     await waitFor(() => {
+      fireEvent.click(screen.getByTestId('bible-card-entry-loc-1'));
       expect(screen.getByText('LOC-01')).toBeDefined();
       expect(screen.getAllByText('Ngôi làng bí ẩn ở trung tâm Đại Khư.').length).toBeGreaterThan(0);
     });
