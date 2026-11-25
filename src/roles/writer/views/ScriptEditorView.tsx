@@ -76,7 +76,6 @@ import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
 import { parseScenePanelRange, formatSceneSummaryWithPanels } from '../utils/sceneUtils';
 import {
   useScriptDrawers,
-  isTestEnvironment,
   type LeftDrawer,
   type RightDrawer,
 } from '../components/script/useScriptDrawers';
@@ -540,10 +539,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     toggleLeftDrawer,
     toggleRightDrawer,
   } = useScriptDrawers({
-    initialLeftDrawer:
-      isTestEnvironment || (typeof window !== 'undefined' && window.innerWidth >= 1280)
-        ? 'scenes'
-        : null,
+    initialLeftDrawer: typeof window !== 'undefined' && window.innerWidth >= 1280 ? 'scenes' : null,
   });
   const [importRequestKey, setImportRequestKey] = useState(0);
 
@@ -2318,10 +2314,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               onRunNextLine={canEditScript && !isChapterLocked ? handleRunNextLine : undefined}
               runningNextLineKind={runningNextLineKind}
               onOpenAiPromptModal={
-                canEditScript && !isChapterLocked ? () => setActiveRightDrawer('ai-draft') : undefined
+                canEditScript && !isChapterLocked
+                  ? () => setActiveRightDrawer('ai-draft')
+                  : undefined
               }
               onOpenAiDraft={
-                canEditScript && !isChapterLocked ? () => setActiveRightDrawer('ai-draft') : undefined
+                canEditScript && !isChapterLocked
+                  ? () => setActiveRightDrawer('ai-draft')
+                  : undefined
               }
               onOpenAiStoryboard={
                 canEditScript && !isChapterLocked
