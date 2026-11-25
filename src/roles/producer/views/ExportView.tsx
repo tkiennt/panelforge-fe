@@ -12,9 +12,11 @@ import {
   Loader2,
   Package,
   RefreshCw,
+  Send,
   ShieldCheck,
   X,
 } from 'lucide-react';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService } from '@/services/series.service';
@@ -62,6 +64,8 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
   const [formats, setFormats] = useState<ExportPresetCode[]>(['PDF']);
   const [jobs, setJobs] = useState<ExportJobDto[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [handingOff, setHandingOff] = useState(false);
+  const confirm = useConfirm();
 
   useEffect(() => {
     if (!seriesId) return;
@@ -139,6 +143,38 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
       .catch((err) => onShowToast(t('producer.exportView.cancelError'), err.message));
 
   const selectedChapter = chapters.find((c) => c.id === chapterId);
+  // D1: bàn giao chỉ áp dụng cho chương đã qua Gate 3 và chưa bàn giao (BE trả 409 nếu sai trạng thái).
+  const canHandOff = selectedChapter?.status === 'ChapterApproved' && !selectedChapter.isHandedOff;
+
+  const handleHandOff = async () => {
+    if (!selectedChapter) return;
+    const ok = await confirm({
+      title: t('producer.exportView.handOffConfirmTitle', {
+        number: selectedChapter.chapterNumber,
+      }),
+      description: t('producer.exportView.handOffConfirmDesc'),
+      confirmLabel: t('producer.exportView.handOffBtn'),
+    });
+    if (!ok) return;
+    setHandingOff(true);
+    try {
+      await chapterService.handOffChapter(selectedChapter.id);
+      const handedOffAt = new Date().toISOString();
+      setChapters((prev) =>
+        prev.map((c) =>
+          c.id === selectedChapter.id ? { ...c, isHandedOff: true, handedOffAt } : c,
+        ),
+      );
+      onShowToast(
+        t('producer.exportView.handOffSuccessTitle'),
+        t('producer.exportView.handOffSuccessDesc', { number: selectedChapter.chapterNumber }),
+      );
+    } catch (err: any) {
+      onShowToast(t('producer.exportView.handOffError'), err.message);
+    } finally {
+      setHandingOff(false);
+    }
+  };
 
   return (
     <div className='w-full min-h-screen bg-[#FAF9F5] font-sans text-stone-900 flex flex-col'>
@@ -175,6 +211,38 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
               </div>
 
               <div className='flex items-center gap-2'>
+                {selectedChapter?.isHandedOff ? (
+                  <span
+                    className='px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-1.5'
+                    data-testid='handoff-done'
+                  >
+                    <CheckCircle2 className='w-3.5 h-3.5' />
+                    {t('producer.exportView.handedOffBadge', {
+                      date: selectedChapter.handedOffAt
+                        ? new Date(selectedChapter.handedOffAt).toLocaleDateString(
+                            lang === 'en' ? 'en-US' : 'vi-VN',
+                          )
+                        : '',
+                    })}
+                  </span>
+                ) : (
+                  canHandOff && (
+                    <button
+                      type='button'
+                      onClick={handleHandOff}
+                      disabled={handingOff}
+                      className='px-4 py-2 rounded-lg border border-[#EA580C] bg-white hover:bg-orange-50 text-[#EA580C] text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 active:scale-98'
+                      data-testid='handoff-submit'
+                    >
+                      {handingOff ? (
+                        <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                      ) : (
+                        <Send className='w-3.5 h-3.5' />
+                      )}
+                      <span>{t('producer.exportView.handOffBtn')}</span>
+                    </button>
+                  )
+                )}
                 <button
                   type='button'
                   onClick={handleExport}
