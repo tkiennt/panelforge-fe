@@ -1608,7 +1608,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             {t('bible.view.artworkUploaded')}
                           </span>
                         ) : (
-                          <span>{entity.subtitle || t('bible.view.standardSubtitle', 'Tiêu chuẩn')}</span>
+                          <span>
+                            {entity.subtitle || t('bible.view.standardSubtitle', 'Tiêu chuẩn')}
+                          </span>
                         )}
                       </span>
                       {isSelected ? (
@@ -1771,7 +1773,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       </span>
                       <span>•</span>
                       <span className='font-mono'>
-                        {t('bible.view.codePrefix', 'Mã:')} <strong className='text-stone-800'>{selectedEntity.code}</strong>
+                        {t('bible.view.codePrefix', 'Mã:')}{' '}
+                        <strong className='text-stone-800'>{selectedEntity.code}</strong>
                       </span>
                       <span>•</span>
                       <span className='text-emerald-700 font-medium flex items-center gap-1'>
