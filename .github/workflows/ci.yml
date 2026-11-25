@@ -34,7 +34,7 @@ jobs:
         run: npm run lint
 
       - name: Automated Unit & Component Tests (Vitest)
-        run: npm run test:run
+        run: npm run test:run -- --reporter=default --reporter=github-actions
 
       - name: Production Bundle Verification (Vite Build)
         run: npm run build
