@@ -947,6 +947,53 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
+  const handleSubmitConceptFile = async (
+    entity: BibleEntity,
+    revision: BibleEntryRevisionDto | null,
+    file: File,
+  ): Promise<boolean> => {
+    if (!effectiveSeries?.id) return false;
+    try {
+      const uploaded = await bibleService.uploadReferenceImage(effectiveSeries.id, file);
+      const effectiveRevision = rawEntries[entity.id]?.effectiveRevision ?? revision;
+      const queueItem = designQueue.find((item) => item.entryId === entity.id);
+      await bibleService.submitConceptArt(effectiveSeries.id, entity.id, {
+        referenceImageUrl: uploaded.url,
+        assetSha256: uploaded.sha256,
+        variantLabel: effectiveRevision ? getRevisionVariantLabel(effectiveRevision) : '',
+        summary:
+          effectiveRevision?.reviewStatus === 'ReworkRequired'
+            ? t('bible.view.revisionSummaryRework', 'Nộp bản vẽ sửa đổi theo nhận xét')
+            : t('bible.view.revisionSummarySubmit', 'Nộp bản vẽ Concept Art'),
+        name: entity.name,
+        subtitle: entity.subtitle,
+        description: entity.description,
+        expectedVersionNumber: effectiveRevision?.versionNumber,
+        revisionId: queueItem?.revisionId ?? undefined,
+      });
+      setSelectedEntity((current) =>
+        current?.id === entity.id ? { ...current, imageUrl: uploaded.url } : current,
+      );
+      setRefreshTrigger((current) => current + 1);
+      onShowToast(
+        t('bible.view.saveRevisionSuccessConcept', 'Đã nộp bản vẽ Concept Art'),
+        t(
+          'bible.view.saveRevisionDescConcept',
+          { name: entity.name },
+          `Đã gửi bản vẽ Concept Art cho ${entity.name}.`,
+        ),
+      );
+      return true;
+    } catch (err: any) {
+      onShowToast(
+        t('bible.view.revisionImageUploadErrorTitle', 'Không thể nộp bản vẽ'),
+        err.message ||
+          t('bible.view.revisionImageUploadErrorDesc', 'Không thể tải ảnh reference sheet.'),
+      );
+      return false;
+    }
+  };
+
   const handleDeleteRevision = async (entity: BibleEntity, rev: BibleEntryRevisionDto) => {
     if (!effectiveSeries?.id) return;
     try {
@@ -1505,25 +1552,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             setSelectedEntity(entity);
             setWorkbenchOpen(true);
           }}
-          onSubmitQueueItem={(item, entity) => {
-            void handleOpenAddRevision(
-              entity,
-              null,
-              true,
-              item.reworkFeedback ?? undefined,
-              item.reviewStatus === 'ConceptSubmitted' ||
-                item.reviewStatus === 'ReworkRequired',
-              false,
-              item.revisionId,
-            );
-          }}
         />
       )}
 
       {/* VIEW PANEL: TWO-COLUMN MANGA PAPER & INK WORKSPACE */}
-      <div
-        className={`grid grid-cols-1 lg:grid-cols-12 gap-5 items-start font-sans ${isArtist ? 'hidden' : ''}`}
-      >
+      {!isArtist && (
+      <div className='grid grid-cols-1 lg:grid-cols-12 gap-5 items-start font-sans'>
         {/* CỘT TRÁI (35% - lg:col-span-4): Danh sách thực thể */}
         <div className='lg:col-span-4 space-y-2.5'>
           <div className='flex items-center justify-between text-xs px-1'>
@@ -2225,6 +2259,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           )}
         </div>
       </div>
+      )}
 
       {/* LIGHTBOX MODAL CHO PHÓNG TO ẢNH */}
       {selectedImageZoom && (
@@ -2304,6 +2339,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           onToggleCrowd={handleToggleCrowd}
           onZoomImage={(img) => setSelectedImageZoom(img)}
           onDeleteRevision={(ent, rev) => handleDeleteRevision(ent, rev)}
+          onSubmitConceptFile={handleSubmitConceptFile}
           onSaveSpecFields={handleSaveSpecFields}
           onRefreshBible={() => setRefreshTrigger((prev) => prev + 1)}
         />

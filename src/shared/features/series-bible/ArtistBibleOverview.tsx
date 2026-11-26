@@ -7,8 +7,6 @@ import {
   ImageIcon,
   MapPin,
   Palette,
-  PenTool,
-  RotateCcw,
   ShieldCheck,
   User,
   Wrench,
@@ -35,7 +33,6 @@ interface ArtistBibleOverviewProps {
     total: number;
   };
   onOpenEntity: (entity: BibleEntity) => void;
-  onSubmitQueueItem: (item: BibleDesignQueueItemDto, entity: BibleEntity) => void;
 }
 
 const categoryIcon = (category: BibleEntity['category']) => {
@@ -65,7 +62,6 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
   designQueue,
   stats,
   onOpenEntity,
-  onSubmitQueueItem,
 }) => {
   const { t } = useTranslation();
   const queueEntityIds = new Set(designQueue.map((item) => item.entryId));
@@ -82,68 +78,57 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
     <div className='space-y-6' data-testid='artist-bible-overview'>
       <section
         className='flex flex-col gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between'
-        aria-label={t('bible.artistOverview.summaryAria')}
+        aria-label={t('bible.view.artistOverview.summaryAria')}
       >
         <h2 className='text-base font-bold text-stone-900'>
-          {t('bible.artistOverview.overviewTitle')}
+          {t('bible.view.artistOverview.overviewTitle')}
         </h2>
         <div className='flex flex-wrap items-center gap-2 text-xs font-semibold'>
           <span className='rounded-full bg-orange-50 px-2.5 py-1 text-orange-800'>
-            {t('bible.artistOverview.todoCompact', { count: designQueue.length })}
+            {t('bible.view.artistOverview.todoCompact', { count: designQueue.length })}
           </span>
           <span className='rounded-full bg-amber-50 px-2.5 py-1 text-amber-800'>
-            {t('bible.artistOverview.reviewCompact', { count: stats.pending })}
+            {t('bible.view.artistOverview.reviewCompact', { count: stats.pending })}
           </span>
           <span className='rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800'>
-            {t('bible.artistOverview.canonCompact', { count: stats.locked })}
+            {t('bible.view.artistOverview.canonCompact', { count: stats.locked })}
           </span>
         </div>
       </section>
 
-      <section className='overflow-hidden rounded-2xl border border-orange-200 bg-white shadow-xs'>
-        <div className='flex items-center gap-3 border-b border-orange-100 bg-orange-50/70 px-5 py-4'>
-          <div className='flex items-center gap-3'>
-            <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-600 text-white shadow-xs'>
-              <Palette className='h-5 w-5' />
-            </div>
-            <div className='flex flex-wrap items-center gap-2'>
-              <h2 className='text-lg font-bold text-stone-900'>
-                {t('bible.artistOverview.queueTitle')}
-              </h2>
-              <span className='rounded-full border border-orange-200 bg-white px-2.5 py-0.5 text-xs font-bold text-orange-700'>
-                {t('bible.artistOverview.queueCount', { count: designQueue.length })}
-              </span>
-            </div>
-          </div>
+      <section className='rounded-xl border border-stone-200 bg-white shadow-xs'>
+        <div className='flex items-center justify-between gap-3 border-b border-stone-100 px-4 py-3'>
+          <h2 className='flex items-center gap-2 text-sm font-bold text-stone-900'>
+            <Palette className='h-4 w-4 text-orange-600' />
+            {t('bible.view.artistOverview.queueTitle')}
+          </h2>
+          <span className='text-xs font-semibold text-stone-500'>
+            {t('bible.view.artistOverview.queueCount', { count: designQueue.length })}
+          </span>
         </div>
 
-        <div className='space-y-3 p-4 sm:p-5'>
+        <div className='space-y-2 p-3'>
           {designQueue.length === 0 ? (
             <div className='flex flex-col items-center justify-center rounded-xl border border-dashed border-stone-300 bg-stone-50 px-6 py-10 text-center'>
               <CheckCircle2 className='h-8 w-8 text-emerald-600' />
               <h3 className='mt-3 text-base font-bold text-stone-900'>
-                {t('bible.artistOverview.queueEmptyTitle')}
+                {t('bible.view.artistOverview.queueEmptyTitle')}
               </h3>
               <p className='mt-1 max-w-md text-sm text-stone-500'>
-                {t('bible.artistOverview.queueEmptyBody')}
+                {t('bible.view.artistOverview.queueEmptyBody')}
               </p>
             </div>
           ) : (
-            designQueue.map((item, index) => {
+            designQueue.map((item) => {
               const entity = entities.find((candidate) => candidate.id === item.entryId);
               const needsRework = item.isPriorityRework || item.reviewStatus === 'ReworkRequired';
               const queueKey = item.revisionId || item.entryId;
               return (
                 <article
                   key={queueKey}
-                  className={`rounded-xl border p-4 ${needsRework ? 'border-rose-200 bg-rose-50/40' : 'border-stone-200 bg-white'}`}
+                  className={`rounded-lg border px-3 py-2.5 ${needsRework ? 'border-rose-200 bg-rose-50/40' : 'border-stone-200 bg-white'}`}
                 >
-                  <div className='flex flex-col gap-4 lg:flex-row lg:items-center'>
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-mono text-sm font-bold ${needsRework ? 'bg-rose-100 text-rose-700' : 'bg-stone-900 text-white'}`}
-                    >
-                      {String(index + 1).padStart(2, '0')}
-                    </div>
+                  <div className='flex flex-col gap-3 lg:flex-row lg:items-center'>
                     <div className='min-w-0 flex-1'>
                       <div className='flex flex-wrap items-center gap-2'>
                         <h3 className='text-base font-bold text-stone-900'>{item.name}</h3>
@@ -157,10 +142,12 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                           </span>
                         )}
                       </div>
-                      <div className='mt-2 flex flex-wrap items-center gap-2 text-xs text-stone-600'>
+                      <div className='mt-1 flex flex-wrap items-center gap-2 text-xs text-stone-600'>
                         <span>
-                          {t('bible.artistOverview.variantLabel', {
-                            variant: item.variantLabel || t('bible.artistOverview.defaultVariant'),
+                          {t('bible.view.artistOverview.variantLabel', {
+                            variant:
+                              item.variantLabel ||
+                              t('bible.view.artistOverview.defaultVariant'),
                           })}
                         </span>
                         {item.waitingChapterNumbers?.length ? (
@@ -173,36 +160,20 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                       </div>
                       {item.reworkFeedback && (
                         <p className='mt-2 line-clamp-2 text-sm leading-relaxed text-rose-800'>
-                          {t('bible.artistOverview.feedbackPrefix')} “{item.reworkFeedback}”
+                          {t('bible.view.artistOverview.feedbackPrefix')} “{item.reworkFeedback}”
                         </p>
                       )}
                     </div>
-                    <div className='flex shrink-0 flex-col gap-2 sm:flex-row'>
+                    <div className='flex shrink-0'>
                       {entity && (
                         <button
                           type='button'
                           onClick={() => onOpenEntity(entity)}
-                          className='inline-flex items-center justify-center gap-2 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition-colors hover:bg-stone-100'
+                          className='inline-flex items-center justify-center gap-1.5 rounded-full bg-orange-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-orange-700'
+                          data-testid={`open-concept-${item.entryId}`}
                         >
                           <BookOpen className='h-4 w-4' />
-                          {t('bible.artistOverview.openBrief')}
-                        </button>
-                      )}
-                      {entity && (
-                        <button
-                          type='button'
-                          onClick={() => onSubmitQueueItem(item, entity)}
-                          className='inline-flex items-center justify-center gap-2 rounded-full bg-orange-600 px-4 py-2 text-sm font-bold text-white shadow-xs transition-colors hover:bg-orange-700'
-                          data-testid={`resubmit-concept-${item.entryId}`}
-                        >
-                          {needsRework ? (
-                            <RotateCcw className='h-4 w-4' />
-                          ) : (
-                            <PenTool className='h-4 w-4' />
-                          )}
-                          {needsRework
-                            ? t('bible.artistOverview.redrawAction')
-                            : t('bible.artistOverview.submitAction')}
+                          {t('bible.view.artistOverview.openBrief')}
                         </button>
                       )}
                     </div>
@@ -217,16 +188,16 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
       <section className='space-y-3'>
         <div className='flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between'>
           <h2 className='text-lg font-bold text-stone-900'>
-            {t('bible.artistOverview.libraryTitle')}
+            {t('bible.view.artistOverview.libraryTitle')}
           </h2>
           <span className='text-xs font-semibold text-stone-500'>
-            {t('bible.artistOverview.libraryCount', { count: referenceEntities.length })}
+            {t('bible.view.artistOverview.libraryCount', { count: referenceEntities.length })}
           </span>
         </div>
 
         {referenceEntities.length === 0 ? (
           <div className='rounded-xl border border-dashed border-stone-300 bg-white px-6 py-10 text-center text-sm text-stone-500'>
-            {t('bible.artistOverview.libraryEmpty')}
+            {t('bible.view.artistOverview.libraryEmpty')}
           </div>
         ) : (
           <div className='grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3'>
@@ -238,6 +209,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                   type='button'
                   key={entity.id}
                   onClick={() => onOpenEntity(entity)}
+                  data-testid={`artist-bible-entry-${entity.id}`}
                   className='group flex min-h-32 flex-col overflow-hidden rounded-xl border border-stone-200 bg-white text-left shadow-xs transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500'
                 >
                   <div className='flex flex-1 gap-3 p-4'>
@@ -274,7 +246,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                       {t(`bible.categories.${entity.category}`, String(entity.category))}
                     </span>
                     <span className='inline-flex items-center gap-1 text-xs font-bold text-orange-700'>
-                      {t('bible.artistOverview.openEntity')}
+                      {t('bible.view.artistOverview.openEntity')}
                       <ArrowRight className='h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5' />
                     </span>
                   </div>

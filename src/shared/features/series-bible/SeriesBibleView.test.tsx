@@ -359,7 +359,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     );
   });
 
-  it('renders "Nộp lại" button for Artist when entry has ConceptSubmitted revision', async () => {
+  it('keeps Artist edits inside the entity workbench', async () => {
     localStorage.setItem(
       'activeWorkspace',
       JSON.stringify({ id: 'ws-1', currentUserRole: 'ARTIST', isOwner: false }),
@@ -391,18 +391,15 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(screen.getByText(/Tần Mục/)).toBeDefined();
     });
 
-    const resubmitBtn = screen.getByTestId('artist-resubmit-btn-entry-chr-1');
-    expect(resubmitBtn).toBeDefined();
-    expect(resubmitBtn.textContent).toContain('Nộp lại');
-
-    fireEvent.click(resubmitBtn);
+    fireEvent.click(screen.getByTestId('artist-bible-entry-entry-chr-1'));
 
     await waitFor(() => {
-      expect(screen.getByText(/Nộp lại bản vẽ Concept Art/i)).toBeDefined();
+      expect(screen.getByTestId('bible-entity-workbench')).toBeDefined();
     });
+    expect(screen.queryByRole('heading', { name: /Nộp lại bản vẽ Concept Art/i })).toBeNull();
   });
 
-  it('opens the shared confirm dialog when Artist clicks submit concept art', async () => {
+  it('does not open the revision modal when Artist resubmits from the workbench', async () => {
     localStorage.setItem(
       'activeWorkspace',
       JSON.stringify({ id: 'ws-1', currentUserRole: 'ARTIST', isOwner: false }),
@@ -434,24 +431,10 @@ describe('SeriesBibleView UX/UI improvements', () => {
       </ConfirmProvider>,
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId('artist-resubmit-btn-entry-chr-1')).toBeDefined();
-    });
+    fireEvent.click(await screen.findByTestId('artist-bible-entry-entry-chr-1'));
+    fireEvent.click(await screen.findByTestId('detail-artist-resubmit-btn'));
 
-    fireEvent.click(screen.getByTestId('artist-resubmit-btn-entry-chr-1'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('save-revision-submit-btn')).not.toBeDisabled();
-    });
-
-    // Click submit button in AddRevisionModal
-    fireEvent.click(screen.getByTestId('save-revision-submit-btn'));
-
-    // Shared ConfirmDialog keeps the existing copy and action labels.
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Nộp lại Concept Art' })).toBeDefined();
-      expect(screen.getByText('Nộp lại bản')).toBeDefined();
-    });
+    expect(screen.queryByTestId('save-revision-submit-btn')).toBeNull();
   });
   it('creates a new variant with a required label', async () => {
     localStorage.setItem(
