@@ -1988,6 +1988,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   }, [isPageReadOnly, selectedPage, currentStage?.id, gridTasks]);
   const [isStartingCell, setIsStartingCell] = useState(false);
 
+  const hasVisualScriptImpact = useMemo(() => {
+    if (!selectedPage) return false;
+    const gridImpact = gridTasks.some(
+      (task) => task.hasScriptImpact === true && (!task.pageId || task.pageId === selectedPage.id),
+    );
+    const legacyImpact = chapterAssignments.some((assignment) => {
+      if (assignment.hasScriptImpact !== true) return false;
+      if (assignment.pageId) return assignment.pageId === selectedPage.id;
+      return panelPageMap[assignment.targetEntityId]?.pageId === selectedPage.id;
+    });
+    return gridImpact || legacyImpact;
+  }, [selectedPage, gridTasks, chapterAssignments, panelPageMap]);
+
   const handleStartCurrentCell = async () => {
     if (!startableCurrentCell || !currentChapterId || isStartingCell) return;
     setIsStartingCell(true);
@@ -2944,13 +2957,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         </div>
       )}
 
-      {currentVisualImpactCell && (
+      {hasVisualScriptImpact && (
         <div
           data-testid='visual-impact-badge'
           role='status'
-          className='shrink-0 border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-900 flex items-center gap-2'
+          className='shrink-0 border-b border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-700 flex items-center gap-2'
         >
-          <span className='inline-flex items-center gap-1 rounded px-1.5 py-0.5 bg-rose-100 text-rose-800 border border-rose-300 font-bold shrink-0'>
+          <span className='inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 shrink-0'>
             <Flag className='w-3 h-3' aria-hidden='true' />
             ⚑ Kịch bản thay đổi
           </span>
@@ -3314,6 +3327,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 originalLang={originalLang}
                 textReadOnly={isTranslationMode ? !isActiveEditionEditable : isPageReadOnly}
                 onCommitText={(text) => balloons.updateElementText(selectedBalloon.elementId, text)}
+                onSyncScriptText={() => balloons.syncElementText(selectedBalloon.elementId)}
                 onChangeStyle={(patch) =>
                   balloons.updateElementStyle(selectedBalloon.elementId, patch)
                 }

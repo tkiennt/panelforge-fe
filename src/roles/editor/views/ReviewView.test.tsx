@@ -173,6 +173,30 @@ describe('ReviewView (CF3: duyệt bản nộp tranh)', () => {
     }));
   });
 
+  it('shows the visual script flag only when hasScriptImpact is true', async () => {
+    vi.mocked(assignmentService.getAssignmentById).mockResolvedValue({
+      ...assignment,
+      hasScriptImpact: true,
+      impactReviewReason: 'Bố cục khung đã đổi',
+    } as any);
+    renderView();
+
+    expect(await screen.findByTestId('review-script-impact-badge')).toHaveTextContent(
+      '⚑ Kịch bản thay đổi',
+    );
+  });
+
+  it('does not show the visual script flag for a text-only stale signal', async () => {
+    vi.mocked(assignmentService.getAssignmentById).mockResolvedValue({
+      ...assignment,
+      hasScriptImpact: false,
+    } as any);
+    renderView();
+
+    await screen.findByAltText('Lần nộp 2 · đang duyệt');
+    expect(screen.queryByTestId('review-script-impact-badge')).not.toBeInTheDocument();
+  });
+
   it('shows the pending submission and compares it with the last decided one, ignoring later uploads', async () => {
     renderView();
 

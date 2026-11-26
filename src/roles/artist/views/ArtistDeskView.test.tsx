@@ -2481,6 +2481,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
             lotId: 'lot-pencil',
             assigneeUserId: 'artist-1',
             isInputOutdated: true,
+            hasScriptImpact: true,
             outdatedReason: 'Hành động khung 1 đã thay đổi',
             isStartable: false,
           },
