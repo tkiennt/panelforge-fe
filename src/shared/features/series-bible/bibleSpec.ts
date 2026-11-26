@@ -31,7 +31,7 @@ const makeField = (
   get label() {
     if (key === 'age') return translate('bible.spec.fields.age.label', 'Tuổi');
     if (key === 'artistNotes')
-      return translate('bible.spec.fields.artistNotes.label', 'Ghi chú cho Artist (Artist Notes)');
+      return translate('bible.spec.fields.artistNotes.label', 'Ghi chú cho họa sĩ');
     return translate(`bible.spec.fields.${key}.label`, key);
   },
   get placeholder() {
