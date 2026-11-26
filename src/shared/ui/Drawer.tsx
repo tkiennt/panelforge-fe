@@ -82,7 +82,7 @@ export const Drawer = forwardRef<HTMLDivElement, DrawerProps>(function Drawer(
           className,
         )}
       >
-        <header className='flex min-h-14 items-center justify-between border-b border-[var(--studio-line)] px-5'>
+        <header className='flex min-h-14 items-center justify-between bg-head-wash border-b border-head-line px-5'>
           <h2 id={titleId} className='font-serif text-base font-bold'>
             {title}
           </h2>
