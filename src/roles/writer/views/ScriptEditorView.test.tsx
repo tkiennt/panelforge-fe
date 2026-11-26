@@ -1191,5 +1191,26 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
         expect(chapterService.getScriptWorkingCopy).toHaveBeenCalledWith('chap-1');
       });
     });
+
+    it('hiển thị banner chặn xóa khi lưu trả về 409 CANNOT_DELETE_ACTIVE_PRODUCTION_PAGE', async () => {
+      const user = userEvent.setup();
+      vi.mocked(chapterService.saveChapterScript).mockRejectedValueOnce(
+        Object.assign(
+          new Error('Không thể xóa Trang 1 trong giai đoạn sản xuất vì đã có bản vẽ.'),
+          {
+            status: 409,
+            code: 'CANNOT_DELETE_ACTIVE_PRODUCTION_PAGE',
+            details: { blockedPageIds: ['page-1'], blockedPanelIds: [] },
+          },
+        ),
+      );
+
+      renderView({ workspaceRole: 'WRITER' });
+      const saveBtn = await screen.findByTestId('save-script-btn');
+      await user.click(saveBtn);
+
+      const banner = await screen.findByTestId('delete-blocked-banner');
+      expect(banner).toHaveTextContent(/không thể xóa/i);
+    });
   });
 });

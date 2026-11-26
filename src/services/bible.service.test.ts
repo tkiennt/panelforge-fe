@@ -17,6 +17,8 @@ vi.mock('../api/axiosClient', async (importOriginal) => {
 
 const get = vi.mocked(axiosClient.get);
 const post = vi.mocked(axiosClient.post);
+const put = vi.mocked(axiosClient.put);
+const del = vi.mocked(axiosClient.delete);
 
 describe('bibleService', () => {
   const seriesId = 'series-123';
@@ -331,6 +333,65 @@ describe('bibleService', () => {
         code: 'CONFLICT',
         message: 'Mục này đã được định nghĩa trước đó, không phải mục nháp (IsStub = false).',
       });
+    });
+  });
+
+  describe('workflow safeguards (endorse, variants, cancel-replacement, aliases)', () => {
+    it('gọi POST .../endorse với cờ endorse cho Writer soft endorsement', async () => {
+      post.mockResolvedValueOnce({
+        data: {
+          id: revisionId,
+          reviewStatus: 'ConceptSubmitted',
+          writerEndorsement: { endorsed: true, conceptVersion: 1 },
+        },
+      });
+
+      const res = await bibleService.endorseRevision(seriesId, revisionId, true);
+
+      expect(post).toHaveBeenCalledWith(
+        `/series/${seriesId}/bible/revisions/${revisionId}/endorse`,
+        { endorse: true },
+      );
+      expect(res.writerEndorsement?.endorsed).toBe(true);
+    });
+
+    it('gọi POST .../variants khi tạo biến thể song song (tách khỏi /supersede)', async () => {
+      const payload = {
+        name: 'Tần Mục',
+        description: 'Trang phục chiến đấu',
+        summary: 'Thêm biến thể mới',
+        variantLabel: 'Trang phục chiến đấu',
+      };
+      post.mockResolvedValueOnce({ data: { id: 'rev-var', variantLabel: 'Trang phục chiến đấu' } });
+
+      const res = await bibleService.createVariant(seriesId, entryId, payload);
+
+      expect(post).toHaveBeenCalledWith(
+        `/series/${seriesId}/bible/entries/${entryId}/variants`,
+        payload,
+      );
+      expect(res.variantLabel).toBe('Trang phục chiến đấu');
+    });
+
+    it('gọi DELETE .../cancel-replacement khi Writer huỷ bản nháp thay thế', async () => {
+      del.mockResolvedValueOnce({});
+
+      await bibleService.cancelReplacement(seriesId, revisionId);
+
+      expect(del).toHaveBeenCalledWith(
+        `/series/${seriesId}/bible/revisions/${revisionId}/cancel-replacement`,
+      );
+    });
+
+    it('gọi PUT .../aliases để cập nhật biệt danh nhân vật', async () => {
+      put.mockResolvedValueOnce({ data: { id: entryId, aliases: ['Mục Nhi', 'Tiểu Tần'] } });
+
+      const res = await bibleService.updateEntryAliases(seriesId, entryId, ['Mục Nhi', 'Tiểu Tần']);
+
+      expect(put).toHaveBeenCalledWith(`/series/${seriesId}/bible/entries/${entryId}/aliases`, {
+        aliases: ['Mục Nhi', 'Tiểu Tần'],
+      });
+      expect(res.aliases).toEqual(['Mục Nhi', 'Tiểu Tần']);
     });
   });
 });

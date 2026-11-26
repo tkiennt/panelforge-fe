@@ -731,7 +731,10 @@
       "submitBtn": "Bắt đầu sản xuất",
       "submittingBtn": "Đang bắt đầu...",
       "toastSuccessTitle": "Đã bắt đầu sản xuất",
-      "toastSuccessDesc": "Chương {number} đã chuyển sang InProduction. Kịch bản đã được đóng băng."
+      "toastSuccessDesc": "Chương {number} đã chuyển sang InProduction. Kịch bản đã được đóng băng.",
+      "markCrowdQuickBtn": "Đánh dấu Quần chúng",
+      "crowdMarkedTitle": "Đã đánh dấu Quần chúng",
+      "crowdMarkFailed": "Không thể đánh dấu Quần chúng"
     },
     "pagination": "Trang {current} / {total} (Tổng {count} chương)",
     "footerNote": "* Ngày phát hành dự kiến hỗ trợ ban biên tập đối chiếu và điều phối tiến độ sản xuất kịp thời.",

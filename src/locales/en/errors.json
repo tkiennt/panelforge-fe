@@ -112,7 +112,9 @@
       "submitScriptFailed": "Failed to submit script for review.",
       "recallScriptFailed": "Failed to recall script for editing.",
       "startProductionFailed": "Failed to start chapter production.",
-      "unfreezeScriptFailed": "Failed to unfreeze script."
+      "unfreezeScriptFailed": "Failed to unfreeze script.",
+      "refreezePreviewFailed": "Failed to load refreeze script preview.",
+      "refreezeScriptFailed": "Failed to refreeze script."
     },
     "element": {
       "layerBackground": "Background",
@@ -199,6 +201,10 @@
       "getDesignQueueFailed": "Failed to load Series Bible design queue.",
       "submitConceptArtFailed": "Failed to submit Concept Art.",
       "confirmRevisionFailed": "Failed to confirm and lock Canon.",
+      "endorseRevisionFailed": "Failed to update design endorsement.",
+      "createVariantFailed": "Failed to create new Bible variant.",
+      "cancelReplacementFailed": "Failed to cancel replacement draft.",
+      "updateAliasesFailed": "Failed to update entry aliases.",
       "setCrowdFailed": "Failed to update Crowd flag.",
       "defineEntryFailed": "Failed to define Bible entry.",
       "getConceptCommentsFailed": "Failed to load concept comments.",

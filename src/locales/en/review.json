@@ -511,12 +511,22 @@
     "decisionHint": "Does the design match the spec and story? Editor confirmation locks this revision as canon.",
     "lockCanon": "Confirm & Lock Canon",
     "requestRework": "Request redraw",
+    "endorseBtn": "Endorse Design",
+    "endorsedToggleBtn": "Design endorsed v{version}",
+    "writerEndorsedBadge": "Writer endorsed v{version}",
+    "writerNotEndorsedBanner": "Writer has not endorsed concept v{version} yet. You can still Lock Canon if aligned.",
+    "producerReworkModalTitle": "Producer: Request redraw (production reason)",
+    "producerReworkReasonLabel": "Production reason / scope adjustment",
+    "producerReworkReasonPlaceholder": "e.g. armor details exceed weekly schedule capacity, simplify motifs...",
+    "producerReworkReasonHelp": "The Artist will see this as a priority item at the top of the design queue.",
     "reworkReason": "What needs to change? (the artist sees this note)",
     "waitingArtist": "Redraw requested. Waiting for the artist's new version.",
     "notReviewer": "Your role can view designs only.",
     "toast": {
       "canonLocked": "Canon locked",
       "reworkRequested": "Redraw requested",
+      "endorsed": "Design endorsed",
+      "endorseRemoved": "Endorsement removed",
       "failed": "Could not save the decision"
     },
     "errors": {

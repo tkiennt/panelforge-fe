@@ -2448,5 +2448,74 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         localStorage.removeItem('user');
       }
     });
+
+    it('hiển thị banner hổ phách khi kịch bản đang mở khóa trong InProduction và huy hiệu ⚑ Kịch bản thay đổi', async () => {
+      localStorage.setItem('user', JSON.stringify({ id: 'artist-1', role: 'ARTIST' }));
+      const page1Id = '00000000-0000-0000-0000-000000000501';
+      const pencilStageId = 'stage-pencil';
+
+      vi.spyOn(chapterService, 'getChaptersBySeries').mockResolvedValue([
+        {
+          id: 'chap-1',
+          seriesId: 'ser-1',
+          chapterNumber: 1,
+          title: 'Chương 1',
+          status: 'InProduction',
+          isScriptFrozen: false,
+        },
+      ] as any);
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        { id: page1Id, chapterId: 'chap-1', pageNumber: 1, widthPx: 1200, heightPx: 1800 },
+      ] as any);
+      vi.spyOn(assignmentService, 'getTaskGrid').mockResolvedValue({
+        chapterId: 'chap-1',
+        stages: [{ id: pencilStageId, name: 'Pencil', stageOrder: 1, isEnabled: true, allowedRole: 'Artist' }],
+        pages: [{ id: page1Id, pageNumber: 1 }],
+        lots: [],
+        tasks: [
+          {
+            id: 'cell-p1-pencil',
+            pipelineStageId: pencilStageId,
+            pageId: page1Id,
+            status: 'InProgress',
+            lotId: 'lot-pencil',
+            assigneeUserId: 'artist-1',
+            isInputOutdated: true,
+            hasScriptImpact: true,
+            outdatedReason: 'Hành động khung 1 đã thay đổi',
+            isStartable: false,
+          },
+        ],
+      } as any);
+
+      try {
+        render(
+          <MemoryRouter
+            initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}
+          >
+            <ToastProvider>
+              <ConfirmProvider>
+                <Routes>
+                  <Route
+                    path='/workspaces/:workspaceId/series/:seriesId/artist'
+                    element={<ArtistDeskView workspaceRole='ARTIST' initialScriptLines={[]} />}
+                  />
+                </Routes>
+              </ConfirmProvider>
+            </ToastProvider>
+          </MemoryRouter>,
+        );
+
+        const unfrozenBanner = await screen.findByTestId('script-unfrozen-banner');
+        expect(unfrozenBanner).toHaveTextContent(
+          /Kịch bản đang được mở khóa để chỉnh sửa — lưu ý trước khi nộp bài mới/i,
+        );
+
+        const impactBadge = await screen.findByTestId('visual-impact-badge');
+        expect(impactBadge).toHaveTextContent(/⚑ Kịch bản thay đổi/);
+      } finally {
+        localStorage.removeItem('user');
+      }
+    });
   });
 });

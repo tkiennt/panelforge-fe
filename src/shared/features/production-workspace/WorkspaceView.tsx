@@ -36,6 +36,7 @@ import {
 } from '@/services/series.service';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
+import { RefreezeScriptModal } from '@/shared/modals/RefreezeScriptModal';
 import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
 import { formatDate } from '@/lib/format';
 import { ProducerSharedHeader } from './ProducerSharedHeader';
@@ -277,6 +278,11 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     return isPreProd;
   }, [currentChapter, lockGate]);
 
+  const canRefreezeScript = useMemo(() => {
+    if (!currentChapter) return false;
+    return currentChapter.status === 'InProduction' && currentChapter.scriptStatus === 'InReview';
+  }, [currentChapter]);
+
   // Readers access barrier
   if (isReaderMode || isReaderOnly) {
     return (
@@ -405,27 +411,33 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               <RefreshCw className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
             </button>
 
-            {/* Start Production CTA */}
+            {/* Start Production / Refreeze CTA */}
             <button
               type='button'
-              disabled={!canStartProduction}
+              disabled={!canStartProduction && !canRefreezeScript}
               onClick={() => setStartProductionOpen(true)}
               className={`px-4 py-2 rounded-lg text-white text-xs font-medium transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer ${
-                canStartProduction
+                canStartProduction || canRefreezeScript
                   ? 'bg-orange-600 hover:bg-orange-700'
                   : 'bg-stone-300 text-stone-500 cursor-not-allowed opacity-60'
               }`}
               title={
-                canStartProduction
-                  ? t('workbench.startProduction', 'Bắt đầu sản xuất')
-                  : t(
-                      'workbench.startProductionHint',
-                      'Chỉ khả dụng khi Kịch bản và Gate 1 được duyệt',
-                    )
+                canRefreezeScript
+                  ? 'Khóa lại kịch bản sau khi Biên kịch nộp bản sửa'
+                  : canStartProduction
+                    ? t('workbench.startProduction', 'Bắt đầu sản xuất')
+                    : t(
+                        'workbench.startProductionHint',
+                        'Chỉ khả dụng khi Kịch bản và Gate 1 được duyệt',
+                      )
               }
             >
               <Rocket className='w-3.5 h-3.5' aria-hidden='true' />
-              <span>{t('workbench.startProduction', 'Bắt đầu sản xuất')}</span>
+              <span>
+                {canRefreezeScript
+                  ? 'Khóa lại kịch bản'
+                  : t('workbench.startProduction', 'Bắt đầu sản xuất')}
+              </span>
             </button>
           </div>
         }
@@ -1341,8 +1353,25 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         />
       )}
 
-      {/* Start Production Modal */}
-      {startProductionOpen && (
+      {/* Start Production / Refreeze Modal */}
+      {startProductionOpen && currentChapter?.status === 'InProduction' && (
+        <RefreezeScriptModal
+          isOpen={startProductionOpen}
+          onClose={() => setStartProductionOpen(false)}
+          chapterId={currentChapterId}
+          chapterNumber={currentChapter?.chapterNumber || 0}
+          chapterTitle={currentChapter?.title || ''}
+          seriesId={seriesId || ''}
+          workspaceId={workspaceId || ''}
+          onSuccess={() => {
+            setStartProductionOpen(false);
+            loadChapters();
+            setRefreshKey((k) => k + 1);
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
+      {startProductionOpen && currentChapter?.status !== 'InProduction' && (
         <StartProductionModal
           isOpen={startProductionOpen}
           onClose={() => setStartProductionOpen(false)}

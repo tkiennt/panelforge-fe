@@ -21,10 +21,14 @@ vi.mock('@/services/bible.service', () => ({
     confirmRevision: vi.fn().mockResolvedValue({}),
     supersedeRevision: vi.fn(),
     uploadReferenceImage: vi.fn(),
-    getDesignQueue: vi.fn().mockResolvedValue([]),
+    getBibleDesignQueue: vi.fn().mockResolvedValue([]),
     submitConceptArt: vi.fn().mockResolvedValue({}),
     requestReworkRevision: vi.fn().mockResolvedValue({}),
     addRevision: vi.fn().mockResolvedValue({}),
+    createVariant: vi.fn().mockResolvedValue({}),
+    endorseRevision: vi.fn().mockResolvedValue({}),
+    cancelReplacement: vi.fn().mockResolvedValue(undefined),
+    updateEntryAliases: vi.fn().mockResolvedValue({}),
     getEntryHistory: vi.fn().mockResolvedValue([]),
     getEntryUsages: vi.fn().mockResolvedValue([]),
     setBibleEntryCrowd: vi.fn().mockResolvedValue({}),
@@ -38,8 +42,8 @@ vi.mock('@/services/series.service', () => ({
 }));
 
 vi.mock('@/shared/components/AuthenticatedImage', () => ({
-  AuthenticatedImage: ({ alt, className }: any) => (
-    <img alt={alt} className={className} data-testid='auth-image' />
+  AuthenticatedImage: ({ alt, className, src }: any) => (
+    <img alt={alt} className={className} src={src} data-testid='auth-image' />
   ),
 }));
 
@@ -475,7 +479,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
       },
     ]);
 
-    (bibleService.addRevision as any).mockResolvedValue({
+    (bibleService.createVariant as any).mockResolvedValue({
       id: 'rev-2',
       versionNumber: 2,
       variantLabel: 'Thiếu niên',
@@ -514,7 +518,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     fireEvent.click(screen.getByTestId('save-revision-submit-btn'));
 
     await waitFor(() => {
-      expect(bibleService.addRevision).toHaveBeenCalledWith(
+      expect(bibleService.createVariant).toHaveBeenCalledWith(
         'series-123',
         mockEntries[0].id,
         expect.objectContaining({
@@ -538,7 +542,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
         snapshotJson: '{}',
       },
     ]);
-    (bibleService.addRevision as any).mockRejectedValue({
+    (bibleService.createVariant as any).mockRejectedValue({
       status: 409,
       code: 'CONFLICT',
       message: duplicateMessage,
@@ -1087,6 +1091,66 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(descInput.value).toBe('Nhân vật áo đen xuất hiện dưới mưa.');
       expect(subtitleInput.value).toBe('Thủ lĩnh ám sát');
       expect(bibleService.defineBibleEntry).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Active Canon Display & Priority Rework Queue', () => {
+    it('displays active CanonLocked card with primary info and "Có bản nháp vN" badge, plus priority badge on ReworkRequired queue item', async () => {
+      (bibleService.getSeriesBible as any).mockResolvedValueOnce({
+        id: 'bible-1',
+        seriesId: 'series-123',
+        workspaceId: 'ws-1',
+        name: 'Võ Thần Bible',
+        version: 1,
+        entries: [
+          {
+            ...mockEntries[0],
+            latestDraftVersionNumber: 2,
+            effectiveRevision: {
+              ...mockEntries[0].effectiveRevision,
+              reviewStatus: 'CanonLocked',
+              conceptImageUrl: 'https://cdn.example.com/canon-v1.png',
+            },
+          },
+        ],
+      });
+      (bibleService.getBibleDesignQueue as any).mockResolvedValueOnce([
+        {
+          entryId: 'entry-chr-1',
+          code: 'CHR-01',
+          name: 'Tần Mục',
+          category: 'Character',
+          revisionId: 'rev-rw-1',
+          reviewStatus: 'ReworkRequired',
+          reworkFeedback: 'Vẽ lại giáp vai',
+          isPriorityRework: true,
+          updatedAt: '2026-11-26T00:00:00Z',
+        },
+      ]);
+
+      render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+
+      const card = await screen.findByTestId('bible-card-entry-chr-1');
+      expect(card).toHaveTextContent('Tần Mục');
+      expect(card).toHaveTextContent('Đã khoá Canon');
+      expect(screen.getByTestId('pending-draft-badge-entry-chr-1')).toHaveTextContent(
+        'Có bản nháp v2',
+      );
+      expect(screen.getByTestId('queue-priority-rework-rev-rw-1')).toHaveTextContent(
+        /Ưu tiên vẽ lại/i,
+      );
+
+      fireEvent.click(card);
+      expect(await screen.findByTestId('pending-draft-badge-detail')).toHaveTextContent(
+        'Có bản nháp v2',
+      );
+      expect(
+        screen.getByText('Nhân vật chính, xuất thân Đại Khư tàn lão thôn.'),
+      ).toBeInTheDocument();
+      expect(screen.getAllByTestId('auth-image')[0]).toHaveAttribute(
+        'src',
+        'https://cdn.example.com/canon-v1.png',
+      );
     });
   });
 });

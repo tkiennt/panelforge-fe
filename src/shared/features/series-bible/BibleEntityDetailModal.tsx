@@ -431,6 +431,7 @@ interface BibleEntityDetailModalProps {
   onZoomImage: (image: { url: string; title: string }) => void;
   onDeleteRevision?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => Promise<void>;
   onToggleCrowd?: (entity: BibleEntity) => void;
+  onRefreshBible?: () => void;
   /** Danh sách mục của Bible để chuyển nhanh sang mục cùng danh mục ở sidebar. */
   entities?: BibleEntity[];
   onSelectEntity?: (entity: BibleEntity) => void;
@@ -471,6 +472,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   onZoomImage,
   onDeleteRevision,
   onToggleCrowd,
+  onRefreshBible,
   entities = [],
   onSelectEntity,
 }) => {
@@ -557,6 +559,55 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const effectiveCanCreateDraft = canCreateDraft || isWriterUser;
   const [localDefinedForId, setLocalDefinedForId] = useState<string | null>(null);
   const [isLocalDefineOpen, setIsLocalDefineOpen] = useState(false);
+  const [aliases, setAliases] = useState<string[]>(() => entity.aliases ?? rawEntry?.aliases ?? []);
+  const [aliasInput, setAliasInput] = useState('');
+  const [savingAliases, setSavingAliases] = useState(false);
+  const [cancelingReplacementId, setCancelingReplacementId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAliases(entity.aliases ?? rawEntry?.aliases ?? []);
+  }, [entity.id, entity.aliases, rawEntry?.aliases]);
+
+  const handleSaveAliases = async (nextAliases: string[]) => {
+    if (!seriesId) return;
+    setSavingAliases(true);
+    try {
+      const updated = await bibleService.updateEntryAliases(seriesId, entity.id, nextAliases);
+      setAliases(updated.aliases ?? nextAliases);
+      onRefreshBible?.();
+      onShowToast(t('bible.detailModal.aliasesSavedTitle', 'Đã cập nhật tên phụ'), entity.name);
+    } catch (err: any) {
+      onShowToast(
+        t('bible.detailModal.aliasesSaveErrorTitle', 'Lỗi cập nhật tên phụ'),
+        err?.message ||
+          t('bible.detailModal.aliasesSaveErrorDesc', 'Không thể lưu danh sách tên phụ.'),
+      );
+    } finally {
+      setSavingAliases(false);
+    }
+  };
+
+  const handleCancelReplacement = async (rev: BibleEntryRevisionDto) => {
+    if (!seriesId) return;
+    setCancelingReplacementId(rev.id);
+    try {
+      await bibleService.cancelReplacement(seriesId, rev.id);
+      setAllRevisions((prev) => prev.filter((r) => r.id !== rev.id));
+      setSelectedVersionId(null);
+      onRefreshBible?.();
+      onShowToast(
+        t('bible.detailModal.cancelReplacementSuccessTitle', 'Đã huỷ bản thay thế'),
+        `v${rev.versionNumber}`,
+      );
+    } catch (err: any) {
+      onShowToast(
+        t('bible.detailModal.cancelReplacementErrorTitle', 'Không thể huỷ bản thay thế'),
+        err?.message || '',
+      );
+    } finally {
+      setCancelingReplacementId(null);
+    }
+  };
   const isStubEntity =
     localDefinedForId !== entity.id && Boolean(entity.isStub ?? rawEntry?.isStub);
   const canDefineStub = isStubEntity && isWriterUser && canCreateDraft;
@@ -1876,6 +1927,33 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               </div>
 
               {/* Active Version Immutability & Action */}
+              {activeRevision &&
+                activeRevision.supersedesRevisionId &&
+                !activeRevision.isLocked &&
+                activeRevision.reviewStatus === 'Draft' &&
+                isWriterUser &&
+                seriesId && (
+                  <div className='p-2.5 bg-amber-50/80 rounded-xl border border-amber-200 space-y-2 text-xs'>
+                    <p className='font-semibold text-amber-900'>
+                      {t('bible.detailModal.supersedeDraftNotice', {
+                        version: activeRevision.versionNumber,
+                        defaultValue: `Đang soạn bản thay thế nháp v${activeRevision.versionNumber}.`,
+                      })}
+                    </p>
+                    <button
+                      type='button'
+                      disabled={cancelingReplacementId === activeRevision.id}
+                      onClick={() => void handleCancelReplacement(activeRevision)}
+                      data-testid={`cancel-replacement-btn-${activeRevision.id}`}
+                      className='w-full py-1.5 px-2 bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 font-semibold text-xs rounded-lg transition-all cursor-pointer disabled:opacity-50'
+                    >
+                      {cancelingReplacementId === activeRevision.id
+                        ? t('bible.detailModal.cancelingReplacementBtn', 'Đang huỷ...')
+                        : t('bible.detailModal.cancelReplacementBtn', 'Huỷ bản thay thế')}
+                    </button>
+                  </div>
+                )}
+
               {activeRevision?.reviewStatus === 'CanonLocked' && (
                 <div className='p-2.5 bg-stone-50/80 rounded-xl border border-stone-200/80 space-y-1.5 text-xs'>
                   <div className='flex items-center justify-between'>
@@ -2001,6 +2079,91 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </div>
               </Alert>
             ) : null}
+
+            <div
+              className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-2.5'
+              data-testid='bible-aliases-section'
+            >
+              <div className='flex items-center justify-between gap-2'>
+                <span className='text-xs font-bold text-[#1C1917]'>
+                  {t('bible.detailModal.aliasesTitle', 'Tên phụ / Biệt danh (Auto-link kịch bản)')}
+                </span>
+                <span className='text-xs font-mono text-stone-500'>({aliases.length})</span>
+              </div>
+              {aliases.length > 0 ? (
+                <div className='flex flex-wrap gap-1.5'>
+                  {aliases.map((alias) => (
+                    <span
+                      key={alias}
+                      className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-xs font-medium text-stone-800'
+                    >
+                      <span>{alias}</span>
+                      {isWriterUser && !isStubEntity && seriesId && (
+                        <button
+                          type='button'
+                          disabled={savingAliases}
+                          onClick={() => void handleSaveAliases(aliases.filter((a) => a !== alias))}
+                          aria-label={t('bible.detailModal.removeAliasAria', {
+                            alias,
+                            defaultValue: `Xoá tên phụ ${alias}`,
+                          })}
+                          className='text-stone-400 hover:text-rose-600 cursor-pointer disabled:opacity-50'
+                        >
+                          <X className='w-3 h-3' />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className='text-xs text-stone-500'>
+                  {t('bible.detailModal.aliasesEmpty', 'Chưa có tên phụ nào.')}
+                </p>
+              )}
+              {isWriterUser && !isStubEntity && seriesId && (
+                <div className='flex items-center gap-2 pt-1'>
+                  <input
+                    type='text'
+                    value={aliasInput}
+                    disabled={savingAliases}
+                    onChange={(e) => setAliasInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter') return;
+                      e.preventDefault();
+                      const trimmed = aliasInput.trim();
+                      if (
+                        !trimmed ||
+                        aliases.some((a) => a.toLowerCase() === trimmed.toLowerCase())
+                      )
+                        return;
+                      setAliasInput('');
+                      void handleSaveAliases([...aliases, trimmed]);
+                    }}
+                    placeholder={t('bible.detailModal.aliasPlaceholder', 'Thêm biệt danh...')}
+                    data-testid='alias-input'
+                    className='flex-1 px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg text-xs text-stone-900 focus:outline-none focus:border-orange-400'
+                  />
+                  <button
+                    type='button'
+                    disabled={
+                      savingAliases ||
+                      !aliasInput.trim() ||
+                      aliases.some((a) => a.toLowerCase() === aliasInput.trim().toLowerCase())
+                    }
+                    onClick={() => {
+                      const trimmed = aliasInput.trim();
+                      if (!trimmed) return;
+                      setAliasInput('');
+                      void handleSaveAliases([...aliases, trimmed]);
+                    }}
+                    data-testid='add-alias-btn'
+                    className='px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-900 text-white text-xs font-semibold cursor-pointer disabled:opacity-50'
+                  >
+                    {t('bible.detailModal.addAliasBtn', 'Thêm')}
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div
               className={`grid grid-cols-1 gap-4 items-start ${isVisualDesign ? 'lg:grid-cols-2' : ''}`}

@@ -511,12 +511,22 @@
     "decisionHint": "Bản vẽ khớp đặc tả và cốt truyện? Editor xác nhận sẽ khoá ngay phiên bản này làm Canon.",
     "lockCanon": "Xác nhận & Khoá Canon",
     "requestRework": "Yêu cầu vẽ lại",
+    "endorseBtn": "Xác nhận tạo hình (Endorse)",
+    "endorsedToggleBtn": "Đã xác nhận tạo hình v{version}",
+    "writerEndorsedBadge": "Writer đã xác nhận bản v{version}",
+    "writerNotEndorsedBanner": "Writer chưa xác nhận bản vẽ v{version} này. Bạn vẫn có thể Khóa Canon nếu đã thống nhất.",
+    "producerReworkModalTitle": "Producer: Yêu cầu vẽ lại (lý do sản xuất)",
+    "producerReworkReasonLabel": "Lý do sản xuất / điều chỉnh phạm vi",
+    "producerReworkReasonPlaceholder": "Ví dụ: chi tiết giáp quá phức tạp cho tiến độ tuần, cần đơn giản hóa hoa văn...",
+    "producerReworkReasonHelp": "Artist sẽ nhận thông báo ưu tiên xử lý ở đầu hàng đợi thiết kế.",
     "reworkReason": "Cần sửa gì? (Artist sẽ thấy nhận xét này)",
     "waitingArtist": "Đã yêu cầu vẽ lại. Chờ Artist nộp bản mới.",
     "notReviewer": "Vai trò của bạn chỉ được xem thiết kế.",
     "toast": {
       "canonLocked": "Đã khoá Canon",
       "reworkRequested": "Đã yêu cầu vẽ lại",
+      "endorsed": "Đã xác nhận tạo hình",
+      "endorseRemoved": "Đã bỏ xác nhận tạo hình",
       "failed": "Không lưu được quyết định"
     },
     "errors": {

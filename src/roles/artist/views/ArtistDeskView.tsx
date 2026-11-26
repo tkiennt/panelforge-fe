@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Loader2, RefreshCw, Send, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Flag, Loader2, RefreshCw, Send, ShieldAlert } from 'lucide-react';
 import { pageService, PageDto, PageHistoryDto, isGuid } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
@@ -1963,6 +1963,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   }, [isPageReadOnly, selectedPage, currentStage?.id, gridTasks]);
   const [isStartingCell, setIsStartingCell] = useState(false);
 
+  const hasVisualScriptImpact = useMemo(() => {
+    if (!selectedPage) return false;
+    const gridImpact = gridTasks.some(
+      (task) => task.hasScriptImpact === true && (!task.pageId || task.pageId === selectedPage.id),
+    );
+    const legacyImpact = chapterAssignments.some((assignment) => {
+      if (assignment.hasScriptImpact !== true) return false;
+      if (assignment.pageId) return assignment.pageId === selectedPage.id;
+      return panelPageMap[assignment.targetEntityId]?.pageId === selectedPage.id;
+    });
+    return gridImpact || legacyImpact;
+  }, [selectedPage, gridTasks, chapterAssignments, panelPageMap]);
+
   const handleStartCurrentCell = async () => {
     if (!startableCurrentCell || !currentChapterId || isStartingCell) return;
     setIsStartingCell(true);
@@ -2008,6 +2021,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     );
     return reworkCell ? resolveReworkReasonDisplay(reworkCell) : null;
   }, [gridTasks, selectedPage, currentStage?.id]);
+
+  const isScriptUnfrozenInProduction = Boolean(
+    activeChapter &&
+    activeChapter.status === 'InProduction' &&
+    activeChapter.isScriptFrozen === false,
+  );
 
   // Persist the current dirty layout. Saving never prevents later layout changes.
   const handleSaveLayout = useCallback(async () => {
@@ -2605,6 +2624,23 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
       : null);
   const isLettererRole = normalizedDeskRole === 'LETTERER';
+  const currentVisualImpactCell = useMemo(() => {
+    if (gridTasks.length === 0 || isLettererRole) return null;
+    const me = getStoredCurrentUserId();
+    const pageCells = gridTasks.filter(
+      (cell) => !cell.pageId || !selectedPage || cell.pageId === selectedPage.id,
+    );
+    const stagePageCells = currentStage?.id
+      ? pageCells.filter((cell) => cell.pipelineStageId === currentStage.id)
+      : pageCells;
+    return (
+      stagePageCells.find(
+        (cell) =>
+          cell.isInputOutdated &&
+          (me ? cell.assigneeUserId === me : Boolean(cell.assigneeUserId)),
+      ) ?? null
+    );
+  }, [gridTasks, isLettererRole, selectedPage, currentStage?.id]);
   const handleReloadLetteringPage = useCallback(async () => {
     await Promise.all([balloons.reloadElements(), keepOut.reload()]);
     if (currentChapterId) {
@@ -2886,6 +2922,36 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           }}
           showFocusControls={false}
         />
+      )}
+
+      {isScriptUnfrozenInProduction && (
+        <div
+          data-testid='script-unfrozen-banner'
+          role='status'
+          className='shrink-0 border-b border-amber-300 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-950 flex items-center gap-2'
+        >
+          <AlertTriangle className='w-4 h-4 text-[#D97706] shrink-0' aria-hidden='true' />
+          <span>
+            Kịch bản đang được mở khóa để chỉnh sửa — lưu ý trước khi nộp bài mới.
+          </span>
+        </div>
+      )}
+
+      {hasVisualScriptImpact && (
+        <div
+          data-testid='visual-impact-badge'
+          role='status'
+          className='shrink-0 border-b border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-700 flex items-center gap-2'
+        >
+          <span className='inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 shrink-0'>
+            <Flag className='w-3 h-3' aria-hidden='true' />
+            ⚑ Kịch bản thay đổi
+          </span>
+          <span>
+            {currentVisualImpactCell.outdatedReason ||
+              'Nội dung hình ảnh của trang này đã được cập nhật khi chốt lại kịch bản.'}
+          </span>
+        </div>
       )}
 
       {isPageReadOnly && (
@@ -3241,6 +3307,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 originalLang={originalLang}
                 textReadOnly={isTranslationMode ? !isActiveEditionEditable : isPageReadOnly}
                 onCommitText={(text) => balloons.updateElementText(selectedBalloon.elementId, text)}
+                onSyncScriptText={() => balloons.syncElementText(selectedBalloon.elementId)}
                 onChangeStyle={(patch) =>
                   balloons.updateElementStyle(selectedBalloon.elementId, patch)
                 }

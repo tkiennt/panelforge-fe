@@ -389,7 +389,8 @@
     "btnCreateVariantSave": "Create Variant & Save",
     "btnCreateVariantSend": "Create Variant & Submit",
     "btnSaveVersion": "Save Version",
-    "btnSendDraft": "Submit Draft"
+    "btnSendDraft": "Submit Draft",
+    "artworkReadyLabel": "Image file ready"
   },
   "detailModal": {
     "backToBible": "Series Bible",
@@ -642,7 +643,20 @@
     "requestInfoSuccessTitle": "Change request sent",
     "requestInfoSuccessDesc": "Request to revise \"{field}\" of \"{name}\" has been sent to the Writer.",
     "requestInfoErrorTitle": "Failed to send request",
-    "requestInfoErrorDesc": "An error occurred while sending the change request."
+    "requestInfoErrorDesc": "An error occurred while sending the change request.",
+    "aliasesTitle": "Aliases / Nicknames (Script Auto-link)",
+    "aliasesEmpty": "No aliases yet.",
+    "aliasPlaceholder": "Add alias...",
+    "addAliasBtn": "Add",
+    "removeAliasAria": "Remove alias {alias}",
+    "aliasesSavedTitle": "Aliases updated",
+    "aliasesSaveErrorTitle": "Failed to update aliases",
+    "aliasesSaveErrorDesc": "Could not save aliases list.",
+    "supersedeDraftNotice": "Editing replacement draft v{version}.",
+    "cancelReplacementBtn": "Cancel replacement",
+    "cancelingReplacementBtn": "Canceling...",
+    "cancelReplacementSuccessTitle": "Replacement canceled",
+    "cancelReplacementErrorTitle": "Could not cancel replacement"
   },
   "view": {
     "canonHub": "Canon Hub",
@@ -882,6 +896,8 @@
     "defineStubBtn": "Define",
     "openWorkbench": "Workbench",
     "hasDraftVersion": "Draft v{version} available",
+    "queuePriorityRework": "Priority redraw",
+    "revisionRecordedLabel": "Revision saved",
     "defaultVariant": "Default",
     "statusCanon": "Canon",
     "statusInUse": "In Use",

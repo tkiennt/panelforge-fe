@@ -24,6 +24,7 @@ import {
   ChapterCastDto,
   ChapterCastBlockerDto,
 } from '@/services/chapterCast.service';
+import { bibleService } from '@/services/bible.service';
 import { workspaceService } from '@/services/workspace.service';
 import { pageService, PageDto } from '@/services/page.service';
 import { SeriesMemberDto } from '@/services/series.service';
@@ -82,6 +83,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
   // Inline submit error (409)
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitBlockers, setSubmitBlockers] = useState<ChapterCastBlockerDto[]>([]);
+  const [togglingCrowdId, setTogglingCrowdId] = useState<string | null>(null);
 
   const minPage = useMemo(() => {
     if (pages.length === 0) return 1;
@@ -103,6 +105,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
     setLettererRanges([]);
     setSubmitError(null);
     setSubmitBlockers([]);
+    setTogglingCrowdId(null);
   }, []);
 
   useEffect(() => {
@@ -279,6 +282,40 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
     setLettererRanges((prev) => prev.filter((r) => r.id !== id));
   };
 
+  const handleQuickMarkCrowd = async (bibleEntryId: string) => {
+    if (!seriesId || !bibleEntryId) return;
+    setTogglingCrowdId(bibleEntryId);
+    try {
+      await bibleService.setBibleEntryCrowd(seriesId, bibleEntryId, true);
+      const updatedCast = await chapterCastService.getChapterCast(chapterId).catch(() => null);
+      if (updatedCast) {
+        setCast(updatedCast);
+      }
+      setSubmitBlockers((prev) => {
+        const remaining = prev.filter((b) => b.bibleEntryId !== bibleEntryId);
+        if (remaining.length === 0) {
+          setSubmitError(null);
+        }
+        return remaining;
+      });
+      onShowToast?.(
+        t('seriesChaptersModal.startProductionModal.crowdMarkedTitle', 'Đã đánh dấu Quần chúng'),
+        '',
+      );
+    } catch (err: any) {
+      onShowToast?.(
+        err?.message ||
+          t(
+            'seriesChaptersModal.startProductionModal.crowdMarkFailed',
+            'Không thể đánh dấu Quần chúng',
+          ),
+        '',
+      );
+    } finally {
+      setTogglingCrowdId(null);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
@@ -414,11 +451,30 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                         )}
                       </p>
                       {cast?.gate?.blockers && cast.gate.blockers.length > 0 && (
-                        <ul className='mt-2 space-y-1 list-disc list-inside text-xs font-mono bg-white/70 rounded-lg p-2.5 border border-rose-200'>
+                        <ul className='mt-2 space-y-1.5 text-xs bg-white/80 rounded-lg p-2.5 border border-rose-200'>
                           {cast.gate.blockers.map((b, idx) => (
-                            <li key={idx} className='text-rose-800 font-medium'>
-                              <span className='font-bold'>{b.entryName}</span>: {b.reason}
-                              {b.sourceExplanation ? ` (${b.sourceExplanation})` : ''}
+                            <li
+                              key={b.bibleEntryId || idx}
+                              className='text-rose-800 font-medium flex items-center justify-between gap-2 flex-wrap'
+                            >
+                              <span className='font-mono'>
+                                <span className='font-bold'>{b.entryName}</span>: {b.reason}
+                                {b.sourceExplanation ? ` (${b.sourceExplanation})` : ''}
+                              </span>
+                              {b.bibleEntryId && seriesId && (
+                                <button
+                                  type='button'
+                                  disabled={togglingCrowdId === b.bibleEntryId}
+                                  onClick={() => void handleQuickMarkCrowd(b.bibleEntryId)}
+                                  data-testid={`gate1-quick-crowd-${b.bibleEntryId}`}
+                                  className='px-2 py-0.5 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-sans text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-50'
+                                >
+                                  {t(
+                                    'seriesChaptersModal.startProductionModal.markCrowdQuickBtn',
+                                    'Đánh dấu Quần chúng',
+                                  )}
+                                </button>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -914,11 +970,30 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                     <span className='font-semibold text-xs leading-relaxed'>{submitError}</span>
                   </div>
                   {submitBlockers.length > 0 && (
-                    <ul className='space-y-1 list-disc list-inside text-xs font-mono bg-white/70 rounded-lg p-2.5 border border-rose-200'>
+                    <ul className='space-y-1.5 text-xs bg-white/80 rounded-lg p-2.5 border border-rose-200'>
                       {submitBlockers.map((b, idx) => (
-                        <li key={idx} className='text-rose-800 font-medium'>
-                          <span className='font-bold'>{b.entryName}</span>: {b.reason}
-                          {b.sourceExplanation ? ` (${b.sourceExplanation})` : ''}
+                        <li
+                          key={b.bibleEntryId || idx}
+                          className='text-rose-800 font-medium flex items-center justify-between gap-2 flex-wrap'
+                        >
+                          <span className='font-mono'>
+                            <span className='font-bold'>{b.entryName}</span>: {b.reason}
+                            {b.sourceExplanation ? ` (${b.sourceExplanation})` : ''}
+                          </span>
+                          {b.bibleEntryId && seriesId && (
+                            <button
+                              type='button'
+                              disabled={togglingCrowdId === b.bibleEntryId}
+                              onClick={() => void handleQuickMarkCrowd(b.bibleEntryId)}
+                              data-testid={`gate1-quick-crowd-${b.bibleEntryId}`}
+                              className='px-2 py-0.5 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-sans text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-50'
+                            >
+                              {t(
+                                'seriesChaptersModal.startProductionModal.markCrowdQuickBtn',
+                                'Đánh dấu Quần chúng',
+                              )}
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>

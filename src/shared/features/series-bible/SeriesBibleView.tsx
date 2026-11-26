@@ -104,7 +104,11 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
     category: mapCategoryToTab(entry.category),
     description: entry.description || '',
     tags: [entry.code || 'BIBLE'],
-    imageUrl: entry.referenceImageUrl || '',
+    imageUrl:
+      entry.effectiveRevision?.conceptImageUrl ||
+      entry.effectiveRevision?.referenceImageUrl ||
+      entry.referenceImageUrl ||
+      '',
     status: entry.isActive ? 'Active' : 'Draft',
     isVisualDesign: isVisualDesignCategory(entry.category),
     isLocked: entry.effectiveRevision?.reviewStatus === 'CanonLocked',
@@ -112,6 +116,7 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
     latestDraftVersionNumber: entry.latestDraftVersionNumber ?? null,
     isCrowd: entry.isCrowd ?? false,
     isStub: entry.isStub ?? false,
+    aliases: entry.aliases ?? [],
     gallery,
     attributes,
   };
@@ -504,6 +509,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [fetchingBaseVersion, setFetchingBaseVersion] = useState(false);
   const [savingRevision, setSavingRevision] = useState(false);
   const [revisionReferenceImageUrl, setRevisionReferenceImageUrl] = useState('');
+  const [revisionAssetSha256, setRevisionAssetSha256] = useState('');
   const [revisionReworkFeedback, setRevisionReworkFeedback] = useState<string | null>(null);
   const [isArtistResubmit, setIsArtistResubmit] = useState(false);
   const [uploadingRevImage, setUploadingRevImage] = useState(false);
@@ -552,6 +558,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     setRevisionSubtitle(snapshot.Subtitle ?? entity.subtitle ?? '');
     setRevisionDescription(snapshot.Description ?? entity.description ?? '');
     setRevisionReferenceImageUrl(snapshot.ReferenceImageUrl ?? entity.imageUrl ?? '');
+    setRevisionAssetSha256('');
     setRevisionVariantLabel(
       isNewVariant
         ? ''
@@ -600,6 +607,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     summary: string;
     detailsJson?: string;
     attributes?: Record<string, any>;
+    isNewVariant?: boolean;
   }) => {
     if (!revisionTarget) return;
     setSavingRevision(true);
@@ -613,6 +621,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           referenceImageUrl: revisionReferenceImageUrl || undefined,
           variantLabel: revisionVariantLabel.trim(),
           detailsJson: submittedContent?.detailsJson,
+          isNewVariant: isNewVariantRequested,
         };
         const summaryText = submittedContent ? submittedContent.summary : revisionSummary.trim();
 
@@ -634,9 +643,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         } else if (isArtistConceptSubmit && isArtist) {
           await bibleService.submitConceptArt(effectiveSeries.id, revisionTarget.id, {
             ...content,
+            assetSha256: revisionAssetSha256 || undefined,
             summary: summaryText,
             detailsJson: submittedContent?.detailsJson,
             revisionId: targetQueueRevisionId || undefined,
+          });
+        } else if (content.isNewVariant) {
+          await bibleService.createVariant(effectiveSeries.id, revisionTarget.id, {
+            ...content,
+            summary: summaryText,
+            detailsJson: submittedContent?.detailsJson,
           });
         } else {
           await bibleService.addRevision(effectiveSeries.id, revisionTarget.id, {
@@ -1409,6 +1425,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       </span>
                     </div>
                     <div className='flex items-center gap-1 mt-1 flex-wrap'>
+                      {(item.isPriorityRework || item.reviewStatus === 'ReworkRequired') && (
+                        <span
+                          className='px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 text-xs font-semibold'
+                          data-testid={`queue-priority-rework-${queueKey}`}
+                        >
+                          {t('bible.view.queuePriorityRework', 'Ưu tiên vẽ lại')}
+                        </span>
+                      )}
                       {item.waitingChapterNumbers && item.waitingChapterNumbers.length > 0 && (
                         <span
                           className='px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-mono text-xs font-semibold'
@@ -1433,8 +1457,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             matchedEntity,
                             null,
                             true,
-                            undefined,
-                            true,
+                            item.reworkFeedback ?? undefined,
+                            item.reviewStatus === 'ConceptSubmitted' ||
+                              item.reviewStatus === 'ReworkRequired',
                             false,
                             item.revisionId,
                           );
@@ -2251,6 +2276,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           onZoomImage={(img) => setSelectedImageZoom(img)}
           onDeleteRevision={(ent, rev) => handleDeleteRevision(ent, rev)}
           onSaveSpecFields={handleSaveSpecFields}
+          onRefreshBible={() => setRefreshTrigger((prev) => prev + 1)}
         />
       )}
 
@@ -2297,6 +2323,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           try {
             const uploaded = await bibleService.uploadReferenceImage(effectiveSeries.id, file);
             setRevisionReferenceImageUrl(uploaded.url);
+            setRevisionAssetSha256(uploaded.sha256);
             onShowToast(
               t('bible.view.revisionImageUploadedTitle', 'Đã tải ảnh reference sheet mới'),
               file.name,
@@ -2436,8 +2463,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   )}
 
                   <div className='flex items-center justify-between pt-2 border-t border-stone-200/60'>
-                    <span className='text-xs font-mono text-stone-400'>
-                      Hash: {rev.contentHash ? rev.contentHash.substring(0, 8) : '—'}
+                    <span className='text-xs text-stone-400'>
+                      {t('bible.view.revisionRecordedLabel', 'Đã lưu phiên bản')}
                     </span>
                     <div className='flex items-center gap-1.5'>
                       {canEndorse && rev.reviewStatus === 'ConceptSubmitted' && (

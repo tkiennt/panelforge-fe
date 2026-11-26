@@ -731,7 +731,10 @@
       "submitBtn": "Start Production",
       "submittingBtn": "Starting...",
       "toastSuccessTitle": "Production started",
-      "toastSuccessDesc": "Chapter {number} transitioned to InProduction. Script has been frozen."
+      "toastSuccessDesc": "Chapter {number} transitioned to InProduction. Script has been frozen.",
+      "markCrowdQuickBtn": "Mark as Crowd",
+      "crowdMarkedTitle": "Marked as Crowd",
+      "crowdMarkFailed": "Failed to mark as Crowd"
     },
     "pagination": "Page {current} of {total} (Total {count} chapters)",
     "footerNote": "* Target release dates assist the editorial team in aligning and coordinating production on time.",
