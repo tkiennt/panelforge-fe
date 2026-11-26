@@ -377,6 +377,7 @@
     "statusScriptFrozen": "Script frozen",
     "statusPreProduction": "Pre-production (scripting)",
     "statusInProduction": "In production",
+    "eyebrow": "Artist Production Desk",
     "pageTitlePrefix": "Artist Desk — {series}",
     "subtitleHighlight": "Select a Chapter to Open the Dedicated Artist Desk",
     "subtitleBody": " — Choose a chapter to enter the standalone full-screen Focus Workspace, split panel layouts (Panel Templates), upload pencil drafts (Pencil), ink line-art (Ink), and submit finished pages.",
