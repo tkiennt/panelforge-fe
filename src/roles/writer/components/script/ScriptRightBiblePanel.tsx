@@ -77,8 +77,8 @@ export const ScriptRightBiblePanel: React.FC<ScriptRightBiblePanelProps> = ({
       (e) =>
         e.name.toLowerCase().includes(q) ||
         (e.subtitle && e.subtitle.toLowerCase().includes(q)) ||
-        (e.effectiveRevision?.variantLabel &&
-          e.effectiveRevision.variantLabel.toLowerCase().includes(q)),
+        (e.effectiveRevision?.stageName &&
+          e.effectiveRevision.stageName.toLowerCase().includes(q)),
     );
   }, [allBibleEntries, characters, searchQuery]);
 
@@ -200,7 +200,7 @@ export const ScriptRightBiblePanel: React.FC<ScriptRightBiblePanelProps> = ({
             ) : (
               <div className='space-y-2.5'>
                 {regularChapterCharacters.map((char) => {
-                  const variant = char.effectiveRevision?.variantLabel || char.subtitle || '';
+                  const variant = char.effectiveRevision?.stageName || char.subtitle || '';
                   const initials = char.name
                     .split(' ')
                     .map((s) => s[0])

@@ -37,14 +37,13 @@ import { translate, useTranslation } from '@/lib/i18n';
 import { BibleStubAiDraftSection } from './BibleStubAiDraftSection';
 import { getCategoryLabel } from './bibleCategory';
 import {
-  SPEC_DELIVERABLES,
   SPEC_SCHEMA,
-  getDeliverableLabel,
   getFieldLabel,
   getFieldPlaceholder,
   getGroupTitle,
   specCategoryOf,
   specCompleteness,
+  parseBibleDetails,
 } from './bibleSpec';
 import type { BibleEntryUsageDto } from '@/services/bible.service';
 
@@ -75,7 +74,7 @@ export function groupRevisionsIntoVariants(
   const addRev = (rev: BibleEntryRevisionDto | null | undefined) => {
     if (!rev) return;
     const label = getRevisionVariantLabel(rev);
-    const normalizedRev: BibleEntryRevisionDto = { ...rev, variantLabel: label };
+    const normalizedRev: BibleEntryRevisionDto = { ...rev, stageName: rev.stageName ?? null };
     const idKey = normalizedRev.id
       ? String(normalizedRev.id)
       : `v${normalizedRev.versionNumber}-${label}`;
@@ -122,7 +121,7 @@ export function groupRevisionsIntoVariants(
     variants.push({
       variantKey: `variant-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
       variantLabel: latestLabel,
-      latestRevision: { ...latest, variantLabel: latestLabel },
+      latestRevision: { ...latest, stageName: latest.stageName ?? null },
       revisions: sortedRevs,
       isLocked,
     });
@@ -568,33 +567,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const effectiveCanCreateDraft = canCreateDraft || isWriterUser;
   const [localDefinedForId, setLocalDefinedForId] = useState<string | null>(null);
   const [isLocalDefineOpen, setIsLocalDefineOpen] = useState(false);
-  const [aliases, setAliases] = useState<string[]>(() => entity.aliases ?? rawEntry?.aliases ?? []);
-  const [aliasInput, setAliasInput] = useState('');
-  const [savingAliases, setSavingAliases] = useState(false);
   const [cancelingReplacementId, setCancelingReplacementId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setAliases(entity.aliases ?? rawEntry?.aliases ?? []);
-  }, [entity.id, entity.aliases, rawEntry?.aliases]);
-
-  const handleSaveAliases = async (nextAliases: string[]) => {
-    if (!seriesId) return;
-    setSavingAliases(true);
-    try {
-      const updated = await bibleService.updateEntryAliases(seriesId, entity.id, nextAliases);
-      setAliases(updated.aliases ?? nextAliases);
-      onRefreshBible?.();
-      onShowToast(t('bible.detailModal.aliasesSavedTitle', 'Đã cập nhật tên phụ'), entity.name);
-    } catch (err: any) {
-      onShowToast(
-        t('bible.detailModal.aliasesSaveErrorTitle', 'Lỗi cập nhật tên phụ'),
-        err?.message ||
-          t('bible.detailModal.aliasesSaveErrorDesc', 'Không thể lưu danh sách tên phụ.'),
-      );
-    } finally {
-      setSavingAliases(false);
-    }
-  };
 
   const handleCancelReplacement = async (rev: BibleEntryRevisionDto) => {
     if (!seriesId) return;
@@ -993,12 +966,24 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     if (rawEntry?.detailsJson) {
       try {
         const details = JSON.parse(rawEntry.detailsJson);
-        rawDetailsObj = details.attributes || details.Attributes || {};
+        rawDetailsObj = details.attributes || details.Attributes || details || {};
       } catch {
         // ignore
       }
     }
-    const combined = { ...(entity.attributes || {}), ...rawDetailsObj, ...parsed };
+    const parsedBibleDetails = parseBibleDetails(
+      rawEntry?.detailsJson || activeRevision?.snapshotJson,
+      { ...(entity.attributes || {}), ...rawDetailsObj, ...parsed },
+    );
+    const combined: Record<string, any> = {
+      ...(entity.attributes || {}),
+      ...rawDetailsObj,
+      ...parsed,
+      ...(activeRevision?.age ? { age: activeRevision.age } : {}),
+      ...(activeRevision?.artistNotes ? { artistNotes: activeRevision.artistNotes } : {}),
+      ...(parsedBibleDetails.age ? { age: parsedBibleDetails.age } : {}),
+      ...(parsedBibleDetails.artistNotes ? { artistNotes: parsedBibleDetails.artistNotes } : {}),
+    };
 
     return {
       raw: combined as Record<string, unknown>,
@@ -1201,7 +1186,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           case 'Locked':
             actorDesc = t('bible.detailModal.actorEditor');
             actionDesc = t('bible.detailModal.actionLocked', {
-              target: activeRevision.variantLabel || activeRevision.stageName || entity.name,
+              target: activeRevision.stageName || entity.name,
             });
             break;
           case 'Superseded':
@@ -1237,7 +1222,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               : t('bible.detailModal.timeApproved'),
             actor: t('bible.detailModal.actorEditor'),
             action: t('bible.detailModal.actionLocked', {
-              target: `${rev.variantLabel || rev.stageName || entity.name} (v${rev.versionNumber})`,
+              target: `${rev.stageName || entity.name} (v${rev.versionNumber})`,
             }),
             hash: '',
           });
@@ -1320,10 +1305,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     };
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [
-    isArtistUser,
-    isStubEntity,
-  ]);
+  }, [isArtistUser, isStubEntity]);
 
   const handleRequestRework = (rev: BibleEntryRevisionDto) => {
     if (!onRequestRework) return;
@@ -1464,7 +1446,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       const ok = await onSaveSpecFields(
         entity,
         attrs,
-        (activeRevision?.variantLabel ?? activeRevision?.stageName ?? '').trim(),
+        (activeRevision?.stageName ?? '').trim(),
         expected,
         activeRevision?.id,
       );
@@ -2173,91 +2155,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             )}
 
             <div
-              className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-2.5'
-              data-testid='bible-aliases-section'
-            >
-              <div className='flex items-center justify-between gap-2'>
-                <span className='text-xs font-bold text-[#1C1917]'>
-                  {t('bible.detailModal.aliasesTitle', 'Tên phụ / Biệt danh (Auto-link kịch bản)')}
-                </span>
-                <span className='text-xs font-mono text-stone-500'>({aliases.length})</span>
-              </div>
-              {aliases.length > 0 ? (
-                <div className='flex flex-wrap gap-1.5'>
-                  {aliases.map((alias) => (
-                    <span
-                      key={alias}
-                      className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-xs font-medium text-stone-800'
-                    >
-                      <span>{alias}</span>
-                      {isWriterUser && !isStubEntity && seriesId && (
-                        <button
-                          type='button'
-                          disabled={savingAliases}
-                          onClick={() => void handleSaveAliases(aliases.filter((a) => a !== alias))}
-                          aria-label={t('bible.detailModal.removeAliasAria', {
-                            alias,
-                            defaultValue: `Xoá tên phụ ${alias}`,
-                          })}
-                          className='text-stone-400 hover:text-rose-600 cursor-pointer disabled:opacity-50'
-                        >
-                          <X className='w-3 h-3' />
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className='text-xs text-stone-500'>
-                  {t('bible.detailModal.aliasesEmpty', 'Chưa có tên phụ nào.')}
-                </p>
-              )}
-              {isWriterUser && !isStubEntity && seriesId && (
-                <div className='flex items-center gap-2 pt-1'>
-                  <input
-                    type='text'
-                    value={aliasInput}
-                    disabled={savingAliases}
-                    onChange={(e) => setAliasInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key !== 'Enter') return;
-                      e.preventDefault();
-                      const trimmed = aliasInput.trim();
-                      if (
-                        !trimmed ||
-                        aliases.some((a) => a.toLowerCase() === trimmed.toLowerCase())
-                      )
-                        return;
-                      setAliasInput('');
-                      void handleSaveAliases([...aliases, trimmed]);
-                    }}
-                    placeholder={t('bible.detailModal.aliasPlaceholder', 'Thêm biệt danh...')}
-                    data-testid='alias-input'
-                    className='flex-1 px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg text-xs text-stone-900 focus:outline-none focus:border-orange-400'
-                  />
-                  <button
-                    type='button'
-                    disabled={
-                      savingAliases ||
-                      !aliasInput.trim() ||
-                      aliases.some((a) => a.toLowerCase() === aliasInput.trim().toLowerCase())
-                    }
-                    onClick={() => {
-                      const trimmed = aliasInput.trim();
-                      if (!trimmed) return;
-                      setAliasInput('');
-                      void handleSaveAliases([...aliases, trimmed]);
-                    }}
-                    data-testid='add-alias-btn'
-                    className='px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-900 text-white text-xs font-semibold cursor-pointer disabled:opacity-50'
-                  >
-                    {t('bible.detailModal.addAliasBtn', 'Thêm')}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div
               className={`grid grid-cols-1 gap-4 items-stretch ${
                 isVisualDesign ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]' : ''
               }`}
@@ -2287,6 +2184,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       }));
                       const filled = rows.filter((r) => r.value);
                       const empty = rows.filter((r) => !r.value);
+                      if (filled.length === 0 && !canInlineEditSpec) {
+                        return null;
+                      }
                       return (
                         <div key={group.key} className='space-y-2'>
                           <div className='flex items-center gap-2'>
@@ -2444,21 +2344,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                   );
                                 })}
                               </div>
-                            ) : (
-                              <div className='flex flex-wrap items-center gap-1.5'>
-                                <span className='text-xs text-stone-400'>
-                                  {t('bible.detailModal.notConfigured')}
-                                </span>
-                                {empty.map(({ field }) => (
-                                  <span
-                                    key={field.key}
-                                    className='px-2 py-0.5 rounded-full border border-dashed border-stone-300 text-xs text-stone-500'
-                                  >
-                                    {getFieldLabel(field, t)}
-                                  </span>
-                                ))}
-                              </div>
-                            ))}
+                            ) : null)}
                         </div>
                       );
                     })}
@@ -2492,21 +2378,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
               {isVisualDesign && (
                 <section className='min-w-0 h-full space-y-3.5' data-testid='bible-artwork-column'>
-                  {SPEC_DELIVERABLES[normalizedCategory] && (
-                    <div className='bg-amber-50/60 border border-amber-200 rounded-xl px-3.5 py-2.5 text-sm text-amber-900 flex items-center gap-2 flex-wrap'>
-                      <span className='font-semibold'>
-                        {t('bible.detailModal.artistMustSubmit', 'Artist cần nộp:')}
-                      </span>
-                      {SPEC_DELIVERABLES[normalizedCategory]!.map((d) => (
-                        <span
-                          key={d}
-                          className='px-2 py-0.5 rounded-full bg-white border border-amber-200 text-xs font-medium'
-                        >
-                          {t(`bible.spec.deliverables.${d}`)}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                   <div className='h-full bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-4 sm:p-5 shadow-xs space-y-3'>
                     {/* Artwork Header: Tab Turnaround vs Action / Expressions + Zoom button */}
                     <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>

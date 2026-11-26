@@ -55,8 +55,9 @@ export interface BibleEntryRevisionDto {
   isLocked?: boolean;
   lockedAt?: string | null;
   lockedById?: string | null;
-  variantLabel?: string | null;
   stageName?: string | null;
+  age?: string | null;
+  artistNotes?: string | null;
   referenceImageUrl?: string | null;
   conceptImageUrl?: string | null;
   events?: BibleRevisionEventDto[] | null;
@@ -75,10 +76,12 @@ export interface BibleEntryDto {
   subtitle?: string | null;
   description: string;
   detailsJson: string;
+  age?: string | null;
+  artistNotes?: string | null;
   referenceImageUrl?: string | null;
-  priority: BiblePriority;
-  strictCheck: boolean;
-  isActive: boolean;
+  priority?: BiblePriority;
+  strictCheck?: boolean;
+  isActive?: boolean;
   effectiveRevision?: BibleEntryRevisionDto | null;
   pendingReviewRevision?: BibleEntryRevisionDto | null;
   createdAt: string;
@@ -101,16 +104,19 @@ export interface SeriesBibleDto {
 
 export interface CreateBibleEntryRequest {
   category: BibleCategory;
-  code: string;
   name: string;
   description: string;
+  code?: string;
   subtitle?: string;
   detailsJson?: string;
   referenceImageUrl?: string;
   priority?: BiblePriority;
   strictCheck?: boolean;
-  variantLabel: string;
+  variantLabel?: string;
+  stageName?: string;
   isCrowd?: boolean;
+  age?: string;
+  artistNotes?: string;
 }
 
 export interface DefineBibleEntryRequest {
@@ -122,6 +128,8 @@ export interface DefineBibleEntryRequest {
   priority?: BiblePriority;
   strictCheck?: boolean;
   code?: string;
+  age?: string;
+  artistNotes?: string;
 }
 
 export interface ConfirmBibleRevisionRequest {
@@ -170,7 +178,10 @@ export interface AddBibleEntryRevisionRequest {
   referenceImageUrl?: string;
   priority?: BiblePriority;
   strictCheck?: boolean;
-  variantLabel: string;
+  variantLabel?: string;
+  stageName?: string;
+  age?: string;
+  artistNotes?: string;
   /** Phiên bản gốc đang sửa (BE dùng để giữ đúng biến thể khi mục có nhiều biến thể). */
   targetRevisionId?: string;
 }
@@ -178,7 +189,7 @@ export interface AddBibleEntryRevisionRequest {
 /** Producer thay thế bản đã khoá: nội dung mới + lý do; chương hiệu lực lấy theo bản bị thay. */
 export type SupersedeBibleEntryRevisionRequest = Omit<
   AddBibleEntryRevisionRequest,
-  'summary' | 'variantLabel'
+  'summary' | 'variantLabel' | 'stageName'
 > & { reason: string };
 
 function extractError(error: any, defaultMsg: string): any {
@@ -406,25 +417,6 @@ export const bibleService = {
       );
     } catch (error) {
       throw extractError(error, translate('errors.services.bible.cancelReplacementFailed'));
-    }
-  },
-
-  /**
-   * Writer cập nhật danh sách tên phụ (aliases) phục vụ tự động nhận diện kịch bản.
-   */
-  async updateEntryAliases(
-    seriesId: string,
-    entryId: string,
-    aliases: string[],
-  ): Promise<BibleEntryDto> {
-    try {
-      const response = await axiosClient.put(
-        `/series/${seriesId}/bible/entries/${entryId}/aliases`,
-        { aliases },
-      );
-      return response.data;
-    } catch (error) {
-      throw extractError(error, translate('errors.services.bible.updateAliasesFailed'));
     }
   },
 

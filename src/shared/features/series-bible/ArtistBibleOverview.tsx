@@ -249,7 +249,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                           </h3>
                           <p className='mt-0.5 font-mono text-xs text-stone-500'>
                             {entity.code}
-                            {revision?.variantLabel ? ` · ${revision.variantLabel}` : ''}
+                            {revision?.stageName ? ` · ${revision.stageName}` : ''}
                           </p>
                           {entity.latestDraftVersionNumber ? (
                             <span

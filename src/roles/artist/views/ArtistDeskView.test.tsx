@@ -216,7 +216,7 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
             summary: 'Bản canon đầu tiên',
             snapshotJson: '{}',
             contentHash: 'hash-1',
-            variantLabel: 'Mặc định',
+            stageName: 'Mặc định',
             isInitialVersion: true,
             createdAt: '2026-01-01T00:00:00Z',
             reviewStatus: 'CanonLocked',
@@ -1413,8 +1413,8 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     });
   });
 
-  describe('ArtistDeskView - Collapsible Script Reference Sidebar (VIỆC 2)', () => {
-    it('renders collapsible script reference sidebar in line format with line kind labels and highlights lines when a panel is selected', () => {
+  describe('ArtistDeskView - Consolidated Script Drawer', () => {
+    it('uses the left script drawer as the single script reference surface', () => {
       render(
         <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
           <Routes>
@@ -1426,43 +1426,14 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         </MemoryRouter>,
       );
 
-      // Right script reference sidebar is open by default with panel cards (Stitch design)
-      const scriptRefSidebar = screen.getByTestId('artist-script-ref-sidebar');
-      expect(scriptRefSidebar).toBeInTheDocument();
-      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveTextContent('[Mô tả]');
-      expect(screen.getByTestId('artist-script-ref-line-line-2')).toHaveTextContent('MINH TRIẾT:');
-
-      // Apply a 3-panel template so panels exist on Page 1
-      fireEvent.click(screen.getByTestId('canva-tab-templates'));
-      fireEvent.click(
-        screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-000000000004'),
-      );
-
-      // Click Panel #2 on the canvas -> highlights lines of Panel #2 (line-3)
-      fireEvent.click(screen.getByTestId('canvas-panel-badge-2'));
-      expect(screen.getByTestId('artist-script-ref-line-line-3')).toHaveAttribute(
-        'data-line-highlighted',
-        'true',
-      );
-      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveAttribute(
-        'data-line-highlighted',
-        'false',
-      );
-
-      // Click "Cả trang" button in script reference sidebar -> clears panel selection
-      fireEvent.click(screen.getByTestId('artist-script-ref-filter-all'));
-      expect(screen.getByTestId('artist-script-ref-line-line-3')).toHaveAttribute(
-        'data-line-highlighted',
-        'false',
-      );
-
-      // Collapse and re-expand the script reference sidebar
-      fireEvent.click(screen.getByTestId('artist-script-ref-toggle'));
       expect(screen.queryByTestId('artist-script-ref-sidebar')).not.toBeInTheDocument();
-      expect(screen.getByTestId('artist-script-ref-collapsed')).toBeInTheDocument();
+      expect(screen.queryByTestId('artist-script-ref-collapsed')).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByTestId('artist-script-ref-toggle'));
-      expect(screen.getByTestId('artist-script-ref-sidebar')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('canva-tab-script'));
+
+      expect(screen.getByTestId('canva-drawer-script')).toBeInTheDocument();
+      expect(screen.getByTestId('script-line-line-1')).toBeInTheDocument();
+      expect(screen.getByTestId('script-line-line-2')).toBeInTheDocument();
     });
 
     it('filters by pageId/pageNumber and highlights by panelNumber from GET /api/scenes/{sceneId} (TASK-6)', async () => {
@@ -1598,37 +1569,40 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         </MemoryRouter>,
       );
 
+      fireEvent.click(screen.getByTestId('canva-tab-script'));
+
       // Page 1 shows only Page 1 lines (filtered by pageId/pageNumber)
       await waitFor(() => {
-        expect(screen.getByTestId('artist-script-ref-line-ln-p1-k1')).toBeInTheDocument();
+        expect(screen.getByTestId('script-line-ln-p1-k1')).toBeInTheDocument();
       });
-      expect(screen.getByTestId('artist-script-ref-line-ln-p1-k2')).toBeInTheDocument();
-      expect(screen.queryByTestId('artist-script-ref-line-ln-p2-k3')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('artist-script-ref-line-ln-unpaged')).not.toBeInTheDocument();
+      expect(screen.getByTestId('script-line-ln-p1-k2')).toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-ln-p2-k3')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-ln-unpaged')).not.toBeInTheDocument();
 
       // Selecting Khung #2 highlights only ln-p1-k2
-      fireEvent.click(screen.getByTestId('artist-script-ref-panel-btn-2'));
-      expect(screen.getByTestId('artist-script-ref-line-ln-p1-k2')).toHaveAttribute(
-        'data-line-highlighted',
+      fireEvent.click(screen.getByTestId('script-panel-section-1-2'));
+      expect(screen.getByTestId('script-panel-section-1-2')).toHaveAttribute(
+        'aria-current',
         'true',
       );
-      expect(screen.getByTestId('artist-script-ref-line-ln-p1-k1')).toHaveAttribute(
-        'data-line-highlighted',
-        'false',
-      );
+      expect(screen.getByTestId('script-panel-section-1-1')).not.toHaveAttribute('aria-current');
 
       // Switch to Page 2 -> shows Page 2 line in Panel 3 card
       const card2 = screen.getByTestId('canva-page-card-2');
       fireEvent.click(card2.querySelector('[role="button"]')!);
-      expect(screen.getByTestId('artist-script-ref-panel-btn-3')).toHaveTextContent('Khung 3');
-      expect(screen.getByTestId('artist-script-ref-line-ln-p2-k3')).toBeInTheDocument();
-      expect(screen.queryByTestId('artist-script-ref-line-ln-p1-k1')).not.toBeInTheDocument();
+      expect(screen.getByTestId('script-panel-section-2-3')).toHaveTextContent('Khung 3');
+      expect(screen.getByTestId('script-line-ln-p2-k3')).toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-ln-p1-k1')).not.toBeInTheDocument();
 
-      // Switch to Page 3 (no assigned lines) -> falls back to unpaged line only
+      // Page 3 has no assigned lines; the unpaged scene remains available in whole-chapter mode.
       const card3 = screen.getByTestId('canva-page-card-3');
       fireEvent.click(card3.querySelector('[role="button"]')!);
-      expect(screen.getByTestId('artist-script-ref-line-ln-unpaged')).toBeInTheDocument();
-      expect(screen.queryByTestId('artist-script-ref-line-ln-p2-k3')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-ln-p2-k3')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-ln-unpaged')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('canva-script-mode-all'));
+      expect(screen.getByTestId('script-unpaged-scenes')).toBeInTheDocument();
+      expect(screen.getByTestId('script-line-ln-unpaged')).toBeInTheDocument();
     });
   });
 
@@ -2469,7 +2443,15 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
       ] as any);
       vi.spyOn(assignmentService, 'getTaskGrid').mockResolvedValue({
         chapterId: 'chap-1',
-        stages: [{ id: pencilStageId, name: 'Pencil', stageOrder: 1, isEnabled: true, allowedRole: 'Artist' }],
+        stages: [
+          {
+            id: pencilStageId,
+            name: 'Pencil',
+            stageOrder: 1,
+            isEnabled: true,
+            allowedRole: 'Artist',
+          },
+        ],
         pages: [{ id: page1Id, pageNumber: 1 }],
         lots: [],
         tasks: [
@@ -2490,9 +2472,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
 
       try {
         render(
-          <MemoryRouter
-            initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}
-          >
+          <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
             <ToastProvider>
               <ConfirmProvider>
                 <Routes>

@@ -25,6 +25,7 @@ import {
   getFieldPlaceholder,
   getGroupTitle,
   mergeSpecAttributes,
+  parseBibleDetails,
   specCategoryOf,
   specCompleteness,
   specFields,
@@ -44,7 +45,7 @@ export interface AddRevisionModalProps {
   revisionReworkFeedback: string | null;
   initialVariantLabel: string;
   initialName: string;
-  initialSubtitle: string;
+  initialSubtitle?: string;
   initialSummary: string;
   initialDescription: string;
   initialReferenceImageUrl: string;
@@ -56,10 +57,11 @@ export interface AddRevisionModalProps {
   onSubmit: (content: {
     expectedVersionNumber?: number;
     name: string;
-    subtitle: string;
+    subtitle?: string;
     description: string;
     referenceImageUrl?: string;
     variantLabel: string;
+    stageName?: string;
     summary: string;
     detailsJson?: string;
     attributes?: Record<string, any>;
@@ -68,10 +70,11 @@ export interface AddRevisionModalProps {
   onConfirmArtistSubmit?: (content: {
     expectedVersionNumber?: number;
     name: string;
-    subtitle: string;
+    subtitle?: string;
     description: string;
     referenceImageUrl?: string;
     variantLabel: string;
+    stageName?: string;
     summary: string;
     detailsJson?: string;
     attributes?: Record<string, any>;
@@ -161,6 +164,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         setSummary(initialSummary);
         setDescription(initialDescription);
         setReferenceImageUrl(initialReferenceImageUrl);
+        setVariantLabel(initialVariantLabel);
         setIsSpecsExpanded(!isArtistConceptSubmit);
 
         let initialAttrs: Record<string, any> = revisionTarget?.attributes || {};
@@ -180,9 +184,20 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         }
         if (revisionTarget) {
           const cat = specCategoryOf(revisionTarget);
+          const rawDetails =
+            supersedeTarget?.snapshotJson ||
+            (revisionTarget as any).detailsJson ||
+            JSON.stringify(revisionTarget.attributes || {});
+          const parsed = parseBibleDetails(rawDetails);
+          const combinedAttrs: Record<string, any> = {
+            ...initialAttrs,
+            age: parsed.age || initialAttrs.age || revisionTarget.age || '',
+            artistNotes:
+              parsed.artistNotes || initialAttrs.artistNotes || revisionTarget.artistNotes || '',
+          };
           setSpecValues(
             Object.fromEntries(
-              specFields(cat).map((fd) => [fd.key, String(initialAttrs[fd.key] ?? '')]),
+              specFields(cat).map((fd) => [fd.key, String(combinedAttrs[fd.key] ?? '')]),
             ),
           );
         }
@@ -244,8 +259,24 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         specValues,
       ) as Record<string, any>;
 
+      const rawDetails =
+        supersedeTarget?.snapshotJson ||
+        (revisionTarget as any).detailsJson ||
+        JSON.stringify(revisionTarget.attributes || {});
+      const parsedDetails = parseBibleDetails(rawDetails);
+      const effectiveAge =
+        specCategory === 'character'
+          ? specValues.age?.trim() || parsedDetails.age || revisionTarget.age || ''
+          : undefined;
+      const effectiveNotes =
+        specValues.artistNotes?.trim() ||
+        parsedDetails.artistNotes ||
+        revisionTarget.artistNotes ||
+        '';
+
       const detailsPayload = JSON.stringify({
-        turnaroundGallery: revisionTarget.gallery || [],
+        age: effectiveAge || undefined,
+        artistNotes: effectiveNotes || undefined,
         attributes: updatedAttrs,
       });
 
@@ -265,10 +296,11 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
       const submissionPayload = {
         expectedVersionNumber: expectedVersionNumber ?? undefined,
         name: canEditName ? entryName.trim() || revisionTarget.name : revisionTarget.name,
-        subtitle: subtitle.trim() || revisionTarget.subtitle || '',
+        subtitle: '',
         description: description.trim() || revisionTarget.description || '',
         referenceImageUrl: referenceImageUrl || undefined,
         variantLabel: payloadVariantLabel,
+        stageName: payloadVariantLabel,
         summary: summary.trim(),
         detailsJson: detailsPayload,
         attributes: updatedAttrs,
@@ -702,39 +734,26 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
             </div>
           ) : (
             <>
-              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                <div>
-                  <label className='block text-xs font-semibold text-stone-800 mb-1'>
-                    {t('bible.addRevisionModal.entryNameLabel')}
-                  </label>
-                  {!revisionTarget.isLocked && !isArtistConceptSubmit && !supersedeTarget ? (
-                    <input
-                      type='text'
-                      value={entryName}
-                      onChange={(e) => setEntryName(e.target.value)}
-                      data-testid='revision-name-input'
-                      className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-[#F97316]'
-                    />
-                  ) : (
-                    <div
-                      className='w-full px-3 py-2 bg-stone-100 border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-700'
-                      data-testid='revision-name-readonly'
-                    >
-                      {revisionTarget.name}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className='block text-xs font-semibold text-stone-800 mb-1'>
-                    {t('bible.addRevisionModal.subtitleLabel')}
-                  </label>
+              <div>
+                <label className='block text-xs font-semibold text-stone-800 mb-1'>
+                  {t('bible.addRevisionModal.entryNameLabel')}
+                </label>
+                {!revisionTarget.isLocked && !isArtistConceptSubmit && !supersedeTarget ? (
                   <input
                     type='text'
-                    value={subtitle}
-                    onChange={(e) => setSubtitle(e.target.value)}
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
+                    value={entryName}
+                    onChange={(e) => setEntryName(e.target.value)}
+                    data-testid='revision-name-input'
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-[#F97316]'
                   />
-                </div>
+                ) : (
+                  <div
+                    className='w-full px-3 py-2 bg-stone-100 border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-700'
+                    data-testid='revision-name-readonly'
+                  >
+                    {revisionTarget.name}
+                  </div>
+                )}
               </div>
 
               {/* Đặc tả theo danh mục (bibleSpec) */}

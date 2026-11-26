@@ -178,7 +178,7 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
           const rev = entry.effectiveRevision;
           const imageUrl =
             entry.referenceImageUrl || rev?.conceptImageUrl || rev?.referenceImageUrl;
-          const rawVariantLabel = rev?.variantLabel || rev?.stageName;
+          const rawVariantLabel = rev?.stageName;
           const variantName =
             rawVariantLabel || t('bible.panelModelSheet.defaultVariant', 'Mặc định');
           const versionNum = rev?.versionNumber ?? 1;
@@ -267,9 +267,16 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
                   </span>
                 </div>
 
-                {/* Subtitle / Mô tả ngắn nếu có */}
-                {entry.subtitle && (
-                  <p className='text-xs text-stone-500 truncate font-sans'>{entry.subtitle}</p>
+                {/* Age & Artist Notes nếu có */}
+                {entry.age && (
+                  <p className='text-xs text-amber-700 font-medium truncate font-sans'>
+                    {t('bible.spec.fields.age.label', 'Tuổi')}: {entry.age}
+                  </p>
+                )}
+                {entry.artistNotes && (
+                  <p className='text-xs text-stone-500 line-clamp-2 font-sans'>
+                    {entry.artistNotes}
+                  </p>
                 )}
               </div>
             </div>
@@ -287,9 +294,6 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
         title={
           <div>
             <h3 className='font-bold text-sm text-stone-900'>{previewEntry?.name}</h3>
-            {previewEntry?.subtitle && (
-              <p className='text-xs text-stone-500 font-normal'>{previewEntry.subtitle}</p>
-            )}
           </div>
         }
       >
@@ -331,8 +335,7 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
                   {t('bible.panelModelSheet.variant', 'Biến thể')}:
                 </span>
                 <span className='font-semibold text-stone-800'>
-                  {previewEntry.effectiveRevision?.variantLabel ||
-                    previewEntry.effectiveRevision?.stageName ||
+                  {previewEntry.effectiveRevision?.stageName ||
                     t('bible.panelModelSheet.defaultVariant', 'Mặc định')}
                 </span>
               </div>
@@ -344,7 +347,24 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
                   v{previewEntry.effectiveRevision?.versionNumber ?? 1}
                 </span>
               </div>
+              {previewEntry.age && (
+                <div className='flex items-center justify-between pt-1 border-t border-stone-200'>
+                  <span className='text-stone-500 font-medium'>
+                    {t('bible.spec.fields.age.label', 'Tuổi')}:
+                  </span>
+                  <span className='font-semibold text-stone-800'>{previewEntry.age}</span>
+                </div>
+              )}
             </div>
+
+            {previewEntry.artistNotes && (
+              <div className='text-xs text-stone-700 bg-amber-50/50 p-2.5 rounded-lg border border-amber-200/60 space-y-1'>
+                <span className='font-bold text-amber-900 block'>
+                  {t('bible.spec.fields.artistNotes.label', 'Ghi chú cho Artist')}:
+                </span>
+                <p className='whitespace-pre-line leading-relaxed'>{previewEntry.artistNotes}</p>
+              </div>
+            )}
 
             {previewEntry.description && (
               <p className='text-xs text-stone-600 leading-relaxed max-h-24 overflow-y-auto'>
