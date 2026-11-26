@@ -718,6 +718,22 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       : entity.name;
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>(initialUrl);
   const [selectedImageTitle, setSelectedImageTitle] = useState<string>(initialTitle);
+  const [conceptPreviewUrl, setConceptPreviewUrl] = useState('');
+
+  useEffect(() => {
+    if (!conceptFile) {
+      setConceptPreviewUrl('');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setConceptPreviewUrl(String(reader.result || ''));
+    reader.readAsDataURL(conceptFile);
+    return () => reader.abort();
+  }, [conceptFile]);
+
+  const artworkImageUrl = conceptPreviewUrl || selectedImageUrl;
+  const artworkImageTitle = conceptFile?.name || selectedImageTitle;
 
   useEffect(() => {
     const showCanonDto =
@@ -1273,10 +1289,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     };
   }, [onClose]);
 
-  // Clipboard paste listener for quick Model Sheet upload via Ctrl+V
+  // Artist owns artwork submission; Writer owns the specification on the left.
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
-      if ((!effectiveCanCreateDraft && !isArtistUser) || isStubEntity) return;
+      if (!isArtistUser || isStubEntity) return;
       const items = e.clipboardData?.items;
       if (!items) return;
       for (let i = 0; i < items.length; i++) {
@@ -1289,7 +1305,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     };
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [effectiveCanCreateDraft, isArtistUser, isStubEntity]);
+  }, [isArtistUser, isStubEntity]);
 
   const handleRequestRework = (rev: BibleEntryRevisionDto) => {
     if (!onRequestRework) return;
@@ -2097,12 +2113,55 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               </Alert>
             ) : null}
 
+            {isVisualDesign && (
+              <div
+                className='flex flex-col gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2.5 sm:flex-row sm:items-center'
+                data-testid='writer-artist-handoff-bar'
+              >
+                <div className='flex min-w-0 flex-1 items-center gap-2'>
+                  <span className='flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-900 text-xs font-bold text-white'>
+                    1
+                  </span>
+                  <div className='min-w-0'>
+                    <p className='text-xs font-bold text-stone-900'>
+                      {t('bible.detailModal.writerSaveStep', 'Writer · Lưu đặc tả')}
+                    </p>
+                    <p className='truncate text-xs text-stone-500'>
+                      {specDraftDirty
+                        ? t('bible.detailModal.writerUnsavedStep', 'Có thay đổi chưa lưu')
+                        : t('bible.detailModal.writerSavedStep', 'Đặc tả đã đồng bộ')}
+                    </p>
+                  </div>
+                </div>
+                <div className='hidden h-px w-8 bg-stone-200 sm:block' aria-hidden='true' />
+                <div className='flex min-w-0 flex-1 items-center gap-2'>
+                  <span className='flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700'>
+                    2
+                  </span>
+                  <div className='min-w-0'>
+                    <p className='text-xs font-bold text-stone-900'>
+                      {t('bible.detailModal.artistSubmitStep', 'Artist · Nộp artwork')}
+                    </p>
+                    <p className='truncate text-xs text-stone-500'>
+                      {conceptFile
+                        ? t('bible.detailModal.artistReadyStep', 'Bản vẽ đã chọn, sẵn sàng nộp')
+                        : selectedImageUrl
+                          ? t('bible.detailModal.artistSubmittedStep', 'Artwork đã có trong hồ sơ')
+                          : t('bible.detailModal.artistWaitingStep', 'Chờ Artist chọn bản vẽ')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div
-              className={`grid grid-cols-1 gap-4 items-start ${isVisualDesign ? 'lg:grid-cols-2' : ''}`}
+              className={`grid grid-cols-1 gap-4 items-stretch ${
+                isVisualDesign ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]' : ''
+              }`}
             >
-              <section className='min-w-0' data-testid='bible-spec-column'>
+              <section className='min-w-0 h-full' data-testid='bible-spec-column'>
                 {/* CARD 1: THÔNG TIN ĐẶC TẢ THU GỌN (METADATA SPECS) */}
-                <div className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+                <div className='h-full bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
                   <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                     <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
                       <FileText className='w-4 h-4 text-stone-500' />
@@ -2178,7 +2237,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                               'w-full px-3 py-1.5 text-sm bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-500 focus:ring-2 focus:ring-stone-400/20 transition disabled:opacity-60',
                                           };
                                           return field.multiline ? (
-                                            <textarea {...props} rows={2} />
+                                            <textarea
+                                              {...props}
+                                              rows={field.key === 'artistNotes' ? 8 : 3}
+                                              className={`${props.className} ${
+                                                field.key === 'artistNotes'
+                                                  ? 'min-h-44 resize-y leading-relaxed'
+                                                  : 'min-h-24 resize-y'
+                                              }`}
+                                            />
                                           ) : (
                                             <input {...props} type='text' />
                                           );
@@ -2250,7 +2317,16 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                         {fieldLabel}
                                       </label>
                                       {field.multiline ? (
-                                        <textarea {...common} rows={2} onChange={onChange} />
+                                        <textarea
+                                          {...common}
+                                          rows={field.key === 'artistNotes' ? 8 : 3}
+                                          onChange={onChange}
+                                          className={`${common.className} ${
+                                            field.key === 'artistNotes'
+                                              ? 'min-h-44 resize-y leading-relaxed'
+                                              : 'min-h-24 resize-y'
+                                          }`}
+                                        />
                                       ) : (
                                         <input
                                           {...common}
@@ -2301,8 +2377,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               </section>
 
               {isVisualDesign && (
-                <section className='min-w-0 space-y-3.5' data-testid='bible-artwork-column'>
-                  <div className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-4 sm:p-5 shadow-xs space-y-3'>
+                <section className='min-w-0 h-full space-y-3.5' data-testid='bible-artwork-column'>
+                  <div className='h-full bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-4 sm:p-5 shadow-xs space-y-3'>
                     {/* Artwork Header: Tab Turnaround vs Action / Expressions + Zoom button */}
                     <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                       <div className='flex items-center gap-2 min-w-0'>
@@ -2353,13 +2429,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           </button>
                         </div>
 
-                        {selectedImageUrl && (
+                        {artworkImageUrl && (
                           <button
                             type='button'
                             onClick={() =>
                               onZoomImage({
-                                url: selectedImageUrl,
-                                title: selectedImageTitle || entity.name,
+                                url: artworkImageUrl,
+                                title: artworkImageTitle || entity.name,
                               })
                             }
                             className='p-1.5 rounded-lg border border-stone-200 hover:bg-white text-stone-600 hover:text-stone-900 transition shadow-2xs cursor-pointer'
@@ -2419,11 +2495,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     )}
 
                     {/* Hero Canvas Viewport (To, Rõ Ràng, Nổi Bật) */}
-                    {selectedImageUrl ? (
+                    {artworkImageUrl ? (
                       <div className='space-y-3'>
                         <div className='flex items-center justify-between text-xs font-semibold text-stone-700'>
                           <span className='truncate max-w-[280px] text-xs font-bold text-[#1C1917]'>
-                            {selectedImageTitle || `${entity.name} - Model Sheet`}
+                            {artworkImageTitle || `${entity.name} - Model Sheet`}
                           </span>
                           <span className='text-xs text-stone-400 font-mono'>
                             Turnaround / Model Sheet Canvas
@@ -2433,14 +2509,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           className='relative w-full h-[480px] sm:h-[520px] md:h-[560px] bg-[#121214] rounded-2xl overflow-hidden border border-stone-800 cursor-pointer group flex items-center justify-center p-3 shadow-inner'
                           onClick={() =>
                             onZoomImage({
-                              url: selectedImageUrl,
-                              title: selectedImageTitle || entity.name,
+                              url: artworkImageUrl,
+                              title: artworkImageTitle || entity.name,
                             })
                           }
                         >
                           <AuthenticatedImage
-                            src={selectedImageUrl}
-                            alt={selectedImageTitle || entity.name}
+                            src={artworkImageUrl}
+                            alt={artworkImageTitle || entity.name}
                             className='w-full h-full object-contain drop-shadow-md'
                           />
                           <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5 backdrop-blur-[1px]'>
@@ -2538,14 +2614,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <div
                         onDragOver={(e) => {
                           e.preventDefault();
-                          if ((effectiveCanCreateDraft || isArtistUser) && !isStubEntity)
+                          if (!isWriterUser && (effectiveCanCreateDraft || isArtistUser) && !isStubEntity)
                             setIsDraggingOver(true);
                         }}
                         onDragLeave={() => setIsDraggingOver(false)}
                         onDrop={(e) => {
                           e.preventDefault();
                           setIsDraggingOver(false);
-                          if ((effectiveCanCreateDraft || isArtistUser) && !isStubEntity) {
+                          if (!isWriterUser && (effectiveCanCreateDraft || isArtistUser) && !isStubEntity) {
                             if (isArtistUser) {
                               selectConceptFile(e.dataTransfer.files?.[0]);
                             } else {
@@ -2575,7 +2651,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               : visualCardInfo.emptyWriterPrompt}
                           </p>
                         </div>
-                        {(effectiveCanCreateDraft || isArtistUser) && !isStubEntity && (
+                        {(isArtistUser || (!isWriterUser && effectiveCanCreateDraft)) && !isStubEntity && (
                           <div className='flex flex-col items-center gap-2 pt-2'>
                             <button
                               type='button'
@@ -2617,15 +2693,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               >
                                 <Edit3 className='w-3 h-3 text-stone-500' />
                                 <span>
-                                  {isWriterUser
-                                    ? t(
-                                        'bible.detailModal.editSpecOrNewVerWriter',
-                                        'Chỉnh sửa đặc tả / Cập nhật kịch bản',
-                                      )
-                                    : t(
-                                        'bible.detailModal.editSpecOrNewVerArtist',
-                                        'Tạo phiên bản mới để thêm ảnh',
-                                      )}
+                                  {t(
+                                    'bible.detailModal.editSpecOrNewVerArtist',
+                                    'Tạo phiên bản mới để thêm ảnh',
+                                  )}
                                 </span>
                               </button>
                             )}

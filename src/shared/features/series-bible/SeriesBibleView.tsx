@@ -1436,7 +1436,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       </div>
 
       {/* DRAWING QUEUE BANNER IF ACTIVE */}
-      {!isArtist && designQueue.length > 0 && (
+      {!isArtist && !isWriter && designQueue.length > 0 && (
         <div className='rounded-xl border border-amber-200/80 bg-amber-50/40 p-4 space-y-3'>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-2'>
@@ -1544,8 +1544,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         </div>
       )}
 
-      {isArtist && (
+      {(isArtist || isWriter) && (
         <ArtistBibleOverview
+          role={isWriter ? 'writer' : 'artist'}
           entities={localEntities}
           filteredEntities={filteredEntities}
           rawEntries={rawEntries}
@@ -1559,7 +1560,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       )}
 
       {/* VIEW PANEL: TWO-COLUMN MANGA PAPER & INK WORKSPACE */}
-      {!isArtist && (
+      {!isArtist && !isWriter && (
         <div className='grid grid-cols-1 lg:grid-cols-12 gap-5 items-start font-sans'>
           {/* CỘT TRÁI (35% - lg:col-span-4): Danh sách thực thể */}
           <div className='lg:col-span-4 space-y-2.5'>
@@ -1582,7 +1583,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   `${filteredEntities.length} mục hiển thị`,
                 )}
               </span>
-            </div>
+        </div>
 
             <div className='space-y-2.5' id='master-entities-list'>
               {filteredEntities.length === 0 ? (

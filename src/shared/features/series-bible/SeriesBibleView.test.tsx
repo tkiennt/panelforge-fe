@@ -204,10 +204,9 @@ describe('SeriesBibleView UX/UI improvements', () => {
     await waitFor(() => {
       fireEvent.click(screen.getByTestId('bible-card-entry-loc-1'));
       expect(screen.getAllByText('LOC-01').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Ngôi làng bí ẩn ở trung tâm Đại Khư.').length).toBeGreaterThan(0);
     });
     expect(screen.getByText('Chưa có ảnh Reference Sheet cho mục này')).toBeDefined();
-    expect(screen.getByTestId('bible-detail-category')).toHaveTextContent('Bối cảnh & Địa điểm');
+    expect(screen.getAllByText('Bối cảnh & Địa điểm').length).toBeGreaterThan(0);
   });
 
   it('filters by status and clears filter with reset button', async () => {
@@ -234,7 +233,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     expect(screen.getByTestId('bible-card-entry-loc-1')).toBeDefined();
   });
 
-  it('allows Writer to create draft entries and add revisions (Direction B)', async () => {
+  it('gives Writer the same compact overview and shared workbench as Artist', async () => {
     localStorage.setItem(
       'activeWorkspace',
       JSON.stringify({ id: 'ws-1', currentUserRole: 'WRITER', isOwner: false }),
@@ -249,9 +248,11 @@ describe('SeriesBibleView UX/UI improvements', () => {
     // Top button displays "Tạo mục nháp" instead of "Thêm mục mới" or read-only
     expect(screen.getByText('Tạo mục nháp')).toBeDefined();
 
-    // Cards have "+ Bản" enabled for Writer
-    const addRevBtns = screen.getAllByTestId(/add-revision-btn-/i);
-    expect(addRevBtns.length).toBeGreaterThan(0);
+    expect(screen.getByTestId('writer-bible-overview')).toBeDefined();
+    expect(screen.queryByTestId(/add-revision-btn-/i)).toBeNull();
+
+    fireEvent.click(screen.getByTestId('bible-card-entry-chr-1'));
+    expect(await screen.findByTestId('bible-entity-workbench')).toBeDefined();
   });
 
   it('restricts Artist from creating draft entries (Series Bible only created by Writer)', async () => {
@@ -575,8 +576,12 @@ describe('SeriesBibleView UX/UI improvements', () => {
         ],
       });
       render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
-      // Chờ khung chi tiết của mục đang chọn hiển thị nút thẩm định
-      await screen.findAllByTitle('Yêu cầu Artist vẽ lại concept');
+      if (role === 'WRITER') {
+        fireEvent.click(await screen.findByTestId('bible-card-entry-chr-1'));
+        await screen.findByTestId('detail-rework-btn');
+      } else {
+        await screen.findAllByTitle('Yêu cầu Artist vẽ lại concept');
+      }
     };
 
     it('EDITOR được xác nhận & khoá Canon thiết kế (Q20/Q22)', async () => {
@@ -663,8 +668,9 @@ describe('SeriesBibleView UX/UI improvements', () => {
       render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
       await waitFor(() => expect(screen.getAllByText('Tần Mục').length).toBeGreaterThan(0));
 
-      const toggleBtn = screen.getByTestId('crowd-badge-entry-chr-1');
-      expect(toggleBtn.textContent).toBe('Đặt Quần chúng');
+      fireEvent.click(screen.getByTestId('bible-card-entry-chr-1'));
+      const toggleBtn = await screen.findByTestId('detail-toggle-crowd-btn');
+      expect(toggleBtn.textContent).toContain('Quần chúng');
 
       fireEvent.click(toggleBtn);
 
@@ -695,7 +701,8 @@ describe('SeriesBibleView UX/UI improvements', () => {
       render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
       await waitFor(() => expect(screen.getAllByText('Tần Mục').length).toBeGreaterThan(0));
 
-      expect(screen.getByTestId('crowd-badge-entry-chr-1').textContent).toBe('Quần chúng');
+      fireEvent.click(screen.getByTestId('bible-card-entry-chr-1'));
+      expect((await screen.findByTestId('crowd-badge-detail')).textContent).toContain('Quần chúng');
     });
   });
 
@@ -800,9 +807,10 @@ describe('SeriesBibleView UX/UI improvements', () => {
         'Hắc Y Nhân',
       );
 
-      // Stub does NOT offer normal create-revision; offers "Định nghĩa"
+      // Stub opens the shared workbench and offers "Định nghĩa" there.
       expect(screen.queryByTestId('add-revision-btn-stub-1')).toBeNull();
-      fireEvent.click(screen.getByTestId('define-stub-btn-stub-1'));
+      fireEvent.click(screen.getByTestId('bible-card-stub-1'));
+      fireEvent.click(await screen.findByTestId('detail-define-stub-btn'));
 
       // Read-only entity name
       const readonlyName = screen.getByTestId('define-entity-name-readonly');
@@ -897,7 +905,8 @@ describe('SeriesBibleView UX/UI improvements', () => {
 
       render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={onShowToast} />);
 
-      fireEvent.click(await screen.findByTestId('define-stub-btn-stub-1'));
+      fireEvent.click(await screen.findByTestId('bible-card-stub-1'));
+      fireEvent.click(await screen.findByTestId('detail-define-stub-btn'));
 
       const draftBtn = screen.getByRole('button', { name: /Soạn nháp từ kịch bản/i });
       fireEvent.click(draftBtn);
@@ -936,9 +945,11 @@ describe('SeriesBibleView UX/UI improvements', () => {
       );
       await screen.findByText('Hắc Y Nhân');
 
-      expect(screen.getByTestId('define-stub-btn-stub-1')).toBeInTheDocument();
-      expect(screen.queryByTestId('define-stub-btn-entry-chr-1')).toBeNull();
-      fireEvent.click(screen.getByTestId('add-revision-btn-entry-chr-1'));
+      fireEvent.click(screen.getByTestId('bible-card-stub-1'));
+      expect(await screen.findByTestId('detail-define-stub-btn')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /Đóng cửa sổ chi tiết/i }));
+      fireEvent.click(screen.getByTestId('bible-card-entry-chr-1'));
+      expect(screen.queryByTestId('detail-define-stub-btn')).toBeNull();
       expect(
         screen.queryByRole('button', { name: /Soạn nháp từ kịch bản/i }),
       ).not.toBeInTheDocument();
@@ -1039,7 +1050,8 @@ describe('SeriesBibleView UX/UI improvements', () => {
 
       render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
-      fireEvent.click(await screen.findByTestId('define-stub-btn-stub-1'));
+      fireEvent.click(await screen.findByTestId('bible-card-stub-1'));
+      fireEvent.click(await screen.findByTestId('detail-define-stub-btn'));
 
       const subtitleInput = screen.getByTestId('define-entity-subtitle-input') as HTMLInputElement;
       const descInput = screen.getByTestId(
@@ -1113,23 +1125,15 @@ describe('SeriesBibleView UX/UI improvements', () => {
 
       render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
-      const card = await screen.findByTestId('bible-card-entry-chr-1');
-      expect(card).toHaveTextContent('Tần Mục');
-      expect(card).toHaveTextContent('Đã khoá Canon');
-      expect(screen.getByTestId('pending-draft-badge-entry-chr-1')).toHaveTextContent(
-        'Có bản nháp v2',
-      );
+      const openQueueItem = await screen.findByTestId('open-concept-entry-chr-1');
       expect(screen.getByTestId('queue-priority-rework-rev-rw-1')).toHaveTextContent(
         /Ưu tiên vẽ lại/i,
       );
 
-      fireEvent.click(card);
+      fireEvent.click(openQueueItem);
       expect(await screen.findByTestId('pending-draft-badge-detail')).toHaveTextContent(
         'Có bản nháp v2',
       );
-      expect(
-        screen.getByText('Nhân vật chính, xuất thân Đại Khư tàn lão thôn.'),
-      ).toBeInTheDocument();
       expect(screen.getAllByTestId('auth-image')[0]).toHaveAttribute(
         'src',
         'https://cdn.example.com/canon-v1.png',
