@@ -1132,6 +1132,134 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
     });
   }, [bibleEntities, bibleCategory, bibleSearchQuery]);
 
+  const contextualBibleIds = useMemo(() => {
+    const relevantLines = scriptLines.filter((line) => {
+      if (selectedPanelId) {
+        return (
+          line.panelId === selectedPanelId ||
+          (selectedPanelNumber != null &&
+            line.panelNumber === selectedPanelNumber &&
+            (line.pageNumber === activePageNumber || line.pageId === selectedPageId))
+        );
+      }
+      if (selectedPanelNumber != null) {
+        return line.panelNumber === selectedPanelNumber && line.pageNumber === activePageNumber;
+      }
+      return line.pageNumber === activePageNumber || line.pageId === selectedPageId;
+    });
+    const contextText = relevantLines
+      .flatMap((line) => [
+        line.speakerLabel,
+        line.characterName,
+        line.dialogueText,
+        line.stageDirection,
+        line.text,
+        line.sceneTitle,
+        line.sceneSlugline,
+      ])
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase();
+
+    return new Set(
+      bibleEntities
+        .filter((item) => {
+          const names = [item.name, item.code, item.subtitle]
+            .filter(Boolean)
+            .map((value) => String(value).toLocaleLowerCase());
+          return names.some((name) => name.length > 1 && contextText.includes(name));
+        })
+        .map((item) => item.id),
+    );
+  }, [
+    activePageNumber,
+    bibleEntities,
+    scriptLines,
+    selectedPageId,
+    selectedPanelId,
+    selectedPanelNumber,
+  ]);
+
+  const contextualBible = useMemo(
+    () => filteredBible.filter((item) => contextualBibleIds.has(item.id)),
+    [contextualBibleIds, filteredBible],
+  );
+  const otherBible = useMemo(
+    () => filteredBible.filter((item) => !contextualBibleIds.has(item.id)),
+    [contextualBibleIds, filteredBible],
+  );
+
+  const renderBibleEntity = (item: BibleEntityItem) => (
+    <details
+      key={item.id}
+      data-testid={`bible-entity-${item.id}`}
+      className='group rounded-lg border border-[var(--sb-border)] bg-[var(--sb-surface)] open:border-[var(--sb-accent)]/40 open:bg-white'
+    >
+      <summary className='focus-ring flex min-h-16 cursor-pointer list-none items-center gap-2.5 rounded-lg p-2.5 [&::-webkit-details-marker]:hidden'>
+        <div className='flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-[var(--sb-border)] bg-[var(--sb-surface-hover)]'>
+          {item.imageUrl ? (
+            <AuthenticatedImage
+              src={item.imageUrl}
+              alt=''
+              className='h-full w-full object-cover object-top'
+              loading='lazy'
+            />
+          ) : item.category === 'character' ? (
+            <User className='h-5 w-5 text-orange-500' aria-hidden='true' />
+          ) : item.category === 'location' ? (
+            <MapPin className='h-5 w-5 text-purple-500' aria-hidden='true' />
+          ) : (
+            <Sparkles className='h-5 w-5 text-emerald-600' aria-hidden='true' />
+          )}
+        </div>
+        <span className='min-w-0 flex-1'>
+          <span className='flex items-center gap-1.5'>
+            <span className='truncate text-xs font-bold text-[var(--sb-text)]'>{item.name}</span>
+            {item.status === 'CanonLocked' && (
+              <span className='shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-xs font-semibold text-emerald-700'>
+                {t('canvaSidebar.canonLocked')}
+              </span>
+            )}
+          </span>
+          <span className='mt-0.5 block truncate text-xs text-[var(--sb-muted)]'>
+            {item.subtitle || item.tag}
+          </span>
+          {item.description && (
+            <span className='mt-1 block line-clamp-1 text-xs leading-relaxed text-[var(--sb-muted)]'>
+              {item.description}
+            </span>
+          )}
+        </span>
+        <ChevronRight
+          className='h-4 w-4 shrink-0 text-[var(--sb-muted)] transition-transform group-open:rotate-90'
+          aria-hidden='true'
+        />
+      </summary>
+      <div className='space-y-2 border-t border-[var(--sb-border)] px-3 pb-3 pt-2.5'>
+        {item.description && (
+          <p className='text-xs leading-relaxed text-[var(--sb-text)]'>{item.description}</p>
+        )}
+        {item.visualNotes.length > 0 && (
+          <div className='space-y-1.5'>
+            <span className='text-xs font-semibold text-[var(--sb-accent)]'>
+              {t('canvaSidebar.visualNotesLabel')}
+            </span>
+            <ul className='space-y-1 text-xs text-[var(--sb-muted)]'>
+              {item.visualNotes.map((note, index) => (
+                <li key={`${item.id}-note-${index}`} className='flex gap-2 leading-relaxed'>
+                  <span className='text-[var(--sb-accent)]' aria-hidden='true'>
+                    •
+                  </span>
+                  <span>{note}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </details>
+  );
+
   // Lọc danh sách Mẫu Khung (Panel Templates)
   const filteredTemplates = useMemo(() => {
     return templates.filter((tpl) => {
@@ -1660,14 +1788,28 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               </h2>
             </div>
 
-            {/* Khối Model Sheet theo Khung đang chọn */}
+            {/* Model sheet theo khung, ẩn mặc định để drawer vẫn gọn */}
             {selectedPanelId && (
-              <div
-                className='p-3 border-b border-[var(--sb-border)] bg-[var(--sb-surface-hover)]'
+              <details
+                className='group border-b border-[var(--sb-border)] bg-[var(--sb-surface-hover)]'
                 data-testid='canva-drawer-selected-panel-model-sheet'
               >
-                <PanelModelSheetBlock panelId={selectedPanelId} panelNumber={selectedPanelNumber} />
-              </div>
+                <summary className='focus-ring flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-xs font-semibold text-[var(--sb-text)] [&::-webkit-details-marker]:hidden'>
+                  <ChevronRight
+                    className='h-4 w-4 text-[var(--sb-accent)] transition-transform group-open:rotate-90'
+                    aria-hidden='true'
+                  />
+                  {t('canvaSidebar.panelModelSheetReference', {
+                    panel: selectedPanelNumber ?? '',
+                  })}
+                </summary>
+                <div className='border-t border-[var(--sb-border)] p-3'>
+                  <PanelModelSheetBlock
+                    panelId={selectedPanelId}
+                    panelNumber={selectedPanelNumber}
+                  />
+                </div>
+              </details>
             )}
 
             {/* Thanh lọc phân loại Bible */}
@@ -1707,8 +1849,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               </div>
             </div>
 
-            {/* Danh sách thẻ thực thể Bible */}
-            <div className='flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar'>
+            {/* Danh sách tra cứu gọn, ưu tiên thực thể trong khung/trang hiện tại */}
+            <div className='flex-1 overflow-y-auto p-3 custom-scrollbar'>
               {filteredBible.length === 0 ? (
                 <div className='py-12 px-3 text-center text-[var(--sb-muted)] text-xs italic'>
                   {bibleEntities.length === 0 && !isLoadingBible
@@ -1716,71 +1858,47 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     : t('canvaSidebar.bibleNoMatch')}
                 </div>
               ) : (
-                filteredBible.map((item) => (
-                  <div
-                    key={item.id}
-                    data-testid={`bible-entity-${item.id}`}
-                    className='p-3 rounded-xl bg-[var(--sb-surface)] border border-[var(--sb-border)] space-y-2 hover:border-[var(--sb-accent)]/50 transition-colors'
-                  >
-                    {/* Ảnh tham chiếu nếu có */}
-                    {item.imageUrl && (
-                      <div className='w-full h-28 rounded-lg overflow-hidden bg-black/5 border border-[var(--sb-border)] relative mb-2'>
-                        <AuthenticatedImage
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className='w-full h-full object-cover object-top'
-                          loading='lazy'
-                        />
-                      </div>
-                    )}
-
-                    <div className='flex items-center justify-between gap-1.5'>
-                      <div className='flex items-center gap-1.5 min-w-0'>
-                        {item.category === 'character' ? (
-                          <User className='w-4 h-4 text-orange-400 shrink-0' />
-                        ) : item.category === 'location' ? (
-                          <MapPin className='w-4 h-4 text-purple-400 shrink-0' />
-                        ) : (
-                          <Sparkles className='w-4 h-4 text-emerald-400 shrink-0' />
-                        )}
-                        <span className='text-xs font-bold text-[var(--sb-text)] truncate'>
-                          {item.name}
+                <div className='space-y-4'>
+                  {contextualBible.length > 0 && (
+                    <section aria-labelledby='bible-context-heading' className='space-y-2'>
+                      <div className='flex items-center justify-between gap-2'>
+                        <h3
+                          id='bible-context-heading'
+                          className='text-xs font-bold text-[var(--sb-text)]'
+                        >
+                          {selectedPanelId || selectedPanelNumber != null
+                            ? t('canvaSidebar.bibleContextPanel', {
+                                panel: selectedPanelNumber ?? '',
+                              })
+                            : t('canvaSidebar.bibleContextPage', { page: activePageNumber })}
+                        </h3>
+                        <span className='text-xs text-[var(--sb-muted)]'>
+                          {t('canvaSidebar.bibleEntryCount', { count: contextualBible.length })}
                         </span>
                       </div>
-                      <div className='flex items-center gap-1 shrink-0'>
-                        {item.status === 'CanonLocked' && (
-                          <span className='text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 font-semibold'>
-                            {t('canvaSidebar.canonLocked')}
-                          </span>
-                        )}
-                        <span className='text-xs px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-muted)] font-medium'>
-                          {item.tag}
+                      <div className='space-y-2'>{contextualBible.map(renderBibleEntity)}</div>
+                    </section>
+                  )}
+
+                  {otherBible.length > 0 && (
+                    <section aria-labelledby='bible-other-heading' className='space-y-2'>
+                      <div className='flex items-center justify-between gap-2'>
+                        <h3
+                          id='bible-other-heading'
+                          className='text-xs font-bold text-[var(--sb-text)]'
+                        >
+                          {contextualBible.length > 0
+                            ? t('canvaSidebar.bibleOtherReferences')
+                            : t('canvaSidebar.bibleAllReferences')}
+                        </h3>
+                        <span className='text-xs text-[var(--sb-muted)]'>
+                          {t('canvaSidebar.bibleEntryCount', { count: otherBible.length })}
                         </span>
                       </div>
-                    </div>
-
-                    {item.description && (
-                      <p className='text-xs text-[var(--sb-muted)] leading-relaxed'>
-                        {item.description}
-                      </p>
-                    )}
-
-                    {item.visualNotes && item.visualNotes.length > 0 && (
-                      <div className='space-y-1 pt-1 border-t border-[var(--sb-border)]'>
-                        <span className='text-xs font-semibold text-[var(--sb-accent)] uppercase tracking-wider'>
-                          {t('canvaSidebar.visualNotesLabel')}
-                        </span>
-                        <ul className='text-xs text-[var(--sb-muted)] space-y-0.5 list-disc list-inside'>
-                          {item.visualNotes.map((note, idx) => (
-                            <li key={idx} className='leading-tight'>
-                              {note}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))
+                      <div className='space-y-2'>{otherBible.map(renderBibleEntity)}</div>
+                    </section>
+                  )}
+                </div>
               )}
             </div>
           </div>
