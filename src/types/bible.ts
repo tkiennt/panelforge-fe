@@ -17,7 +17,10 @@ export interface BibleEntityRevision {
   details: string;
   author: string;
   sha: string;
-  isActive: boolean;
+  isActive?: boolean;
+  age?: string;
+  artistNotes?: string;
+  stageName?: string;
 }
 
 export interface BibleEntity {
@@ -32,6 +35,9 @@ export interface BibleEntity {
   roleOrType?: string;
   subtitle?: string;
   description: string;
+  age?: string;
+  artistNotes?: string;
+  stageName?: string;
   tags?: string[];
   negativeConstraints?: string[];
   referenceCut?: string;

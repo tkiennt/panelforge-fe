@@ -103,12 +103,17 @@
       "fixedDetails": "Chi tiết cố định",
       "prop": "Đạo cụ",
       "terminology": "Thuật ngữ",
-      "style": "Quy tắc mỹ thuật"
+      "style": "Quy tắc mỹ thuật",
+      "notes": "Ghi chú cho Artist"
     },
     "fields": {
       "age": {
         "label": "Độ tuổi",
-        "placeholder": "vd. 17"
+        "placeholder": "vd. 17 tuổi, 25–28"
+      },
+      "artistNotes": {
+        "label": "Ghi chú cho Artist (Artist Notes)",
+        "placeholder": "Mô tả ngoại hình, kiểu tóc, màu mắt, vết sẹo đặc trưng, trang phục, phong cách nét vẽ và các chi tiết cấm vẽ sai..."
       },
       "height": {
         "label": "Chiều cao",

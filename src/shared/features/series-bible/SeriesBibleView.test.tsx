@@ -151,7 +151,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Tần Mục')).toBeDefined();
+      expect(screen.getAllByText('Tần Mục').length).toBeGreaterThan(0);
     });
 
     // Default 'all' tab placeholder
@@ -179,7 +179,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Tần Mục')).toBeDefined();
+      expect(screen.getAllByText('Tần Mục').length).toBeGreaterThan(0);
     });
 
     const listViewBtn = screen.getByLabelText('Xem dạng danh sách');
@@ -203,7 +203,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     // Tàn Lão Thôn has no image, so the detail shows the compact placeholder, not an image frame
     await waitFor(() => {
       fireEvent.click(screen.getByTestId('bible-card-entry-loc-1'));
-      expect(screen.getByText('LOC-01')).toBeDefined();
+      expect(screen.getAllByText('LOC-01').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Ngôi làng bí ẩn ở trung tâm Đại Khư.').length).toBeGreaterThan(0);
     });
     expect(screen.getByText('Chưa có ảnh Reference Sheet cho mục này')).toBeDefined();
@@ -243,7 +243,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Tần Mục')).toBeDefined();
+      expect(screen.getAllByText('Tần Mục').length).toBeGreaterThan(0);
     });
 
     // Top button displays "Tạo mục nháp" instead of "Thêm mục mới" or read-only
@@ -263,7 +263,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Tần Mục')).toBeDefined();
+      expect(screen.getAllByText('Tần Mục').length).toBeGreaterThan(0);
     });
 
     // Shows read-only badge and no draft buttons
@@ -296,7 +296,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Tần Mục')).toBeDefined();
+      expect(screen.getAllByText('Tần Mục').length).toBeGreaterThan(0);
     });
 
     // Shows read-only badge
@@ -313,7 +313,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
         ...mockEntries[0],
         effectiveRevision: {
           ...mockEntries[0].effectiveRevision!,
-          variantLabel: 'Lúc nhỏ',
+          stageName: 'Lúc nhỏ',
         },
       },
     ];
@@ -330,7 +330,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Tần Mục/)).toBeDefined();
+      expect(screen.getAllByText(/Tần Mục/).length).toBeGreaterThan(0);
     });
 
     // Header has name with variant: "Tần Mục · Lúc nhỏ"
@@ -388,7 +388,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Tần Mục/)).toBeDefined();
+      expect(screen.getAllByText(/Tần Mục/).length).toBeGreaterThan(0);
     });
 
     fireEvent.click(screen.getByTestId('artist-bible-entry-entry-chr-1'));
@@ -953,7 +953,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
         const { unmount } = render(
           <SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />,
         );
-        await screen.findByText('Hắc Y Nhân');
+        await screen.findAllByText('Hắc Y Nhân');
         expect(screen.queryByTestId('define-stub-btn-stub-1')).toBeNull();
         expect(screen.queryByTestId('add-revision-btn-stub-1')).toBeNull();
         expect(

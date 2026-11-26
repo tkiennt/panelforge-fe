@@ -1,10 +1,9 @@
 import { translate } from '@/lib/i18n';
 
 /**
- * Trường đặc tả theo danh mục Series Bible. Mỗi trường phải kiểm tra được bằng mắt trên bản vẽ
- * (Writer/Editor đối chiếu khi xác nhận WriterEndorsed, spec V2.6 §5.2). Lưu ở `detailsJson.attributes`;
- * khoá cũ (age, height, appearance, environmentType, scale, atmosphere, architecture, propType, sizeWeight,
- * material, termType, origin, colorPalette, lineArtRules) giữ nguyên để dữ liệu đã có vẫn hiện.
+ * Đặc tả tạo hình Series Bible V2.6:
+ * - age: string? (chỉ cho Character, theo biến thể)
+ * - artistNotes: string? (ghi chú ngoại hình, trang phục, nét vẽ tự do)
  */
 export type SpecCategory = 'character' | 'location' | 'prop' | 'terminology' | 'style';
 
@@ -30,89 +29,141 @@ const makeField = (
   hasPlaceholder: options?.hasPlaceholder,
   multiline: options?.multiline,
   get label() {
-    return translate(`bible.spec.fields.${key}.label`);
+    if (key === 'age') return translate('bible.spec.fields.age.label', 'Tuổi');
+    if (key === 'artistNotes')
+      return translate('bible.spec.fields.artistNotes.label', 'Ghi chú cho Artist (Artist Notes)');
+    return translate(`bible.spec.fields.${key}.label`, key);
   },
   get placeholder() {
-    return options?.hasPlaceholder ? translate(`bible.spec.fields.${key}.placeholder`) : undefined;
+    if (!options?.hasPlaceholder) return undefined;
+    if (key === 'age') return translate('bible.spec.fields.age.placeholder', 'VD: 17 tuổi, 25–28');
+    if (key === 'artistNotes')
+      return translate(
+        'bible.spec.fields.artistNotes.placeholder',
+        'Mô tả ngoại hình, kiểu tóc, màu mắt, vết sẹo đặc trưng, trang phục, phong cách nét vẽ và các chi tiết cấm vẽ sai...',
+      );
+    return translate(`bible.spec.fields.${key}.placeholder`);
   },
 });
 
 const makeGroup = (key: string, fields: SpecField[]): SpecGroup => ({
   key,
   get title() {
-    return translate(`bible.spec.groups.${key}`);
+    return translate(`bible.spec.groups.${key}`, 'Đặc tả tạo hình & Ghi chú');
   },
   fields,
 });
 
-const FORBIDDEN: SpecField = makeField('forbidden', { hasPlaceholder: true, multiline: true });
-
 export const SPEC_SCHEMA: Record<SpecCategory, SpecGroup[]> = {
   character: [
-    makeGroup('body', [
+    makeGroup('notes', [
       makeField('age', { hasPlaceholder: true }),
-      makeField('height', { hasPlaceholder: true }),
-      makeField('build', { hasPlaceholder: true }),
-    ]),
-    makeGroup('face', [
-      makeField('hair', { hasPlaceholder: true }),
-      makeField('eyes', { hasPlaceholder: true }),
-      makeField('marks', { hasPlaceholder: true }),
-      makeField('appearance', { multiline: true }),
-    ]),
-    makeGroup('costume', [makeField('outfit', { multiline: true }), makeField('accessories')]),
-    makeGroup('art', [
-      makeField('inkTone', { hasPlaceholder: true }),
-      makeField('expressions', { multiline: true }),
-      FORBIDDEN,
+      makeField('artistNotes', { hasPlaceholder: true, multiline: true }),
     ]),
   ],
   location: [
-    makeGroup('space', [
-      makeField('environmentType', { hasPlaceholder: true }),
-      makeField('scale', { hasPlaceholder: true }),
-      makeField('atmosphere', { hasPlaceholder: true }),
-    ]),
-    makeGroup('fixedDetails', [
-      makeField('architecture', { multiline: true }),
-      makeField('layout', { hasPlaceholder: true, multiline: true }),
-      makeField('cameraAngles', { hasPlaceholder: true }),
-      FORBIDDEN,
-    ]),
+    makeGroup('notes', [makeField('artistNotes', { hasPlaceholder: true, multiline: true })]),
   ],
-  prop: [
-    makeGroup('prop', [
-      makeField('propType', { hasPlaceholder: true }),
-      makeField('sizeWeight', { hasPlaceholder: true }),
-      makeField('material', { hasPlaceholder: true }),
-      makeField('owner', { hasPlaceholder: true }),
-      makeField('stateByChapter', { hasPlaceholder: true, multiline: true }),
-      FORBIDDEN,
-    ]),
-  ],
+  prop: [makeGroup('notes', [makeField('artistNotes', { hasPlaceholder: true, multiline: true })])],
   terminology: [
-    makeGroup('terminology', [
-      makeField('termType', { hasPlaceholder: true }),
-      makeField('origin'),
-      makeField('usage', { multiline: true }),
-    ]),
+    makeGroup('notes', [makeField('artistNotes', { hasPlaceholder: true, multiline: true })]),
   ],
   style: [
-    makeGroup('style', [makeField('colorPalette'), makeField('lineArtRules', { multiline: true })]),
+    makeGroup('notes', [makeField('artistNotes', { hasPlaceholder: true, multiline: true })]),
   ],
 };
 
-/** Bản vẽ Artist phải nộp cho mục có thiết kế hình (Model Sheet). */
-export const SPEC_DELIVERABLES: Partial<Record<SpecCategory, string[]>> = {
-  character: ['charTurnaround', 'charExpressions'],
-  location: ['locWide', 'locClose'],
-  prop: ['propMain', 'propDetail'],
+/** Đã loại bỏ SPEC_DELIVERABLES theo quy tắc nộp 01 ảnh concept duy nhất */
+export const SPEC_DELIVERABLES: Partial<Record<SpecCategory, string[]>> = {};
+
+export const LEGACY_FIELD_LABELS: Record<string, string> = {
+  height: 'Chiều cao',
+  build: 'Vóc dáng / Thể chất',
+  hair: 'Kiểu tóc / Màu tóc',
+  eyes: 'Màu mắt / Ánh mắt',
+  marks: 'Vết sẹo / Dấu vết đặc trưng',
+  appearance: 'Đặc điểm ngoại hình',
+  outfit: 'Trang phục',
+  accessories: 'Phụ kiện đi kèm',
+  inkTone: 'Tông mực / Đổ bóng',
+  expressions: 'Biểu cảm đặc trưng',
+  forbidden: 'Lưu ý cấm kỵ / Tránh vẽ sai',
+  environmentType: 'Loại bối cảnh / Môi trường',
+  scale: 'Quy mô / Diện tích',
+  atmosphere: 'Không khí / Bầu không khí',
+  architecture: 'Kiến trúc đặc trưng',
+  layout: 'Bố cục / Góc nhìn',
+  cameraAngles: 'Góc máy gợi ý',
+  propType: 'Loại đạo cụ',
+  sizeWeight: 'Kích thước / Trọng lượng',
+  material: 'Chất liệu',
+  owner: 'Chủ sở hữu',
+  stateByChapter: 'Biến đổi theo chương',
+  termType: 'Phân loại thuật ngữ',
+  origin: 'Nguồn gốc / Khái niệm',
+  usage: 'Cách dùng trong thế giới',
+  colorPalette: 'Bảng màu',
+  lineArtRules: 'Quy chuẩn nét vẽ',
+};
+
+/**
+ * Trích xuất an toàn từ dữ liệu cũ (4 nhóm hoặc attributes phẳng) sang 2 trường mới gọn nhẹ.
+ */
+export const parseBibleDetails = (
+  rawDetailsJson?: string | null,
+  rawAttributes?: Record<string, any> | null,
+): { age: string; artistNotes: string } => {
+  let age = '';
+  let artistNotes = '';
+  const bullets: string[] = [];
+
+  const processObject = (obj: Record<string, any>) => {
+    for (const [k, v] of Object.entries(obj)) {
+      if (v === null || v === undefined) continue;
+      const strVal = typeof v === 'string' ? v.trim() : String(v).trim();
+      if (!strVal || strVal === '{}') continue;
+
+      const lower = k.toLowerCase();
+      if (lower === 'age') {
+        if (!age) age = strVal;
+      } else if (lower === 'artistnotes' || lower === 'artist_notes') {
+        if (!artistNotes) artistNotes = strVal;
+      } else if (LEGACY_FIELD_LABELS[k]) {
+        bullets.push(`- ${LEGACY_FIELD_LABELS[k]}: ${strVal}`);
+      } else if (typeof v === 'object' && !Array.isArray(v)) {
+        processObject(v);
+      }
+    }
+  };
+
+  if (rawAttributes && typeof rawAttributes === 'object') {
+    processObject(rawAttributes);
+  }
+
+  if (rawDetailsJson && typeof rawDetailsJson === 'string') {
+    try {
+      const parsed = JSON.parse(rawDetailsJson);
+      if (parsed && typeof parsed === 'object') {
+        processObject(parsed);
+      }
+    } catch {
+      if (!artistNotes && rawDetailsJson.trim() !== '{}') {
+        artistNotes = rawDetailsJson.trim();
+      }
+    }
+  }
+
+  if (bullets.length > 0) {
+    artistNotes = artistNotes ? `${artistNotes}\n\n${bullets.join('\n')}` : bullets.join('\n');
+  }
+
+  return { age, artistNotes };
 };
 
 export const specFields = (category: SpecCategory): SpecField[] =>
   SPEC_SCHEMA[category].flatMap((g) => g.fields);
 
-/** Tỉ lệ trường đã điền, để Writer biết đặc tả đã đủ cho Artist vẽ chưa. */
+/** Tỉ lệ trường đã điền */
 export const specCompleteness = (
   category: SpecCategory,
   attributes: Record<string, unknown>,
@@ -167,8 +218,8 @@ export const specCategoryOf = (
 };
 
 export const getFieldLabel = (field: SpecField, t?: (k: string, fb?: string) => string): string => {
-  if (t) return t(`bible.spec.fields.${field.key}.label`);
-  return translate(`bible.spec.fields.${field.key}.label`);
+  if (t) return t(`bible.spec.fields.${field.key}.label`, field.label);
+  return field.label;
 };
 
 export const getFieldPlaceholder = (
@@ -176,19 +227,19 @@ export const getFieldPlaceholder = (
   t?: (k: string, fb?: string) => string,
 ): string | undefined => {
   if (!field.hasPlaceholder) return undefined;
-  if (t) return t(`bible.spec.fields.${field.key}.placeholder`);
-  return translate(`bible.spec.fields.${field.key}.placeholder`);
+  if (t) return t(`bible.spec.fields.${field.key}.placeholder`, field.placeholder);
+  return field.placeholder;
 };
 
 export const getGroupTitle = (groupKey: string, t?: (k: string, fb?: string) => string): string => {
-  if (t) return t(`bible.spec.groups.${groupKey}`);
-  return translate(`bible.spec.groups.${groupKey}`);
+  if (t) return t(`bible.spec.groups.${groupKey}`, 'Ghi chú & Đặc tả');
+  return translate(`bible.spec.groups.${groupKey}`, 'Ghi chú & Đặc tả');
 };
 
 export const getDeliverableLabel = (
   deliverableKey: string,
   t?: (k: string, fb?: string) => string,
 ): string => {
-  if (t) return t(`bible.spec.deliverables.${deliverableKey}`);
-  return translate(`bible.spec.deliverables.${deliverableKey}`);
+  if (t) return t(`bible.spec.deliverables.${deliverableKey}`, deliverableKey);
+  return translate(`bible.spec.deliverables.${deliverableKey}`, deliverableKey);
 };

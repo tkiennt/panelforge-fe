@@ -103,12 +103,17 @@
       "fixedDetails": "Fixed Architecture & Details",
       "prop": "Props & Items",
       "terminology": "Terminology",
-      "style": "Art Style Rules"
+      "style": "Art Style Rules",
+      "notes": "Artist Notes"
     },
     "fields": {
       "age": {
         "label": "Age",
-        "placeholder": "e.g. 17"
+        "placeholder": "e.g. 17, 25–28"
+      },
+      "artistNotes": {
+        "label": "Artist Notes",
+        "placeholder": "Appearance, hair, eyes, scars, outfit, art style, forbidden details..."
       },
       "height": {
         "label": "Height",

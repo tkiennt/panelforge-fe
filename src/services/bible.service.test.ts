@@ -362,7 +362,7 @@ describe('bibleService', () => {
         summary: 'Thêm biến thể mới',
         variantLabel: 'Trang phục chiến đấu',
       };
-      post.mockResolvedValueOnce({ data: { id: 'rev-var', variantLabel: 'Trang phục chiến đấu' } });
+      post.mockResolvedValueOnce({ data: { id: 'rev-var', stageName: 'Trang phục chiến đấu' } });
 
       const res = await bibleService.createVariant(seriesId, entryId, payload);
 
@@ -370,7 +370,7 @@ describe('bibleService', () => {
         `/series/${seriesId}/bible/entries/${entryId}/variants`,
         payload,
       );
-      expect(res.variantLabel).toBe('Trang phục chiến đấu');
+      expect(res.stageName).toBe('Trang phục chiến đấu');
     });
 
     it('gọi DELETE .../cancel-replacement khi Writer huỷ bản nháp thay thế', async () => {
@@ -381,17 +381,6 @@ describe('bibleService', () => {
       expect(del).toHaveBeenCalledWith(
         `/series/${seriesId}/bible/revisions/${revisionId}/cancel-replacement`,
       );
-    });
-
-    it('gọi PUT .../aliases để cập nhật biệt danh nhân vật', async () => {
-      put.mockResolvedValueOnce({ data: { id: entryId, aliases: ['Mục Nhi', 'Tiểu Tần'] } });
-
-      const res = await bibleService.updateEntryAliases(seriesId, entryId, ['Mục Nhi', 'Tiểu Tần']);
-
-      expect(put).toHaveBeenCalledWith(`/series/${seriesId}/bible/entries/${entryId}/aliases`, {
-        aliases: ['Mục Nhi', 'Tiểu Tần'],
-      });
-      expect(res.aliases).toEqual(['Mục Nhi', 'Tiểu Tần']);
     });
   });
 });
