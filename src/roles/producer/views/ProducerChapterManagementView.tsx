@@ -66,7 +66,6 @@ import {
   renderRow,
   shortHash,
 } from '@/shared/features/script-versions/versionDiff';
-import { ProductionFlowTabs } from '@/shared/features/production-workspace/ProductionFlowTabs';
 import { buildSeriesPath } from '@/app/routePaths';
 
 export interface ProducerChapterManagementViewProps {
@@ -583,14 +582,6 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               </div>
             )}
           </div>
-
-          <ProductionFlowTabs
-            workspaceId={workspaceId}
-            seriesId={seriesId}
-            chapterId={selectedChapterId}
-            activeTab='chapters'
-            className='hidden md:block'
-          />
 
           {/* Quick Action CTAs */}
           <div className='flex items-center gap-2'>

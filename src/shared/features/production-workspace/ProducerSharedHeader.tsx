@@ -1,13 +1,15 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Rocket } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { ChapterDto } from '@/services/chapter.service';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
-import { ProductionFlowTabs, type ProductionFlowTab } from './ProductionFlowTabs';
-
-export type ProducerSubTab =
-  ProductionFlowTab | 'bible' | 'revenue';
+import {
+  buildChapterManagementUrl,
+  buildChapterReaderUrl,
+  buildScriptReviewUrl,
+  buildSeriesExportUrl,
+} from '@/app/routePaths';
 
 export interface ProducerSharedHeaderProps {
   workspaceId?: string;
@@ -18,7 +20,6 @@ export interface ProducerSharedHeaderProps {
   seriesFormat?: string;
   subtitle?: string;
   currentChapter?: ChapterDto | null;
-  activeTab: ProducerSubTab;
   onChapterChange?: (newChapterId: string) => void;
   onBackToChapters?: () => void;
   onStartProduction?: () => void;
@@ -62,7 +63,6 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
   seriesFormat,
   subtitle,
   currentChapter,
-  activeTab,
   onChapterChange,
   onBackToChapters,
   onStartProduction,
@@ -71,6 +71,7 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
 }) => {
   const { t } = useTranslation('pipeline');
   const navigate = useNavigate();
+  const location = useLocation();
 
   const resolvedChapter =
     currentChapter || chapters.find((c) => c.id === currentChapterId) || chapters[0] || null;
@@ -101,14 +102,14 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
     if (onChapterChange) {
       onChapterChange(nextId);
     } else if (workspaceId && seriesId) {
-      if (activeTab === 'script') {
-        navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${nextId}/script/review`);
-      } else if (activeTab === 'reader') {
-        navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${nextId}/reader`);
-      } else if (activeTab === 'handoff') {
-        navigate(`/workspaces/${workspaceId}/series/${seriesId}/export?chapterId=${nextId}`);
+      if (location.pathname.includes('/script/review')) {
+        navigate(buildScriptReviewUrl(workspaceId, seriesId, nextId));
+      } else if (location.pathname.endsWith('/reader')) {
+        navigate(buildChapterReaderUrl(workspaceId, seriesId, nextId));
+      } else if (location.pathname.endsWith('/export')) {
+        navigate(buildSeriesExportUrl(workspaceId, seriesId, nextId));
       } else {
-        navigate(`/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${nextId}`);
+        navigate(buildChapterManagementUrl(workspaceId, seriesId, nextId));
       }
     }
   };
@@ -117,11 +118,7 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
     if (onBackToChapters) {
       onBackToChapters();
     } else if (workspaceId && seriesId) {
-      navigate(
-        `/workspaces/${workspaceId}/series/${seriesId}/workspace?tab=chapters${
-          effectiveChapterId ? `&chapterId=${effectiveChapterId}` : ''
-        }`,
-      );
+      navigate(buildChapterManagementUrl(workspaceId, seriesId, effectiveChapterId));
     }
   };
 
@@ -156,7 +153,7 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
           )}
         </div>
 
-        {/* Right: Chapter Selector, Subtab Bar, Action CTA */}
+        {/* Right: Chapter Selector and contextual action */}
         <div className='flex flex-wrap items-center gap-2.5'>
           {/* Chapter Selector Dropdown */}
           <div className='relative flex items-center'>
@@ -185,13 +182,6 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
               )}
             </select>
           </div>
-
-          <ProductionFlowTabs
-            workspaceId={workspaceId}
-            seriesId={seriesId}
-            chapterId={effectiveChapterId}
-            activeTab={activeTab as ProductionFlowTab}
-          />
 
           {/* Action CTA */}
           {actionCta !== undefined ? (

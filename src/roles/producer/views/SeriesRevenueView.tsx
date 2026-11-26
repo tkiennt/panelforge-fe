@@ -68,7 +68,6 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = ({ onShowToas
         chapters={chapters}
         seriesTitle={series?.title}
         seriesFormat={series?.format}
-        activeTab='revenue'
       />
 
       <div className='py-6 flex flex-col flex-1 overflow-y-auto max-w-[1640px] mx-auto w-full px-4 sm:px-6 lg:px-8 space-y-6'>
