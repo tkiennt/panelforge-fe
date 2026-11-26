@@ -94,7 +94,7 @@ const EntityChip: React.FC<{ entity: BibleEntityItem }> = ({ entity }) => (
   <span className='group/entity relative inline-flex'>
     <span
       tabIndex={0}
-      className='rounded-full border border-[var(--sb-border)] bg-[var(--sb-surface)] px-2 py-0.5 text-[11px] font-semibold text-[var(--sb-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--sb-accent)]'
+      className='rounded-full border border-[var(--sb-border)] bg-[var(--sb-surface)] px-2 py-0.5 text-xs font-semibold text-[var(--sb-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--sb-accent)]'
     >
       {entity.name}
     </span>
@@ -108,7 +108,7 @@ const EntityChip: React.FC<{ entity: BibleEntityItem }> = ({ entity }) => (
       )}
       <strong className='block text-xs text-[var(--sb-text)]'>{entity.name}</strong>
       {entity.visualNotes[0] && (
-        <span className='mt-1 block text-[11px] leading-relaxed text-[var(--sb-muted)]'>
+        <span className='mt-1 block text-xs leading-relaxed text-[var(--sb-muted)]'>
           {entity.visualNotes[0]}
         </span>
       )}
@@ -140,7 +140,7 @@ const ScriptLine: React.FC<{ line: ScriptLineItem; fontSize: number }> = ({ line
       )}
       {line.dialogueText && kind === 'caption' && (
         <div className='border-l-2 border-[var(--sb-accent)] bg-[var(--sb-surface)] px-3 py-2'>
-          <span className='mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--sb-muted)]'>
+          <span className='mb-1 block text-xs font-bold uppercase tracking-wider text-[var(--sb-muted)]'>
             {narrationMode || t('scriptReader.narrationVoice')}
           </span>
           <p className='font-serif leading-relaxed text-[var(--sb-text)]' style={{ fontSize }}>
@@ -153,14 +153,14 @@ const ScriptLine: React.FC<{ line: ScriptLineItem; fontSize: number }> = ({ line
           <div className='mb-1 flex flex-wrap items-center gap-1.5'>
             {line.characterName && (
               <span
-                className='rounded-full border border-[var(--sb-border)] bg-[var(--sb-surface)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide'
+                className='rounded-full border border-[var(--sb-border)] bg-[var(--sb-surface)] px-2 py-0.5 text-xs font-bold uppercase tracking-wide'
                 style={{ color: line.characterColor || 'var(--sb-accent)' }}
               >
                 {line.characterName}
               </span>
             )}
             {narrationMode && (
-              <span className='text-[11px] text-[var(--sb-muted)]'>({narrationMode})</span>
+              <span className='text-xs text-[var(--sb-muted)]'>({narrationMode})</span>
             )}
           </div>
           <p className='font-serif leading-relaxed text-[var(--sb-text)]' style={{ fontSize }}>
@@ -332,7 +332,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
               <Minus className='h-3.5 w-3.5' aria-hidden='true' />
               <span className='sr-only'>A-</span>
             </button>
-            <span className='text-[11px] font-bold text-[var(--sb-muted)]'>A</span>
+            <span className='text-xs font-bold text-[var(--sb-muted)]'>A</span>
             <button
               type='button'
               aria-label={t('scriptReader.increaseFontAriaLabel')}
@@ -462,7 +462,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
                           })}
                       </div>
                       {group.lines[0]?.sceneSlugline && (
-                        <div className='mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--sb-muted)]'>
+                        <div className='mt-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--sb-muted)]'>
                           {group.lines[0].sceneSlugline}
                         </div>
                       )}
@@ -475,7 +475,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
                         : t('scriptReader.unassignedPanel')}
                     </strong>
                     {group.panelNumber > 0 && group.pageNumber === activePageNumber && (
-                      <span className='inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--sb-muted)]'>
+                      <span className='inline-flex items-center gap-1 text-xs font-semibold text-[var(--sb-muted)]'>
                         {hasArtwork ? (
                           <CheckCircle2
                             className='h-3.5 w-3.5 text-[var(--sb-accent)]'
