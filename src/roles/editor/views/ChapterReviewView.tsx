@@ -1369,7 +1369,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     >
       {/* 1. TOP BAR / HEADER */}
       <PageHeader variant='toolbar' className='shrink-0 px-6 gap-4 z-20'>
-        <div className='flex items-center gap-3 min-w-0'>
+        <div className='flex items-center gap-3 min-w-0 flex-1'>
           <button
             type='button'
             onClick={() => {
@@ -1387,13 +1387,13 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             <ArrowLeft className='w-4 h-4' />
           </button>
 
-          <div className='min-w-0'>
+          <div className='min-w-0 flex-1'>
             <div className='flex flex-nowrap items-center gap-2 min-w-0'>
               <span className='px-2 py-0.5 rounded text-xs font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 uppercase tracking-wide shrink-0'>
                 {t('chapterReview.gate2Badge')}
               </span>
               <h2
-                className='text-sm sm:text-base font-serif font-bold text-stone-900 truncate min-w-0'
+                className='text-sm sm:text-base font-serif font-bold text-stone-900 truncate min-w-0 min-w-[12rem]'
                 title={
                   chapterTitle
                     ? `${chapterTitle} · ${t('chapterReview.gate2Subtitle')}`
@@ -1433,20 +1433,20 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         {/* Right side (stepper + buttons) */}
         <div className='flex items-center gap-3 shrink-0'>
           {/* 3-Step Stepper in Header */}
-          <div className='hidden lg:flex items-center gap-1.5 px-3 py-1 bg-head-wash border border-head-line rounded-full text-xs font-semibold shrink-0'>
+          <div className='hidden 2xl:flex items-center gap-1.5 px-3 py-1 bg-head-wash border border-head-line rounded-full text-xs font-semibold shrink-0'>
             <span className='px-2 py-0.5 rounded-full bg-stone-900 text-white flex items-center gap-1'>
               <span>1</span>
-              <span className='hidden xl:inline'>{t('chapterReview.stepper.editor')}</span>
+              <span>{t('chapterReview.stepper.editor')}</span>
             </span>
             <span className='text-stone-400'>→</span>
             <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
               <span>2</span>
-              <span className='hidden xl:inline'>{t('chapterReview.stepper.producer')}</span>
+              <span>{t('chapterReview.stepper.producer')}</span>
             </span>
             <span className='text-stone-400'>→</span>
             <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
               <span>3</span>
-              <span className='hidden xl:inline'>{t('chapterReview.stepper.publisher')}</span>
+              <span>{t('chapterReview.stepper.publisher')}</span>
             </span>
           </div>
 
@@ -1457,36 +1457,54 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               id='btn-rework-count'
               type='button'
               onClick={() => setActiveTab('changes')}
-              className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs ${
+              aria-label={t('chapterReview.redrawRequestsBtn', { count: totalOpenCrs })}
+              title={t('chapterReview.redrawRequestsBtn', { count: totalOpenCrs })}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs shrink-0 ${
                 totalOpenCrs > 0
                   ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
                   : 'bg-white text-stone-600 border-head-line hover:bg-stone-50'
               }`}
             >
-              <AlertTriangle className='w-3.5 h-3.5 text-rose-600' />
-              <span>{t('chapterReview.redrawRequestsBtn', { count: totalOpenCrs })}</span>
+              <AlertTriangle className='w-3.5 h-3.5 text-rose-600 shrink-0' />
+              <span className='hidden xl:inline'>
+                {t('chapterReview.redrawRequestsBtn', { count: totalOpenCrs })}
+              </span>
+              <span
+                className={`xl:hidden px-1.5 py-0.5 rounded-full text-xs font-bold leading-none ${
+                  totalOpenCrs > 0 ? 'bg-rose-100 text-rose-700' : 'bg-stone-100 text-stone-600'
+                }`}
+              >
+                {totalOpenCrs}
+              </span>
             </button>
 
             <button
               type='button'
               onClick={() => setIsProvenanceOpen(true)}
-              className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
+              aria-label={t('chapterReview.provenance')}
               title={t('chapterReview.provenanceTitle')}
               data-testid='btn-provenance-modal'
+              className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors shrink-0'
             >
-              <History className='w-3.5 h-3.5 text-stone-500' />
-              <span>{t('chapterReview.provenance')}</span>
+              <History className='w-3.5 h-3.5 text-stone-500 shrink-0' />
+              <span className='hidden xl:inline'>{t('chapterReview.provenance')}</span>
             </button>
 
             <button
               type='button'
               onClick={() => setIsSubmissionsOpen(true)}
-              className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
+              aria-label={t('chapterReview.historyCount', { count: submissions.length })}
               title={t('chapterReview.submissionsTitle')}
               data-testid='btn-submissions-history'
+              className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors shrink-0'
             >
-              <Clock className='w-3.5 h-3.5 text-stone-500' />
-              <span>{t('chapterReview.historyCount', { count: submissions.length })}</span>
+              <Clock className='w-3.5 h-3.5 text-stone-500 shrink-0' />
+              <span className='hidden xl:inline'>
+                {t('chapterReview.historyCount', { count: submissions.length })}
+              </span>
+              <span className='xl:hidden px-1.5 py-0.5 rounded-full text-xs font-semibold bg-stone-100 text-stone-600 leading-none'>
+                {submissions.length}
+              </span>
             </button>
 
             {(String(effectiveReviewStatus) === 'Assigned' ||
