@@ -134,7 +134,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   const [selectedBiblePanelId, setSelectedBiblePanelId] = useState<string | null>(null);
 
   const pageId = resolvePageId(assignment, stageProgress);
-  const artworkRelevant = needsArtwork(assignment);
+  const artworkRelevant = needsArtwork(assignment, stageName);
 
   const handleSelectChangeRequest = (cr: ChangeRequestDto) => {
     setHighlightedCrId(cr.id);
@@ -189,6 +189,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
     workspaceRole,
     changeRequests,
     hasCurrentArtwork: artworkOk,
+    stageName,
   });
 
   const isChapterAssignment = String(assignment.entityType) === 'Chapter';

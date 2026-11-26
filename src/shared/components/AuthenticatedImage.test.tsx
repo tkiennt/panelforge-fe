@@ -46,6 +46,28 @@ describe('AuthenticatedImage', () => {
     });
   });
 
+  it('dùng chung request khi nhiều vị trí cùng hiển thị một ảnh', async () => {
+    const mockBlob = new Blob(['shared image'], { type: 'image/png' });
+    let resolveRequest!: (value: { data: Blob }) => void;
+    (axiosClient.get as any).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveRequest = resolve;
+      }),
+    );
+
+    render(
+      <>
+        <AuthenticatedImage src='/api/assets/shared-concurrent' alt='Shared A' />
+        <AuthenticatedImage src='/api/assets/shared-concurrent' alt='Shared B' />
+      </>,
+    );
+    expect(axiosClient.get).toHaveBeenCalledTimes(1);
+
+    resolveRequest({ data: mockBlob });
+    await waitFor(() => expect(screen.getAllByRole('img')).toHaveLength(2));
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+  });
+
   it('hiển thị fallback khi API lỗi hoặc src rỗng', async () => {
     (axiosClient.get as any).mockRejectedValueOnce(new Error('404'));
 
