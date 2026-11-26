@@ -13,7 +13,6 @@ import {
   Plus,
   RotateCcw,
   Upload,
-  Clock,
   ArrowLeft,
   User,
   FileText,
@@ -40,10 +39,10 @@ import {
   SPEC_SCHEMA,
   getFieldLabel,
   getFieldPlaceholder,
-  getGroupTitle,
   specCategoryOf,
   specCompleteness,
   parseBibleDetails,
+  sanitizeArtistNotes,
 } from './bibleSpec';
 import type { BibleEntryUsageDto } from '@/services/bible.service';
 
@@ -984,6 +983,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       ...(parsedBibleDetails.age ? { age: parsedBibleDetails.age } : {}),
       ...(parsedBibleDetails.artistNotes ? { artistNotes: parsedBibleDetails.artistNotes } : {}),
     };
+    if (combined.artistNotes) {
+      combined.artistNotes = sanitizeArtistNotes(combined.artistNotes);
+    }
 
     return {
       raw: combined as Record<string, unknown>,
@@ -2124,12 +2126,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   </span>
                   <div className='min-w-0'>
                     <p className='text-xs font-bold text-stone-900'>
-                      {t('bible.detailModal.writerSaveStep', 'Writer · Lưu đặc tả')}
+                      {t('bible.detailModal.writerSaveStep', 'Writer · Đặc tả')}
                     </p>
                     <p className='truncate text-xs text-stone-500'>
                       {specDraftDirty
-                        ? t('bible.detailModal.writerUnsavedStep', 'Có thay đổi chưa lưu')
-                        : t('bible.detailModal.writerSavedStep', 'Đặc tả đã đồng bộ')}
+                        ? t('bible.detailModal.writerUnsavedStep', 'Chưa lưu')
+                        : t('bible.detailModal.writerSavedStep', 'Đã lưu')}
                     </p>
                   </div>
                 </div>
@@ -2140,14 +2142,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   </span>
                   <div className='min-w-0'>
                     <p className='text-xs font-bold text-stone-900'>
-                      {t('bible.detailModal.artistSubmitStep', 'Artist · Nộp artwork')}
+                      {t('bible.detailModal.artistSubmitStep', 'Artist · Artwork')}
                     </p>
                     <p className='truncate text-xs text-stone-500'>
                       {conceptFile
-                        ? t('bible.detailModal.artistReadyStep', 'Bản vẽ đã chọn, sẵn sàng nộp')
+                        ? t('bible.detailModal.artistReadyStep', 'Sẵn sàng nộp')
                         : selectedImageUrl
-                          ? t('bible.detailModal.artistSubmittedStep', 'Artwork đã có trong hồ sơ')
-                          : t('bible.detailModal.artistWaitingStep', 'Chờ Artist chọn bản vẽ')}
+                          ? t('bible.detailModal.artistSubmittedStep', 'Đã nộp')
+                          : t('bible.detailModal.artistWaitingStep', 'Chờ bản vẽ')}
                     </p>
                   </div>
                 </div>
@@ -2189,15 +2191,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       }
                       return (
                         <div key={group.key} className='space-y-2'>
-                          <div className='flex items-center gap-2'>
-                            <p className='text-xs font-bold uppercase tracking-wider text-stone-500'>
-                              {getGroupTitle(group.key, t)}
-                            </p>
-                            <span className='h-px flex-1 bg-stone-200' aria-hidden='true' />
-                            <span className='text-xs font-mono text-stone-400'>
-                              {filled.length}/{rows.length}
-                            </span>
-                          </div>
                           {filled.length > 0 && (
                             <dl className='space-y-1.5'>
                               {filled.map(({ field, value }) => {
@@ -2385,11 +2378,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         <Palette className='w-4 h-4 text-stone-500 shrink-0' />
                         <span className='font-bold text-xs sm:text-sm text-[#1C1917] truncate'>
                           {visualCardInfo.title}
-                        </span>
-                        <span
-                          className={`text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-800 border border-stone-300`}
-                        >
-                          {visualCardInfo.badge}
                         </span>
                       </div>
 
@@ -2614,14 +2602,22 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <div
                         onDragOver={(e) => {
                           e.preventDefault();
-                          if (!isWriterUser && (effectiveCanCreateDraft || isArtistUser) && !isStubEntity)
+                          if (
+                            !isWriterUser &&
+                            (effectiveCanCreateDraft || isArtistUser) &&
+                            !isStubEntity
+                          )
                             setIsDraggingOver(true);
                         }}
                         onDragLeave={() => setIsDraggingOver(false)}
                         onDrop={(e) => {
                           e.preventDefault();
                           setIsDraggingOver(false);
-                          if (!isWriterUser && (effectiveCanCreateDraft || isArtistUser) && !isStubEntity) {
+                          if (
+                            !isWriterUser &&
+                            (effectiveCanCreateDraft || isArtistUser) &&
+                            !isStubEntity
+                          ) {
                             if (isArtistUser) {
                               selectConceptFile(e.dataTransfer.files?.[0]);
                             } else {
@@ -2640,10 +2636,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         </div>
                         <div className='max-w-md space-y-1.5'>
                           <div className='text-sm sm:text-base font-bold text-stone-900'>
-                            {t(
-                              'bible.detailModal.noReferenceImage',
-                              'Chưa có ảnh Reference Sheet cho mục này',
-                            )}
+                            {t('bible.detailModal.noReferenceImage', 'Chưa có bản vẽ')}
                           </div>
                           <p className='text-xs text-stone-500 leading-relaxed'>
                             {isArtistUser
@@ -2651,57 +2644,58 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               : visualCardInfo.emptyWriterPrompt}
                           </p>
                         </div>
-                        {(isArtistUser || (!isWriterUser && effectiveCanCreateDraft)) && !isStubEntity && (
-                          <div className='flex flex-col items-center gap-2 pt-2'>
-                            <button
-                              type='button'
-                              onClick={() => {
-                                if (isArtistUser) {
-                                  conceptFileInputRef.current?.click();
-                                } else {
-                                  onOpenAddRevision(entity, activeRevision);
-                                }
-                              }}
-                              className='inline-flex items-center gap-2 px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-[0.98]'
-                              title={t(
-                                'bible.detailModal.uploadModelSheetTitle',
-                                'Tải lên bản vẽ tham chiếu Model Sheet mới',
-                              )}
-                            >
-                              <Upload className='w-4 h-4' />
-                              <span>
-                                {t('bible.detailModal.uploadModelSheet', 'Tải lên Model Sheet')}
-                              </span>
-                            </button>
-                            <div className='flex items-center gap-1.5 text-xs text-stone-400'>
-                              <span>
-                                {t(
-                                  'bible.detailModal.dragDropOrPaste',
-                                  'Kéo thả file ảnh vào đây hoặc nhấn',
-                                )}
-                              </span>
-                              <kbd className='px-1.5 py-0.5 bg-stone-200/80 border border-stone-300 rounded font-mono text-xs text-stone-700 font-semibold'>
-                                Ctrl + V
-                              </kbd>
-                              <span>{t('bible.detailModal.toPaste', 'để dán')}</span>
-                            </div>
-                            {!isArtistUser && (
+                        {(isArtistUser || (!isWriterUser && effectiveCanCreateDraft)) &&
+                          !isStubEntity && (
+                            <div className='flex flex-col items-center gap-2 pt-2'>
                               <button
                                 type='button'
-                                onClick={() => onOpenAddRevision(entity)}
-                                className='inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg text-xs font-medium text-stone-600 transition-colors cursor-pointer mt-0.5'
+                                onClick={() => {
+                                  if (isArtistUser) {
+                                    conceptFileInputRef.current?.click();
+                                  } else {
+                                    onOpenAddRevision(entity, activeRevision);
+                                  }
+                                }}
+                                className='inline-flex items-center gap-2 px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-[0.98]'
+                                title={t(
+                                  'bible.detailModal.uploadModelSheetTitle',
+                                  'Tải lên bản vẽ tham chiếu Model Sheet mới',
+                                )}
                               >
-                                <Edit3 className='w-3 h-3 text-stone-500' />
+                                <Upload className='w-4 h-4' />
                                 <span>
-                                  {t(
-                                    'bible.detailModal.editSpecOrNewVerArtist',
-                                    'Tạo phiên bản mới để thêm ảnh',
-                                  )}
+                                  {t('bible.detailModal.uploadModelSheet', 'Tải lên Model Sheet')}
                                 </span>
                               </button>
-                            )}
-                          </div>
-                        )}
+                              <div className='flex items-center gap-1.5 text-xs text-stone-400'>
+                                <span>
+                                  {t(
+                                    'bible.detailModal.dragDropOrPaste',
+                                    'Kéo thả file ảnh vào đây hoặc nhấn',
+                                  )}
+                                </span>
+                                <kbd className='px-1.5 py-0.5 bg-stone-200/80 border border-stone-300 rounded font-mono text-xs text-stone-700 font-semibold'>
+                                  Ctrl + V
+                                </kbd>
+                                <span>{t('bible.detailModal.toPaste', 'để dán')}</span>
+                              </div>
+                              {!isArtistUser && (
+                                <button
+                                  type='button'
+                                  onClick={() => onOpenAddRevision(entity)}
+                                  className='inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg text-xs font-medium text-stone-600 transition-colors cursor-pointer mt-0.5'
+                                >
+                                  <Edit3 className='w-3 h-3 text-stone-500' />
+                                  <span>
+                                    {t(
+                                      'bible.detailModal.editSpecOrNewVerArtist',
+                                      'Tạo phiên bản mới để thêm ảnh',
+                                    )}
+                                  </span>
+                                </button>
+                              )}
+                            </div>
+                          )}
                       </div>
                     )}
 
@@ -2709,31 +2703,25 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     <div className='pt-2 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2'>
                       {/* Status indicator on the left of action bar */}
                       <div className='text-xs text-stone-500 flex items-center gap-1.5'>
-                        {!selectedImageUrl ? (
-                          <span className='inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200'>
-                            <Clock className='w-3 h-3 text-amber-600' />
-                            {t(
-                              'bible.detailModal.waitingArtistUpload',
-                              'Chờ Họa sĩ tải lên bản vẽ',
-                            )}
-                          </span>
-                        ) : activeRevision?.reviewStatus === 'CanonLocked' ? (
+                        {selectedImageUrl && activeRevision?.reviewStatus === 'CanonLocked' ? (
                           <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200'>
                             <CheckCircle2 className='w-3 h-3 text-emerald-600' />
                             {t('bible.detailModal.canonLockedOfficial', 'Đã khoá Canon chính thức')}
                           </span>
-                        ) : activeRevision?.reviewStatus === 'Draft' ? (
+                        ) : selectedImageUrl && activeRevision?.reviewStatus === 'Draft' ? (
                           <span className='inline-flex items-center gap-1 text-xs font-medium text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200'>
                             {t('bible.detailModal.draftUnsubmitted', 'Bản thảo (Chưa nộp duyệt)')}
                           </span>
-                        ) : activeRevision?.reviewStatus === 'ConceptSubmitted' ? (
+                        ) : selectedImageUrl &&
+                          activeRevision?.reviewStatus === 'ConceptSubmitted' ? (
                           <span className='inline-flex items-center gap-1 text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 animate-pulse'>
                             {t(
                               'bible.detailModal.waitingEditorConfirm',
                               '● Chờ Editor xác nhận & khoá Canon',
                             )}
                           </span>
-                        ) : activeRevision?.reviewStatus === 'ReworkRequired' ? (
+                        ) : selectedImageUrl &&
+                          activeRevision?.reviewStatus === 'ReworkRequired' ? (
                           <span className='inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200'>
                             {t('bible.detailModal.reworkRequested', '↺ Yêu cầu vẽ lại')}
                           </span>
@@ -2818,7 +2806,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           )}
 
                         {/* Request Rework Action (Writer + Editor + Producer per Q22) */}
-                        {canRequestRework && activeRevision && (
+                        {canRequestRework && activeRevision && selectedImageUrl && (
                           <button
                             type='button'
                             disabled={activeRevision.reviewStatus === 'CanonLocked' || isLocking}
@@ -2944,219 +2932,224 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     )}
 
                     {/* CONCEPT REVIEW: COMMENTS SECTION (BIB-10 FE) */}
-                    <div
-                      className='mt-4 pt-4 border-t border-stone-200/80 space-y-3'
-                      data-testid='concept-comments-section'
-                    >
-                      <div className='flex items-center justify-between'>
-                        <div className='flex items-center gap-2 text-xs sm:text-sm font-bold text-stone-900'>
-                          <MessageSquare className='w-4 h-4 text-stone-500' />
-                          <span>
-                            {t('bible.detailModal.conceptCommentsTitle', 'Nhận xét Concept Art')}
-                          </span>
-                          <span className='px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold'>
-                            {conceptComments.length}
-                          </span>
+                    {selectedImageUrl && (
+                      <div
+                        className='mt-4 pt-4 border-t border-stone-200/80 space-y-3'
+                        data-testid='concept-comments-section'
+                      >
+                        <div className='flex items-center justify-between'>
+                          <div className='flex items-center gap-2 text-xs sm:text-sm font-bold text-stone-900'>
+                            <MessageSquare className='w-4 h-4 text-stone-500' />
+                            <span>
+                              {t('bible.detailModal.conceptCommentsTitle', 'Nhận xét Concept Art')}
+                            </span>
+                            <span className='px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold'>
+                              {conceptComments.length}
+                            </span>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Comments List */}
-                      {loadingComments ? (
-                        <div className='py-4 text-center text-xs text-stone-500'>
-                          {t('bible.detailModal.loadingComments', 'Đang tải nhận xét...')}
-                        </div>
-                      ) : conceptComments.length === 0 ? (
-                        <div className='p-3 text-center text-xs text-stone-400 italic bg-stone-50/60 rounded-xl border border-stone-200/60'>
-                          {t(
-                            'bible.detailModal.noCommentsYet',
-                            'Chưa có nhận xét nào cho bản vẽ này.',
-                          )}
-                        </div>
-                      ) : (
-                        <div className='space-y-2.5 max-h-80 overflow-y-auto custom-scrollbar pr-1'>
-                          {conceptComments.map((c) => {
-                            const isResolved = Boolean(c.resolvedAt);
-                            return (
-                              <div
-                                key={c.id}
-                                className={`p-3 rounded-xl border text-xs space-y-2 transition-all ${
-                                  isResolved
-                                    ? 'bg-stone-50/70 border-stone-200 text-stone-500 opacity-80'
-                                    : 'bg-white border-stone-200 shadow-2xs text-stone-800'
-                                }`}
-                                data-testid={`concept-comment-${c.id}`}
-                              >
-                                <div className='flex items-center justify-between gap-2'>
-                                  <div className='flex items-center gap-2 min-w-0'>
-                                    <span className='font-bold text-stone-900 truncate'>
-                                      {c.authorId
-                                        ? t(
-                                            'bible.detailModal.memberWithId',
-                                            { id: c.authorId.slice(0, 8) },
-                                            `Thành viên (${c.authorId.slice(0, 8)})`,
-                                          )
-                                        : t('bible.detailModal.memberLabel', 'Thành viên')}
-                                    </span>
-                                    <span className='text-stone-400 font-mono text-xs'>
-                                      {new Date(c.createdAt).toLocaleDateString('vi-VN')}
-                                    </span>
-                                  </div>
-                                  <div className='flex items-center gap-1.5 shrink-0'>
-                                    {isResolved && (
-                                      <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200'>
-                                        <Check className='w-3 h-3 text-emerald-600' />
-                                        {t('bible.detailModal.resolvedBadge', 'Đã giải quyết')}
+                        {/* Comments List */}
+                        {loadingComments ? (
+                          <div className='py-4 text-center text-xs text-stone-500'>
+                            {t('bible.detailModal.loadingComments', 'Đang tải nhận xét...')}
+                          </div>
+                        ) : conceptComments.length === 0 ? (
+                          <div className='p-3 text-center text-xs text-stone-400 italic bg-stone-50/60 rounded-xl border border-stone-200/60'>
+                            {t(
+                              'bible.detailModal.noCommentsYet',
+                              'Chưa có nhận xét nào cho bản vẽ này.',
+                            )}
+                          </div>
+                        ) : (
+                          <div className='space-y-2.5 max-h-80 overflow-y-auto custom-scrollbar pr-1'>
+                            {conceptComments.map((c) => {
+                              const isResolved = Boolean(c.resolvedAt);
+                              return (
+                                <div
+                                  key={c.id}
+                                  className={`p-3 rounded-xl border text-xs space-y-2 transition-all ${
+                                    isResolved
+                                      ? 'bg-stone-50/70 border-stone-200 text-stone-500 opacity-80'
+                                      : 'bg-white border-stone-200 shadow-2xs text-stone-800'
+                                  }`}
+                                  data-testid={`concept-comment-${c.id}`}
+                                >
+                                  <div className='flex items-center justify-between gap-2'>
+                                    <div className='flex items-center gap-2 min-w-0'>
+                                      <span className='font-bold text-stone-900 truncate'>
+                                        {c.authorId
+                                          ? t(
+                                              'bible.detailModal.memberWithId',
+                                              { id: c.authorId.slice(0, 8) },
+                                              `Thành viên (${c.authorId.slice(0, 8)})`,
+                                            )
+                                          : t('bible.detailModal.memberLabel', 'Thành viên')}
                                       </span>
-                                    )}
-                                    {(isWriterUser || isEditorUser) && (
+                                      <span className='text-stone-400 font-mono text-xs'>
+                                        {new Date(c.createdAt).toLocaleDateString('vi-VN')}
+                                      </span>
+                                    </div>
+                                    <div className='flex items-center gap-1.5 shrink-0'>
+                                      {isResolved && (
+                                        <span className='inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200'>
+                                          <Check className='w-3 h-3 text-emerald-600' />
+                                          {t('bible.detailModal.resolvedBadge', 'Đã giải quyết')}
+                                        </span>
+                                      )}
+                                      {(isWriterUser || isEditorUser) && (
+                                        <button
+                                          type='button'
+                                          onClick={() =>
+                                            void handleResolveComment(c.id, isResolved)
+                                          }
+                                          className='px-2 py-0.5 text-xs font-medium text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded border border-stone-200 transition cursor-pointer'
+                                          data-testid={`resolve-comment-btn-${c.id}`}
+                                          title={
+                                            isResolved
+                                              ? t(
+                                                  'bible.detailModal.reopenCommentTitle',
+                                                  'Mở lại nhận xét',
+                                                )
+                                              : t(
+                                                  'bible.detailModal.resolveCommentTitle',
+                                                  'Đánh dấu đã giải quyết',
+                                                )
+                                          }
+                                        >
+                                          {isResolved
+                                            ? t('bible.detailModal.reopenBtn', 'Mở lại')
+                                            : t('bible.detailModal.resolveBtn', 'Giải quyết')}
+                                        </button>
+                                      )}
                                       <button
                                         type='button'
-                                        onClick={() => void handleResolveComment(c.id, isResolved)}
-                                        className='px-2 py-0.5 text-xs font-medium text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded border border-stone-200 transition cursor-pointer'
-                                        data-testid={`resolve-comment-btn-${c.id}`}
-                                        title={
-                                          isResolved
-                                            ? t(
-                                                'bible.detailModal.reopenCommentTitle',
-                                                'Mở lại nhận xét',
-                                              )
-                                            : t(
-                                                'bible.detailModal.resolveCommentTitle',
-                                                'Đánh dấu đã giải quyết',
-                                              )
+                                        onClick={() =>
+                                          setActiveReplyId(activeReplyId === c.id ? null : c.id)
                                         }
+                                        className='px-2 py-0.5 text-xs font-medium text-stone-500 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded border border-stone-300 transition cursor-pointer flex items-center gap-1'
+                                        data-testid={`reply-comment-btn-${c.id}`}
                                       >
-                                        {isResolved
-                                          ? t('bible.detailModal.reopenBtn', 'Mở lại')
-                                          : t('bible.detailModal.resolveBtn', 'Giải quyết')}
+                                        <CornerDownRight className='w-3 h-3' />
+                                        <span>{t('bible.detailModal.replyBtn', 'Trả lời')}</span>
                                       </button>
-                                    )}
-                                    <button
-                                      type='button'
-                                      onClick={() =>
-                                        setActiveReplyId(activeReplyId === c.id ? null : c.id)
-                                      }
-                                      className='px-2 py-0.5 text-xs font-medium text-stone-500 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded border border-stone-300 transition cursor-pointer flex items-center gap-1'
-                                      data-testid={`reply-comment-btn-${c.id}`}
-                                    >
-                                      <CornerDownRight className='w-3 h-3' />
-                                      <span>{t('bible.detailModal.replyBtn', 'Trả lời')}</span>
-                                    </button>
+                                    </div>
                                   </div>
-                                </div>
 
-                                <p className='text-xs leading-relaxed text-stone-800 whitespace-pre-wrap'>
-                                  {c.body}
-                                </p>
+                                  <p className='text-xs leading-relaxed text-stone-800 whitespace-pre-wrap'>
+                                    {c.body}
+                                  </p>
 
-                                {/* Nested Replies */}
-                                {c.replies && c.replies.length > 0 && (
-                                  <div className='pl-3 border-l-2 border-stone-200 space-y-1.5 pt-1 mt-1'>
-                                    {c.replies.map((r) => (
-                                      <div
-                                        key={r.id}
-                                        className='bg-stone-50 p-2 rounded-lg text-xs space-y-1'
-                                      >
-                                        <div className='flex items-center gap-2 text-xs text-stone-500'>
-                                          <span className='font-bold text-stone-800'>
-                                            {r.authorId
-                                              ? t(
-                                                  'bible.detailModal.memberWithId',
-                                                  { id: r.authorId.slice(0, 8) },
-                                                  `Thành viên (${r.authorId.slice(0, 8)})`,
-                                                )
-                                              : t('bible.detailModal.memberLabel', 'Thành viên')}
-                                          </span>
-                                          <span className='font-mono'>
-                                            {new Date(r.createdAt).toLocaleDateString('vi-VN')}
-                                          </span>
+                                  {/* Nested Replies */}
+                                  {c.replies && c.replies.length > 0 && (
+                                    <div className='pl-3 border-l-2 border-stone-200 space-y-1.5 pt-1 mt-1'>
+                                      {c.replies.map((r) => (
+                                        <div
+                                          key={r.id}
+                                          className='bg-stone-50 p-2 rounded-lg text-xs space-y-1'
+                                        >
+                                          <div className='flex items-center gap-2 text-xs text-stone-500'>
+                                            <span className='font-bold text-stone-800'>
+                                              {r.authorId
+                                                ? t(
+                                                    'bible.detailModal.memberWithId',
+                                                    { id: r.authorId.slice(0, 8) },
+                                                    `Thành viên (${r.authorId.slice(0, 8)})`,
+                                                  )
+                                                : t('bible.detailModal.memberLabel', 'Thành viên')}
+                                            </span>
+                                            <span className='font-mono'>
+                                              {new Date(r.createdAt).toLocaleDateString('vi-VN')}
+                                            </span>
+                                          </div>
+                                          <p className='text-stone-700'>{r.body}</p>
                                         </div>
-                                        <p className='text-stone-700'>{r.body}</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                                      ))}
+                                    </div>
+                                  )}
 
-                                {/* Inline Reply Box */}
-                                {activeReplyId === c.id && (
-                                  <div className='pt-2 flex items-center gap-2'>
-                                    <input
-                                      type='text'
-                                      value={replyTextMap[c.id] || ''}
-                                      onChange={(e) =>
-                                        setReplyTextMap((prev) => ({
-                                          ...prev,
-                                          [c.id]: e.target.value,
-                                        }))
-                                      }
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                          if (
-                                            e.nativeEvent?.isComposing ||
-                                            (e as any).keyCode === 229
-                                          )
-                                            return;
-                                          e.preventDefault();
-                                          void handleReplyComment(c.id);
+                                  {/* Inline Reply Box */}
+                                  {activeReplyId === c.id && (
+                                    <div className='pt-2 flex items-center gap-2'>
+                                      <input
+                                        type='text'
+                                        value={replyTextMap[c.id] || ''}
+                                        onChange={(e) =>
+                                          setReplyTextMap((prev) => ({
+                                            ...prev,
+                                            [c.id]: e.target.value,
+                                          }))
                                         }
-                                      }}
-                                      placeholder={t(
-                                        'bible.detailModal.replyPlaceholder',
-                                        'Viết câu trả lời...',
-                                      )}
-                                      className='flex-1 px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F97316]'
-                                      data-testid={`reply-input-${c.id}`}
-                                    />
-                                    <button
-                                      type='button'
-                                      disabled={submittingComment || !replyTextMap[c.id]?.trim()}
-                                      onClick={() => void handleReplyComment(c.id)}
-                                      className='px-3 py-1.5 bg-stone-800 hover:bg-stone-900 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition cursor-pointer flex items-center gap-1'
-                                      data-testid={`submit-reply-btn-${c.id}`}
-                                    >
-                                      <Send className='w-3 h-3' />
-                                      <span>{t('bible.detailModal.sendReply', 'Gửi')}</span>
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' && !e.shiftKey) {
+                                            if (
+                                              e.nativeEvent?.isComposing ||
+                                              (e as any).keyCode === 229
+                                            )
+                                              return;
+                                            e.preventDefault();
+                                            void handleReplyComment(c.id);
+                                          }
+                                        }}
+                                        placeholder={t(
+                                          'bible.detailModal.replyPlaceholder',
+                                          'Viết câu trả lời...',
+                                        )}
+                                        className='flex-1 px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F97316]'
+                                        data-testid={`reply-input-${c.id}`}
+                                      />
+                                      <button
+                                        type='button'
+                                        disabled={submittingComment || !replyTextMap[c.id]?.trim()}
+                                        onClick={() => void handleReplyComment(c.id)}
+                                        className='px-3 py-1.5 bg-stone-800 hover:bg-stone-900 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition cursor-pointer flex items-center gap-1'
+                                        data-testid={`submit-reply-btn-${c.id}`}
+                                      >
+                                        <Send className='w-3 h-3' />
+                                        <span>{t('bible.detailModal.sendReply', 'Gửi')}</span>
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
 
-                      {/* Add Comment Input */}
-                      <div className='pt-2 flex items-center gap-2'>
-                        <input
-                          type='text'
-                          value={newCommentText}
-                          onChange={(e) => setNewCommentText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
-                              e.preventDefault();
-                              void handleCreateComment();
-                            }
-                          }}
-                          placeholder={t(
-                            'bible.detailModal.newCommentPlaceholder',
-                            'Thêm nhận xét về bản vẽ Concept Art...',
-                          )}
-                          className='flex-1 px-3.5 py-2 text-xs bg-stone-50 hover:bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#F97316] transition'
-                          data-testid='create-concept-comment-input'
-                        />
-                        <button
-                          type='button'
-                          disabled={submittingComment || !newCommentText.trim()}
-                          onClick={() => void handleCreateComment()}
-                          className='px-4 py-2 bg-stone-800 hover:bg-stone-900 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-[0.98]'
-                          data-testid='create-concept-comment-btn'
-                        >
-                          <Send className='w-3.5 h-3.5' />
-                          <span>{t('bible.detailModal.sendComment', 'Gửi nhận xét')}</span>
-                        </button>
+                        {/* Add Comment Input */}
+                        <div className='pt-2 flex items-center gap-2'>
+                          <input
+                            type='text'
+                            value={newCommentText}
+                            onChange={(e) => setNewCommentText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                if (e.nativeEvent?.isComposing || (e as any).keyCode === 229)
+                                  return;
+                                e.preventDefault();
+                                void handleCreateComment();
+                              }
+                            }}
+                            placeholder={t(
+                              'bible.detailModal.newCommentPlaceholder',
+                              'Thêm nhận xét về bản vẽ Concept Art...',
+                            )}
+                            className='flex-1 px-3.5 py-2 text-xs bg-stone-50 hover:bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#F97316] transition'
+                            data-testid='create-concept-comment-input'
+                          />
+                          <button
+                            type='button'
+                            disabled={submittingComment || !newCommentText.trim()}
+                            onClick={() => void handleCreateComment()}
+                            className='px-4 py-2 bg-stone-800 hover:bg-stone-900 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-[0.98]'
+                            data-testid='create-concept-comment-btn'
+                          >
+                            <Send className='w-3.5 h-3.5' />
+                            <span>{t('bible.detailModal.sendComment', 'Gửi nhận xét')}</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </section>
               )}

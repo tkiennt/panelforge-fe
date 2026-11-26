@@ -190,12 +190,8 @@ describe('BibleEntityDetailModal UX/UI', () => {
       />,
     );
 
-    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent(
-      'Writer · Lưu đặc tả',
-    );
-    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent(
-      'Artist · Nộp artwork',
-    );
+    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent('Writer · Đặc tả');
+    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent('Artist · Artwork');
 
     const input = document.querySelector<HTMLInputElement>('input[type="file"]');
     expect(input).not.toBeNull();
@@ -204,9 +200,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     expect(await screen.findByAltText('concept.jpg')).toBeInTheDocument();
     expect(screen.queryByText(/Chưa có ảnh Reference Sheet/i)).not.toBeInTheDocument();
-    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent(
-      'Bản vẽ đã chọn, sẵn sàng nộp',
-    );
+    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent('Sẵn sàng nộp');
   });
 
   it('renders compact empty state without giant black box when no image exists', () => {
@@ -215,7 +209,9 @@ describe('BibleEntityDetailModal UX/UI', () => {
     );
 
     expect(screen.queryByTestId('auth-image')).not.toBeInTheDocument();
-    expect(screen.getByText(/Chưa có ảnh Reference Sheet cho mục này/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chưa có bản vẽ/i)).toBeInTheDocument();
+    expect(screen.queryByTestId('concept-comments-section')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('detail-rework-btn')).not.toBeInTheDocument();
 
     // For producer, shows action to create revision to add image
     const addImgBtn = screen.getByRole('button', {

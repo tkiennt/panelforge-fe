@@ -205,7 +205,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
       fireEvent.click(screen.getByTestId('bible-card-entry-loc-1'));
       expect(screen.getAllByText('LOC-01').length).toBeGreaterThan(0);
     });
-    expect(screen.getByText('Chưa có ảnh Reference Sheet cho mục này')).toBeDefined();
+    expect(screen.getByText('Chưa có bản vẽ')).toBeDefined();
     expect(screen.getAllByText('Bối cảnh & Địa điểm').length).toBeGreaterThan(0);
   });
 
