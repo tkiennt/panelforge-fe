@@ -21,7 +21,7 @@ import {
   textSafeArea,
   defaultTail,
 } from '@/shared/lib/lettering/balloonRender';
-import { resolveTextStyle, textStyleCss } from '@/shared/lib/lettering/textStyle';
+import { pageUnit, resolveTextStyle, textStyleCss } from '@/shared/lib/lettering/textStyle';
 import type { ResizeHandle } from '../../hooks/useLetteringBalloons';
 
 const HANDLES: { id: ResizeHandle; position: string; cursor: string }[] = [
@@ -141,10 +141,11 @@ interface LetteringBalloonOverlayProps {
   onResizeEnd: (e: React.PointerEvent) => void;
 }
 
-const BalloonShape: React.FC<{ element: ElementSnapshotDto; activeLang?: string }> = ({
-  element: b,
-  activeLang,
-}) => {
+const BalloonShape: React.FC<{
+  element: ElementSnapshotDto;
+  activeLang?: string;
+  pageWidth: number;
+}> = ({ element: b, activeLang, pageWidth }) => {
   const textStyle = resolveTextStyle(b);
   const appearance = resolveAppearance(b.elementType, appearanceFromStyle(b.style));
   const tail = tailFromStyle(b.style) ?? defaultTail(b.width, b.height);
@@ -170,7 +171,7 @@ const BalloonShape: React.FC<{ element: ElementSnapshotDto; activeLang?: string 
         </svg>
       )}
       <div
-        className='absolute flex items-center justify-center p-1.5 text-center pointer-events-none overflow-hidden'
+        className='absolute flex items-center justify-center text-center pointer-events-none overflow-hidden'
         style={{
           left: `${(safeArea.x / b.width) * 100}%`,
           top: `${(safeArea.y / b.height) * 100}%`,
@@ -179,11 +180,17 @@ const BalloonShape: React.FC<{ element: ElementSnapshotDto; activeLang?: string 
         }}
       >
         <span
-          className='select-none line-clamp-4 leading-tight break-words text-stone-900'
+          data-testid={`lettering-text-${b.elementId}`}
+          className='select-none leading-tight break-words text-stone-900'
           style={{
             ...textStyleCss(textStyle),
             color: textStyle.color || '#1c1917',
-            fontSize: `${Math.max(11, Math.min(22, textStyle.fontSize * 0.7))}px`,
+            // fontSize/strokeWidth lưu theo px của trang → quy đổi theo bề rộng trang đang hiển thị
+            fontSize: pageUnit(textStyle.fontSize || 24, pageWidth),
+            WebkitTextStroke:
+              textStyle.strokeColor && textStyle.strokeWidth
+                ? `${pageUnit(textStyle.strokeWidth, pageWidth)} ${textStyle.strokeColor}`
+                : undefined,
           }}
         >
           {displayText}
@@ -218,6 +225,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
     <div
       data-testid='canvas-lettering-overlay'
       className='absolute inset-0 z-25 pointer-events-none'
+      style={{ containerType: 'inline-size' }}
     >
       {elements.map((b, idx) => {
         const isSelected = selectedId === b.elementId;
@@ -283,7 +291,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
                 />
               ))}
 
-            <BalloonShape element={b} activeLang={activeLang} />
+            <BalloonShape element={b} activeLang={activeLang} pageWidth={pageWidth} />
 
             {!isSelected && (
               <span className='absolute -top-2 -left-2 z-20 min-w-5 h-5 px-1 rounded-full bg-stone-900 text-white font-mono text-xs font-bold flex items-center justify-center'>
