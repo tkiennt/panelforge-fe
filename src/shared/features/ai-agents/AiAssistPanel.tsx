@@ -1548,6 +1548,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                 busy={deciding}
                 nameById={nameById}
                 hasPanels={hasPanels}
+                lines={lines}
                 onDecide={(decision, reason) => handleDecide(s, decision, reason)}
               />
             ))}

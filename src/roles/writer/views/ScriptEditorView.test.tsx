@@ -1039,6 +1039,71 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       expect(await screen.findByText('Trợ lý AI · Phân khung Storyboard')).toBeInTheDocument();
     });
 
+    it('"Yêu cầu sửa" đề xuất dòng tiếp theo: ghi quyết định kèm lý do rồi chạy lại AI với revisionOfSuggestionId (BR-02)', async () => {
+      const user = userEvent.setup();
+      const base = {
+        runId: 'run-rc-1',
+        stepId: 'step-rc-1',
+        sceneId: 'sc-1',
+        kind: 'ScriptLineInsert' as const,
+        status: 'Pending' as const,
+        summary: 'Gợi ý 1 dòng Sfx tiếp theo',
+        payloadHash: 'hash-rc',
+        baseChapterVersion: 5,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-11-25T08:00:00Z',
+        decisions: [],
+        canDecide: true,
+        canAccept: true,
+      };
+      const payload = (text: string) => ({
+        schemaVersion: 1,
+        runId: 'run-rc-1',
+        sceneId: 'sc-1',
+        afterLineId: 'line-1',
+        kind: 'Sfx' as const,
+        speaker: null,
+        text,
+        reason: 'r',
+        allowedSpeakers: ['Akira'],
+      });
+      const runNextLineSpy = vi
+        .spyOn(aiAgentsService, 'runNextLine')
+        .mockResolvedValueOnce({ ...base, id: 'sug-rc-1', payload: payload('ĐỒNG!') } as any)
+        .mockResolvedValueOnce({ ...base, id: 'sug-rc-2', payload: payload('KENG! KENG!') } as any);
+      vi.spyOn(aiAgentsService, 'review').mockResolvedValueOnce({
+        suggestionId: 'sug-rc-1',
+        status: 'ChangesRequested',
+        decisionId: 'dec-rc-1',
+        resultRevisionId: null,
+        chapterVersion: 5,
+      } as any);
+
+      renderView({ workspaceRole: 'WRITER' });
+      await screen.findByText(/Họ đang di chuyển/);
+      await user.click(await screen.findByTestId('rail-ai-btn'));
+      await user.click(screen.getByTestId('ai-next-line-Sfx'));
+      expect((await screen.findAllByText(/ĐỒNG!/)).length).toBeGreaterThanOrEqual(1);
+
+      await user.click(screen.getByRole('button', { name: 'Yêu cầu sửa' }));
+      await user.type(
+        screen.getByPlaceholderText('Lý do yêu cầu sửa (bắt buộc)'),
+        'Tiếng hai thanh kiếm va nhau',
+      );
+      await user.click(screen.getByRole('button', { name: 'Xác nhận Yêu cầu sửa' }));
+
+      await waitFor(() =>
+        expect(runNextLineSpy).toHaveBeenLastCalledWith('se-1', {
+          sceneId: 'sc-1',
+          kind: 'Sfx',
+          afterLineId: 'line-1',
+          revisionOfSuggestionId: 'sug-rc-1',
+        }),
+      );
+      expect((await screen.findAllByText(/KENG! KENG!/)).length).toBeGreaterThanOrEqual(1);
+    });
+
     it('bấm gợi ý dòng tiếp theo gọi POST copilot/next-line, hiện SuggestionCard chờ Accept/Reject (BR-02) và tải lại sau Accept', async () => {
       const user = userEvent.setup();
       const nextLineSuggestion = {

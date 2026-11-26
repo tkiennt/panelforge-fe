@@ -43,6 +43,7 @@ import {
   type AiSuggestionDto,
   type AiSuggestionKind,
   type NextLineKind,
+  type NextLineSuggestion,
 } from '@/services/aiAgents.service';
 import {
   AiAssistPanel,
@@ -1673,7 +1674,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setRunningNextLineKind(null);
   }, [currentChapter?.id]);
 
-  const handleRewriteLineById = async (lineId: string) => {
+  const handleRewriteLineById = async (lineId: string, revisionOfSuggestionId?: string) => {
     const effectiveSeriesId = seriesId || currentChapter?.seriesId;
     if (!effectiveSeriesId || !lineId) return;
     setRewritingLineId(lineId);
@@ -1687,6 +1688,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       const sug = await aiAgentsService.runCopilot(effectiveSeriesId, {
         task: 'writer.rewrite',
         lineId,
+        ...(revisionOfSuggestionId ? { revisionOfSuggestionId } : {}),
       });
       setLineCopilotSuggestions((prev) => ({ ...prev, [lineId]: sug }));
     } catch (err: any) {
@@ -1706,10 +1708,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     sceneId,
     kind,
     afterLineId,
+    speaker,
+    revisionOfSuggestionId,
   }: {
     sceneId: string;
     kind: NextLineKind;
     afterLineId: string | null;
+    speaker?: string | null;
+    revisionOfSuggestionId?: string;
   }) => {
     const effectiveSeriesId = seriesId || currentChapter?.seriesId;
     if (!effectiveSeriesId || !sceneId) return;
@@ -1726,6 +1732,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         sceneId,
         kind,
         afterLineId,
+        ...(speaker ? { speaker } : {}),
+        ...(revisionOfSuggestionId ? { revisionOfSuggestionId } : {}),
       });
       setLineCopilotSuggestions((prev) => ({ ...prev, [slotKey]: sug }));
     } catch (err: any) {
@@ -1778,6 +1786,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             canAccept: false,
           },
         }));
+        // "Yêu cầu sửa": chạy lại AI với lý do của người duyệt (BE ghép lý do vào đầu vào, BR-02)
+        if (decision === 'request-changes') {
+          if (suggestion.kind === 'LineRewrite') {
+            await handleRewriteLineById(lineId, suggestion.id);
+          } else if (suggestion.kind === 'ScriptLineInsert') {
+            const p = suggestion.payload as unknown as NextLineSuggestion;
+            await handleRunNextLine({
+              sceneId: p.sceneId,
+              kind: p.kind as NextLineKind,
+              afterLineId: p.afterLineId ?? null,
+              speaker: p.speaker ?? null,
+              revisionOfSuggestionId: suggestion.id,
+            });
+          }
+        }
       }
     } catch (err: any) {
       const msg = err?.message || t('writer.scriptEditor.aiDecisionFallback');
