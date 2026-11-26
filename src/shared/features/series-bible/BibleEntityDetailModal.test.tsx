@@ -177,6 +177,38 @@ describe('BibleEntityDetailModal UX/UI', () => {
     });
   });
 
+  it('previews a selected Artist file inside Reference Sheet and shows the Writer–Artist handoff', async () => {
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        entity={mockEntityNoImage}
+        rawEntry={undefined}
+        isProducer={false}
+        isArtist
+        canCreateDraft={false}
+        onSubmitConceptFile={vi.fn().mockResolvedValue(true)}
+      />,
+    );
+
+    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent(
+      'Writer · Lưu đặc tả',
+    );
+    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent(
+      'Artist · Nộp artwork',
+    );
+
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(input).not.toBeNull();
+    const file = new File(['artwork'], 'concept.jpg', { type: 'image/jpeg' });
+    fireEvent.change(input!, { target: { files: [file] } });
+
+    expect(await screen.findByAltText('concept.jpg')).toBeInTheDocument();
+    expect(screen.queryByText(/Chưa có ảnh Reference Sheet/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent(
+      'Bản vẽ đã chọn, sẵn sàng nộp',
+    );
+  });
+
   it('renders compact empty state without giant black box when no image exists', () => {
     render(
       <BibleEntityDetailModal {...defaultProps} entity={mockEntityNoImage} rawEntry={undefined} />,
