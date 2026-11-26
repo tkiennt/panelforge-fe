@@ -139,17 +139,21 @@ describe('API nhiệm vụ AI (workflow)', () => {
     expect(conflict.message).toContain('layout');
   });
 
-  it('availability: GET đúng route, có/không sceneId', async () => {
+  it('availability: GET đúng route, có/không sceneId và hỗ trợ appendScript=true (TASK-363)', async () => {
     get.mockResolvedValue({ data: { workflows: [] } });
 
     await aiAgentsService.getWorkflowAvailability('s1', 'c1', 'sc1');
     await aiAgentsService.getWorkflowAvailability('s1', 'c1');
+    await aiAgentsService.getWorkflowAvailability('s1', 'c1', 'sc1', true);
 
     expect(get).toHaveBeenNthCalledWith(1, '/series/s1/ai/workflows/availability', {
       params: { chapterId: 'c1', sceneId: 'sc1' },
     });
     expect(get).toHaveBeenNthCalledWith(2, '/series/s1/ai/workflows/availability', {
       params: { chapterId: 'c1' },
+    });
+    expect(get).toHaveBeenNthCalledWith(3, '/series/s1/ai/workflows/availability', {
+      params: { chapterId: 'c1', sceneId: 'sc1', appendScript: true },
     });
   });
 });

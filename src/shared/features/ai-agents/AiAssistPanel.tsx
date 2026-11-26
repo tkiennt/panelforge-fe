@@ -348,6 +348,8 @@ export const AiAssistPanel: React.FC<Props> = ({
   const [scriptAccepted, setScriptAccepted] = useState(false);
 
   // Script-only UI states (unused when workflowType !== 'Script')
+  const [appendScript, setAppendScript] = useState(false);
+  const [sceneHasLinkedFromAvail, setSceneHasLinkedFromAvail] = useState(false);
   const [showContext, setShowContext] = useState(true);
   const [showOptions, setShowOptions] = useState(false);
   const [confirmOutlineOverwrite, setConfirmOutlineOverwrite] = useState(false);
@@ -402,15 +404,30 @@ export const AiAssistPanel: React.FC<Props> = ({
     };
   }, [seriesId, sceneId, suggestionKind, storageKey]);
 
+  const effectiveAppendScript = isScriptWorkflow && appendScript;
+
+  useEffect(() => {
+    setAppendScript(false);
+    setSceneHasLinkedFromAvail(false);
+  }, [seriesId, chapterId, sceneId, workflowType]);
+
   // (a) khả năng chạy nhiệm vụ trong Scene này
   useEffect(() => {
     let alive = true;
     setLoadingAvail(true);
-    aiAgentsService
-      .getWorkflowAvailability(seriesId, chapterId, sceneId)
+    const req = effectiveAppendScript
+      ? aiAgentsService.getWorkflowAvailability(seriesId, chapterId, sceneId, true)
+      : aiAgentsService.getWorkflowAvailability(seriesId, chapterId, sceneId);
+    req
       .then((res) => {
         if (!alive) return;
-        setAvailability(res.workflows.find((w) => w.workflowType === workflowType) ?? null);
+        const wf = res.workflows.find((w) => w.workflowType === workflowType) ?? null;
+        setAvailability(wf);
+        if (isScriptWorkflow && !effectiveAppendScript) {
+          setSceneHasLinkedFromAvail(
+            Boolean(wf?.missing?.some((m) => m.code === 'SCENE_LINES_LINKED')),
+          );
+        }
       })
       .catch((e) => {
         if (!alive) return;
@@ -424,7 +441,7 @@ export const AiAssistPanel: React.FC<Props> = ({
     return () => {
       alive = false;
     };
-  }, [seriesId, chapterId, sceneId, workflowType, tf]);
+  }, [seriesId, chapterId, sceneId, workflowType, isScriptWorkflow, effectiveAppendScript, tf]);
 
   const activeRunId = run && isActiveRun(run.status) ? run.id : null;
 
@@ -547,6 +564,13 @@ export const AiAssistPanel: React.FC<Props> = ({
   const isBriefTooLong = isScriptWorkflow && finalBrief.length > BRIEF_MAX_LENGTH;
   const linkedPanelLineCount = isScriptWorkflow ? (scriptContext?.linkedPanelLineCount ?? 0) : 0;
   const hasLinkedPanelLines = linkedPanelLineCount > 0;
+  const hasSceneLinkedLines =
+    isScriptWorkflow &&
+    (hasLinkedPanelLines ||
+      sceneHasLinkedFromAvail ||
+      Boolean(availability?.missing?.some((m) => m.code === 'SCENE_LINES_LINKED')));
+  const showAppendToggle = isScriptWorkflow && (hasSceneLinkedLines || appendScript);
+  const blockedByLinkedLines = hasSceneLinkedLines && !effectiveAppendScript;
   const existingSceneLineCount = isScriptWorkflow ? (scriptContext?.sceneLineCount ?? 0) : 0;
 
   const activeOptionalCount =
@@ -565,11 +589,11 @@ export const AiAssistPanel: React.FC<Props> = ({
     running ||
     !finalBrief ||
     isBriefTooLong ||
-    hasLinkedPanelLines;
+    blockedByLinkedLines;
 
   // (b) chạy nhiệm vụ
   const executeRun = async (runBrief: string, revisionOfSuggestionId?: string) => {
-    if (!runBrief || runBrief.length > BRIEF_MAX_LENGTH || hasLinkedPanelLines) return;
+    if (!runBrief || runBrief.length > BRIEF_MAX_LENGTH || blockedByLinkedLines) return;
     setError(null);
     setStarting(true);
     setPollFailed(false);
@@ -586,6 +610,7 @@ export const AiAssistPanel: React.FC<Props> = ({
         baseScriptRevisionId: latestScriptRevisionId(revisions),
         panelIds: panelIds && panelIds.length > 0 ? panelIds : undefined,
         ...(revisionOfSuggestionId ? { revisionOfSuggestionId } : {}),
+        ...(effectiveAppendScript ? { appendScript: true } : {}),
       });
       storeRunId(storageKey, started.runId);
       setRun(await aiAgentsService.getRun(seriesId, started.runId));
@@ -778,7 +803,7 @@ export const AiAssistPanel: React.FC<Props> = ({
     running ||
     !rerunBrief ||
     rerunBrief.length > BRIEF_MAX_LENGTH ||
-    hasLinkedPanelLines;
+    blockedByLinkedLines;
   const status = run ? statusText(run) : null;
   const scriptProgressStages =
     isScriptWorkflow && run ? getScriptProgressStages(run, steps, suggestions.length > 0) : null;
@@ -1013,7 +1038,7 @@ export const AiAssistPanel: React.FC<Props> = ({
           </div>
         )}
 
-        {isScriptWorkflow && hasLinkedPanelLines && (
+        {isScriptWorkflow && hasLinkedPanelLines && !effectiveAppendScript && (
           <div
             role='alert'
             data-testid='ai-script-linked-panels-warning'
@@ -1026,17 +1051,54 @@ export const AiAssistPanel: React.FC<Props> = ({
           </div>
         )}
 
-        {isScriptWorkflow && !hasLinkedPanelLines && existingSceneLineCount > 0 && (
+        {showAppendToggle && (
           <div
-            data-testid='ai-script-replace-warning'
-            className='flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-900'
+            data-testid='ai-script-append-card'
+            className={`rounded-xl border p-2.5 text-xs transition-colors ${
+              effectiveAppendScript
+                ? 'border-emerald-300 bg-emerald-50/70 text-emerald-950'
+                : 'border-orange-200 bg-orange-50/60 text-stone-800'
+            }`}
           >
-            <AlertTriangle className='mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600' />
-            <span>
-              {t('scriptStudio.aiPanel.replaceWarning', { count: existingSceneLineCount })}
-            </span>
+            <label className='flex cursor-pointer items-start justify-between gap-3'>
+              <div className='space-y-0.5'>
+                <span className='font-semibold text-[#171717]'>
+                  {t('scriptStudio.aiPanel.appendScriptLabel')}
+                </span>
+                <p className='text-[11px] leading-relaxed text-[#525252]'>
+                  {effectiveAppendScript
+                    ? t('scriptStudio.aiPanel.appendScriptActiveDesc')
+                    : t('scriptStudio.aiPanel.appendScriptDesc')}
+                </p>
+              </div>
+              <input
+                type='checkbox'
+                role='switch'
+                data-testid='ai-append-script-toggle'
+                aria-label={t('scriptStudio.aiPanel.appendScriptLabel')}
+                checked={effectiveAppendScript}
+                disabled={running || starting || aiLocked}
+                onChange={(e) => setAppendScript(e.target.checked)}
+                className='mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-orange-600 disabled:cursor-not-allowed disabled:opacity-50'
+              />
+            </label>
           </div>
         )}
+
+        {isScriptWorkflow &&
+          !hasSceneLinkedLines &&
+          !effectiveAppendScript &&
+          existingSceneLineCount > 0 && (
+            <div
+              data-testid='ai-script-replace-warning'
+              className='flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-900'
+            >
+              <AlertTriangle className='mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600' />
+              <span>
+                {t('scriptStudio.aiPanel.replaceWarning', { count: existingSceneLineCount })}
+              </span>
+            </div>
+          )}
 
         {workflowType === 'Storyboard' && hasPanels && (
           <div
