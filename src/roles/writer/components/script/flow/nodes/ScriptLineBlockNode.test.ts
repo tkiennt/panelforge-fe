@@ -150,6 +150,18 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
     expect(activeEl(editor)).toBe('dialogue');
   });
 
+  it('Tab nhận tên nhân vật được đề xuất từ Series Bible dù chưa xuất hiện trong kịch bản', () => {
+    const editor = createEditor([line('character', 'nar')], {
+      bibleSpeakers: [{ name: 'Naruto Uzumaki' }],
+    });
+    caretAtEndOf(editor, 0);
+
+    press(editor, 'Tab');
+
+    expect(texts(editor)[0]).toBe('NARUTO UZUMAKI:');
+    expect(activeEl(editor)).toBe('dialogue');
+  });
+
   it('Ctrl+1..8 đổi loại dòng; đổi dòng có chữ thành Trang thì chèn Trang mới, không mất chữ', () => {
     const editor = createEditor([line('action', 'BÙM')]);
     caretAtEndOf(editor, 0);
