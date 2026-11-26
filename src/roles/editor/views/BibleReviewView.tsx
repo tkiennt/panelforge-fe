@@ -10,6 +10,7 @@ import {
 import { errorMessage } from '@/shared/features/collaboration/collaborationRules';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { ReasonForm } from '@/shared/components/ReasonForm';
+import { ReworkModal } from '@/shared/features/series-bible/ReworkModal';
 
 interface BibleReviewViewProps {
   workspaceRole?: string | null;
@@ -57,8 +58,10 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
 
   const role = (workspaceRole ?? '').toUpperCase();
   // Q20/Q22: chỉ Editor khoá Canon; Writer, Editor và Producer đều có thể yêu cầu vẽ lại.
+  const isWriter = role === 'WRITER';
+  const isProducer = role === 'PRODUCER';
   const canLockCanon = role === 'EDITOR';
-  const canRequestRework = canLockCanon || role === 'WRITER' || role === 'PRODUCER';
+  const canRequestRework = canLockCanon || isWriter || isProducer;
 
   const load = useCallback(async () => {
     if (!seriesId) return;
@@ -78,8 +81,11 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
     load();
   }, [load]);
 
+  const reviewRevisionOf = (e: BibleEntryDto): BibleEntryRevisionDto | null =>
+    e.pendingReviewRevision ?? e.effectiveRevision ?? null;
+
   const groups = useMemo(() => {
-    const by = (s: ReviewStatus) => entries.filter((e) => statusOf(e.effectiveRevision) === s);
+    const by = (s: ReviewStatus) => entries.filter((e) => statusOf(reviewRevisionOf(e)) === s);
     return {
       pending: by('ConceptSubmitted'),
       rework: by('ReworkRequired'),
@@ -94,7 +100,7 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
   }, [groups, selectedId]);
 
   const selected = entries.find((e) => e.id === selectedId) ?? null;
-  const rev = selected?.effectiveRevision ?? null;
+  const rev = selected ? reviewRevisionOf(selected) : null;
 
   // Mỗi lần Artist nộp lại là một revision mới, nên góp ý cũ nằm ở các revision trước trong lịch sử của mục.
   const [history, setHistory] = useState<BibleEntryRevisionDto[]>([]);
@@ -110,6 +116,11 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
     };
   }, [seriesId, selectedId, rev?.id]);
   const status = statusOf(rev);
+  const conceptVer = rev?.currentConceptVersionNumber ?? 1;
+  const isEndorsedForCurrent = Boolean(
+    rev?.writerEndorsement?.endorsed &&
+    (rev.writerEndorsement.conceptVersion ?? conceptVer) === conceptVer,
+  );
   const canDecide = canRequestRework && status === 'ConceptSubmitted';
 
   const decide = async (action: () => Promise<unknown>, title: string) => {
@@ -137,6 +148,16 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
       t('bibleReview.toast.canonLocked'),
     );
 
+  const toggleEndorse = () =>
+    selected &&
+    rev &&
+    decide(
+      () => bibleService.endorseRevision(seriesId, rev.id, !isEndorsedForCurrent),
+      isEndorsedForCurrent
+        ? t('bibleReview.toast.endorseRemoved', 'Đã bỏ xác nhận tạo hình')
+        : t('bibleReview.toast.endorsed', 'Đã xác nhận tạo hình'),
+    );
+
   const requestRework = (reason: string) =>
     selected &&
     rev &&
@@ -153,36 +174,39 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
         </p>
         <p className='px-4 pb-2 text-xs text-stone-500'>{hint}</p>
         <ul>
-          {list.map((e) => (
-            <li key={e.id}>
-              <button
-                type='button'
-                onClick={() => {
-                  setSelectedId(e.id);
-                  setReworking(false);
-                  setZoomed(false);
-                }}
-                aria-current={e.id === selectedId}
-                className={`flex w-full items-center gap-3 border-l-2 px-4 py-2 text-left transition-colors duration-150 ${
-                  e.id === selectedId
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-transparent hover:bg-stone-50'
-                }`}
-              >
-                <span className='min-w-0'>
-                  <span className='block truncate text-sm font-medium text-stone-900'>
-                    {e.name}
+          {list.map((e) => {
+            const itemRev = reviewRevisionOf(e);
+            return (
+              <li key={e.id}>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setSelectedId(e.id);
+                    setReworking(false);
+                    setZoomed(false);
+                  }}
+                  aria-current={e.id === selectedId}
+                  className={`flex w-full items-center gap-3 border-l-2 px-4 py-2 text-left transition-colors duration-150 cursor-pointer ${
+                    e.id === selectedId
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-transparent hover:bg-stone-50'
+                  }`}
+                >
+                  <span className='min-w-0'>
+                    <span className='block truncate text-sm font-medium text-stone-900'>
+                      {e.name}
+                    </span>
+                    <span className='block font-mono text-xs text-stone-500'>
+                      {e.code}
+                      {itemRev?.variantLabel || itemRev?.stageName
+                        ? ` · ${itemRev.variantLabel || itemRev.stageName}`
+                        : ''}
+                    </span>
                   </span>
-                  <span className='block font-mono text-xs text-stone-500'>
-                    {e.code}
-                    {e.effectiveRevision?.variantLabel || e.effectiveRevision?.stageName
-                      ? ` · ${e.effectiveRevision.variantLabel || e.effectiveRevision.stageName}`
-                      : ''}
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </section>
     );
@@ -370,10 +394,58 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
                 {status === 'ReworkRequired' && (
                   <p className='text-xs text-stone-600'>{t('bibleReview.waitingArtist')}</p>
                 )}
-                {canDecide && !reworking && (
+                {canDecide && (!reworking || isProducer) && (
                   <>
+                    {canLockCanon &&
+                      (isEndorsedForCurrent ? (
+                        <div
+                          data-testid='writer-endorsed-badge'
+                          className='inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800'
+                        >
+                          <CheckCircle2 className='h-3.5 w-3.5 shrink-0' aria-hidden='true' />
+                          <span>
+                            {t('bibleReview.writerEndorsedBadge', {
+                              version: conceptVer,
+                              defaultValue: `Writer đã xác nhận bản v${conceptVer}`,
+                            })}
+                          </span>
+                        </div>
+                      ) : (
+                        <div
+                          role='status'
+                          data-testid='writer-not-endorsed-banner'
+                          className='rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900'
+                        >
+                          {t('bibleReview.writerNotEndorsedBanner', {
+                            version: conceptVer,
+                            defaultValue: `Writer chưa xác nhận bản vẽ v${conceptVer} này. Bạn vẫn có thể Khóa Canon nếu đã thống nhất.`,
+                          })}
+                        </div>
+                      ))}
                     <p className='text-xs text-stone-500'>{t('bibleReview.decisionHint')}</p>
                     <div className='flex flex-wrap gap-2'>
+                      {isWriter && (
+                        <button
+                          type='button'
+                          onClick={toggleEndorse}
+                          disabled={busy}
+                          aria-pressed={isEndorsedForCurrent}
+                          data-testid='writer-endorse-btn'
+                          className={`inline-flex min-w-40 flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-50 shadow-xs cursor-pointer ${
+                            isEndorsedForCurrent
+                              ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                              : 'border-amber-300 bg-white text-amber-900 hover:bg-amber-50'
+                          }`}
+                        >
+                          <CheckCircle2 className='h-4 w-4' aria-hidden='true' />
+                          {isEndorsedForCurrent
+                            ? t('bibleReview.endorsedToggleBtn', {
+                                version: conceptVer,
+                                defaultValue: `Đã xác nhận tạo hình v${conceptVer}`,
+                              })
+                            : t('bibleReview.endorseBtn', 'Xác nhận tạo hình (Endorse)')}
+                        </button>
+                      )}
                       <button
                         type='button'
                         onClick={() => setReworking(true)}
@@ -397,13 +469,39 @@ export const BibleReviewView: React.FC<BibleReviewViewProps> = ({ workspaceRole,
                     </div>
                   </>
                 )}
-                {canDecide && reworking && (
+                {canDecide && reworking && !isProducer && (
                   <ReasonForm
                     label={t('bibleReview.reworkReason')}
                     confirmLabel={t('bibleReview.requestRework')}
                     busy={busy}
                     onCancel={() => setReworking(false)}
                     onConfirm={requestRework}
+                  />
+                )}
+                {canDecide && reworking && isProducer && (
+                  <ReworkModal
+                    isOpen={reworking}
+                    targetRev={rev}
+                    entityName={selected.name}
+                    isSubmitting={busy}
+                    titleOverride={t(
+                      'bibleReview.producerReworkModalTitle',
+                      'Producer: Yêu cầu vẽ lại (lý do sản xuất)',
+                    )}
+                    reasonLabelOverride={t(
+                      'bibleReview.producerReworkReasonLabel',
+                      'Lý do sản xuất / điều chỉnh phạm vi',
+                    )}
+                    reasonPlaceholderOverride={t(
+                      'bibleReview.producerReworkReasonPlaceholder',
+                      'Ví dụ: chi tiết giáp quá phức tạp cho tiến độ tuần, cần đơn giản hóa hoa văn...',
+                    )}
+                    reasonHelpOverride={t(
+                      'bibleReview.producerReworkReasonHelp',
+                      'Artist sẽ nhận thông báo ưu tiên xử lý ở đầu hàng đợi thiết kế.',
+                    )}
+                    onClose={() => setReworking(false)}
+                    onSubmit={requestRework}
                   />
                 )}
               </div>

@@ -11,6 +11,10 @@ vi.mock('@/services/bible.service', () => ({
     getEntryHistory: vi.fn().mockResolvedValue([]),
     confirmRevision: vi.fn().mockResolvedValue({ reviewStatus: 'CanonLocked' }),
     requestReworkRevision: vi.fn().mockResolvedValue({ reviewStatus: 'ReworkRequired' }),
+    endorseRevision: vi.fn().mockResolvedValue({
+      reviewStatus: 'ConceptSubmitted',
+      writerEndorsement: { endorsed: true, conceptVersion: 1 },
+    }),
   },
 }));
 
@@ -86,7 +90,74 @@ describe('BibleReviewView lifecycle permissions', () => {
   it('keeps Producer read-only except for requesting redraw', async () => {
     renderView('PRODUCER');
 
-    expect(await screen.findByRole('button', { name: /Yêu cầu vẽ lại/i })).toBeDefined();
+    const reworkBtn = await screen.findByRole('button', { name: /Yêu cầu vẽ lại/i });
+    expect(reworkBtn).toBeDefined();
     expect(screen.queryByRole('button', { name: /Xác nhận & Khoá Canon/i })).toBeNull();
+
+    // Producer opens production-reason modal on Yêu cầu vẽ lại
+    fireEvent.click(reworkBtn);
+    const textbox = await screen.findByRole('textbox');
+    fireEvent.change(textbox, { target: { value: 'Giảm chi tiết áo giáp để kịp tiến độ' } });
+    fireEvent.click(screen.getByRole('button', { name: /Gửi yêu cầu/i }));
+
+    await waitFor(() =>
+      expect(bibleService.requestReworkRevision).toHaveBeenCalledWith(
+        'series-1',
+        'entry-1',
+        'rev-1',
+        {
+          reason: 'Giảm chi tiết áo giáp để kịp tiến độ',
+        },
+      ),
+    );
+  });
+
+  it('shows non-blocking Amber warning when Writer has not endorsed and keeps Lock Canon enabled, and shows Emerald badge once endorsed', async () => {
+    renderView('EDITOR');
+
+    const amberBanner = await screen.findByTestId('writer-not-endorsed-banner');
+    expect(amberBanner).toHaveTextContent(/Writer chưa xác nhận bản vẽ v1/i);
+    const lockButton = screen.getByRole('button', { name: /Xác nhận & Khoá Canon/i });
+    expect(lockButton).toBeEnabled();
+
+    // Now return an endorsed concept for v1
+    vi.mocked(bibleService.getSeriesBible).mockResolvedValueOnce({
+      id: 'bible-1',
+      seriesId: 'series-1',
+      workspaceId: 'workspace-1',
+      name: 'Series Bible',
+      version: 1,
+      entries: [
+        {
+          ...conceptEntry,
+          effectiveRevision: {
+            ...conceptEntry.effectiveRevision,
+            currentConceptVersionNumber: 1,
+            writerEndorsement: {
+              endorsed: true,
+              endorsedByName: 'Writer Minh',
+              endorsedAt: '2026-11-26T00:00:00Z',
+              conceptVersion: 1,
+            },
+          },
+        },
+      ],
+    });
+
+    renderView('EDITOR');
+    const emeraldBadge = await screen.findByTestId('writer-endorsed-badge');
+    expect(emeraldBadge).toHaveTextContent(/Writer đã xác nhận bản v1/i);
+  });
+
+  it('lets Writer toggle soft endorsement on ConceptSubmitted revision', async () => {
+    renderView('WRITER');
+
+    const endorseBtn = await screen.findByTestId('writer-endorse-btn');
+    expect(endorseBtn).toHaveTextContent(/Xác nhận tạo hình \(Endorse\)/i);
+    fireEvent.click(endorseBtn);
+
+    await waitFor(() =>
+      expect(bibleService.endorseRevision).toHaveBeenCalledWith('series-1', 'rev-1', true),
+    );
   });
 });

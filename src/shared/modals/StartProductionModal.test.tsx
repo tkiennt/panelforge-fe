@@ -6,6 +6,13 @@ import { chapterService } from '@/services/chapter.service';
 import { chapterCastService } from '@/services/chapterCast.service';
 import { workspaceService } from '@/services/workspace.service';
 import { pageService } from '@/services/page.service';
+import { bibleService } from '@/services/bible.service';
+
+vi.mock('@/services/bible.service', () => ({
+  bibleService: {
+    setBibleEntryCrowd: vi.fn().mockResolvedValue({ id: 'entry-2', isCrowd: true }),
+  },
+}));
 
 vi.mock('@/services/chapter.service', () => ({
   chapterService: {
@@ -264,10 +271,18 @@ describe('StartProductionModal Component', () => {
       expect(screen.getByTestId('gate1-submit-error')).toBeInTheDocument();
       expect(screen.getByText('Lỗi xung đột khi bắt đầu sản xuất')).toBeInTheDocument();
       expect(screen.getByText(/Nhân vật Y/)).toBeInTheDocument();
+      expect(screen.getByTestId('gate1-quick-crowd-entry-2')).toBeInTheDocument();
       expect(defaultProps.onShowToast).toHaveBeenCalledWith(
         'Lỗi xung đột khi bắt đầu sản xuất',
         '',
       );
+    });
+
+    // Producer quick-resolves background NPC as IsCrowd right inside 409 blocker list
+    fireEvent.click(screen.getByTestId('gate1-quick-crowd-entry-2'));
+    await waitFor(() => {
+      expect(bibleService.setBibleEntryCrowd).toHaveBeenCalledWith('series-1', 'entry-2', true);
+      expect(screen.queryByTestId('gate1-quick-crowd-entry-2')).not.toBeInTheDocument();
     });
   });
 

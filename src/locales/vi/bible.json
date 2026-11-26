@@ -389,7 +389,8 @@
     "btnCreateVariantSave": "Tạo biến thể & Lưu",
     "btnCreateVariantSend": "Tạo biến thể & Gửi",
     "btnSaveVersion": "Lưu phiên bản",
-    "btnSendDraft": "Gửi bản nháp"
+    "btnSendDraft": "Gửi bản nháp",
+    "artworkReadyLabel": "Tệp hình ảnh đã sẵn sàng"
   },
   "detailModal": {
     "backToBible": "Series Bible",
@@ -642,7 +643,20 @@
     "requestInfoSuccessTitle": "Đã gửi yêu cầu sửa thông tin",
     "requestInfoSuccessDesc": "Yêu cầu chỉnh sửa trường \"{field}\" của \"{name}\" đã được chuyển cho Biên kịch.",
     "requestInfoErrorTitle": "Không thể gửi yêu cầu",
-    "requestInfoErrorDesc": "Có lỗi xảy ra khi gửi yêu cầu sửa thông tin."
+    "requestInfoErrorDesc": "Có lỗi xảy ra khi gửi yêu cầu sửa thông tin.",
+    "aliasesTitle": "Tên phụ / Biệt danh (Auto-link kịch bản)",
+    "aliasesEmpty": "Chưa có tên phụ nào.",
+    "aliasPlaceholder": "Thêm biệt danh...",
+    "addAliasBtn": "Thêm",
+    "removeAliasAria": "Xoá tên phụ {alias}",
+    "aliasesSavedTitle": "Đã cập nhật tên phụ",
+    "aliasesSaveErrorTitle": "Lỗi cập nhật tên phụ",
+    "aliasesSaveErrorDesc": "Không thể lưu danh sách tên phụ.",
+    "supersedeDraftNotice": "Đang soạn bản thay thế nháp v{version}.",
+    "cancelReplacementBtn": "Huỷ bản thay thế",
+    "cancelingReplacementBtn": "Đang huỷ...",
+    "cancelReplacementSuccessTitle": "Đã huỷ bản thay thế",
+    "cancelReplacementErrorTitle": "Không thể huỷ bản thay thế"
   },
   "view": {
     "canonHub": "Canon Hub",
@@ -882,6 +896,8 @@
     "defineStubBtn": "Định nghĩa",
     "openWorkbench": "Bàn làm việc",
     "hasDraftVersion": "Có bản nháp v{version}",
+    "queuePriorityRework": "Ưu tiên vẽ lại",
+    "revisionRecordedLabel": "Đã lưu phiên bản",
     "defaultVariant": "Mặc định",
     "statusCanon": "Canon",
     "statusInUse": "Đang áp dụng",

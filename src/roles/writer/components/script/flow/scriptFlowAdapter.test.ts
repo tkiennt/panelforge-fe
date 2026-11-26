@@ -418,4 +418,70 @@ describe('scriptFlowAdapter', () => {
     // Panel 3: không đụng tới castRevisions -> không gửi field (BE hiểu là null = giữ nguyên)
     expect('castRevisions' in p1Panels[2]).toBe(false);
   });
+
+  it('giữ nguyên castRevisions neo đúng theo từng Panel ID khi chèn hoặc xoá Panel ở giữa trang', () => {
+    const entryA = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const revA1 = '11111111-1111-4111-8111-111111111111';
+    const entryB = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const revB2 = '22222222-2222-4222-8222-222222222222';
+    const PANEL_3 = '33333333-3333-4333-8333-333333333333';
+
+    // Kịch bản chèn 1 Panel mới (refId: null) vào giữa Panel 1 và Panel 3, và xoá Panel 2 cũ khỏi trang
+    const docAfterMidInsertAndDelete = toNode({
+      type: 'doc',
+      content: [
+        { type: 'scriptLine', attrs: { el: 'page', refId: PAGE_ID } },
+        {
+          type: 'scriptLine',
+          attrs: {
+            el: 'panel',
+            refId: PANEL_1,
+            castRevisions: [{ entryId: entryA, revisionId: revA1 }],
+          },
+        },
+        {
+          type: 'scriptLine',
+          attrs: { el: 'action', refId: null },
+          content: [{ type: 'text', text: 'Khung 1 giữ nguyên' }],
+        },
+        {
+          type: 'scriptLine',
+          attrs: { el: 'panel', refId: null },
+        },
+        {
+          type: 'scriptLine',
+          attrs: { el: 'action', refId: null },
+          content: [{ type: 'text', text: 'Khung mới chèn giữa trang' }],
+        },
+        {
+          type: 'scriptLine',
+          attrs: {
+            el: 'panel',
+            refId: PANEL_3,
+            castRevisions: [{ entryId: entryB, revisionId: revB2 }],
+          },
+        },
+        {
+          type: 'scriptLine',
+          attrs: { el: 'action', refId: null },
+          content: [{ type: 'text', text: 'Khung 3 cũ nay mang số thứ tự 3' }],
+        },
+      ],
+    });
+
+    const tree = docToScriptTree(docAfterMidInsertAndDelete, null);
+    const outPanels = tree.pages![0].panels!;
+
+    expect(outPanels).toHaveLength(3);
+    expect(outPanels[0].id).toBe(PANEL_1);
+    expect(outPanels[0].castRevisions).toEqual([{ entryId: entryA, revisionId: revA1 }]);
+
+    expect(outPanels[1].id).toBeNull();
+    expect(outPanels[1].lines?.[0].text).toBe('Khung mới chèn giữa trang');
+    expect('castRevisions' in outPanels[1]).toBe(false);
+
+    expect(outPanels[2].id).toBe(PANEL_3);
+    expect(outPanels[2].lines?.[0].text).toBe('Khung 3 cũ nay mang số thứ tự 3');
+    expect(outPanels[2].castRevisions).toEqual([{ entryId: entryB, revisionId: revB2 }]);
+  });
 });

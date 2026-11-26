@@ -59,6 +59,7 @@ export interface BibleEntity {
   latestDraftVersionNumber?: number | null;
   isCrowd?: boolean;
   isStub?: boolean;
+  aliases?: string[];
   gallery?: Array<{ url: string; label?: string; sha256?: string }>;
   attributes?: Record<string, any>;
 }
