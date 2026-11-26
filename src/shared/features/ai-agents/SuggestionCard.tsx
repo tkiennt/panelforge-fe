@@ -35,7 +35,7 @@ import {
 } from '@/services/aiAgents.service';
 import { ArtistPromptsView, LetteringDiffView } from './AgentOutputViews';
 import { LayoutPreview } from './LayoutPreview';
-import { KIND_META } from './aiViewUtils';
+import { KIND_META, type LineInfo } from './aiViewUtils';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 
 const STATUS_STYLE: Record<AiSuggestionStatus, string> = {
@@ -86,6 +86,8 @@ interface Props {
   busy: boolean;
   nameById?: Record<string, string>;
   hasPanels?: boolean;
+  /** lineId → thứ tự dòng, để khung xem trước Layout ghi đúng "Dòng n". */
+  lines?: Record<string, LineInfo>;
   onDecide: (decision: 'accept' | 'reject' | 'request-changes', reason?: string) => void;
 }
 
@@ -192,6 +194,7 @@ export const SuggestionCard: React.FC<Props> = ({
   busy,
   nameById = {},
   hasPanels,
+  lines = {},
   onDecide,
 }) => {
   const { t, lang } = useTranslation('features');
@@ -409,7 +412,7 @@ export const SuggestionCard: React.FC<Props> = ({
               ) : s.kind === 'Layout' ? (
                 <LayoutPreview
                   layout={s.payload as StoryboardLayout}
-                  lines={{}}
+                  lines={lines}
                   nameById={nameById}
                 />
               ) : s.kind === 'Lettering' ? (
