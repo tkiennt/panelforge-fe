@@ -34,7 +34,8 @@ const toneTileClasses: Record<SurfaceTone, string> = {
 export interface PageHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   icon?: React.ReactNode;
   eyebrow?: React.ReactNode;
-  title: React.ReactNode;
+  title?: React.ReactNode;
+  titleAriaLabel?: string;
   description?: React.ReactNode;
   actions?: React.ReactNode;
   variant?: 'page' | 'toolbar';
@@ -47,12 +48,14 @@ export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(function P
     icon,
     eyebrow,
     title,
+    titleAriaLabel,
     description,
     actions,
     variant = 'page',
     as,
     headingLevel,
     className,
+    children,
     ...props
   },
   ref,
@@ -69,23 +72,34 @@ export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(function P
         )}
         {...props}
       >
-        <div className='flex min-w-0 items-center gap-3'>
-          {icon && (
-            <div className='grid size-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-dark [&_svg]:size-4'>
-              {icon}
-            </div>
-          )}
-          <div className='min-w-0'>
-            {eyebrow && (
-              <div className='text-xs font-semibold uppercase tracking-wider text-sienna'>
-                {eyebrow}
+        {children ?? (
+          <>
+            <div className='flex min-w-0 items-center gap-3'>
+              {icon && (
+                <div className='grid size-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-dark [&_svg]:size-4'>
+                  {icon}
+                </div>
+              )}
+              <div className='min-w-0'>
+                {eyebrow && (
+                  <div className='text-xs font-semibold uppercase tracking-wider text-sienna'>
+                    {eyebrow}
+                  </div>
+                )}
+                {title && (
+                  <HeadingTag
+                    aria-label={titleAriaLabel}
+                    className='truncate text-base font-bold text-stone-900'
+                  >
+                    {title}
+                  </HeadingTag>
+                )}
+                {description && <p className='truncate text-xs text-stone-600'>{description}</p>}
               </div>
-            )}
-            <HeadingTag className='truncate text-base font-bold text-stone-900'>{title}</HeadingTag>
-            {description && <p className='truncate text-xs text-stone-600'>{description}</p>}
-          </div>
-        </div>
-        {actions && <div className='flex shrink-0 items-center gap-2'>{actions}</div>}
+            </div>
+            {actions && <div className='flex shrink-0 items-center gap-2'>{actions}</div>}
+          </>
+        )}
       </div>
     );
   }
@@ -96,27 +110,34 @@ export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(function P
       className={cn('relative border-b border-head-line pb-4 pt-1', className)}
       {...props}
     >
-      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-        <div className='flex items-start gap-3.5'>
-          {icon && (
-            <div className='grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-dark [&_svg]:size-5'>
-              {icon}
-            </div>
-          )}
-          <div className='min-w-0'>
-            {eyebrow && (
-              <div className='text-xs font-semibold uppercase tracking-wider text-sienna'>
-                {eyebrow}
+      {children ?? (
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+          <div className='flex items-start gap-3.5'>
+            {icon && (
+              <div className='grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-dark [&_svg]:size-5'>
+                {icon}
               </div>
             )}
-            <HeadingTag className='font-serif text-2xl font-bold text-stone-900'>
-              {title}
-            </HeadingTag>
-            {description && <p className='mt-1 text-sm text-stone-600'>{description}</p>}
+            <div className='min-w-0'>
+              {eyebrow && (
+                <div className='text-xs font-semibold uppercase tracking-wider text-sienna'>
+                  {eyebrow}
+                </div>
+              )}
+              {title && (
+                <HeadingTag
+                  aria-label={titleAriaLabel}
+                  className='font-serif text-2xl font-bold text-stone-900'
+                >
+                  {title}
+                </HeadingTag>
+              )}
+              {description && <p className='mt-1 text-sm text-stone-600'>{description}</p>}
+            </div>
           </div>
+          {actions && <div className='flex shrink-0 items-center gap-2'>{actions}</div>}
         </div>
-        {actions && <div className='flex shrink-0 items-center gap-2'>{actions}</div>}
-      </div>
+      )}
       <span className='absolute -bottom-px left-0 h-[3px] w-12 bg-accent' aria-hidden='true' />
     </div>
   );
