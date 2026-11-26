@@ -448,13 +448,13 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
       const file = new File([blob], `page-${page.pageNumber}-v${artwork.versionNumber}`, {
         type: blob.type,
       });
-      const W = page.widthPx || 1200;
-      const H = page.heightPx || 1800;
       const fallback = await detectPanelsFromSketchImage(file, {
-        pageWidth: W,
-        pageHeight: H,
+        readingDirection: rtl ? 'rtl' : 'ltr',
       });
       if (req !== reqRef.current) return;
+      // Bản nháp dùng toạ độ ảnh (imageRectToPage đổi sang trang), nên lấy kích thước ảnh thật.
+      const W = fallback.imageWidth || page.widthPx || 1200;
+      const H = fallback.imageHeight || page.heightPx || 1800;
       const d = draftFromSplitResult({
         width: W,
         height: H,

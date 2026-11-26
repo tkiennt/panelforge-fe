@@ -945,5 +945,14 @@
     "balloonMoveFailedTitle": "Không thể dời bóng thoại",
     "loadFailed": "Không tải được vùng cấm chữ của trang.",
     "saveFailed": "Lưu vùng cấm chữ thất bại."
+  },
+  "splitStrip": {
+    "title": "Ảnh đã tách theo khung",
+    "heading": "Ảnh theo khung ({filled}/{total})",
+    "selectAria": "Chọn khung {panelNum}",
+    "imageAlt": "Ảnh khung {panelNum}",
+    "empty": "Trống",
+    "downloadTitle": "Tải ảnh xuống",
+    "downloadAria": "Tải ảnh khung {panelNum}"
   }
 }

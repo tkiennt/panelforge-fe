@@ -11,6 +11,8 @@ export interface PanelArtworkData {
   imageUrl: string;
   fileName: string;
   uploadedAt: string;
+  /** 'auto-split': ảnh cắt tự động từ ảnh phác thảo toàn trang (chỉ có ở máy, chưa tải lên). */
+  source?: 'auto-split' | 'upload';
 }
 
 const ACCEPTED_IMAGES = 'image/png,image/jpeg,image/webp';
