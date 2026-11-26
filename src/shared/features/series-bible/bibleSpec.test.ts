@@ -107,5 +107,15 @@ describe('bibleSpec', () => {
       expect(parsed.artistNotes).toContain('- Kiểu tóc / Màu tóc: Tóc vàng');
       expect(parsed.artistNotes).toContain('- Lưu ý cấm kỵ / Tránh vẽ sai: Không mang kính');
     });
+
+    it('deduplicates legacy fields repeated in attributes and DetailsJson', () => {
+      const parsed = parseBibleDetails(JSON.stringify({ height: '170cm', build: 'Cao' }), {
+        height: '170cm',
+        build: 'Cao',
+      });
+
+      expect(parsed.artistNotes.match(/Chiều cao/g)).toHaveLength(1);
+      expect(parsed.artistNotes.match(/Vóc dáng \/ Thể chất/g)).toHaveLength(1);
+    });
   });
 });

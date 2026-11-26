@@ -135,7 +135,7 @@ export const parseBibleDetails = (
 ): { age: string; artistNotes: string } => {
   let age = '';
   let artistNotes = '';
-  const bullets: string[] = [];
+  const legacyBullets = new Map<string, string>();
 
   const processObject = (obj: Record<string, any>) => {
     for (const [k, v] of Object.entries(obj)) {
@@ -148,8 +148,12 @@ export const parseBibleDetails = (
         if (!age) age = strVal;
       } else if (lower === 'artistnotes' || lower === 'artist_notes') {
         if (!artistNotes) artistNotes = sanitizeArtistNotes(strVal);
-      } else if (LEGACY_FIELD_LABELS[k]) {
-        bullets.push(`- ${LEGACY_FIELD_LABELS[k]}: ${strVal}`);
+      } else if (LEGACY_FIELD_LABELS[lower]) {
+        // Details may arrive both as top-level attributes and as DetailsJson.
+        // Keep the first value for each semantic field so notes never repeat.
+        if (!legacyBullets.has(lower)) {
+          legacyBullets.set(lower, `- ${LEGACY_FIELD_LABELS[lower]}: ${strVal}`);
+        }
       } else if (typeof v === 'object' && !Array.isArray(v)) {
         processObject(v);
       }
@@ -173,6 +177,7 @@ export const parseBibleDetails = (
     }
   }
 
+  const bullets = Array.from(legacyBullets.values());
   if (bullets.length > 0) {
     artistNotes = artistNotes ? `${artistNotes}\n\n${bullets.join('\n')}` : bullets.join('\n');
   }

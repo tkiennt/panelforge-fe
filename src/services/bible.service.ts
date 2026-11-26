@@ -142,6 +142,9 @@ export interface BibleConceptCommentDto {
   conceptEventId: string;
   parentCommentId?: string | null;
   authorId: string;
+  authorName?: string | null;
+  authorDisplayName?: string | null;
+  authorRole?: string | null;
   body: string;
   region?: string | null;
   resolvedAt?: string | null;
