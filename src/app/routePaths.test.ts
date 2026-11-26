@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildChapterManagementUrl,
   buildChapterReaderUrl,
   buildProductionWorkspaceUrl,
   buildScriptReviewUrl,
@@ -15,6 +16,10 @@ describe('canonical Producer and Editor routes', () => {
       }),
     ).toBe(
       '/workspaces/workspace%201/series/series%2F1/workspace?chapterId=chapter%3F1&tab=crew',
+    );
+
+    expect(buildChapterManagementUrl('workspace 1', 'series/1', 'chapter?1')).toBe(
+      '/workspaces/workspace%201/series/series%2F1/chapters?chapterId=chapter%3F1',
     );
 
     expect(buildScriptReviewUrl('workspace 1', 'series/1', 'chapter?1')).toBe(

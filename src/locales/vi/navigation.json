@@ -18,7 +18,8 @@
     "systemAdmin": "QUẢN TRỊ HỆ THỐNG",
     "studioManagement": "QUẢN LÝ STUDIO",
     "publisherDesk": "BÀN PHÁT HÀNH",
-    "productionUtilities": "TIỆN ÍCH SẢN XUẤT"
+    "productionUtilities": "TIỆN ÍCH SẢN XUẤT",
+    "qualityReview": "KIỂM DUYỆT"
   },
   "menu": {
     "dashboard": "Dashboard",
@@ -68,7 +69,13 @@
     "panelCanvasDesk": "Bàn vẽ Khung tranh",
     "scriptReadOnly": "Kịch bản (chỉ đọc)",
     "letteringAndBalloons": "Chèn chữ & Bóng thoại",
-    "editorReviewDesk": "Kiểm tra & Hiệu đính"
+    "editorReviewDesk": "Kiểm tra & Hiệu đính",
+    "pageMatrix": "Ma trận trang",
+    "chapterOverview": "Tổng quan chương",
+    "crewManagement": "Quản lý Ê-kíp",
+    "productionScript": "Kịch bản",
+    "readerAndReview": "Đọc thử & Soát trang",
+    "handoff": "Bàn giao"
   },
   "header": {
     "searchPlaceholder": "Tìm kiếm khung tranh, thoại, tư liệu...",
