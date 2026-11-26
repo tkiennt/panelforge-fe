@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ArtistDeskView } from './ArtistDeskView';
 import { chapterService } from '@/services/chapter.service';
@@ -51,6 +51,8 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
     expect(screen.getByTestId('canva-tab-pages')).toBeInTheDocument();
     expect(screen.getByTestId('canva-tab-script')).toBeInTheDocument();
     expect(screen.getByTestId('canva-tab-bible')).toBeInTheDocument();
+    expect(screen.getByTestId('canva-secondary-drawer')).not.toHaveClass('w-0');
+    expect(screen.getByTestId('canva-drawer-script')).toBeInTheDocument();
 
     // Canvas Shell & Clean Blank Manga Paper
     expect(screen.getByTestId('artist-canvas-shell')).toBeInTheDocument();
@@ -79,8 +81,7 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
       </MemoryRouter>,
     );
 
-    // Open Script tab
-    fireEvent.click(screen.getByTestId('canva-tab-script'));
+    // Script is the default drawer on Artist Desk.
     expect(screen.getByTestId('canva-secondary-drawer')).not.toHaveClass('w-0');
 
     // Switch to Bible tab
@@ -113,6 +114,28 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
     expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('7 / 7');
   });
 
+  it('renumbers remaining pages immediately after deleting an earlier page', async () => {
+    const deleteSpy = vi.spyOn(pageService, 'deletePage').mockResolvedValue({ message: 'ok' });
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/artist'
+            element={<ArtistDeskView workspaceRole='ARTIST' />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(within(screen.getByTestId('canva-page-card-1')).getByTitle('Xóa trang'));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith('page-default-1'));
+    expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('1 / 5');
+    expect(screen.getByTestId('canva-page-card-5')).toBeInTheDocument();
+    expect(screen.queryByTestId('canva-page-card-6')).not.toBeInTheDocument();
+  });
+
   it('defaults script to the current page and supports the full chapter mode', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
@@ -125,8 +148,7 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
       </MemoryRouter>,
     );
 
-    // Open Script tab -> defaults to the page currently being drawn.
-    fireEvent.click(screen.getByTestId('canva-tab-script'));
+    // Script opens by default on the page currently being drawn.
     expect(screen.getByTestId('canva-script-mode-current-page')).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -334,9 +356,6 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
       </MemoryRouter>,
     );
 
-    // Open Script tab
-    fireEvent.click(screen.getByTestId('canva-tab-script'));
-
     await waitFor(() => {
       expect(screen.getByTestId('script-line-ln-1')).toBeInTheDocument();
     });
@@ -360,11 +379,14 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
     await waitFor(() => {
       expect(screen.getByTestId('bible-entity-char-kuro')).toBeInTheDocument();
     });
-    expect(screen.getByText('Thợ rèn ẩn danh mang cánh tay máy.')).toBeInTheDocument();
+    expect(screen.getAllByText('Thợ rèn ẩn danh mang cánh tay máy.').length).toBeGreaterThan(0);
     expect(screen.getByText('Ngoại hình: Tóc bạc cắt ngắn, áo choàng đen')).toBeInTheDocument();
     expect(screen.getByText('Vết sẹo chữ X ở cổ tay trái')).toBeInTheDocument();
     expect(screen.getByText('Đã chốt')).toBeInTheDocument();
-    expect(screen.getByRole('img')).toHaveAttribute('src', 'https://example.com/kurogane.png');
+    expect(screen.getByTestId('bible-entity-char-kuro').querySelector('img')).toHaveAttribute(
+      'src',
+      'https://example.com/kurogane.png',
+    );
   });
 });
 
@@ -1429,8 +1451,6 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
       expect(screen.queryByTestId('artist-script-ref-sidebar')).not.toBeInTheDocument();
       expect(screen.queryByTestId('artist-script-ref-collapsed')).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByTestId('canva-tab-script'));
-
       expect(screen.getByTestId('canva-drawer-script')).toBeInTheDocument();
       expect(screen.getByTestId('script-line-line-1')).toBeInTheDocument();
       expect(screen.getByTestId('script-line-line-2')).toBeInTheDocument();
@@ -1568,8 +1588,6 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
           </Routes>
         </MemoryRouter>,
       );
-
-      fireEvent.click(screen.getByTestId('canva-tab-script'));
 
       // Page 1 shows only Page 1 lines (filtered by pageId/pageNumber)
       await waitFor(() => {
@@ -2111,7 +2129,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
           'Chỉ công đoạn Pencil mới được sửa bố cục khung',
         );
         expect(screen.getByTestId('canvas-btn-save-layout')).toBeDisabled();
-        expect(screen.getByTestId('canva-tab-templates')).toBeDisabled();
+        expect(screen.getByTestId('canva-tab-templates')).toHaveAttribute('aria-disabled', 'true');
 
         // Nạp tranh vào khung vẫn hoạt động bình thường
         const dropzone = screen.getByTestId('panel-dropzone-1');

@@ -232,6 +232,8 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
     return { panels, unpaged: viewMode === 'all' ? unpaged : [] };
   }, [activePageNumber, query, scriptLines, viewMode]);
 
+  const hasSelectedPanel = selectedPanelId !== null || selectedPanelNumber !== null;
+
   useEffect(() => {
     if (!selectedCardRef.current) return;
     let reduceMotion = false;
@@ -424,7 +426,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
             )}
           </div>
         ) : (
-          groups.panels.map((group) => {
+          groups.panels.map((group, groupIndex) => {
             const panelId = group.lines.find((line) => line.panelId)?.panelId;
             const isSelected =
               group.pageNumber === activePageNumber &&
@@ -446,10 +448,10 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
             return (
               <details
                 key={`${group.pageNumber}:${group.panelNumber}`}
-                open={isSelected || undefined}
+                open={isSelected || (!hasSelectedPanel && groupIndex === 0) || undefined}
                 className={`group overflow-hidden rounded-lg border bg-[var(--sb-surface)] ${
                   isSelected
-                    ? 'border-[var(--sb-accent)] ring-2 ring-[var(--sb-accent)]'
+                    ? 'border-[var(--sb-accent)] bg-[var(--sb-surface-hover)] ring-1 ring-[var(--sb-accent)]'
                     : 'border-[var(--sb-border)]'
                 }`}
               >
