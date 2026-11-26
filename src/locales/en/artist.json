@@ -45,6 +45,7 @@
     "noBalloons": "Page has no balloons yet.",
     "balloonTitle": "Balloon {order}",
     "linkedToLine": "Linked to line {line}",
+    "saving": "Saving…",
     "unlinked": "Unlinked",
     "addEmptyBalloon": "Add empty balloon"
   },

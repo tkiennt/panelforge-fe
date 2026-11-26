@@ -3012,6 +3012,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onAddLetteringElement={balloons.addElement}
           onDeleteLetteringElement={balloons.deleteElement}
           selectedElementId={balloons.selectedElementId}
+          pendingElementIds={balloons.pendingElementIds}
           onSelectElementId={balloons.setSelectedElementId}
           artworkPanelKeys={artworkPanelKeys}
           onSelectPanel={(pageNumber, panelNumber) => {

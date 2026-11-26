@@ -157,6 +157,8 @@ export interface ArtistCanvaSidebarProps {
   onAddLetteringElement?: (type: BalloonType, scriptLine?: ScriptLineItem) => void;
   onDeleteLetteringElement?: (id: string) => void;
   selectedElementId?: string | null;
+  /** Bóng đang chờ server lưu (chưa được xác nhận). */
+  pendingElementIds?: ReadonlySet<string>;
   onSelectElementId?: (id: string | null) => void;
   activeLang?: string;
   originalLang?: string;
@@ -938,6 +940,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   onAddLetteringElement,
   onDeleteLetteringElement,
   selectedElementId = null,
+  pendingElementIds,
   onSelectElementId,
   activeLang,
   originalLang = 'vi',
@@ -2429,6 +2432,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             pageId={selectedPageId}
             elements={letteringElements}
             selectedElementId={selectedElementId}
+            pendingElementIds={pendingElementIds}
             onSelectElementId={onSelectElementId}
             onAddElement={onAddLetteringElement}
             onUpdateElementTranslation={

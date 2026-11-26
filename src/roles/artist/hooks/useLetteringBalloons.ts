@@ -11,6 +11,7 @@ import {
 import type { PanelDto } from '@/types/pipeline';
 import type { ScriptLineItem } from '../components/desk/ArtistCanvaSidebar';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
+import { findFreeBalloonSlot } from '../lib/balloonPlacement';
 import { classifyScriptLine, patchTextStyle, resolveTextStyle } from '@/shared/utils/textStyle';
 
 export type BalloonType = 'SPEECH_BALLOON' | 'THOUGHT_BALLOON' | 'NARRATION_BOX' | 'SOUND_EFFECT';
@@ -88,6 +89,28 @@ export function useLetteringBalloons(
     {},
   );
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  // Bóng đã hiện trên UI nhưng server chưa xác nhận lưu (request còn chờ)
+  const [pendingElementIds, setPendingElementIds] = useState<ReadonlySet<string>>(() => new Set());
+  const markPending = useCallback((id: string, pending: boolean) => {
+    setPendingElementIds((prev) => {
+      if (prev.has(id) === pending) return prev;
+      const next = new Set(prev);
+      if (pending) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  // Còn bóng chưa lưu mà rời/tải lại trang thì request bị huỷ → hỏi lại trước khi rời
+  useEffect(() => {
+    if (pendingElementIds.size === 0) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [pendingElementIds]);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
   const [clipboard, setClipboard] = useState<ElementSnapshotDto | null>(null);
@@ -409,17 +432,29 @@ export function useLetteringBalloons(
     const panelIndex = scriptLine?.panelNumber ? Math.max(0, scriptLine.panelNumber - 1) : 0;
     const panel = pagePanels[panelIndex] || pagePanels[0];
 
-    let x: number;
-    let y: number;
-    if (panel) {
-      const b = parseBoundingBox(panel.boundingBox, pageWidth, pageHeight);
-      x = b.pixelX + Math.max(10, Math.round((b.pixelW - w) / 2));
-      y = b.pixelY + Math.max(10, Math.round((b.pixelH - h) / 2));
-    } else {
-      const step = pageElements.length % 5;
-      x = Math.max(50, pageWidth - w - 60 - step * 40);
-      y = 80 + step * 180;
-    }
+    // Đặt vào chỗ trống của khung (hoặc trang) để bóng tạo liên tiếp không chồng cùng một vị trí
+    const area = panel
+      ? (() => {
+          const b = parseBoundingBox(panel.boundingBox, pageWidth, pageHeight);
+          return {
+            minX: b.pixelX,
+            minY: b.pixelY,
+            maxX: b.pixelX + b.pixelW,
+            maxY: b.pixelY + b.pixelH,
+          };
+        })()
+      : {
+          minX: PAGE_MARGIN,
+          minY: PAGE_MARGIN,
+          maxX: pageWidth - PAGE_MARGIN,
+          maxY: pageHeight - PAGE_MARGIN,
+        };
+    let { x, y } = findFreeBalloonSlot(
+      area,
+      w,
+      h,
+      pageElements.filter((el) => !el.isRemoved),
+    );
 
     // Thả vào canvas: đặt tâm bóng tại điểm thả
     if (options?.at) {
@@ -462,6 +497,7 @@ export function useLetteringBalloons(
 
     updatePageElements((list) => [...list, newElement]);
     setSelectedElementId(id);
+    markPending(id, true);
 
     try {
       const res = await elementService.addElement(pageId, {
@@ -495,6 +531,8 @@ export function useLetteringBalloons(
         t('lettering.balloons.saveFailed'),
         (err as Error)?.message || t('lettering.balloons.tryAgainLater'),
       );
+    } finally {
+      markPending(id, false);
     }
   };
 
@@ -914,6 +952,7 @@ export function useLetteringBalloons(
     elementsByPageId,
     selectedElementId,
     setSelectedElementId,
+    pendingElementIds,
     draggingId: dragging?.elementId ?? null,
     resizingId: resizing?.elementId ?? null,
     addElement,

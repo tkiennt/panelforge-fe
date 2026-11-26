@@ -45,6 +45,7 @@
     "noBalloons": "Trang chưa có bóng thoại.",
     "balloonTitle": "Thoại {order}",
     "linkedToLine": "Đã liên kết với dòng {line}",
+    "saving": "Đang lưu…",
     "unlinked": "Chưa liên kết",
     "addEmptyBalloon": "Thêm bóng trống"
   },
