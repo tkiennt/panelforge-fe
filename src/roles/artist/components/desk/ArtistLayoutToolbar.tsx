@@ -71,11 +71,11 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
   return (
     <section
       aria-label={t('layoutToolbar.ariaLabel')}
-      className='w-full h-11 shrink-0 border-b border-[#E7E5E4] bg-white px-3 flex items-center justify-start 2xl:justify-between gap-2 overflow-x-auto'
+      className='w-full min-h-11 shrink-0 border-b border-[#E7E5E4] bg-white px-3 py-2 flex flex-wrap items-center justify-end 2xl:justify-between gap-x-3 gap-y-2 overflow-hidden'
       data-testid='artist-layout-toolbar'
     >
       {!layoutLockedReason && (
-        <ol className='hidden 2xl:flex items-center gap-1.5 text-xs text-stone-500 whitespace-nowrap shrink-0'>
+        <ol className='hidden 2xl:flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-stone-500'>
           {STEP_KEYS.map((key, index) => {
             const step = index + 1;
             const label = t(key);
@@ -106,7 +106,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
         </ol>
       )}
 
-      <div className='flex items-center justify-end gap-1.5 shrink-0'>
+      <div className='flex min-w-0 flex-wrap items-center justify-end gap-1.5'>
         <span title={layoutLockedReason} className='shrink-0'>
           <button
             type='button'
