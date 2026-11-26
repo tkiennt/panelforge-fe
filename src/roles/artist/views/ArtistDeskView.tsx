@@ -280,7 +280,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
   const tabFromUrl = searchParams.get('tab') as CanvaSidebarTab | null;
   const isLettererRoute = location.pathname.includes('/letterer');
-  const defaultTab = initialSidebarTab || tabFromUrl || (isLettererRoute ? 'lettering' : undefined);
+  const defaultTab = initialSidebarTab || tabFromUrl || (isLettererRoute ? 'lettering' : 'script');
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<CanvaSidebarTab | undefined>(defaultTab);
   const [isSidebarDrawerOpen, setIsSidebarDrawerOpen] = useState<boolean | undefined>(
@@ -1798,8 +1798,27 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       );
       return;
     }
-    const remaining = pages.filter((p) => p.id !== pageId);
+    const remaining = pages
+      .filter((p) => p.id !== pageId)
+      .sort((a, b) => a.pageNumber - b.pageNumber)
+      .map((page, index) => ({ ...page, pageNumber: index + 1 }));
     setPages(remaining);
+    const pageNumberById = new Map(remaining.map((page) => [page.id, page.pageNumber]));
+    setPanelPageMap((prev) =>
+      Object.fromEntries(
+        Object.entries(prev)
+          .filter(([, location]) => location.pageId !== pageId)
+          .map(([panelId, location]) => [
+            panelId,
+            {
+              ...location,
+              pageNumber: location.pageId
+                ? (pageNumberById.get(location.pageId) ?? location.pageNumber)
+                : location.pageNumber,
+            },
+          ]),
+      ),
+    );
     if (selectedPageId === pageId) {
       setSelectedPageId(remaining[0]?.id || null);
     }
