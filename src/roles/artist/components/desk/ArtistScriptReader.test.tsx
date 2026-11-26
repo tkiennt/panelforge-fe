@@ -79,6 +79,9 @@ describe('ArtistScriptReader', () => {
       'true',
     );
     expect(screen.getByTestId('script-panel-section-1-1')).toBeInTheDocument();
+    expect(screen.getByTestId('script-panel-section-1-1').closest('details')).toHaveAttribute(
+      'open',
+    );
     expect(screen.queryByTestId('script-panel-section-2-2')).not.toBeInTheDocument();
     expect(screen.getByText('Đã có tranh')).toBeInTheDocument();
     expect(screen.getByText('Minh Triết', { selector: 'span[tabindex="0"]' })).toBeInTheDocument();

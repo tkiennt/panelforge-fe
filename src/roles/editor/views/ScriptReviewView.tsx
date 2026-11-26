@@ -408,7 +408,6 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         seriesTitle={series?.title}
         seriesFormat={series?.format}
         currentChapter={chapter}
-        activeTab='script'
         subtitle={
           (pushed
             ? t('scriptReview.pushed.version', {

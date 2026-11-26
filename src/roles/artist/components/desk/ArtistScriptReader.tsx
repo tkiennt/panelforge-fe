@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, FileText, ImageOff, Minus, Plus, Search, Volume2 } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronRight,
+  FileText,
+  ImageOff,
+  Minus,
+  Plus,
+  Search,
+  Volume2,
+} from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { useTranslation } from '@/lib/i18n';
 import type { BibleEntityItem, ScriptLineItem, SidebarChapterOption } from './ArtistCanvaSidebar';
@@ -192,7 +201,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
   const [query, setQuery] = useState('');
   const [viewMode, setViewMode] = useState<ScriptViewMode>('current-page');
   const [fontStep, setFontStep] = useState(readFontStep);
-  const selectedCardRef = useRef<HTMLButtonElement | null>(null);
+  const selectedCardRef = useRef<HTMLElement | null>(null);
 
   const groups = useMemo(() => {
     const normalizedQuery = query.trim();
@@ -222,6 +231,8 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
     );
     return { panels, unpaged: viewMode === 'all' ? unpaged : [] };
   }, [activePageNumber, query, scriptLines, viewMode]);
+
+  const hasSelectedPanel = selectedPanelId !== null || selectedPanelNumber !== null;
 
   useEffect(() => {
     if (!selectedCardRef.current) return;
@@ -292,7 +303,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
         className='absolute inset-y-0 left-0 z-40 w-2 cursor-ew-resize border-l border-transparent hover:border-[var(--sb-accent)] focus-visible:border-[var(--sb-accent)] focus-visible:outline-none'
       />
 
-      <div className='shrink-0 space-y-3 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] p-3.5 pl-4'>
+      <div className='shrink-0 space-y-2 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] p-3 pl-4'>
         <div className='flex items-center justify-between gap-2'>
           <div className='min-w-0'>
             {chapters && chapters.length > 1 && onSelectChapter ? (
@@ -415,7 +426,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
             )}
           </div>
         ) : (
-          groups.panels.map((group) => {
+          groups.panels.map((group, groupIndex) => {
             const panelId = group.lines.find((line) => line.panelId)?.panelId;
             const isSelected =
               group.pageNumber === activePageNumber &&
@@ -435,73 +446,81 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
             if (sceneKey.replaceAll('|', '')) previousSceneKey = sceneKey;
             const entities = mentionedEntities(group.lines, bibleEntities);
             return (
-              <div
+              <details
                 key={`${group.pageNumber}:${group.panelNumber}`}
-                className={`rounded-xl border bg-[var(--sb-surface)] shadow-sm ${
+                open={isSelected || (!hasSelectedPanel && groupIndex === 0) || undefined}
+                className={`group overflow-hidden rounded-lg border bg-[var(--sb-surface)] ${
                   isSelected
-                    ? 'border-[var(--sb-accent)] ring-2 ring-[var(--sb-accent)]'
+                    ? 'border-[var(--sb-accent)] bg-[var(--sb-surface-hover)] ring-1 ring-[var(--sb-accent)]'
                     : 'border-[var(--sb-border)]'
                 }`}
               >
-                <button
-                  type='button'
+                <summary
                   ref={isSelected ? selectedCardRef : undefined}
                   aria-current={isSelected ? 'true' : undefined}
                   onClick={() =>
                     group.panelNumber > 0 && onSelectPanel?.(group.pageNumber, group.panelNumber)
                   }
                   data-testid={`script-panel-section-${group.pageNumber}-${group.panelNumber}`}
-                  className='w-full cursor-pointer p-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--sb-accent)]'
+                  className='focus-ring cursor-pointer list-none p-2.5 text-left [&::-webkit-details-marker]:hidden'
                 >
                   {showSceneHeader && (
-                    <div className='mb-2 border-b border-[var(--sb-border)] pb-2'>
-                      <div className='text-xs font-bold uppercase tracking-wide text-[var(--sb-accent)]'>
+                    <div className='mb-2 flex min-w-0 items-baseline gap-2 border-b border-[var(--sb-border)] pb-2'>
+                      <span className='truncate text-xs font-bold uppercase tracking-wide text-[var(--sb-accent)]'>
                         {group.lines[0]?.sceneTitle ||
                           t('scriptReader.sceneFallback', {
                             number: group.lines[0]?.sceneNumber || '',
                           })}
-                      </div>
+                      </span>
                       {group.lines[0]?.sceneSlugline && (
-                        <div className='mt-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--sb-muted)]'>
+                        <span className='truncate text-xs font-semibold uppercase tracking-wide text-[var(--sb-muted)]'>
                           {group.lines[0].sceneSlugline}
-                        </div>
+                        </span>
                       )}
                     </div>
                   )}
-                  <div className='mb-3 flex items-center justify-between gap-2'>
+                  <div className='flex items-center justify-between gap-2'>
                     <strong className='text-sm text-[var(--sb-text)]'>
                       {group.panelNumber > 0
                         ? t('scriptReader.panelLabel', { number: group.panelNumber })
                         : t('scriptReader.unassignedPanel')}
                     </strong>
-                    {group.panelNumber > 0 && group.pageNumber === activePageNumber && (
-                      <span className='inline-flex items-center gap-1 text-xs font-semibold text-[var(--sb-muted)]'>
-                        {hasArtwork ? (
-                          <CheckCircle2
-                            className='h-3.5 w-3.5 text-[var(--sb-accent)]'
-                            aria-hidden='true'
-                          />
-                        ) : (
-                          <ImageOff className='h-3.5 w-3.5' aria-hidden='true' />
-                        )}
-                        {hasArtwork ? t('scriptReader.hasArtwork') : t('scriptReader.notDrawn')}
-                      </span>
-                    )}
+                    <span className='flex items-center gap-2'>
+                      {group.panelNumber > 0 && group.pageNumber === activePageNumber && (
+                        <span className='inline-flex items-center gap-1 text-xs font-semibold text-[var(--sb-muted)]'>
+                          {hasArtwork ? (
+                            <CheckCircle2
+                              className='h-3.5 w-3.5 text-[var(--sb-accent)]'
+                              aria-hidden='true'
+                            />
+                          ) : (
+                            <ImageOff className='h-3.5 w-3.5' aria-hidden='true' />
+                          )}
+                          {hasArtwork ? t('scriptReader.hasArtwork') : t('scriptReader.notDrawn')}
+                        </span>
+                      )}
+                      <ChevronRight
+                        className='h-4 w-4 text-[var(--sb-muted)] transition-transform group-open:rotate-90'
+                        aria-hidden='true'
+                      />
+                    </span>
                   </div>
+                </summary>
+                <div className='space-y-3 border-t border-[var(--sb-border)] px-3 py-3'>
                   <div className='space-y-3'>
                     {group.lines.map((line) => (
                       <ScriptLine key={line.id} line={line} fontSize={FONT_STEPS[fontStep]} />
                     ))}
                   </div>
-                </button>
-                {entities.length > 0 && (
-                  <div className='flex flex-wrap gap-1.5 border-t border-[var(--sb-border)] px-3 py-2.5'>
-                    {entities.map((entity) => (
-                      <EntityChip key={entity.id} entity={entity} />
-                    ))}
-                  </div>
-                )}
-              </div>
+                  {entities.length > 0 && (
+                    <div className='flex flex-wrap gap-1.5 border-t border-[var(--sb-border)] pt-2.5'>
+                      {entities.map((entity) => (
+                        <EntityChip key={entity.id} entity={entity} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </details>
             );
           })
         )}

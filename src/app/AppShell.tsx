@@ -59,6 +59,15 @@ import { notificationService } from '@/services/notification.service';
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 import { RouteFallback } from '@/shared/components/RouteFallback';
 import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
+import {
+  buildChapterManagementUrl,
+  buildChapterReaderUrl,
+  buildEditorDeskUrl,
+  buildProductionWorkspaceUrl,
+  buildScriptReviewUrl,
+  buildSeriesExportUrl,
+  buildSeriesPath,
+} from './routePaths';
 
 export interface CurrentUser {
   name: string;
@@ -323,14 +332,21 @@ export function AppShell({
 
     if (effectiveRole === 'PRODUCER') {
       if (isSeriesContext) {
+        const workspacePath = buildSeriesPath(workspaceId!, seriesId!, 'workspace');
+        const isWorkspacePath = location.pathname === workspacePath;
+        const productionTab = searchParams.get('tab') ?? 'progress';
         return [
           {
             section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
             items: [
               {
                 icon: Kanban,
-                label: t('navigation.menu.progressAndTasks', 'Tiến độ & Giao việc'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
+                label: t('navigation.menu.pageMatrix', 'Ma trận trang'),
+                href: buildProductionWorkspaceUrl(workspaceId!, seriesId!, {
+                  chapterId: chapterId ?? undefined,
+                  tab: 'progress',
+                }),
+                isActive: isWorkspacePath && productionTab === 'progress',
                 badge: chapterNumberLabel
                   ? {
                       type: 'text',
@@ -340,28 +356,53 @@ export function AppShell({
                   : undefined,
               },
               {
+                icon: LayoutDashboard,
+                label: t('navigation.menu.chapterOverview', 'Tổng quan chương'),
+                href: buildChapterManagementUrl(workspaceId!, seriesId!, chapterId ?? undefined),
+                isActive: location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'chapters'),
+              },
+              {
+                icon: Users,
+                label: t('navigation.menu.crewManagement', 'Quản lý Ê-kíp'),
+                href: buildProductionWorkspaceUrl(workspaceId!, seriesId!, {
+                  chapterId: chapterId ?? undefined,
+                  tab: 'crew',
+                }),
+                isActive: isWorkspacePath && productionTab === 'crew',
+              },
+              {
                 icon: FileCheck,
-                label: t('navigation.menu.scriptAndReview', 'Kịch bản & Cổng duyệt'),
+                label: t('navigation.menu.productionScript', 'Kịch bản'),
                 href: chapterId
-                  ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapterId}/script/review`
-                  : `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
+                  ? buildScriptReviewUrl(workspaceId!, seriesId!, chapterId)
+                  : buildChapterManagementUrl(workspaceId!, seriesId!),
+                isActive: location.pathname.includes('/script'),
               },
               {
                 icon: BookOpen,
-                label: t('navigation.menu.artworkReview', 'Đọc duyệt tranh'),
+                label: t('navigation.menu.readerAndReview', 'Đọc thử & Soát trang'),
                 href: chapterId
-                  ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapterId}/reader`
-                  : `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
-              },
-              {
-                icon: ShieldCheck,
-                label: t('navigation.menu.editorReviewDesk', 'Kiểm tra & Hiệu đính'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk${chapterQuery}`,
+                  ? buildChapterReaderUrl(workspaceId!, seriesId!, chapterId)
+                  : buildProductionWorkspaceUrl(workspaceId!, seriesId!, { tab: 'progress' }),
+                isActive: location.pathname.endsWith('/reader'),
               },
               {
                 icon: Download,
-                label: t('navigation.menu.packagingAndExport', 'Đóng gói & Xuất bản'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/export`,
+                label: t('navigation.menu.handoff', 'Bàn giao'),
+                href: buildSeriesExportUrl(workspaceId!, seriesId!, chapterId ?? undefined),
+                isActive: location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'export'),
+              },
+            ],
+          },
+          {
+            section: t('navigation.sections.qualityReview', 'KIỂM DUYỆT'),
+            items: [
+              {
+                icon: ShieldCheck,
+                label: t('navigation.menu.editorReviewDesk', 'Kiểm tra & Hiệu đính'),
+                href: buildEditorDeskUrl(workspaceId!, seriesId!, {
+                  chapterId: chapterId ?? undefined,
+                }),
               },
             ],
           },
@@ -377,11 +418,6 @@ export function AppShell({
                 icon: Eye,
                 label: t('navigation.menu.revenueAndReads', 'Doanh thu & Lượt đọc'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/revenue`,
-              },
-              {
-                icon: Users,
-                label: t('navigation.sidebar.crew', 'Đội ngũ'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace?tab=crew`,
               },
             ],
           },

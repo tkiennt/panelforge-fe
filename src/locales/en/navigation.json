@@ -18,7 +18,8 @@
     "systemAdmin": "SYSTEM ADMIN",
     "studioManagement": "STUDIO MANAGEMENT",
     "publisherDesk": "PUBLISHER DESK",
-    "productionUtilities": "PRODUCTION UTILITIES"
+    "productionUtilities": "PRODUCTION UTILITIES",
+    "qualityReview": "QUALITY REVIEW"
   },
   "menu": {
     "dashboard": "Dashboard",
@@ -68,7 +69,13 @@
     "panelCanvasDesk": "Panel Canvas",
     "scriptReadOnly": "Script (Read-only)",
     "letteringAndBalloons": "Lettering & Balloons",
-    "editorReviewDesk": "Review & Proofing"
+    "editorReviewDesk": "Review & Proofing",
+    "pageMatrix": "Page Matrix",
+    "chapterOverview": "Chapter Overview",
+    "crewManagement": "Crew Management",
+    "productionScript": "Script",
+    "readerAndReview": "Reader & Page Review",
+    "handoff": "Handoff"
   },
   "header": {
     "searchPlaceholder": "Search frames, dialogues, assets...",

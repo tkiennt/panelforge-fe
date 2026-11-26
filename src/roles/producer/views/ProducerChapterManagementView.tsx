@@ -66,7 +66,6 @@ import {
   renderRow,
   shortHash,
 } from '@/shared/features/script-versions/versionDiff';
-import { ProductionFlowTabs } from '@/shared/features/production-workspace/ProductionFlowTabs';
 import { buildSeriesPath } from '@/app/routePaths';
 
 export interface ProducerChapterManagementViewProps {
@@ -583,14 +582,6 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               </div>
             )}
           </div>
-
-          <ProductionFlowTabs
-            workspaceId={workspaceId}
-            seriesId={seriesId}
-            chapterId={selectedChapterId}
-            activeTab='chapters'
-            className='hidden md:block'
-          />
 
           {/* Quick Action CTAs */}
           <div className='flex items-center gap-2'>
@@ -1142,7 +1133,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                         <div className='min-w-0 flex-1'>
                           <div className='flex items-center justify-between gap-1'>
                             <span className='font-bold text-xs text-stone-900 truncate'>
-                              {ent.name}
+                              <span>{ent.name}</span>
+                              <span className='font-normal text-stone-500 font-sans'>
+                                {' '}— {ent.boundRevision?.variantLabel ||
+                                  t('producer.chapterManagement.defaultVariantLabel')} (v{ent.boundRevision?.versionNumber ?? 1})
+                              </span>
                             </span>
                             <span className='font-mono text-xs text-stone-400'>{ent.code}</span>
                           </div>
