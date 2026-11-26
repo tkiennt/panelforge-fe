@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from '@/lib/i18n';
 import { TaskGridBoard } from '@/shared/features/pipeline-board/TaskGridBoard';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
@@ -40,6 +40,7 @@ import { RefreezeScriptModal } from '@/shared/modals/RefreezeScriptModal';
 import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
 import { formatDate } from '@/lib/format';
 import { ProducerSharedHeader } from './ProducerSharedHeader';
+import { buildChapterReaderUrl } from '@/app/routePaths';
 import {
   countGateWarnings,
   daysUntil,
@@ -91,6 +92,12 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [activeSubtab, setActiveSubtab] = useState<SubTabKey>(
     tabFromUrl === 'chapters' || tabFromUrl === 'crew' ? tabFromUrl : 'progress',
   );
+
+  useEffect(() => {
+    const nextTab: SubTabKey =
+      tabFromUrl === 'chapters' || tabFromUrl === 'crew' ? tabFromUrl : 'progress';
+    setActiveSubtab((current) => (current === nextTab ? current : nextTab));
+  }, [tabFromUrl]);
 
   const normalizedWsRole = useMemo(
     () => normalizeWorkspaceRole(currentUserRole),
@@ -954,9 +961,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       <button
                         type='button'
                         onClick={() =>
-                          navigate(
-                            `/workspaces/${workspaceId}/series/${seriesId}/editor/desk?chapterId=${chap.id}`,
-                          )
+                          workspaceId &&
+                          seriesId &&
+                          navigate(buildChapterReaderUrl(workspaceId, seriesId, chap.id))
                         }
                         className='w-full py-2 rounded-lg bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer'
                       >
