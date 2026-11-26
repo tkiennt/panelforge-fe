@@ -734,7 +734,9 @@
       "toastSuccessDesc": "Chương {number} đã chuyển sang InProduction. Kịch bản đã được đóng băng.",
       "markCrowdQuickBtn": "Đánh dấu Quần chúng",
       "crowdMarkedTitle": "Đã đánh dấu Quần chúng",
-      "crowdMarkFailed": "Không thể đánh dấu Quần chúng"
+      "crowdMarkFailed": "Không thể đánh dấu Quần chúng",
+      "firstStageOnlyLabel": "Chỉ giao công đoạn đầu",
+      "firstStageOnlyHint": "Các công đoạn sau để trống; bật 'Tự giao công đoạn kế tiếp' ở tab Automation để hệ thống tự giao khi đến lượt."
     },
     "pagination": "Trang {current} / {total} (Tổng {count} chương)",
     "footerNote": "* Ngày phát hành dự kiến hỗ trợ ban biên tập đối chiếu và điều phối tiến độ sản xuất kịp thời.",

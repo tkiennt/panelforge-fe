@@ -24,6 +24,7 @@ vi.mock('@/services/assignment.service', () => ({
     openStageTaskReview: vi.fn(),
     releaseStageTaskReview: vi.fn(),
     approveStageTask: vi.fn(),
+    approveStageTasks: vi.fn(),
     requestStageTaskChanges: vi.fn(),
     getStageTaskSubmissions: vi.fn(),
     reopenStageTask: vi.fn(),
@@ -2105,6 +2106,529 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
           dryRun: false,
         });
       });
+    });
+
+    it('TASK-359: hiển thị nhãn "Tự động" kèm tooltip autoAssignReason trên cả lô và ô khi isAutoAssigned = true', async () => {
+      const reason = 'Cân tải: Hoạ sĩ A đang ít panel nhất';
+      const gridWithAutoLot = {
+        ...mockGrid,
+        lots: [
+          {
+            ...mockGrid.lots[0],
+            isAutoAssigned: true,
+            autoAssignReason: reason,
+          },
+          {
+            id: 'lot-2',
+            pipelineStageId: 'stg-ink',
+            assigneeUserId: 'user-artist-1',
+            assignedRole: 'Artist',
+            brief: null,
+            dueDate: null,
+            status: 'Active' as const,
+            isOverdue: false,
+            taskCount: 2,
+            approvedCount: 0,
+            rowVersion: 1,
+            isAutoAssigned: false,
+            autoAssignReason: null,
+          },
+        ],
+      };
+      vi.mocked(assignmentService.getTaskGrid).mockResolvedValueOnce(gridWithAutoLot as any);
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+        />,
+      );
+
+      await screen.findByText('1. Pencil');
+
+      const lotBadge = screen.getByTestId('lot-auto-badge-lot-1');
+      expect(lotBadge).toHaveTextContent('Tự động');
+      expect(lotBadge).toHaveAttribute('title', reason);
+
+      const cellBadge = screen.getByTestId('task-auto-badge-task-p2-pencil');
+      expect(cellBadge).toHaveTextContent('Tự động');
+      expect(cellBadge).toHaveAttribute('title', reason);
+
+      expect(screen.queryByTestId('lot-auto-badge-lot-2')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('task-auto-badge-task-p1-ink')).not.toBeInTheDocument();
+    });
+
+    it('TASK-360: Reviewer chọn nhiều ô Submitted/UnderReview và bấm "Duyệt (2 ô)" gọi approveStageTasks (ẩn checkbox với ô tự nộp theo BR-06)', async () => {
+      const onShowToast = vi.fn();
+      const gridForBatchApprove = {
+        ...mockGrid,
+        tasks: [
+          {
+            ...mockGrid.tasks[0],
+            id: 'task-p1-pencil',
+            status: 'Submitted' as const,
+            assigneeUserId: 'user-artist-1',
+            isInputOutdated: false,
+            reviewerUserId: null,
+          },
+          {
+            ...mockGrid.tasks[1],
+            id: 'task-p2-pencil',
+            status: 'Submitted' as const,
+            assigneeUserId: 'user-editor-1',
+            isInputOutdated: false,
+            reviewerUserId: null,
+          },
+          {
+            ...mockGrid.tasks[3],
+            id: 'task-p2-ink',
+            status: 'UnderReview' as const,
+            assigneeUserId: 'user-artist-2',
+            isInputOutdated: false,
+            reviewerUserId: 'user-editor-1',
+          },
+        ],
+      };
+      vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(gridForBatchApprove as any);
+      vi.mocked(assignmentService.approveStageTasks).mockResolvedValueOnce([
+        { id: 'task-p1-pencil', status: 'Approved' } as any,
+        { id: 'task-p2-ink', status: 'Approved' } as any,
+      ]);
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-editor-1'
+          currentUserRole='Editor'
+          isEditor={true}
+          onShowToast={onShowToast}
+        />,
+      );
+
+      await screen.findByText('1. Pencil');
+
+      // Ô tự nộp (task-p2-pencil) không có checkbox duyệt theo BR-06
+      const selfCell = screen.getByTestId('task-cell-stg-pencil-page-2');
+      expect(selfCell.querySelector('input[type="checkbox"]')).toBeNull();
+
+      const cell1Checkbox = screen
+        .getByTestId('task-cell-stg-pencil-page-1')
+        .querySelector('input[type="checkbox"]') as HTMLInputElement;
+      const cell2Checkbox = screen
+        .getByTestId('task-cell-stg-ink-page-2')
+        .querySelector('input[type="checkbox"]') as HTMLInputElement;
+
+      expect(cell1Checkbox).not.toBeNull();
+      expect(cell2Checkbox).not.toBeNull();
+
+      fireEvent.click(cell1Checkbox);
+      fireEvent.click(cell2Checkbox);
+
+      const batchBtn = screen.getByTestId('approve-batch-btn');
+      expect(batchBtn).toHaveTextContent('Duyệt (2 ô)');
+
+      fireEvent.click(batchBtn);
+
+      await waitFor(() => {
+        expect(assignmentService.approveStageTasks).toHaveBeenCalledWith('chap-1', [
+          'task-p1-pencil',
+          'task-p2-ink',
+        ]);
+      });
+      expect(onShowToast).toHaveBeenCalledWith('Đã duyệt ô việc', 'Đã duyệt 2 ô công việc.');
+      expect(screen.queryByTestId('approve-batch-btn')).not.toBeInTheDocument();
+    });
+
+    it('TASK-360: khi approveStageTasks trả lỗi nhiều dòng (409), hiển thị từng dòng lỗi và tự nạp lại lưới', async () => {
+      const gridForBatchApprove = {
+        ...mockGrid,
+        tasks: [
+          {
+            ...mockGrid.tasks[0],
+            id: 'task-p1-pencil',
+            status: 'Submitted' as const,
+            assigneeUserId: 'user-artist-1',
+            isInputOutdated: false,
+            reviewerUserId: null,
+          },
+          {
+            ...mockGrid.tasks[3],
+            id: 'task-p2-ink',
+            status: 'Submitted' as const,
+            assigneeUserId: 'user-artist-2',
+            isInputOutdated: false,
+            reviewerUserId: null,
+          },
+        ],
+      };
+      vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(gridForBatchApprove as any);
+      vi.mocked(assignmentService.approveStageTasks).mockRejectedValueOnce(
+        Object.assign(
+          new Error(
+            'Trang 1 – Pencil: đang do người khác duyệt.\nTrang 2 – Ink: đầu vào đã lỗi thời, cần xử lý Impact Review trước.',
+          ),
+          { status: 409, code: 'CONFLICT' },
+        ),
+      );
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+        />,
+      );
+
+      await screen.findByText('1. Pencil');
+
+      fireEvent.click(
+        screen
+          .getByTestId('task-cell-stg-pencil-page-1')
+          .querySelector('input[type="checkbox"]') as HTMLInputElement,
+      );
+      fireEvent.click(
+        screen
+          .getByTestId('task-cell-stg-ink-page-2')
+          .querySelector('input[type="checkbox"]') as HTMLInputElement,
+      );
+
+      fireEvent.click(screen.getByTestId('approve-batch-btn'));
+
+      const alertBox = await screen.findByTestId('task-grid-error');
+      const items = alertBox.querySelectorAll('li');
+      expect(items).toHaveLength(2);
+      expect(items[0]).toHaveTextContent('Trang 1 – Pencil: đang do người khác duyệt.');
+      expect(items[1]).toHaveTextContent(
+        'Trang 2 – Ink: đầu vào đã lỗi thời, cần xử lý Impact Review trước.',
+      );
+      expect(screen.getByTestId('error-reload-grid-btn')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(assignmentService.getTaskGrid).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it('TASK-361: tải lại lưới sau submit / approve / approve nhiều ô / resolve-impact để hiện lô R1 tự động kèm nhãn "Tự động" và tooltip lý do', async () => {
+      const reasonKeep = 'Giữ người đã làm trang này ở công đoạn trước';
+      const reasonBalance = 'Cân tải: Hoạ sĩ B đang ít panel chưa xong nhất';
+
+      // 1) Nộp ô ở công đoạn không cổng duyệt -> BE tự Approved và tạo lô tự động cho công đoạn kế tiếp
+      const gridBeforeSubmit = {
+        ...mockGrid,
+        tasks: [
+          {
+            ...mockGrid.tasks[0],
+            id: 'task-p1-pencil',
+            status: 'InProgress' as const,
+            lotId: 'lot-1',
+            assigneeUserId: 'user-artist-1',
+            isInputOutdated: false,
+            isStartable: false,
+          },
+          {
+            ...mockGrid.tasks[2],
+            id: 'task-p1-ink',
+            status: 'Unassigned' as const,
+            lotId: null,
+            assigneeUserId: null,
+            isInputOutdated: false,
+            outdatedReason: null,
+            isStartable: false,
+          },
+        ],
+      };
+
+      const gridAfterR1Submit = {
+        ...mockGrid,
+        tasks: [
+          {
+            ...mockGrid.tasks[0],
+            id: 'task-p1-pencil',
+            status: 'Approved' as const,
+            lotId: 'lot-1',
+            assigneeUserId: 'user-artist-1',
+            isInputOutdated: false,
+            isStartable: false,
+          },
+          {
+            ...mockGrid.tasks[2],
+            id: 'task-p1-ink',
+            status: 'Assigned' as const,
+            lotId: 'lot-auto-ink',
+            assigneeUserId: 'user-artist-1',
+            isInputOutdated: false,
+            outdatedReason: null,
+            isStartable: true,
+          },
+        ],
+        lots: [
+          ...mockGrid.lots,
+          {
+            id: 'lot-auto-ink',
+            pipelineStageId: 'stg-ink',
+            assigneeUserId: 'user-artist-1',
+            assignedRole: 'Artist',
+            brief: 'Tự động giao trang 1',
+            dueDate: '2026-11-28T00:00:00Z',
+            status: 'Active' as const,
+            isOverdue: false,
+            taskCount: 1,
+            approvedCount: 0,
+            rowVersion: 1,
+            isAutoAssigned: true,
+            autoAssignReason: reasonKeep,
+          },
+        ],
+      };
+
+      vi.mocked(assignmentService.getTaskGrid)
+        .mockResolvedValueOnce(gridBeforeSubmit as any)
+        .mockResolvedValueOnce(gridAfterR1Submit as any);
+      vi.mocked(assignmentService.submitStageTasks).mockResolvedValueOnce([
+        { id: 'task-p1-pencil', status: 'Approved' } as any,
+      ]);
+
+      const { rerender } = render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-artist-1'
+          currentUserRole='Artist'
+        />,
+      );
+
+      await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByRole('button', { name: 'Nộp' }));
+
+      await waitFor(() => {
+        expect(assignmentService.submitStageTasks).toHaveBeenCalledWith('chap-1', [
+          'task-p1-pencil',
+        ]);
+        expect(assignmentService.getTaskGrid).toHaveBeenCalledTimes(2);
+      });
+
+      const autoLotBadge = await screen.findByTestId('lot-auto-badge-lot-auto-ink');
+      expect(autoLotBadge).toHaveTextContent('Tự động');
+      expect(autoLotBadge).toHaveAttribute('title', reasonKeep);
+      expect(screen.getByTestId('task-auto-badge-task-p1-ink')).toHaveAttribute(
+        'title',
+        reasonKeep,
+      );
+
+      // 2) Impact Review "Giữ kết quả" (kể cả khi ô đang InProgress hay Approved) cũng gọi lại getTaskGrid để thấy lô tự giao
+      const gridBeforeImpact = {
+        ...mockGrid,
+        tasks: [
+          {
+            ...mockGrid.tasks[0],
+            id: 'task-p1-pencil',
+            status: 'Approved' as const,
+            lotId: 'lot-1',
+            assigneeUserId: 'user-artist-1',
+            isInputOutdated: true,
+            outdatedReason: 'Cập nhật kịch bản trang 1',
+            isStartable: false,
+          },
+          {
+            ...mockGrid.tasks[2],
+            id: 'task-p1-ink',
+            status: 'Unassigned' as const,
+            lotId: null,
+            assigneeUserId: null,
+            isInputOutdated: false,
+            outdatedReason: null,
+            isStartable: false,
+          },
+        ],
+      };
+
+      const gridAfterImpactR1 = {
+        ...gridBeforeImpact,
+        tasks: [
+          {
+            ...gridBeforeImpact.tasks[0],
+            isInputOutdated: false,
+            outdatedReason: null,
+          },
+          {
+            ...gridBeforeImpact.tasks[1],
+            status: 'Assigned' as const,
+            lotId: 'lot-auto-balance',
+            assigneeUserId: 'user-artist-2',
+            isStartable: true,
+          },
+        ],
+        lots: [
+          ...mockGrid.lots,
+          {
+            id: 'lot-auto-balance',
+            pipelineStageId: 'stg-ink',
+            assigneeUserId: 'user-artist-2',
+            assignedRole: 'Artist',
+            brief: 'Tự động giao trang 1',
+            dueDate: null,
+            status: 'Active' as const,
+            isOverdue: false,
+            taskCount: 1,
+            approvedCount: 0,
+            rowVersion: 1,
+            isAutoAssigned: true,
+            autoAssignReason: reasonBalance,
+          },
+        ],
+      };
+
+      vi.mocked(assignmentService.getTaskGrid)
+        .mockResolvedValueOnce(gridBeforeImpact as any)
+        .mockResolvedValueOnce(gridAfterImpactR1 as any);
+      vi.mocked(assignmentService.resolveStageTaskImpact).mockResolvedValueOnce({
+        id: 'task-p1-pencil',
+        status: 'Approved',
+        isInputOutdated: false,
+      } as any);
+
+      rerender(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-producer'
+          currentUserRole='Producer'
+          isProducer={true}
+          refreshKey={2}
+        />,
+      );
+
+      const keepBtn = await screen.findByRole('button', { name: /Giữ kết quả/i });
+      fireEvent.click(keepBtn);
+
+      await waitFor(() => {
+        expect(assignmentService.resolveStageTaskImpact).toHaveBeenCalledWith(
+          'chap-1',
+          'task-p1-pencil',
+          true,
+        );
+        expect(assignmentService.getTaskGrid).toHaveBeenCalledTimes(4);
+      });
+
+      const balanceLotBadge = await screen.findByTestId('lot-auto-badge-lot-auto-balance');
+      expect(balanceLotBadge).toHaveTextContent('Tự động');
+      expect(balanceLotBadge).toHaveAttribute('title', reasonBalance);
+      expect(screen.getByTestId('task-auto-badge-task-p1-ink')).toHaveAttribute(
+        'title',
+        reasonBalance,
+      );
+
+      // 3) Duyệt lẻ (approve) và Duyệt theo lô (approve nhiều ô) đều nạp lại getTaskGrid và hiện lô R1 mới tạo
+      const gridBeforeApprove = {
+        ...mockGrid,
+        tasks: [
+          {
+            ...mockGrid.tasks[0],
+            id: 'task-p1-pencil',
+            status: 'Submitted' as const,
+            lotId: 'lot-1',
+            assigneeUserId: 'user-artist-1',
+            isInputOutdated: false,
+            reviewerUserId: null,
+          },
+          {
+            ...mockGrid.tasks[1],
+            id: 'task-p2-pencil',
+            status: 'Submitted' as const,
+            lotId: 'lot-1',
+            assigneeUserId: 'user-artist-1',
+            isInputOutdated: false,
+            reviewerUserId: null,
+          },
+          {
+            ...mockGrid.tasks[2],
+            id: 'task-p1-ink',
+            status: 'Unassigned' as const,
+            lotId: null,
+            assigneeUserId: null,
+            isInputOutdated: false,
+            outdatedReason: null,
+          },
+        ],
+      };
+
+      vi.mocked(assignmentService.getTaskGrid)
+        .mockResolvedValueOnce(gridBeforeApprove as any)
+        .mockResolvedValueOnce(gridAfterR1Submit as any)
+        .mockResolvedValueOnce(gridBeforeApprove as any)
+        .mockResolvedValueOnce(gridAfterImpactR1 as any);
+      vi.mocked(assignmentService.approveStageTask).mockResolvedValueOnce({
+        id: 'task-p1-pencil',
+        status: 'Approved',
+      } as any);
+      vi.mocked(assignmentService.approveStageTasks).mockResolvedValueOnce([
+        { id: 'task-p1-pencil', status: 'Approved' } as any,
+        { id: 'task-p2-pencil', status: 'Approved' } as any,
+      ]);
+
+      rerender(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-editor-1'
+          currentUserRole='Editor'
+          isEditor={true}
+          refreshKey={3}
+        />,
+      );
+
+      const singleApproveBtns = await screen.findAllByRole('button', { name: 'Duyệt' });
+      fireEvent.click(singleApproveBtns[0]);
+
+      await waitFor(() => {
+        expect(assignmentService.approveStageTask).toHaveBeenCalledWith('chap-1', 'task-p1-pencil');
+        expect(assignmentService.getTaskGrid).toHaveBeenCalledTimes(6);
+      });
+      expect(await screen.findByTestId('lot-auto-badge-lot-auto-ink')).toHaveAttribute(
+        'title',
+        reasonKeep,
+      );
+
+      rerender(
+        <TaskGridBoard
+          chapterId='chap-1'
+          workspaceId='ws-1'
+          currentUserId='user-editor-1'
+          currentUserRole='Editor'
+          isEditor={true}
+          refreshKey={4}
+        />,
+      );
+
+      await screen.findAllByRole('button', { name: 'Duyệt' });
+      fireEvent.click(
+        screen
+          .getByTestId('task-cell-stg-pencil-page-1')
+          .querySelector('input[type="checkbox"]') as HTMLInputElement,
+      );
+      fireEvent.click(
+        screen
+          .getByTestId('task-cell-stg-pencil-page-2')
+          .querySelector('input[type="checkbox"]') as HTMLInputElement,
+      );
+      fireEvent.click(screen.getByTestId('approve-batch-btn'));
+
+      await waitFor(() => {
+        expect(assignmentService.approveStageTasks).toHaveBeenCalledWith('chap-1', [
+          'task-p1-pencil',
+          'task-p2-pencil',
+        ]);
+        expect(assignmentService.getTaskGrid).toHaveBeenCalledTimes(8);
+      });
+      expect(await screen.findByTestId('lot-auto-badge-lot-auto-balance')).toHaveAttribute(
+        'title',
+        reasonBalance,
+      );
     });
   });
 });

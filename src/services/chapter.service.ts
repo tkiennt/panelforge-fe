@@ -65,6 +65,7 @@ export interface ProductionPageAssignmentRequest {
 export interface StartChapterProductionRequest {
   pageAssignments: ProductionPageAssignmentRequest[];
   lettererAssignments?: ProductionPageAssignmentRequest[] | null;
+  firstStageOnly?: boolean;
 }
 
 export interface StartChapterProductionResultDto {

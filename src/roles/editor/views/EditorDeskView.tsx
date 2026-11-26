@@ -84,6 +84,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [activeGate, setActiveGate] = useState<EditorQualityGate>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Submitted' | 'UnderReview'>('all');
+  const [scopeFilter, setScopeFilter] = useState<'all' | 'mine'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [openingReviewId, setOpeningReviewId] = useState<string | null>(null);
   const [gridBusyTaskId, setGridBusyTaskId] = useState<string | null>(null);
@@ -392,6 +393,12 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
       result = result.filter((i) => i.chapterId === paramChapterId);
     }
 
+    if (scopeFilter === 'mine') {
+      result = result.filter((i) =>
+        Boolean(currentUserId && i.reviewerUserId && i.reviewerUserId === currentUserId),
+      );
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(
@@ -405,7 +412,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     }
 
     return result;
-  }, [queueItems, paramChapterId, searchQuery]);
+  }, [queueItems, paramChapterId, scopeFilter, currentUserId, searchQuery]);
 
   // Date formatter
   const formatDate = (isoString?: string | null) => {
@@ -546,6 +553,40 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
           {/* Search & Status Filter */}
           <div className='flex items-center gap-2.5 flex-wrap md:flex-nowrap'>
+            {/* Scope Filter: Tất cả / Của tôi (R2) */}
+            <div
+              role='group'
+              aria-label={t('desk.scopeFilterAria', 'Lọc theo người được phân')}
+              className='inline-flex items-center gap-1 p-1 bg-[#F3F0E9] rounded-lg border border-[#E5E0D8]'
+            >
+              <button
+                type='button'
+                data-testid='editor-scope-all'
+                aria-pressed={scopeFilter === 'all'}
+                onClick={() => setScopeFilter('all')}
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                  scopeFilter === 'all'
+                    ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
+                    : 'text-[#57534E] hover:text-[#1C1917]'
+                }`}
+              >
+                {t('desk.scopeAll', 'Tất cả')}
+              </button>
+              <button
+                type='button'
+                data-testid='editor-scope-mine'
+                aria-pressed={scopeFilter === 'mine'}
+                onClick={() => setScopeFilter('mine')}
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                  scopeFilter === 'mine'
+                    ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
+                    : 'text-[#57534E] hover:text-[#1C1917]'
+                }`}
+              >
+                {t('desk.scopeMine', 'Của tôi')}
+              </button>
+            </div>
+
             {/* Status Select */}
             <select
               value={statusFilter}
@@ -667,6 +708,12 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                 currentUserId &&
                 item.reviewerUserId === currentUserId,
               );
+              const isSuggestedForSelf = Boolean(
+                item.isGridItem &&
+                item.status === 'Submitted' &&
+                currentUserId &&
+                item.reviewerUserId === currentUserId,
+              );
 
               return (
                 <div
@@ -708,15 +755,26 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                           {t('scriptReview.header.title', { number: item.chapterNumber })} ·{' '}
                           <span className='text-[#C2410C]'>{item.scopeLabel}</span>
                         </h3>
-                        {item.isInputOutdated && (
-                          <span
-                            data-testid={`editor-input-outdated-${item.assignmentId}`}
-                            className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-semibold'
-                          >
-                            <AlertCircle className='w-3 h-3 text-amber-700 shrink-0' />
-                            <span>{t('chapterReview.inputOutdatedBadge')}</span>
-                          </span>
-                        )}
+                        <div className='flex items-center gap-1.5 flex-wrap'>
+                          {isSuggestedForSelf && (
+                            <span
+                              data-testid={`editor-assigned-to-you-${item.assignmentId}`}
+                              className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200 text-[#C2410C] text-[11px] font-semibold'
+                            >
+                              <User className='w-3 h-3 text-[#EA580C] shrink-0' />
+                              <span>{t('desk.assignedToYouChip', 'Được phân cho bạn')}</span>
+                            </span>
+                          )}
+                          {item.isInputOutdated && (
+                            <span
+                              data-testid={`editor-input-outdated-${item.assignmentId}`}
+                              className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-semibold'
+                            >
+                              <AlertCircle className='w-3 h-3 text-amber-700 shrink-0' />
+                              <span>{t('chapterReview.inputOutdatedBadge')}</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <p className='text-xs text-[#57534E] mt-0.5 truncate'>
                         {item.chapterTitle || t('desk.untitledChapter')} ·{' '}

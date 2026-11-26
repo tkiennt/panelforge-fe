@@ -41,6 +41,7 @@ import { SeriesShelf } from './studio-overview/SeriesShelf';
 import { MembersTabContent } from './studio-overview/MembersTabContent';
 import { StudioScheduleTab } from './studio-overview/StudioScheduleTab';
 import { StudioAuditTab } from './studio-overview/StudioAuditTab';
+import { StudioAutomationTab } from './studio-overview/StudioAutomationTab';
 import { MemberSeriesPortal } from './studio-overview/MemberSeriesPortal';
 import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
 import { Alert } from '@/shared/ui';
@@ -56,7 +57,7 @@ import { useToast } from '@/shared/context/ToastContext';
 import { formatReadingDirection } from './studio-overview/formatters';
 import { useTranslation } from '@/lib/i18n';
 
-const STUDIO_TABS = ['series', 'members', 'schedule', 'audit'] as const;
+const STUDIO_TABS = ['series', 'members', 'schedule', 'audit', 'automation'] as const;
 type StudioTab = (typeof STUDIO_TABS)[number];
 
 export const StudioOverviewView: React.FC = () => {
@@ -815,6 +816,18 @@ export const StudioOverviewView: React.FC = () => {
 
   // Writers, artists, letterers and editors land on their own series picker, not the studio governance hub.
   if (!isProducerOrAdmin) {
+    if (wsRole === 'EDITOR' && activeTab === 'automation') {
+      return (
+        <div className='flex-1 bg-[#FAF9F5] min-h-full px-4 md:px-8 xl:px-12 py-6 space-y-6 text-stone-900 font-sans'>
+          <StudioAutomationTab
+            workspaceId={activeWorkspace?.id || workspaceId}
+            canEdit={false}
+            onShowToast={showToast}
+            onBackToSeries={() => setActiveTab('series')}
+          />
+        </div>
+      );
+    }
     return (
       <MemberSeriesPortal
         workspaceId={activeWorkspace?.id || workspaceId}
@@ -824,6 +837,7 @@ export const StudioOverviewView: React.FC = () => {
         seriesList={seriesList}
         loading={loading}
         onOpenSeries={handleOpenSeries}
+        onOpenAutomation={wsRole === 'EDITOR' ? () => setActiveTab('automation') : undefined}
       />
     );
   }
@@ -1080,6 +1094,15 @@ export const StudioOverviewView: React.FC = () => {
             onFilterChange={setAuditFilterEntity}
             onRefresh={loadWorkspaceAudit}
             workspaceName={activeWorkspace?.name}
+          />
+        )}
+
+        {/* TAB 5: Assign Automation Settings View */}
+        {activeTab === 'automation' && (
+          <StudioAutomationTab
+            workspaceId={activeWorkspace?.id || workspaceId}
+            canEdit={isProducer}
+            onShowToast={showToast}
           />
         )}
       </div>

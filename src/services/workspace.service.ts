@@ -116,6 +116,27 @@ export interface UpdateMemberRoleRequest {
   newRole: string | number;
 }
 
+export type AutoAssignMode = 'KeepPageOwner' | 'BalanceOnly';
+
+export interface AutomationSettingsDto {
+  workspaceId: string;
+  autoNextStage: boolean;
+  assignMode: AutoAssignMode;
+  autoRouteReview: boolean;
+  leadHours: number;
+  escalationHours: number | null;
+  rowVersion: number | null;
+}
+
+export interface UpdateAutomationSettingsRequest {
+  autoNextStage: boolean;
+  assignMode: AutoAssignMode;
+  autoRouteReview: boolean;
+  leadHours: number;
+  escalationHours: number | null;
+  rowVersion: number | null;
+}
+
 // Xử lý lỗi từ Axios
 async function parseErrorResponse(error: any, defaultMsg: string): Promise<string> {
   if (error.response) {
@@ -415,6 +436,54 @@ export const workspaceService = {
       throw new Error(
         await parseErrorResponse(error, translate('errors.services.workspace.clearCoverFailed')),
       );
+    }
+  },
+
+  /**
+   * Lấy cấu hình Assign Automation của Studio (GET /api/workspaces/{workspaceId}/automation-settings)
+   */
+  getAutomationSettings: async (workspaceId: string): Promise<AutomationSettingsDto> => {
+    try {
+      const response = await axiosClient.get<AutomationSettingsDto>(
+        `/workspaces/${workspaceId}/automation-settings`,
+      );
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(
+        await parseErrorResponse(
+          error,
+          translate('errors.services.workspace.getAutomationSettingsFailed'),
+        ),
+      );
+      err.status = error?.response?.status;
+      err.code = error?.response?.data?.code;
+      throw err;
+    }
+  },
+
+  /**
+   * Lưu cấu hình Assign Automation của Studio (PUT /api/workspaces/{workspaceId}/automation-settings)
+   */
+  updateAutomationSettings: async (
+    workspaceId: string,
+    request: UpdateAutomationSettingsRequest,
+  ): Promise<AutomationSettingsDto> => {
+    try {
+      const response = await axiosClient.put<AutomationSettingsDto>(
+        `/workspaces/${workspaceId}/automation-settings`,
+        request,
+      );
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(
+        await parseErrorResponse(
+          error,
+          translate('errors.services.workspace.updateAutomationSettingsFailed'),
+        ),
+      );
+      err.status = error?.response?.status;
+      err.code = error?.response?.data?.code;
+      throw err;
     }
   },
 };

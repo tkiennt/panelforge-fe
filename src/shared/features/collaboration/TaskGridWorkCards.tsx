@@ -151,6 +151,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
       if (
         onCellsUpdated &&
         Array.isArray(updated) &&
+        updated.length > 0 &&
         !updated.some((c) => c.status === 'Approved')
       ) {
         onCellsUpdated(
@@ -681,6 +682,16 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             <span className={`px-2 py-0.5 rounded-full border text-xs font-semibold ${metaCls}`}>
               {metaLabel}
             </span>
+            {item.status === 'Submitted' &&
+              Boolean(currentUserId && item.reviewerUserId === currentUserId) && (
+                <span
+                  data-testid={`grid-review-assigned-to-you-${item.taskId}`}
+                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-orange-200 bg-orange-50 text-xs font-semibold text-[#C2410C]'
+                >
+                  <User className='w-3 h-3 text-[#EA580C] shrink-0' />
+                  <span>{t('taskGridV3.assignedToYouChip', 'Được phân cho bạn')}</span>
+                </span>
+              )}
             {item.isInputOutdated && (
               <span
                 data-testid={`grid-review-input-outdated-${item.taskId}`}

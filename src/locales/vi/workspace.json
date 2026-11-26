@@ -648,7 +648,8 @@
       "crew": "Nhân sự Studio",
       "crewWithCount": "Nhân sự Studio ({count})",
       "schedule": "Lịch phát hành tổng",
-      "audit": "Nhật ký hoạt động"
+      "audit": "Nhật ký hoạt động",
+      "automation": "Automation"
     },
     "createSeries": "Tạo Series mới",
     "metrics": {
@@ -767,6 +768,42 @@
       "empty": "Bạn chưa tham gia Studio nào."
     },
     "tabsLabel": "Điều hướng Studio"
+  },
+  "automationTab": {
+    "title": "Assign Automation",
+    "subtitle": "Cấu hình tự giao công đoạn, gợi ý người duyệt và nhắc hạn cho Studio",
+    "readOnlyBadge": "Chỉ xem",
+    "readOnlyHint": "Chỉ Chủ Studio hoặc Producer mới chỉnh sửa và lưu được cấu hình Automation.",
+    "backToSeries": "Quay lại danh sách bộ truyện",
+    "openAutomation": "Automation",
+    "loading": "Đang tải cấu hình Automation...",
+    "loadErrorFallback": "Không thể tải cấu hình Automation.",
+    "retryBtn": "Thử lại",
+    "reloadBtn": "Tải lại",
+    "conflictMessage": "Cấu hình Automation vừa được người khác thay đổi. Vui lòng tải lại để lấy bản mới nhất.",
+    "autoNextStageLabel": "Tự giao công đoạn kế tiếp",
+    "autoNextStageDesc": "Quy tắc R1: Khi công đoạn trước được duyệt, tự tạo lô cho các ô trống đủ tiền đề ở công đoạn kế tiếp.",
+    "assignModeLabel": "Chế độ chọn người",
+    "modeKeepPageOwner": "Giữ người cũ",
+    "modeKeepPageOwnerDesc": "Ai làm trang ở công đoạn trước thì làm tiếp (không có thì chia theo tải).",
+    "modeBalanceOnly": "Chia theo tải",
+    "modeBalanceOnlyDesc": "Giao người đúng vai trò đang ít việc nhất.",
+    "autoRouteReviewLabel": "Gợi ý người duyệt",
+    "autoRouteReviewDesc": "Quy tắc R2: Khi nộp bài ở công đoạn có cổng duyệt, gợi ý Editor đang ít bài chờ nhất (không khoá bài).",
+    "remindersHeading": "Nhắc hạn & leo thang (R3)",
+    "leadHoursLabel": "Nhắc trước hạn (giờ)",
+    "leadHoursHint": "Từ 1 đến 168 giờ (mặc định 24 giờ).",
+    "escalationHoursLabel": "Leo thang sau (giờ)",
+    "escalationHoursPlaceholder": "Để trống = tắt",
+    "escalationHoursHint": "Báo Producer khi lô trễ quá số giờ này hoặc ô bị ngâm quá lâu. Để trống để tắt.",
+    "validationLeadHours": "Nhắc trước hạn phải từ 1 đến 168 giờ.",
+    "validationEscalationHours": "Leo thang sau phải để trống hoặc từ 1 đến 168 giờ.",
+    "saveBtn": "Lưu cấu hình",
+    "savingBtn": "Đang lưu...",
+    "saveSuccessTitle": "Đã lưu cấu hình Automation",
+    "saveSuccessDesc": "Cấu hình Assign Automation của Studio đã được cập nhật.",
+    "saveErrorTitle": "Lỗi lưu cấu hình",
+    "saveErrorFallback": "Không thể lưu cấu hình Automation."
   },
   "portal": {
     "title": "Chọn Bộ truyện để làm việc",

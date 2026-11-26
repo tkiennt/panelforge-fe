@@ -345,4 +345,258 @@ describe('StudioOverviewView Library UX/UI', () => {
       expect(screen.getByText('Chờ xác nhận')).toBeInTheDocument();
     });
   });
+
+  describe('Assign Automation Tab (TASK-359)', () => {
+    const defaultAutomationSettings = {
+      workspaceId: 'ws-test',
+      autoNextStage: false,
+      assignMode: 'KeepPageOwner' as const,
+      autoRouteReview: false,
+      leadHours: 24,
+      escalationHours: null,
+      rowVersion: null,
+    };
+
+    it('loads default automation settings with active R1/R2/R3 hints and no config-only notes (TASK-359 / TASK-361 / TASK-362)', async () => {
+      const getSpy = vi
+        .spyOn(workspaceService, 'getAutomationSettings')
+        .mockResolvedValue(defaultAutomationSettings);
+
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=automation']}>
+          <Routes>
+            <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      expect(await screen.findByTestId('studio-automation-tab')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(getSpy).toHaveBeenCalledWith('ws-test');
+      });
+
+      expect(screen.queryByText(/chỉ lưu cấu hình/i)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('automation-step5-note')).not.toBeInTheDocument();
+      expect(screen.getByText(/Ai làm trang ở công đoạn trước thì làm tiếp/i)).toBeInTheDocument();
+      expect(screen.getByText(/Giao người đúng vai trò đang ít việc nhất/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Báo Producer khi lô trễ quá số giờ này hoặc ô bị ngâm quá lâu. Để trống để tắt.',
+        ),
+      ).toBeInTheDocument();
+
+      const autoNextSwitch = screen.getByRole('switch', { name: 'Tự giao công đoạn kế tiếp' });
+      const autoRouteSwitch = screen.getByRole('switch', { name: 'Gợi ý người duyệt' });
+      const keepOwnerRadio = screen.getByRole('radio', { name: /Giữ người cũ/i });
+      const balanceRadio = screen.getByRole('radio', { name: /Chia theo tải/i });
+      const leadInput = screen.getByLabelText('Nhắc trước hạn (giờ)') as HTMLInputElement;
+      const escalationInput = screen.getByLabelText('Leo thang sau (giờ)') as HTMLInputElement;
+
+      expect(autoNextSwitch).not.toBeChecked();
+      expect(autoRouteSwitch).not.toBeChecked();
+      expect(keepOwnerRadio).toBeChecked();
+      expect(balanceRadio).not.toBeChecked();
+      expect(leadInput.value).toBe('24');
+      expect(escalationInput.value).toBe('');
+      expect(screen.getByTestId('automation-save-btn')).not.toBeDisabled();
+    });
+
+    it('saves automation settings for Producer/Owner and forwards updated rowVersion (BR-11)', async () => {
+      vi.spyOn(workspaceService, 'getAutomationSettings').mockResolvedValue(
+        defaultAutomationSettings,
+      );
+      const putSpy = vi
+        .spyOn(axiosClient, 'put')
+        .mockReset()
+        .mockResolvedValueOnce({
+          data: {
+            workspaceId: 'ws-test',
+            autoNextStage: true,
+            assignMode: 'BalanceOnly',
+            autoRouteReview: true,
+            leadHours: 12,
+            escalationHours: 48,
+            rowVersion: 7,
+          },
+        })
+        .mockResolvedValueOnce({
+          data: {
+            workspaceId: 'ws-test',
+            autoNextStage: true,
+            assignMode: 'BalanceOnly',
+            autoRouteReview: true,
+            leadHours: 12,
+            escalationHours: null,
+            rowVersion: 8,
+          },
+        });
+
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=automation']}>
+          <Routes>
+            <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await screen.findByLabelText('Nhắc trước hạn (giờ)');
+
+      // Client validation blocks invalid leadHours (1-168)
+      fireEvent.change(screen.getByLabelText('Nhắc trước hạn (giờ)'), { target: { value: '0' } });
+      fireEvent.click(screen.getByTestId('automation-save-btn'));
+      expect(await screen.findByTestId('automation-save-error')).toHaveTextContent('1 đến 168');
+      expect(putSpy).not.toHaveBeenCalled();
+
+      // Valid save #1 (rowVersion: null -> 7)
+      fireEvent.click(screen.getByRole('switch', { name: 'Tự giao công đoạn kế tiếp' }));
+      fireEvent.click(screen.getByRole('radio', { name: /Chia theo tải/i }));
+      fireEvent.click(screen.getByRole('switch', { name: 'Gợi ý người duyệt' }));
+      fireEvent.change(screen.getByLabelText('Nhắc trước hạn (giờ)'), { target: { value: '12' } });
+      fireEvent.change(screen.getByLabelText('Leo thang sau (giờ)'), { target: { value: '48' } });
+      fireEvent.click(screen.getByTestId('automation-save-btn'));
+
+      await waitFor(() => {
+        expect(putSpy).toHaveBeenCalledWith('/workspaces/ws-test/automation-settings', {
+          autoNextStage: true,
+          assignMode: 'BalanceOnly',
+          autoRouteReview: true,
+          leadHours: 12,
+          escalationHours: 48,
+          rowVersion: null,
+        });
+      });
+
+      // Valid save #2 clears escalationHours -> null and sends rowVersion: 7
+      fireEvent.change(screen.getByLabelText('Leo thang sau (giờ)'), { target: { value: '' } });
+      fireEvent.click(screen.getByTestId('automation-save-btn'));
+
+      await waitFor(() => {
+        expect(putSpy).toHaveBeenLastCalledWith('/workspaces/ws-test/automation-settings', {
+          autoNextStage: true,
+          assignMode: 'BalanceOnly',
+          autoRouteReview: true,
+          leadHours: 12,
+          escalationHours: null,
+          rowVersion: 7,
+        });
+      });
+    });
+
+    it('handles 409 Conflict on stale rowVersion with reload action (BR-11)', async () => {
+      const getSpy = vi
+        .spyOn(workspaceService, 'getAutomationSettings')
+        .mockResolvedValueOnce(defaultAutomationSettings)
+        .mockResolvedValueOnce({
+          ...defaultAutomationSettings,
+          autoNextStage: true,
+          leadHours: 36,
+          rowVersion: 5,
+        });
+
+      vi.spyOn(axiosClient, 'put')
+        .mockReset()
+        .mockRejectedValueOnce({
+          response: {
+            status: 409,
+            data: {
+              error: 'Cấu hình Automation vừa được người khác thay đổi. Tải lại rồi thử lại.',
+              code: 'Conflict',
+            },
+          },
+        });
+
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=automation']}>
+          <Routes>
+            <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await screen.findByLabelText('Nhắc trước hạn (giờ)');
+      fireEvent.click(screen.getByTestId('automation-save-btn'));
+
+      const conflictAlert = await screen.findByTestId('automation-save-error');
+      expect(conflictAlert).toHaveAttribute('role', 'alert');
+      expect(conflictAlert).toHaveTextContent(/người khác thay đổi/i);
+
+      const reloadBtn = screen.getByTestId('automation-reload-btn');
+      fireEvent.click(reloadBtn);
+
+      await waitFor(() => {
+        expect(getSpy).toHaveBeenCalledTimes(2);
+        expect((screen.getByLabelText('Nhắc trước hạn (giờ)') as HTMLInputElement).value).toBe(
+          '36',
+        );
+      });
+      expect(screen.queryByTestId('automation-save-error')).not.toBeInTheDocument();
+    });
+
+    it('renders read-only disabled controls for Editor and blocks non-Editor/Producer roles (BR-07)', async () => {
+      const editorWorkspace = {
+        ...mockWorkspace,
+        isOwner: false,
+        currentUserRole: 'Editor',
+      };
+      localStorage.setItem('activeWorkspace', JSON.stringify(editorWorkspace));
+      localStorage.setItem('workspaceRole', 'EDITOR');
+      vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([editorWorkspace as any]);
+      const getSpy = vi.spyOn(workspaceService, 'getAutomationSettings').mockResolvedValue({
+        ...defaultAutomationSettings,
+        autoNextStage: true,
+        escalationHours: 24,
+        rowVersion: 2,
+      });
+      const putSpy = vi.spyOn(workspaceService, 'updateAutomationSettings');
+
+      const { unmount } = render(
+        <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=automation']}>
+          <Routes>
+            <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      expect(await screen.findByTestId('automation-readonly-badge')).toHaveTextContent('Chỉ xem');
+      await waitFor(() => {
+        expect(getSpy).toHaveBeenCalledWith('ws-test');
+      });
+
+      expect(screen.getByRole('switch', { name: 'Tự giao công đoạn kế tiếp' })).toBeDisabled();
+      expect(screen.getByRole('radio', { name: /Giữ người cũ/i })).toBeDisabled();
+      expect(screen.getByRole('radio', { name: /Chia theo tải/i })).toBeDisabled();
+      expect(screen.getByRole('switch', { name: 'Gợi ý người duyệt' })).toBeDisabled();
+      expect(screen.getByLabelText('Nhắc trước hạn (giờ)')).toBeDisabled();
+      expect(screen.getByLabelText('Leo thang sau (giờ)')).toBeDisabled();
+      expect(screen.getByTestId('automation-save-btn')).toBeDisabled();
+      expect(putSpy).not.toHaveBeenCalled();
+
+      unmount();
+
+      // Artist must NOT access automation tab (BR-07)
+      getSpy.mockClear();
+      const artistWorkspace = {
+        ...mockWorkspace,
+        isOwner: false,
+        currentUserRole: 'Artist',
+      };
+      localStorage.setItem('activeWorkspace', JSON.stringify(artistWorkspace));
+      localStorage.setItem('workspaceRole', 'ARTIST');
+      vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([artistWorkspace as any]);
+
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=automation']}>
+          <Routes>
+            <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Chọn Bộ truyện để làm việc')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('studio-automation-tab')).not.toBeInTheDocument();
+      expect(getSpy).not.toHaveBeenCalled();
+    });
+  });
 });

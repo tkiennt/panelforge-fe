@@ -7,6 +7,7 @@ import {
   Filter,
   Layers,
   Search,
+  Sparkles,
   X,
 } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
@@ -23,6 +24,7 @@ interface MemberSeriesPortalProps {
   seriesList: SeriesDto[];
   loading: boolean;
   onOpenSeries: (seriesId: string) => void;
+  onOpenAutomation?: () => void;
 }
 
 const STATUS_KEYS = [
@@ -64,6 +66,7 @@ export const MemberSeriesPortal: React.FC<MemberSeriesPortalProps> = ({
   seriesList,
   loading,
   onOpenSeries,
+  onOpenAutomation,
 }) => {
   const { t, lang } = useTranslation();
   const [assignments, setAssignments] = useState<WorkspaceAssignmentDto[]>([]);
@@ -133,6 +136,16 @@ export const MemberSeriesPortal: React.FC<MemberSeriesPortalProps> = ({
             </p>
           </div>
           <div className='flex flex-wrap items-center gap-2 shrink-0'>
+            {onOpenAutomation && (
+              <button
+                type='button'
+                onClick={onOpenAutomation}
+                className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-200/80 bg-white hover:bg-stone-50 text-sm font-medium text-stone-700 shadow-xs cursor-pointer'
+              >
+                <Sparkles className='w-4 h-4 text-orange-600' />
+                <span>{t('workspace.automationTab.openAutomation')}</span>
+              </button>
+            )}
             <span className='inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200/80 bg-white text-sm text-stone-700 shadow-xs'>
               <ClipboardList className='w-4 h-4 text-orange-600' />
               {t('workspace.portal.openTasks', { count: openTasks.length })}

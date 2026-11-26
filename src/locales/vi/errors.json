@@ -75,6 +75,7 @@
       "openStageTaskReviewFailed": "Không thể mở duyệt ô công việc",
       "releaseStageTaskReviewFailed": "Không thể nhả khoá duyệt ô công việc",
       "approveStageTaskFailed": "Không thể duyệt ô công việc",
+      "approveStageTasksFailed": "Không thể duyệt các ô công việc đã chọn",
       "requestStageTaskChangesFailed": "Không thể yêu cầu sửa ô công việc",
       "getStageTaskSubmissionsFailed": "Không thể tải lịch sử nộp của ô công việc",
       "reopenStageTaskFailed": "Không thể mở lại ô công việc",
@@ -233,6 +234,8 @@
       "revokeSessionFailed": "Không thể thu hồi phiên làm việc.",
       "setCoverFailed": "Tải ảnh bìa Studio thất bại.",
       "clearCoverFailed": "Xóa ảnh bìa Studio thất bại.",
+      "getAutomationSettingsFailed": "Không thể tải cấu hình Automation của Studio.",
+      "updateAutomationSettingsFailed": "Không thể lưu cấu hình Automation của Studio.",
       "conflict": "Thao tác bị xung đột với trạng thái hiện tại (409 Conflict)."
     },
     "admin": {

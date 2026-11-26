@@ -270,6 +270,7 @@ export function AppShell({
     effectiveRole === 'PRODUCER' ||
     effectiveRole === 'ADMINISTRATOR' ||
     currentUser.role === 'ADMINISTRATOR';
+  const canViewStudioAutomation = canManageStudio || effectiveRole === 'EDITOR';
   const studioTab = searchParams.get('tab') ?? 'series';
   const setStudioQuery = (key: 'tab' | 'action', value: string | null) => {
     const next = new URLSearchParams(location.search);
@@ -1048,19 +1049,24 @@ export function AppShell({
             )}
           </div>
 
-          {isStudioHome && canManageStudio && (
+          {isStudioHome && canViewStudioAutomation && (
             <nav
               className='hidden lg:flex items-center gap-6 h-full text-sm font-medium'
               aria-label={t('workspace.studioHub.tabsLabel')}
               data-testid='studio-hub-tabs'
             >
-              {(
-                [
-                  ['series', t('workspace.studioHub.tabs.series')],
-                  ['members', t('workspace.studioHub.tabs.crew')],
-                  ['schedule', t('workspace.studioHub.tabs.schedule')],
-                  ['audit', t('workspace.studioHub.tabs.audit')],
-                ] as const
+              {(canManageStudio
+                ? ([
+                    ['series', t('workspace.studioHub.tabs.series')],
+                    ['members', t('workspace.studioHub.tabs.crew')],
+                    ['schedule', t('workspace.studioHub.tabs.schedule')],
+                    ['audit', t('workspace.studioHub.tabs.audit')],
+                    ['automation', t('workspace.studioHub.tabs.automation')],
+                  ] as const)
+                : ([
+                    ['series', t('workspace.studioHub.tabs.series')],
+                    ['automation', t('workspace.studioHub.tabs.automation')],
+                  ] as const)
               ).map(([tab, label]) => (
                 <button
                   key={tab}
