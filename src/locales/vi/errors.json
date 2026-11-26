@@ -112,7 +112,9 @@
       "submitScriptFailed": "Không thể gửi duyệt kịch bản.",
       "recallScriptFailed": "Không thể rút kịch bản về sửa.",
       "startProductionFailed": "Không thể bắt đầu sản xuất chương.",
-      "unfreezeScriptFailed": "Không thể mở lại kịch bản."
+      "unfreezeScriptFailed": "Không thể mở lại kịch bản.",
+      "refreezePreviewFailed": "Không thể tải dữ liệu xem trước chốt lại kịch bản.",
+      "refreezeScriptFailed": "Không thể khóa lại kịch bản."
     },
     "element": {
       "layerBackground": "Bối cảnh (Background)",
@@ -199,6 +201,10 @@
       "getDesignQueueFailed": "Không thể tải hàng đợi thiết kế Series Bible.",
       "submitConceptArtFailed": "Không thể nộp bản vẽ Concept Art.",
       "confirmRevisionFailed": "Không thể xác nhận và khoá Canon.",
+      "endorseRevisionFailed": "Không thể cập nhật xác nhận tạo hình.",
+      "createVariantFailed": "Không thể tạo biến thể mới cho mục Bible.",
+      "cancelReplacementFailed": "Không thể huỷ bản nháp thay thế.",
+      "updateAliasesFailed": "Không thể cập nhật danh sách tên phụ.",
       "setCrowdFailed": "Không thể cập nhật cờ Quần chúng.",
       "defineEntryFailed": "Không thể định nghĩa mục Bible.",
       "getConceptCommentsFailed": "Không thể tải góp ý concept.",

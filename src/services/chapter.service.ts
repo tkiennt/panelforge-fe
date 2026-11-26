@@ -111,6 +111,112 @@ export interface ChapterDto {
   isHandedOff?: boolean;
   handedOffAt?: string | null;
   handedOffById?: string | null;
+  frozenScriptVersionId?: string | null;
+  previousFrozenScriptVersionId?: string | null;
+}
+
+export interface RefreezeHashParityDto {
+  isMatched: boolean;
+  currentDraftHash: string;
+  submittedHash?: string | null;
+  submittedVersionNumber?: number | null;
+  latestVersionNumber?: number | null;
+}
+
+export interface RefreezeBibleGateDto {
+  isCanonLocked: boolean;
+  blockers: Array<{
+    bibleEntryId: string;
+    entryName: string;
+    revisionId?: string | null;
+    reason: string;
+    sourceExplanation?: string | null;
+  }>;
+}
+
+export interface RefreezeAddedPageDto {
+  pageId: string;
+  pageNumber: number;
+  panelCount: number;
+  suggestedArtistId?: string | null;
+  suggestedArtistName?: string | null;
+  suggestedLettererId?: string | null;
+  suggestedLettererName?: string | null;
+}
+
+export interface RefreezeRemovedPageDto {
+  pageId: string;
+  pageNumber: number;
+  canSafelyDelete: boolean;
+  activeTaskCount: number;
+  hasArtwork: boolean;
+  hasBalloons: boolean;
+}
+
+export interface RefreezeImpactSummaryDto {
+  visualImpactCount: number;
+  textImpactCount: number;
+}
+
+export interface RefreezeVisualImpactDto {
+  pageNumber: number;
+  panelNumber: number;
+  panelId?: string | null;
+  changeType: string;
+  reason: string;
+  affectedStages: string[];
+  affectedAssigneeNames: string[];
+}
+
+export interface RefreezeTextImpactDto {
+  pageNumber: number;
+  panelNumber: number;
+  lineId?: string | null;
+  elementId?: string | null;
+  kind: string;
+  speakerLabel?: string | null;
+  oldText?: string | null;
+  newText?: string | null;
+  isStale: boolean;
+}
+
+export interface RefreezeScriptPreviewDto {
+  chapterId: string;
+  chapterNumber: number;
+  chapterTitle?: string | null;
+  previousFrozenVersionId?: string | null;
+  previousFrozenVersionNumber?: number | null;
+  submittedVersionId?: string | null;
+  submittedVersionNumber?: number | null;
+  hashParity: RefreezeHashParityDto;
+  bibleGate: RefreezeBibleGateDto;
+  addedPages: RefreezeAddedPageDto[];
+  removedPages: RefreezeRemovedPageDto[];
+  impactSummary: RefreezeImpactSummaryDto;
+  visualImpacts: RefreezeVisualImpactDto[];
+  textImpacts: RefreezeTextImpactDto[];
+}
+
+export interface NewPageAssignmentRequest {
+  pageNumber: number;
+  artistId: string;
+  lettererId?: string | null;
+}
+
+export interface RefreezeScriptRequest {
+  expectedScriptHash: string;
+  newPageAssignments: NewPageAssignmentRequest[];
+}
+
+export interface RefreezeScriptResultDto {
+  chapterId: string;
+  frozenScriptVersionId: string;
+  previousFrozenScriptVersionId?: string | null;
+  addedPagesCount: number;
+  cancelledTasksCount: number;
+  visualImpactCount: number;
+  textImpactCount: number;
+  message: string;
 }
 
 export interface ScriptVersionRowRef {
@@ -645,6 +751,7 @@ export const chapterService = {
       err.status = error.response?.status;
       err.code =
         error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+      err.details = error.response?.data?.details;
       err.response = error.response;
       throw err;
     }
@@ -670,6 +777,7 @@ export const chapterService = {
       err.status = error.response?.status;
       err.code =
         error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+      err.details = error.response?.data?.details;
       err.response = error.response;
       throw err;
     }
@@ -721,6 +829,50 @@ export const chapterService = {
       throw new Error(
         extractError(error, translate('errors.services.chapter.unfreezeScriptFailed')),
       );
+    }
+  },
+
+  /**
+   * V2.6: GET /api/chapters/{chapterId}/refreeze-preview — Xem trước thay đổi trước khi chốt lại kịch bản
+   */
+  getRefreezePreview: async (chapterId: string): Promise<RefreezeScriptPreviewDto> => {
+    try {
+      const response = await axiosClient.get<RefreezeScriptPreviewDto>(
+        `/chapters/${chapterId}/refreeze-preview`,
+      );
+      return response.data;
+    } catch (error: any) {
+      const msg = extractError(error, translate('errors.services.chapter.refreezePreviewFailed'));
+      const err: any = new Error(msg);
+      err.status = error.response?.status;
+      err.code = error.response?.data?.code;
+      err.details = error.response?.data?.details;
+      err.response = error.response;
+      throw err;
+    }
+  },
+
+  /**
+   * V2.6: POST /api/chapters/{chapterId}/refreeze-script — Chốt lại kịch bản trong giai đoạn InProduction
+   */
+  refreezeScript: async (
+    chapterId: string,
+    body: RefreezeScriptRequest,
+  ): Promise<RefreezeScriptResultDto> => {
+    try {
+      const response = await axiosClient.post<RefreezeScriptResultDto>(
+        `/chapters/${chapterId}/refreeze-script`,
+        body,
+      );
+      return response.data;
+    } catch (error: any) {
+      const msg = extractError(error, translate('errors.services.chapter.refreezeScriptFailed'));
+      const err: any = new Error(msg);
+      err.status = error.response?.status;
+      err.code = error.response?.data?.code;
+      err.details = error.response?.data?.details;
+      err.response = error.response;
+      throw err;
     }
   },
 };

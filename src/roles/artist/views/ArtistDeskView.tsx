@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Loader2, RefreshCw, Send, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Flag, Loader2, RefreshCw, Send, ShieldAlert } from 'lucide-react';
 import { pageService, PageDto, PageHistoryDto, isGuid } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
@@ -2034,6 +2034,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return reworkCell ? resolveReworkReasonDisplay(reworkCell) : null;
   }, [gridTasks, selectedPage, currentStage?.id]);
 
+  const isScriptUnfrozenInProduction = Boolean(
+    activeChapter &&
+    activeChapter.status === 'InProduction' &&
+    activeChapter.isScriptFrozen === false,
+  );
+
   // Persist the current dirty layout. Saving never prevents later layout changes.
   const handleSaveLayout = useCallback(async () => {
     if (isInkOrColorStage) {
@@ -2625,6 +2631,23 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
       : null);
   const isLettererRole = normalizedDeskRole === 'LETTERER';
+  const currentVisualImpactCell = useMemo(() => {
+    if (gridTasks.length === 0 || isLettererRole) return null;
+    const me = getStoredCurrentUserId();
+    const pageCells = gridTasks.filter(
+      (cell) => !cell.pageId || !selectedPage || cell.pageId === selectedPage.id,
+    );
+    const stagePageCells = currentStage?.id
+      ? pageCells.filter((cell) => cell.pipelineStageId === currentStage.id)
+      : pageCells;
+    return (
+      stagePageCells.find(
+        (cell) =>
+          cell.isInputOutdated &&
+          (me ? cell.assigneeUserId === me : Boolean(cell.assigneeUserId)),
+      ) ?? null
+    );
+  }, [gridTasks, isLettererRole, selectedPage, currentStage?.id]);
   const handleReloadLetteringPage = useCallback(async () => {
     await Promise.all([balloons.reloadElements(), keepOut.reload()]);
     if (currentChapterId) {
@@ -2906,6 +2929,36 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           }}
           showFocusControls={false}
         />
+      )}
+
+      {isScriptUnfrozenInProduction && (
+        <div
+          data-testid='script-unfrozen-banner'
+          role='status'
+          className='shrink-0 border-b border-amber-300 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-950 flex items-center gap-2'
+        >
+          <AlertTriangle className='w-4 h-4 text-[#D97706] shrink-0' aria-hidden='true' />
+          <span>
+            Kịch bản đang được mở khóa để chỉnh sửa — lưu ý trước khi nộp bài mới.
+          </span>
+        </div>
+      )}
+
+      {currentVisualImpactCell && (
+        <div
+          data-testid='visual-impact-badge'
+          role='status'
+          className='shrink-0 border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-900 flex items-center gap-2'
+        >
+          <span className='inline-flex items-center gap-1 rounded px-1.5 py-0.5 bg-rose-100 text-rose-800 border border-rose-300 font-bold shrink-0'>
+            <Flag className='w-3 h-3' aria-hidden='true' />
+            ⚑ Kịch bản thay đổi
+          </span>
+          <span>
+            {currentVisualImpactCell.outdatedReason ||
+              'Nội dung hình ảnh của trang này đã được cập nhật khi chốt lại kịch bản.'}
+          </span>
+        </div>
       )}
 
       {isPageReadOnly && (

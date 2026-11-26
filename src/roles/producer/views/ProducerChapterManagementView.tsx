@@ -52,6 +52,7 @@ import { seriesService, type SeriesDetailDto } from '@/services/series.service';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { pageService, type PageDto } from '@/services/page.service';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
+import { RefreezeScriptModal } from '@/shared/modals/RefreezeScriptModal';
 import { ChapterAssignmentsModal } from '../modals/ChapterAssignmentsModal';
 import { ChapterEditionsModal } from '../modals/ChapterEditionsModal';
 import { PreviewLinksModal } from '../modals/PreviewLinksModal';
@@ -676,7 +677,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 title={t('producer.chapterManagement.gate1CtaTitle')}
               >
                 <Play className='h-3 w-3 fill-current' />
-                <span>{t('producer.chapterManagement.gate1Cta')}</span>
+                <span>
+                  {chapter.status === 'InProduction'
+                    ? t('producer.chapterManagement.refreezeCta', 'Khóa lại kịch bản')
+                    : t('producer.chapterManagement.gate1Cta')}
+                </span>
                 {blockers.length > 0 && (
                   <span className='ml-1 rounded-full bg-rose-600 px-1.5 py-0.2 text-xs text-white font-mono'>
                     {t('producer.chapterManagement.blockersCount', { count: blockers.length })}
@@ -1329,7 +1334,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     onClick={() => setStartProductionOpen(true)}
                     className='w-full rounded-lg bg-[#EA580C] py-2 text-xs font-bold text-white hover:bg-[#C2410C]'
                   >
-                    {t('producer.chapterManagement.approveAndStartBtn')}
+                    {chapter?.status === 'InProduction'
+                      ? t('producer.chapterManagement.refreezeCta', 'Khóa lại kịch bản')
+                      : t('producer.chapterManagement.approveAndStartBtn')}
                   </button>
                 )}
               </div>
@@ -1745,8 +1752,25 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         </Modal>
       )}
 
-      {/* ── GATE 1 START PRODUCTION MODAL ── */}
-      {startProductionOpen && chapter && (
+      {/* ── GATE 1 START PRODUCTION / REFREEZE MODAL ── */}
+      {startProductionOpen && chapter && chapter.status === 'InProduction' && (
+        <RefreezeScriptModal
+          isOpen
+          workspaceId={workspaceId}
+          seriesId={seriesId}
+          chapterId={chapter.id}
+          chapterNumber={chapter.chapterNumber}
+          chapterTitle={chapter.title || undefined}
+          onClose={() => setStartProductionOpen(false)}
+          onSuccess={() => {
+            setStartProductionOpen(false);
+            void loadChapterDetails(chapter.id);
+            void loadSeriesAndChapters();
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
+      {startProductionOpen && chapter && chapter.status !== 'InProduction' && (
         <StartProductionModal
           isOpen
           workspaceId={workspaceId}

@@ -511,6 +511,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Banner & Modal xung đột phiên bản (BR-11 / 409 CONFLICT)
   const [concurrencyError, setConcurrencyError] = useState<string | null>(null);
+  const [deleteBlockedError, setDeleteBlockedError] = useState<string | null>(null);
+  const [protectedPageNumbers, setProtectedPageNumbers] = useState<number[]>([]);
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
   const [conflictErrorMsg, setConflictErrorMsg] = useState<string | undefined>(undefined);
   const [conflictEntityId, setConflictEntityId] = useState<string | undefined>(undefined);
@@ -823,6 +825,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       try {
         const res = await chapterService.saveChapterScript(chapterId, body);
         setConcurrencyError(null);
+        setDeleteBlockedError(null);
         setExpectedRevisionId(res.revisionId);
         expectedRevisionIdRef.current = res.revisionId;
 
@@ -866,9 +869,25 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }
         return true;
       } catch (err: any) {
-        // 409 do kịch bản bỏ bớt trang còn việc / ô lưới: hiện đúng lý do của BE, không phải lỗi sửa đồng thời.
-        if (err?.message?.startsWith('Không thể xoá')) {
-          notify(t('scriptStudio.save.deleteBlocked', 'Không xoá được trang'), err.message);
+        // 409 do xóa trang/khung đang có bản vẽ hoặc công đoạn sản xuất: hiện banner + toast rõ ràng, giữ nguyên bản nháp.
+        if (
+          err?.code === 'CANNOT_DELETE_ACTIVE_PRODUCTION_PAGE' ||
+          err?.message?.startsWith('Không thể xoá') ||
+          err?.message?.startsWith('Không thể xóa')
+        ) {
+          const blockedPageIds: string[] = Array.isArray(err?.details?.blockedPageIds)
+            ? err.details.blockedPageIds
+            : [];
+          const blockedNums = blockedPageIds
+            .map((id) => chapterPages.find((p) => p.id === id)?.pageNumber)
+            .filter((n): n is number => typeof n === 'number')
+            .sort((a, b) => a - b);
+          const detailMsg =
+            blockedNums.length > 0
+              ? `Trang ${blockedNums.join(', ')} đã có bản vẽ hoặc công đoạn đang thực hiện nên không thể xóa.`
+              : err.message;
+          setDeleteBlockedError(detailMsg);
+          notify(t('scriptStudio.save.deleteBlocked', 'Không xóa được trang đang sản xuất'), detailMsg);
           return false;
         }
         if (
@@ -1423,6 +1442,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       }
     } catch (err: any) {
       if (
+        err?.code === 'CANNOT_DELETE_ACTIVE_PRODUCTION_PAGE' ||
+        err?.message?.startsWith('Không thể xoá') ||
+        err?.message?.startsWith('Không thể xóa')
+      ) {
+        const msg =
+          err?.message ||
+          'Không thể xóa trang đã có bản vẽ hoặc công đoạn đang thực hiện trong giai đoạn sản xuất.';
+        setDeleteBlockedError(msg);
+        notify(t('scriptStudio.save.deleteBlocked', 'Không xóa được trang đang sản xuất'), msg);
+        return;
+      }
+      if (
         err?.status === 409 ||
         err?.code === 'CONFLICT' ||
         err?.message?.includes('409') ||
@@ -1565,6 +1596,32 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         flowDirtyRef.current = false;
         setWorkingCopySyncTick((n) => n + 1);
         void loadChapterCast(chapId);
+
+        if (currentChapter?.status === 'InProduction' && assignmentService?.getTaskGrid) {
+          void assignmentService
+            .getTaskGrid(chapId)
+            .then((grid) => {
+              const startedIds = new Set(
+                (grid?.tasks ?? [])
+                  .filter(
+                    (tk) =>
+                      tk.pageId &&
+                      tk.status !== 'Unassigned' &&
+                      tk.status !== 'Assigned' &&
+                      tk.status !== 'Cancelled',
+                  )
+                  .map((tk) => tk.pageId!),
+              );
+              const nums = loadedPages
+                .filter((pg) => startedIds.has(pg.id))
+                .map((pg) => pg.pageNumber)
+                .sort((a, b) => a - b);
+              setProtectedPageNumbers(nums);
+            })
+            .catch(() => setProtectedPageNumbers([]));
+        } else {
+          setProtectedPageNumbers([]);
+        }
       })().finally(() => {
         if (reloadInFlightRef.current?.chapterId === chapId) {
           reloadInFlightRef.current = null;
@@ -2003,6 +2060,26 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
       <h1 className='sr-only'>{t('writer.scriptEditor.srHeading')}</h1>
 
+      {deleteBlockedError && (
+        <div
+          data-testid='delete-blocked-banner'
+          role='alert'
+          className='w-full bg-rose-50 border-b border-rose-200 px-4 py-2 flex items-center justify-between gap-3 text-xs text-rose-900 shrink-0'
+        >
+          <span className='flex items-center gap-2 font-medium'>
+            <Lock className='w-3.5 h-3.5 text-rose-600 shrink-0' aria-hidden='true' />
+            <span>{deleteBlockedError}</span>
+          </span>
+          <button
+            type='button'
+            onClick={() => setDeleteBlockedError(null)}
+            className='text-rose-700 hover:text-rose-950 cursor-pointer'
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {concurrencyError && (
         <div
           data-testid='concurrency-error-banner'
@@ -2171,6 +2248,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <span className='ml-2'>{t('writer.statusDrawer.frozenHandoffDesc')}</span>{' '}
             <span className='text-stone-600'>{t('writer.statusDrawer.frozenReadOnlyDesc')}</span>
           </div>
+        </div>
+      )}
+
+      {/* Bảo vệ trang đang sản xuất: hiển thị các trang đã có công đoạn đang vẽ để Writer không xóa nhầm */}
+      {currentChapter?.status === 'InProduction' && !isScriptFrozen && protectedPageNumbers.length > 0 && (
+        <div
+          data-testid='production-protected-pages-bar'
+          title='Trang này đã có bản vẽ hoặc công đoạn đang sản xuất nên không thể xóa.'
+          className='shrink-0 border-b border-amber-200 bg-amber-50/70 px-4 py-1.5 text-xs text-amber-900 flex items-center gap-2'
+        >
+          <Lock className='w-3.5 h-3.5 text-[#D97706] shrink-0' aria-hidden='true' />
+          <span>
+            Trang đã có bản vẽ (được khóa xóa):{' '}
+            <strong>{protectedPageNumbers.map((n) => `Trang ${n}`).join(', ')}</strong>
+          </span>
         </div>
       )}
 
