@@ -77,6 +77,7 @@ import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
 import { parseScenePanelRange, formatSceneSummaryWithPanels } from '../utils/sceneUtils';
 import {
   useScriptDrawers,
+  isTestEnvironment,
   type LeftDrawer,
   type RightDrawer,
 } from '../components/script/useScriptDrawers';
@@ -345,7 +346,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [versionsTick, setVersionsTick] = useState(0);
   const [drawerRefreshTick, setDrawerRefreshTick] = useState(0);
   const [workingCopySyncTick, setWorkingCopySyncTick] = useState(0);
-  const [isScriptDirty, setIsScriptDirty] = useState(false);
   const flowDirtyRef = useRef(false);
   const reloadInFlightRef = useRef<{ chapterId: string; promise: Promise<void> } | null>(null);
   const [hasUnpushedChanges, setHasUnpushedChanges] = useState(false);
@@ -541,7 +541,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     toggleLeftDrawer,
     toggleRightDrawer,
   } = useScriptDrawers({
-    initialLeftDrawer: typeof window !== 'undefined' && window.innerWidth >= 1280 ? 'scenes' : null,
+    initialLeftDrawer:
+      !isTestEnvironment && typeof window !== 'undefined' && window.innerWidth >= 1280
+        ? 'scenes'
+        : null,
   });
   const [importRequestKey, setImportRequestKey] = useState(0);
 
@@ -2114,15 +2117,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
           <span className='font-mono text-stone-400 text-xs hidden sm:inline'>Ctrl+S</span>
 
-          {isScriptDirty && (
-            <span
-              data-testid='unsaved-badge'
-              className='px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-medium'
-            >
-              {t('writer.statusDrawer.unsaved', 'Chưa lưu')}
-            </span>
-          )}
-
           {canEditScript && !isChapterLocked && (
             <button
               type='button'
@@ -2331,7 +2325,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               syncRevision={workingCopySyncTick}
               onDirtyChange={(dirty) => {
                 flowDirtyRef.current = dirty;
-                setIsScriptDirty(dirty);
               }}
               registerSave={registerEditorSave}
               registerGetPayload={(fn) => {

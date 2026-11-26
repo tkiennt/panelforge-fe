@@ -21,7 +21,12 @@ import { PanelDto, ChangeRequestDto, AssetReferenceDto } from '@/types/pipeline'
 import { parseBoundingBox } from '../utils/panelBoundingBox';
 import { useToast } from '@/shared/context/ToastContext';
 import { useConfirm } from '@/shared/context/ConfirmContext';
-import { detectPanelsFromSketchImage, cropImageByBoundingBox } from '../lib/panelDetection';
+import { detectPanelsFromSketchImage, cropImagesByBoundingBoxes } from '../lib/panelDetection';
+import {
+  carryArtworksByReadingOrder,
+  mergeResplitArtworks,
+  revokeArtworkUrls,
+} from '../utils/panelArtworkCarry';
 import { getRoleDefaultPath } from '@/roles/roles';
 import {
   formatChapterLabel,
@@ -46,6 +51,7 @@ import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip'
 import { PageStage } from '../components/desk/ArtistPageSidebar';
 import { ArtistCanvasViewport, type PageSketch } from '../components/desk/ArtistCanvasViewport';
 import { PanelFrameOverlay, type PanelArtworkData } from '../components/desk/PanelFrameOverlay';
+import { SplitPanelStrip } from '../components/desk/SplitPanelStrip';
 import { LetteringBalloonOverlay } from '../components/desk/LetteringBalloonOverlay';
 import { KeepOutZoneOverlay } from '../components/desk/KeepOutZoneOverlay';
 import { ArtworkPreviewDialog } from '../components/desk/ArtistDeskDialogs';
@@ -139,37 +145,6 @@ function normalizeEditionStatus(status?: EditionStatus | string | number | null)
 function isEditionEditableStatus(status?: EditionStatus | string | number | null): boolean {
   const norm = normalizeEditionStatus(status);
   return norm === 'Draft' || norm === 'ReworkRequired' || norm === 'ChangesRequested';
-}
-
-function carryArtworksByReadingOrder(
-  oldPanels: PanelDto[],
-  newPanels: PanelDto[],
-  artworks: Record<string, PanelArtworkData>,
-  existingOrphans: PanelArtworkData[] = [],
-): { mapped: Record<string, PanelArtworkData>; orphans: PanelArtworkData[] } {
-  const byReadingOrder = (panels: PanelDto[]) =>
-    [...panels].sort(
-      (a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
-    );
-  const orderedArtworks = byReadingOrder(oldPanels)
-    .map((panel) => artworks[panel.id])
-    .filter((artwork): artwork is PanelArtworkData => Boolean(artwork));
-  const orderedTargets = byReadingOrder(newPanels);
-  const mapped: Record<string, PanelArtworkData> = {};
-
-  orderedArtworks.slice(0, orderedTargets.length).forEach((artwork, index) => {
-    const target = orderedTargets[index];
-    mapped[target.id] = {
-      ...artwork,
-      panelId: target.id,
-      panelNumber: target.panelNumber || target.readingOrder || index + 1,
-    };
-  });
-
-  return {
-    mapped,
-    orphans: [...existingOrphans, ...orderedArtworks.slice(orderedTargets.length)],
-  };
 }
 
 /**
@@ -2258,17 +2233,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         toast.error(t('artist.deskView.noUploadPermission'));
         return;
       }
+      const removed = panelArtworksByPageId[selectedPage.id]?.[panelId];
       setPanelArtworksByPageId((prev) => {
         const pageArts = { ...(prev[selectedPage.id] || {}) };
         delete pageArts[panelId];
         return { ...prev, [selectedPage.id]: pageArts };
       });
+      // Ảnh cắt tự động chỉ tồn tại ở máy: gỡ khỏi khung là bỏ hẳn, giải phóng bộ nhớ.
+      if (removed?.source === 'auto-split') revokeArtworkUrls([removed]);
       toast.info(
         t('artist.deskView.removeArtTitle'),
         t('artist.deskView.removeArtDesc', { panel: panelNum }),
       );
     },
-    [selectedPage, canUploadCurrentPageArtwork, toast, t],
+    [selectedPage, canUploadCurrentPageArtwork, panelArtworksByPageId, toast, t],
   );
 
   // Áp dụng mẫu khung tranh tham khảo vào TRANG HIỆN TẠI (chế độ nháp, chuyển đổi mượt mà)
@@ -2486,8 +2464,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
     try {
       const detection = await detectPanelsFromSketchImage(currentSketch.imageUrl, {
-        pageWidth: targetPage.widthPx || 1200,
-        pageHeight: targetPage.heightPx || 1800,
+        readingDirection: isRTL ? 'rtl' : 'ltr',
       });
 
       const nowIso = new Date().toISOString();
@@ -2507,33 +2484,36 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
       // Tự động cắt các ô tranh tương ứng từ ảnh phác thảo toàn trang
       const newArtworks: Record<string, PanelArtworkData> = {};
-      await Promise.all(
-        detection.panels.map(async (p, idx) => {
-          const panel = detectedPanels[idx];
-          try {
-            const croppedUrl = await cropImageByBoundingBox(currentSketch.imageUrl, p);
-            newArtworks[panel.id] = {
-              id: `art-${panel.id}-${Date.now()}`,
-              panelId: panel.id,
-              panelNumber: p.panelNumber,
-              imageUrl: croppedUrl,
-              fileName: `panel-${p.panelNumber}.png`,
-              uploadedAt: nowIso,
-            };
-          } catch (cropErr) {
-            console.warn(`Lỗi cắt tranh cho khung #${p.panelNumber}:`, cropErr);
-          }
-        }),
-      );
+      let croppedUrls: Array<string | null> = [];
+      try {
+        croppedUrls = await cropImagesByBoundingBoxes(currentSketch.imageUrl, detection.panels);
+      } catch (cropErr) {
+        console.warn('Lỗi tải ảnh phác thảo để cắt khung:', cropErr);
+      }
+      detection.panels.forEach((p, idx) => {
+        const panel = detectedPanels[idx];
+        const croppedUrl = croppedUrls[idx];
+        if (!croppedUrl) return;
+        newArtworks[panel.id] = {
+          id: `art-${panel.id}-${Date.now()}`,
+          panelId: panel.id,
+          panelNumber: p.panelNumber,
+          imageUrl: croppedUrl,
+          fileName: `panel-${p.panelNumber}.png`,
+          uploadedAt: nowIso,
+          source: 'auto-split',
+        };
+      });
 
-      const carried = hasCurrentPageArtwork
-        ? carryArtworksByReadingOrder(
-            currentPagePanels,
-            detectedPanels,
-            currentPageArtworks,
-            orphanedArtworksByPageId[targetPage.id] || [],
-          )
-        : { mapped: newArtworks, orphans: orphanedArtworksByPageId[targetPage.id] || [] };
+      // Tranh đã tải lên vẫn chuyển theo thứ tự đọc; khung còn trống nhận ảnh vừa cắt.
+      const carried = mergeResplitArtworks(
+        currentPagePanels,
+        detectedPanels,
+        currentPageArtworks,
+        newArtworks,
+        orphanedArtworksByPageId[targetPage.id] || [],
+      );
+      revokeArtworkUrls(carried.discarded);
       setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: detectedPanels }));
       setPanelArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: carried.mapped }));
       setOrphanedArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: carried.orphans }));
@@ -3294,6 +3274,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               />
             )}
           </div>
+
+          {hasCurrentPageArtwork && (
+            <SplitPanelStrip
+              panels={currentPagePanels}
+              artworks={currentPageArtworks}
+              canEdit={canUploadCurrentPageArtwork}
+              selectedPanelId={selectedPanelId}
+              onSelectPanel={handleSelectPanelById}
+              onPreviewArtwork={setPreviewArtwork}
+              onRemoveArtwork={handleRemovePanelArtwork}
+            />
+          )}
 
           <ArtistBottomPageStrip
             pages={pages}

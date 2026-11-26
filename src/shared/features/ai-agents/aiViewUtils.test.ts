@@ -39,7 +39,9 @@ describe('collectLines', () => {
   it('dữ liệu của bước Writer được ưu tiên hơn scriptLineIds', () => {
     const map = collectLines(
       [
-        step('Writer', { output: { lines: [{ lineId: 'a', order: 3, stageDirection: 'Mưa rơi' }] } }),
+        step('Writer', {
+          output: { lines: [{ lineId: 'a', order: 3, stageDirection: 'Mưa rơi' }] },
+        }),
         step('Storyboard', { input: { scriptLineIds: [{ key: 'L9', lineId: 'a' }] } }),
       ],
       {},

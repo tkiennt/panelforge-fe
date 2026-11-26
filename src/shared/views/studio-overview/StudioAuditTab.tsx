@@ -18,7 +18,6 @@ export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
   workspaceName,
 }) => {
   const { t, lang } = useTranslation();
-  const [renderTime] = React.useState(() => Date.now());
 
   // Mốc "bây giờ" cố định cho một lần mount, để render thuần (react-hooks/purity).
   const [now] = React.useState(() => Date.now());
@@ -63,7 +62,6 @@ export const StudioAuditTab: React.FC<StudioAuditTabProps> = ({
   const formatRelativeTime = (timestamp?: string): string => {
     if (!timestamp) return '';
     try {
-      const now = renderTime;
       const then = new Date(timestamp).getTime();
       const diffMs = now - then;
       if (isNaN(diffMs) || diffMs < 0) return timestamp;
