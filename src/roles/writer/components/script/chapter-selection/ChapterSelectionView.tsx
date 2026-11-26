@@ -23,7 +23,7 @@ import {
 import { ChapterDto, CreateChapterRequest } from '@/services/chapter.service';
 import { SeriesDetailDto } from '@/services/series.service';
 import { formatChapterOption } from '@/roles/writer/utils/chapterFormat';
-import { Modal } from '@/shared/ui';
+import { Modal, PageHeader } from '@/shared/ui';
 import { formatSeriesFormat } from '@/shared/utils/seriesFormat';
 import { useTranslation } from '@/lib/i18n';
 
@@ -255,82 +255,76 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
   return (
     <PageContainer
       data-testid='chapter-selection-view'
-      className='space-y-6 py-6 text-[#1C1917] font-sans'
+      className='space-y-6 py-6 text-stone-900 font-sans'
     >
-      {/* 1. TOP-BAR: TIÊU ĐỀ & THỐNG KÊ NHANH (KHÔNG LẶP LẠI BREADCRUMB CỦA APPSHELL ĐỂ TRÁNH TRÙNG 2 HEADER) */}
-      <div className='bg-[#FCFBF8] border border-stone-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6'>
-        <div className='space-y-1.5 min-w-0'>
-          {/* Tiêu đề trang & Mô tả hướng dẫn */}
-          <div className='space-y-1'>
-            <div className='flex items-center gap-2.5 flex-wrap'>
-              <h1 className='text-xl sm:text-2xl font-bold font-serif text-[#1C1917] tracking-tight'>
-                {t('chapterSelectionView.pageTitle', { title: seriesTitle })}
-              </h1>
-            </div>
-            <p className='text-xs text-[#57534E] leading-relaxed max-w-3xl'>
-              <strong className='text-[#1C1917] font-semibold'>
-                {t('chapterSelectionView.subtitleLead')}
-              </strong>{' '}
-              {t('chapterSelectionView.subtitleBody')}
-            </p>
-          </div>
-        </div>
-
-        {/* Khối thống kê nhanh (KPI Quick Stats) */}
-        <div className='flex items-center gap-3 flex-wrap shrink-0'>
-          {/* Tổng số chương */}
-          <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white border border-[#E5E0D8] shadow-2xs'>
-            <div className='w-8 h-8 rounded-lg bg-[#FAF8F5] border border-[#EBE7DF] flex items-center justify-center text-[#78716C]'>
-              <BookOpen className='w-4 h-4 text-[#C2410C]' />
-            </div>
-            <div>
-              <div className='text-xs font-semibold uppercase text-[#78716C] tracking-wide'>
-                {t('chapterSelectionView.statTotal')}
+      {/* 1. TOP-BAR: TIÊU ĐỀ & THỐNG KÊ NHANH */}
+      <PageHeader
+        icon={<BookOpen className='w-5 h-5' />}
+        title={t('chapterSelectionView.pageTitle', { title: seriesTitle })}
+        description={
+          <span>
+            <strong className='text-stone-900 font-semibold'>
+              {t('chapterSelectionView.subtitleLead')}
+            </strong>{' '}
+            {t('chapterSelectionView.subtitleBody')}
+          </span>
+        }
+        actions={
+          <div className='flex items-center gap-3 flex-wrap shrink-0'>
+            {/* Tổng số chương */}
+            <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white border border-[#E5E0D8] shadow-2xs'>
+              <div className='w-8 h-8 rounded-lg bg-accent-soft text-accent-dark flex items-center justify-center'>
+                <BookOpen className='w-4 h-4' />
               </div>
-              <div className='text-sm font-bold font-mono text-[#1C1917]'>{stats.total}</div>
-            </div>
-          </div>
-
-          {/* Đang viết / In Production */}
-          <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-amber-50/70 border border-amber-200/80 shadow-2xs'>
-            <div className='w-8 h-8 rounded-lg bg-amber-100/80 flex items-center justify-center text-amber-800'>
-              <Clock className='w-4 h-4' />
-            </div>
-            <div>
-              <div className='text-xs font-semibold uppercase text-amber-800 tracking-wide'>
-                {t('chapterSelectionView.statInProgress')}
+              <div>
+                <div className='text-xs font-semibold uppercase text-stone-500 tracking-wide'>
+                  {t('chapterSelectionView.statTotal')}
+                </div>
+                <div className='text-sm font-bold font-mono text-stone-900'>{stats.total}</div>
               </div>
-              <div className='text-sm font-bold font-mono text-amber-900'>{stats.inProgress}</div>
             </div>
-          </div>
 
-          {/* Đã khóa / Frozen */}
-          <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-indigo-50/70 border border-indigo-200/80 shadow-2xs'>
-            <div className='w-8 h-8 rounded-lg bg-indigo-100/80 flex items-center justify-center text-indigo-800'>
-              <Lock className='w-4 h-4' />
-            </div>
-            <div>
-              <div className='text-xs font-semibold uppercase text-indigo-800 tracking-wide'>
-                {t('chapterSelectionView.statFrozen')}
+            {/* Đang viết / In Production */}
+            <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-amber-50/70 border border-amber-200/80 shadow-2xs'>
+              <div className='w-8 h-8 rounded-lg bg-amber-100/80 flex items-center justify-center text-amber-800'>
+                <Clock className='w-4 h-4' />
               </div>
-              <div className='text-sm font-bold font-mono text-indigo-900'>{stats.frozen}</div>
+              <div>
+                <div className='text-xs font-semibold uppercase text-amber-800 tracking-wide'>
+                  {t('chapterSelectionView.statInProgress')}
+                </div>
+                <div className='text-sm font-bold font-mono text-amber-900'>{stats.inProgress}</div>
+              </div>
             </div>
-          </div>
 
-          {/* Đã duyệt */}
-          <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-emerald-50/70 border border-emerald-200/80 shadow-2xs'>
-            <div className='w-8 h-8 rounded-lg bg-emerald-100/80 flex items-center justify-center text-emerald-800'>
-              <CheckCircle2 className='w-4 h-4' />
-            </div>
-            <div>
-              <div className='text-xs font-semibold uppercase text-emerald-800 tracking-wide'>
-                {t('chapterSelectionView.statApproved')}
+            {/* Đã khóa / Frozen */}
+            <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-indigo-50/70 border border-indigo-200/80 shadow-2xs'>
+              <div className='w-8 h-8 rounded-lg bg-indigo-100/80 flex items-center justify-center text-indigo-800'>
+                <Lock className='w-4 h-4' />
               </div>
-              <div className='text-sm font-bold font-mono text-emerald-900'>{stats.approved}</div>
+              <div>
+                <div className='text-xs font-semibold uppercase text-indigo-800 tracking-wide'>
+                  {t('chapterSelectionView.statFrozen')}
+                </div>
+                <div className='text-sm font-bold font-mono text-indigo-900'>{stats.frozen}</div>
+              </div>
+            </div>
+
+            {/* Đã duyệt */}
+            <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-emerald-50/70 border border-emerald-200/80 shadow-2xs'>
+              <div className='w-8 h-8 rounded-lg bg-emerald-100/80 flex items-center justify-center text-emerald-800'>
+                <CheckCircle2 className='w-4 h-4' />
+              </div>
+              <div>
+                <div className='text-xs font-semibold uppercase text-emerald-800 tracking-wide'>
+                  {t('chapterSelectionView.statApproved')}
+                </div>
+                <div className='text-sm font-bold font-mono text-emerald-900'>{stats.approved}</div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* 2. THANH CÔNG CỤ: TÌM KIẾM, BỘ LỌC, SẮP XẾP, CHẾ ĐỘ XEM & TẠO CHƯƠNG */}
       <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4 shadow-xs space-y-3'>
@@ -696,8 +690,8 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
         <div className='bg-white border border-[#D8D2C5] rounded-2xl shadow-xs overflow-hidden'>
           <div className='overflow-x-auto'>
             <table className='w-full text-left border-collapse text-xs'>
-              <thead>
-                <tr className='bg-[#FAF8F5] border-b border-[#EBE7DF] text-[#78716C] font-semibold text-xs uppercase tracking-wider'>
+              <thead className='bg-head-wash text-kraft-ink text-xs font-semibold uppercase tracking-wide border-b border-head-line'>
+                <tr>
                   <th className='py-3.5 px-4 w-28'>{t('chapterSelectionView.colChapter')}</th>
                   <th className='py-3.5 px-4 min-w-[200px]'>
                     {t('chapterSelectionView.colTitle')}

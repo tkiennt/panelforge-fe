@@ -21,6 +21,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { PageContainer } from '@/shared/components/PageContainer';
+import { PageHeader } from '@/shared/ui';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { useTranslation } from '@/lib/i18n';
@@ -213,61 +214,55 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
   return (
     <PageContainer
       data-testid='letterer-chapter-selection-view'
-      className='space-y-6 py-6 text-[#1C1917] font-sans'
+      className='space-y-6 py-6 text-stone-900 font-sans'
     >
-      {/* 1. TOP-BAR: TIÊU ĐỀ & THỐNG KÊ NHANH (KHÔNG LẶP LẠI BREADCRUMB CỦA APPSHELL) */}
-      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6'>
-        <div className='space-y-1.5 min-w-0'>
-          <div className='flex items-center gap-2.5 flex-wrap'>
-            <span className='px-2.5 py-0.5 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 text-[#C2410C] text-[10px] font-bold uppercase tracking-wider flex items-center gap-1'>
-              <Type className='w-3 h-3' />
-              <span>LETTERING PRODUCTION DESK</span>
-            </span>
-            <h1 className='text-xl sm:text-2xl font-bold font-serif text-[#1C1917] tracking-tight'>
-              {t('production.lettering.chapterSelection.heading', { series: seriesTitle })}
-            </h1>
-          </div>
-          <p className='text-xs text-[#57534E] leading-relaxed max-w-3xl'>
-            <strong className='text-[#1C1917] font-semibold'>
+      {/* 1. TOP-BAR: TIÊU ĐỀ & THỐNG KÊ NHANH */}
+      <PageHeader
+        icon={<Type className='w-5 h-5' />}
+        eyebrow='LETTERING PRODUCTION DESK'
+        title={t('production.lettering.chapterSelection.heading', { series: seriesTitle })}
+        description={
+          <span>
+            <strong className='text-stone-900 font-semibold'>
               {t('production.lettering.chapterSelection.subHeadingStrong')}
             </strong>{' '}
             {t('production.lettering.chapterSelection.subHeadingDesc')}
-          </p>
-        </div>
-
-        {/* Khối thống kê nhanh KPI */}
-        <div className='flex items-center gap-3 flex-wrap shrink-0'>
-          <div
-            data-testid='letterer-stats-total'
-            className='bg-white border border-[#D8D2C5] rounded-xl px-4 py-2.5 shadow-2xs min-w-[100px]'
-          >
-            <div className='text-[10.5px] uppercase font-bold tracking-wider text-[#78716C]'>
-              {t('production.lettering.chapterSelection.statsTotal')}
+          </span>
+        }
+        actions={
+          <div className='flex items-center gap-3 flex-wrap shrink-0'>
+            <div
+              data-testid='letterer-stats-total'
+              className='bg-white border border-[#D8D2C5] rounded-xl px-4 py-2.5 shadow-2xs min-w-[100px]'
+            >
+              <div className='text-xs uppercase font-bold tracking-wider text-stone-500'>
+                {t('production.lettering.chapterSelection.statsTotal')}
+              </div>
+              <div className='text-xl font-black text-stone-900 mt-0.5'>{stats.total}</div>
             </div>
-            <div className='text-xl font-black text-[#1C1917] mt-0.5'>{stats.total}</div>
-          </div>
 
-          <div
-            data-testid='letterer-stats-progress'
-            className='bg-amber-50/70 border border-amber-200/80 rounded-xl px-4 py-2.5 shadow-2xs min-w-[100px]'
-          >
-            <div className='text-[10.5px] uppercase font-bold tracking-wider text-amber-800'>
-              {t('production.lettering.chapterSelection.statsInProgress')}
+            <div
+              data-testid='letterer-stats-progress'
+              className='bg-amber-50/70 border border-amber-200/80 rounded-xl px-4 py-2.5 shadow-2xs min-w-[100px]'
+            >
+              <div className='text-xs uppercase font-bold tracking-wider text-amber-800'>
+                {t('production.lettering.chapterSelection.statsInProgress')}
+              </div>
+              <div className='text-xl font-black text-amber-900 mt-0.5'>{stats.inProgress}</div>
             </div>
-            <div className='text-xl font-black text-amber-900 mt-0.5'>{stats.inProgress}</div>
-          </div>
 
-          <div
-            data-testid='letterer-stats-frozen'
-            className='bg-indigo-50/70 border border-indigo-200/80 rounded-xl px-4 py-2.5 shadow-2xs min-w-[100px]'
-          >
-            <div className='text-[10.5px] uppercase font-bold tracking-wider text-indigo-800'>
-              {t('production.lettering.chapterSelection.statsFrozen')}
+            <div
+              data-testid='letterer-stats-frozen'
+              className='bg-indigo-50/70 border border-indigo-200/80 rounded-xl px-4 py-2.5 shadow-2xs min-w-[100px]'
+            >
+              <div className='text-xs uppercase font-bold tracking-wider text-indigo-800'>
+                {t('production.lettering.chapterSelection.statsFrozen')}
+              </div>
+              <div className='text-xl font-black text-indigo-900 mt-0.5'>{stats.frozen}</div>
             </div>
-            <div className='text-xl font-black text-indigo-900 mt-0.5'>{stats.frozen}</div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* 2. THANH CÔNG CỤ TÌM KIẾM, BỘ LỌC VÀ CHUYỂN DẠNG HIỂN THỊ */}
       <div className='flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-[#FCFBF8] p-3.5 rounded-2xl border border-[#D8D2C5] shadow-2xs'>
@@ -471,9 +466,9 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
           })}
         </div>
       ) : (
-        <div className='bg-white rounded-2xl border border-[#D8D2C5] shadow-2xs overflow-hidden'>
+        <div className='bg-white rounded-2xl border border-head-line shadow-2xs overflow-hidden'>
           <table className='w-full text-left text-xs'>
-            <thead className='bg-[#FAF8F5] border-b border-[#EBE7DF] text-[#78716C] font-bold uppercase tracking-wider text-[10.5px]'>
+            <thead className='bg-head-wash border-b border-head-line text-kraft-ink font-bold uppercase tracking-wider text-xs'>
               <tr>
                 <th className='py-3 px-4'>
                   {t('production.lettering.chapterSelection.colChapter')}
@@ -487,7 +482,7 @@ export const LettererChapterSelectionView: React.FC<LettererChapterSelectionView
                 </th>
               </tr>
             </thead>
-            <tbody className='divide-y divide-[#EBE7DF] text-[#1C1917]'>
+            <tbody className='divide-y divide-head-line text-stone-900'>
               {filteredChapters.map((chap) => {
                 const blockReason = getOpenBlockReason(chap, t);
                 return (
