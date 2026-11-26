@@ -150,6 +150,18 @@ export function collectLines(
       };
     }
   }
+  // Lượt chỉ phân khung / đối chiếu (script có sẵn, không có bước Writer): thứ tự dòng lấy từ input của step
+  // (scriptLineIds: [{ key: "L3", lineId }]) để khung xem trước ghi "Dòng 3" thay vì "dòng ?".
+  for (const s of steps) {
+    const ids = (s.input as { scriptLineIds?: unknown } | null | undefined)?.scriptLineIds;
+    if (!Array.isArray(ids)) continue;
+    for (const entry of ids as { key?: string; lineId?: string }[]) {
+      const order = Number(String(entry?.key ?? '').replace(/^L/i, ''));
+      if (entry?.lineId && Number.isInteger(order) && order > 0 && !map[entry.lineId]) {
+        map[entry.lineId] = { order, text: '' };
+      }
+    }
+  }
   return map;
 }
 
