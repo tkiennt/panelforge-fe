@@ -287,10 +287,76 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         isOpen={isOpen}
         title={modalTitle}
         description={modalDescription}
-        size='md'
+        size={isArtistConceptSubmit ? 'lg' : 'md'}
         closeLabel={t('common.actions.close')}
         onClose={onClose}
         data-child-modal='true'
+        footer={
+          <div className='flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='text-xs'>
+              {isArtistConceptSubmit &&
+                (referenceImageUrl ? (
+                  <span className='flex items-center gap-1.5 font-semibold text-emerald-700'>
+                    <CheckCircle2 className='h-4 w-4' />
+                    {t('bible.addRevisionModal.artworkAttached')}
+                  </span>
+                ) : (
+                  <span className='flex items-center gap-1.5 font-medium text-amber-700'>
+                    <AlertCircle className='h-4 w-4' />
+                    {t('bible.addRevisionModal.noArtworkSelected')}
+                  </span>
+                ))}
+            </div>
+            <div className='flex items-center justify-end gap-2'>
+              <button
+                type='button'
+                onClick={onClose}
+                className='rounded-full border border-stone-300 px-4 py-2 text-xs font-semibold text-stone-700 transition hover:bg-stone-100'
+              >
+                {t('bible.addRevisionModal.cancel')}
+              </button>
+              <button
+                type='button'
+                disabled={
+                  !summary.trim() ||
+                  savingRevision ||
+                  !variantLabel.trim() ||
+                  (isArtistConceptSubmit && !referenceImageUrl)
+                }
+                onClick={handleSubmit}
+                className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold text-white shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                  isArtistConceptSubmit
+                    ? 'bg-[#EA580C] hover:bg-[#C2410C] active:scale-[0.98]'
+                    : 'bg-[#059669] hover:bg-[#047857] active:scale-[0.98]'
+                }`}
+                data-testid='save-revision-submit-btn'
+              >
+                {isArtistConceptSubmit ? (
+                  <Palette className='h-4 w-4' />
+                ) : (
+                  <CheckCircle2 className='h-4 w-4' />
+                )}
+                <span>
+                  {savingRevision
+                    ? t('bible.addRevisionModal.saving')
+                    : supersedeTarget
+                      ? t('bible.addRevisionModal.btnSupersede')
+                      : isArtistConceptSubmit && isArtist
+                        ? isArtistResubmit
+                          ? t('bible.addRevisionModal.btnResubmit')
+                          : t('bible.addRevisionModal.btnSubmitConcept')
+                        : variantMode === 'new'
+                          ? isProducer
+                            ? t('bible.addRevisionModal.btnCreateVariantSave')
+                            : t('bible.addRevisionModal.btnCreateVariantSend')
+                          : isProducer
+                            ? t('bible.addRevisionModal.btnSaveVersion')
+                            : t('bible.addRevisionModal.btnSendDraft')}
+                </span>
+              </button>
+            </div>
+          </div>
+        }
       >
         {(isArtistConceptSubmit || variantMode === 'new') && (
           <div className='flex flex-wrap items-center gap-2'>
@@ -307,8 +373,31 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
           </div>
         )}
 
+        {isArtistConceptSubmit && (
+          <ol
+            className='mt-4 grid grid-cols-3 gap-2 rounded-xl border border-stone-200 bg-stone-50 p-2'
+            aria-label={t('bible.addRevisionModal.submissionStepsAria')}
+          >
+            {[
+              t('bible.addRevisionModal.submissionStepArtwork'),
+              t('bible.addRevisionModal.submissionStepVariant'),
+              t('bible.addRevisionModal.submissionStepNote'),
+            ].map((label, index) => (
+              <li
+                key={label}
+                className='flex items-center gap-2 rounded-lg bg-white px-2.5 py-2 text-xs font-semibold text-stone-700'
+              >
+                <span className='flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 font-mono text-xs font-bold text-orange-700'>
+                  {index + 1}
+                </span>
+                <span>{label}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+
         {/* ================= MODAL BODY (SCROLLABLE) ================= */}
-        <div className='p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4'>
+        <div className='mt-4 space-y-4'>
           {/* Context Alert for Rework or Resubmit */}
           {revisionReworkFeedback ? (
             <Alert tone='warning' title={t('bible.addRevisionModal.reworkAlertTitle')}>
@@ -757,68 +846,6 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               </div>
             </>
           )}
-        </div>
-
-        {/* ================= MODAL FOOTER ================= */}
-        <div className='px-5 sm:px-6 py-3.5 border-t border-stone-200/80 bg-stone-50/70 flex items-center justify-between shrink-0 gap-3'>
-          <div className='text-xs'>
-            {isArtistConceptSubmit &&
-              (referenceImageUrl ? (
-                <span className='text-emerald-700 font-semibold flex items-center gap-1.5'>
-                  <CheckCircle2 className='w-4 h-4' />
-                  {t('bible.addRevisionModal.artworkAttached')}
-                </span>
-              ) : (
-                <span className='text-amber-700 font-medium flex items-center gap-1.5'>
-                  <AlertCircle className='w-4 h-4' />
-                  {t('bible.addRevisionModal.noArtworkSelected')}
-                </span>
-              ))}
-          </div>
-
-          <div className='flex items-center gap-2'>
-            <button
-              type='button'
-              onClick={onClose}
-              className='px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-100 transition cursor-pointer'
-            >
-              {t('bible.addRevisionModal.cancel')}
-            </button>
-            <button
-              type='button'
-              disabled={!summary.trim() || savingRevision || !variantLabel.trim()}
-              onClick={handleSubmit}
-              className={`px-5 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 ${
-                isArtistConceptSubmit
-                  ? 'bg-[#EA580C] hover:bg-[#C2410C] active:scale-[0.98]'
-                  : 'bg-[#059669] hover:bg-[#047857] active:scale-[0.98]'
-              }`}
-              data-testid='save-revision-submit-btn'
-            >
-              {isArtistConceptSubmit ? (
-                <Palette className='w-4 h-4' />
-              ) : (
-                <CheckCircle2 className='w-4 h-4' />
-              )}
-              <span>
-                {savingRevision
-                  ? t('bible.addRevisionModal.saving')
-                  : supersedeTarget
-                    ? t('bible.addRevisionModal.btnSupersede')
-                    : isArtistConceptSubmit && isArtist
-                      ? isArtistResubmit
-                        ? t('bible.addRevisionModal.btnResubmit')
-                        : t('bible.addRevisionModal.btnSubmitConcept')
-                      : variantMode === 'new'
-                        ? isProducer
-                          ? t('bible.addRevisionModal.btnCreateVariantSave')
-                          : t('bible.addRevisionModal.btnCreateVariantSend')
-                        : isProducer
-                          ? t('bible.addRevisionModal.btnSaveVersion')
-                          : t('bible.addRevisionModal.btnSendDraft')}
-              </span>
-            </button>
-          </div>
         </div>
       </Modal>
     );
