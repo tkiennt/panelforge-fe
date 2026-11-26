@@ -38,7 +38,6 @@ import {
   DEFAULT_FRAME_TEMPLATES,
   DEFAULT_SCRIPT_LINES,
 } from '../components/desk/ArtistCanvaSidebar';
-import { ArtistScriptReferenceSidebar } from '../components/desk/ArtistScriptReferenceSidebar';
 import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip';
 import { PageStage } from '../components/desk/ArtistPageSidebar';
 import { ArtistCanvasViewport, type PageSketch } from '../components/desk/ArtistCanvasViewport';
@@ -208,7 +207,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [seriesTitle, setSeriesTitle] = useState<string | undefined>(undefined);
   const [pages, setPages] = useState<PageDto[]>(DEFAULT_INITIAL_PAGES);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(DEFAULT_INITIAL_PAGES[0].id);
-  const [isRightScriptSidebarOpen, setIsRightScriptSidebarOpen] = useState<boolean>(true);
 
   // Tiến độ công đoạn (Stage progression trên Header)
   const [artistStages, setArtistStages] = useState<FocusStageItem[]>(DEFAULT_ARTIST_STAGES);
@@ -2580,8 +2578,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return (
       stagePageCells.find(
         (cell) =>
-          cell.isInputOutdated &&
-          (me ? cell.assigneeUserId === me : Boolean(cell.assigneeUserId)),
+          cell.isInputOutdated && (me ? cell.assigneeUserId === me : Boolean(cell.assigneeUserId)),
       ) ?? null
     );
   }, [gridTasks, isLettererRole, selectedPage, currentStage?.id]);
@@ -2875,9 +2872,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           className='shrink-0 border-b border-amber-300 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-950 flex items-center gap-2'
         >
           <AlertTriangle className='w-4 h-4 text-[#D97706] shrink-0' aria-hidden='true' />
-          <span>
-            Kịch bản đang được mở khóa để chỉnh sửa — lưu ý trước khi nộp bài mới.
-          </span>
+          <span>Kịch bản đang được mở khóa để chỉnh sửa — lưu ý trước khi nộp bài mới.</span>
         </div>
       )}
 
@@ -2888,8 +2883,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           className='shrink-0 border-b border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-700 flex items-center gap-2'
         >
           <span className='inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 shrink-0'>
-            <Flag className='w-3 h-3' aria-hidden='true' />
-            ⚑ Kịch bản thay đổi
+            <Flag className='w-3 h-3' aria-hidden='true' />⚑ Kịch bản thay đổi
           </span>
           <span>
             {currentVisualImpactCell.outdatedReason ||
@@ -3302,22 +3296,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             canEdit={!isPageReadOnly}
           />
         </div>
-
-        {/* 3. SIDEBAR THAM CHIẾU KỊCH BẢN (THU GỌN ĐƯỢC, BÊN CẠNH CANVAS) */}
-        {!(isSidebarDrawerOpen && (activeSidebarTab ?? 'script') === 'script') && (
-          <ArtistScriptReferenceSidebar
-            isOpen={isRightScriptSidebarOpen}
-            onToggle={() => setIsRightScriptSidebarOpen((v) => !v)}
-            pageId={selectedPage?.id ?? null}
-            pageNumber={selectedPage?.pageNumber || 1}
-            panels={currentPagePanels}
-            scriptLines={resolvedScriptLines ?? DEFAULT_SCRIPT_LINES}
-            selectedPanelId={selectedPanelId}
-            selectedPanelNumber={selectedPanelNumber}
-            onSelectPanel={handleSelectPanelById}
-            isLoading={isLoadingScript}
-          />
-        )}
       </div>
 
       {previewArtwork && (
