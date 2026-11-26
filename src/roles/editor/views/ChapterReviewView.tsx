@@ -1314,6 +1314,30 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
   const effectiveReviewStatus = gridReviewTask ? gridReviewTask.status : assignment.status;
   const isApproved = String(effectiveReviewStatus) === 'Approved';
+
+  const getStatusLabel = (status: unknown): string => {
+    const raw = String(status ?? '').trim();
+    if (!raw) return '';
+    const map: Record<string, string> = {
+      unassigned: 'chapterReview.status.unassigned',
+      assigned: 'chapterReview.status.assigned',
+      inprogress: 'chapterReview.status.inProgress',
+      submitted: 'chapterReview.status.submitted',
+      underreview: 'chapterReview.status.underReview',
+      approved: 'chapterReview.status.approved',
+      reworkrequired: 'chapterReview.status.reworkRequired',
+      blocked: 'chapterReview.status.blocked',
+    };
+    const mappedKey = map[raw.toLowerCase()];
+    if (mappedKey) {
+      const translated = t(mappedKey);
+      if (translated && translated !== mappedKey) return translated;
+    }
+    const camel = raw.charAt(0).toLowerCase() + raw.slice(1);
+    const directKey = `chapterReview.status.${camel}`;
+    const translated = t(directKey);
+    return translated !== directKey ? translated : raw;
+  };
   const isSelfGate2Review = Boolean(
     isGridMode &&
     gridReviewTask &&
@@ -1344,10 +1368,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       data-testid='chapter-review-view'
     >
       {/* 1. TOP BAR / HEADER */}
-      <PageHeader
-        variant='toolbar'
-        className='shrink-0 px-6 py-2.5 flex items-center justify-between gap-4 z-20 shadow-xs'
-      >
+      <PageHeader variant='toolbar' className='shrink-0 px-6 gap-4 z-20'>
         <div className='flex items-center gap-3 min-w-0'>
           <button
             type='button'
@@ -1367,15 +1388,20 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
           </button>
 
           <div className='min-w-0'>
-            <div className='flex items-center gap-2 flex-wrap min-w-0'>
+            <div className='flex flex-nowrap items-center gap-2 min-w-0'>
               <span className='px-2 py-0.5 rounded text-xs font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 uppercase tracking-wide shrink-0'>
-                Gate 2
+                {t('chapterReview.gate2Badge')}
               </span>
               <h2
                 className='text-sm sm:text-base font-serif font-bold text-stone-900 truncate min-w-0'
-                title={chapterTitle}
+                title={
+                  chapterTitle
+                    ? `${chapterTitle} · ${t('chapterReview.gate2Subtitle')}`
+                    : t('chapterReview.gate2Subtitle')
+                }
               >
-                {chapterTitle} · Quality & Composite Gate
+                {chapterTitle ? `${chapterTitle} · ` : ''}
+                {t('chapterReview.gate2Subtitle')}
               </h2>
               <span
                 className={`px-2 py-0.5 rounded text-xs font-bold shrink-0 ${
@@ -1384,7 +1410,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     : 'bg-amber-50 text-amber-800 border border-amber-200'
                 }`}
               >
-                {effectiveReviewStatus}
+                {getStatusLabel(effectiveReviewStatus)}
               </span>
               {gridReviewTask?.isInputOutdated && (
                 <span
@@ -1404,113 +1430,116 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
           </div>
         </div>
 
-        {/* 3-Step Stepper in Header */}
-        <div className='hidden lg:flex items-center gap-1.5 px-3 py-1 bg-head-wash border border-head-line rounded-full text-xs font-semibold shrink-0'>
-          <span className='px-2 py-0.5 rounded-full bg-indigo-600 text-white flex items-center gap-1 shadow-xs'>
-            <span>1</span>
-            <span>{t('chapterReview.stepper.editor')}</span>
-          </span>
-          <span className='text-stone-400'>→</span>
-          <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
-            <span>2</span>
-            <span>{t('chapterReview.stepper.producer')}</span>
-          </span>
-          <span className='text-stone-400'>→</span>
-          <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
-            <span>3</span>
-            <span>{t('chapterReview.stepper.publisher')}</span>
-          </span>
-        </div>
+        {/* Right side (stepper + buttons) */}
+        <div className='flex items-center gap-3 shrink-0'>
+          {/* 3-Step Stepper in Header */}
+          <div className='hidden lg:flex items-center gap-1.5 px-3 py-1 bg-head-wash border border-head-line rounded-full text-xs font-semibold shrink-0'>
+            <span className='px-2 py-0.5 rounded-full bg-stone-900 text-white flex items-center gap-1'>
+              <span>1</span>
+              <span className='hidden xl:inline'>{t('chapterReview.stepper.editor')}</span>
+            </span>
+            <span className='text-stone-400'>→</span>
+            <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
+              <span>2</span>
+              <span className='hidden xl:inline'>{t('chapterReview.stepper.producer')}</span>
+            </span>
+            <span className='text-stone-400'>→</span>
+            <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
+              <span>3</span>
+              <span className='hidden xl:inline'>{t('chapterReview.stepper.publisher')}</span>
+            </span>
+          </div>
 
-        {/* Action Buttons */}
-        <div className='flex items-center gap-2 shrink-0'>
-          {/* Button Yêu cầu vẽ lại (Stitch id="btn-rework-count") */}
-          <button
-            id='btn-rework-count'
-            type='button'
-            onClick={() => setActiveTab('changes')}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs ${
-              totalOpenCrs > 0
-                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                : 'bg-white text-stone-600 border-head-line hover:bg-stone-50'
-            }`}
-          >
-            <AlertTriangle className='w-3.5 h-3.5 text-rose-600' />
-            <span>{t('chapterReview.redrawRequestsBtn', { count: totalOpenCrs })}</span>
-          </button>
+          {/* Action Buttons */}
+          <div className='flex items-center gap-2 shrink-0'>
+            {/* Button Yêu cầu vẽ lại (Stitch id="btn-rework-count") */}
+            <button
+              id='btn-rework-count'
+              type='button'
+              onClick={() => setActiveTab('changes')}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs ${
+                totalOpenCrs > 0
+                  ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                  : 'bg-white text-stone-600 border-head-line hover:bg-stone-50'
+              }`}
+            >
+              <AlertTriangle className='w-3.5 h-3.5 text-rose-600' />
+              <span>{t('chapterReview.redrawRequestsBtn', { count: totalOpenCrs })}</span>
+            </button>
 
-          <button
-            type='button'
-            onClick={() => setIsProvenanceOpen(true)}
-            className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
-            title={t('chapterReview.provenanceTitle')}
-            data-testid='btn-provenance-modal'
-          >
-            <History className='w-3.5 h-3.5 text-stone-500' />
-            <span>{t('chapterReview.provenance')}</span>
-          </button>
-
-          <button
-            type='button'
-            onClick={() => setIsSubmissionsOpen(true)}
-            className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
-            title={t('chapterReview.submissionsTitle')}
-            data-testid='btn-submissions-history'
-          >
-            <Clock className='w-3.5 h-3.5 text-stone-500' />
-            <span>{t('chapterReview.historyCount', { count: submissions.length })}</span>
-          </button>
-
-          {(String(effectiveReviewStatus) === 'Assigned' ||
-            (isGridMode && String(effectiveReviewStatus) === 'ReworkRequired')) && (
             <button
               type='button'
-              disabled={actionBusy}
-              onClick={() => void handleStartReview()}
-              className='px-4 py-1.5 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full disabled:opacity-50 cursor-pointer shadow-xs transition-colors'
+              onClick={() => setIsProvenanceOpen(true)}
+              className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
+              title={t('chapterReview.provenanceTitle')}
+              data-testid='btn-provenance-modal'
             >
-              <Eye className='w-3.5 h-3.5' />
-              <span>{t('chapterReview.startReviewBtn')}</span>
+              <History className='w-3.5 h-3.5 text-stone-500' />
+              <span>{t('chapterReview.provenance')}</span>
             </button>
-          )}
 
-          {canSubmitGate2Grid && (
             <button
               type='button'
-              disabled={actionBusy || !!unfinishedWarning}
-              onClick={() => void handleSubmitGate2GridReview()}
-              data-testid='btn-submit-chapter-review'
-              className='px-4 py-1.5 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-colors'
+              onClick={() => setIsSubmissionsOpen(true)}
+              className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
+              title={t('chapterReview.submissionsTitle')}
+              data-testid='btn-submissions-history'
             >
-              <Send className='w-3.5 h-3.5' />
-              <span>{t('chapterReview.gate2GridSubmitChapterReview')}</span>
+              <Clock className='w-3.5 h-3.5 text-stone-500' />
+              <span>{t('chapterReview.historyCount', { count: submissions.length })}</span>
             </button>
-          )}
 
-          {canApprove && (
-            <button
-              type='button'
-              disabled={actionBusy || isApproved || !!unfinishedWarning}
-              onClick={() => void handleApproveChapter()}
-              title={
-                unfinishedWarning
-                  ? t('chapterReview.approveBlockedTitle')
-                  : t('chapterReview.approveTooltip')
-              }
-              className='px-5 py-2 flex items-center gap-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-all active:scale-98'
-              data-testid='btn-approve-chapter-review'
-            >
-              <CheckCircle2 className='w-4 h-4' />
-              <span>{t('chapterReview.approveGate2Btn')}</span>
-            </button>
-          )}
+            {(String(effectiveReviewStatus) === 'Assigned' ||
+              (isGridMode && String(effectiveReviewStatus) === 'ReworkRequired')) && (
+              <button
+                type='button'
+                disabled={actionBusy}
+                onClick={() => void handleStartReview()}
+                className='px-4 py-1.5 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full disabled:opacity-50 cursor-pointer shadow-xs transition-colors'
+              >
+                <Eye className='w-3.5 h-3.5' />
+                <span>{t('chapterReview.startReviewBtn')}</span>
+              </button>
+            )}
 
-          {isApproved && (
-            <div className='px-4 py-2 flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-full shadow-xs'>
-              <CheckCircle2 className='w-4 h-4 text-emerald-600' />
-              <span>{t('chapterReview.approvedChapterBadge')}</span>
-            </div>
-          )}
+            {canSubmitGate2Grid && (
+              <button
+                type='button'
+                disabled={actionBusy || !!unfinishedWarning}
+                onClick={() => void handleSubmitGate2GridReview()}
+                data-testid='btn-submit-chapter-review'
+                className='px-4 py-1.5 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-colors'
+              >
+                <Send className='w-3.5 h-3.5' />
+                <span>{t('chapterReview.gate2GridSubmitChapterReview')}</span>
+              </button>
+            )}
+
+            {canApprove && (
+              <button
+                type='button'
+                disabled={actionBusy || isApproved || !!unfinishedWarning}
+                onClick={() => void handleApproveChapter()}
+                title={
+                  unfinishedWarning
+                    ? t('chapterReview.approveBlockedTitle')
+                    : t('chapterReview.approveTooltip')
+                }
+                className='px-5 py-2 flex items-center gap-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-all active:scale-98'
+                data-testid='btn-approve-chapter-review'
+              >
+                <CheckCircle2 className='w-4 h-4' />
+                <span>{t('chapterReview.approveGate2Btn')}</span>
+              </button>
+            )}
+
+            {isApproved && (
+              <div className='px-4 py-2 flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-full shadow-xs'>
+                <CheckCircle2 className='w-4 h-4 text-emerald-600' />
+                <span>{t('chapterReview.approvedChapterBadge')}</span>
+              </div>
+            )}
+          </div>
         </div>
       </PageHeader>
 

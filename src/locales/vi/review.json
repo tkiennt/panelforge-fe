@@ -541,6 +541,18 @@
     "visualReport": "Hình ảnh"
   },
   "chapterReview": {
+    "gate2Badge": "Cổng 2",
+    "gate2Subtitle": "Cổng chất lượng & ghép trang",
+    "status": {
+      "unassigned": "Chưa giao",
+      "assigned": "Đã giao",
+      "inProgress": "Đang làm",
+      "submitted": "Đã nộp",
+      "underReview": "Đang duyệt",
+      "approved": "Đã duyệt",
+      "reworkRequired": "Cần sửa",
+      "blocked": "Bị khóa"
+    },
     "stepper": {
       "editor": "Editor duyệt",
       "producer": "Producer duyệt",
