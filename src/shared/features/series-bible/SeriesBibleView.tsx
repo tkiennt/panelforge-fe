@@ -1184,6 +1184,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
   return (
     <PageContainer className='space-y-6 pb-12 pt-2 font-sans'>
+      {!workbenchOpen && (
+        <>
       {/* Series selection hint if not configured */}
       {!effectiveSeries && (
         <div className='p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl flex items-center gap-2.5 text-xs'>
@@ -2259,6 +2261,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             )}
           </div>
         </div>
+      )}
+
+        </>
       )}
 
       {/* LIGHTBOX MODAL CHO PHÓNG TO ẢNH */}

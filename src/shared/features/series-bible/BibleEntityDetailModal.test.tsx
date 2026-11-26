@@ -80,16 +80,12 @@ describe('BibleEntityDetailModal UX/UI', () => {
     vi.clearAllMocks();
   });
 
-  it('renders as a full-page overlay in document.body (no AppShell sidebar) and locks body scroll', () => {
-    const { unmount } = render(<BibleEntityDetailModal {...defaultProps} />);
+  it('renders inline inside the App Shell content without locking body scroll', () => {
+    const { container } = render(<BibleEntityDetailModal {...defaultProps} />);
 
-    const dialog = screen.getByRole('dialog');
-    expect(dialog.parentElement).toBe(document.body);
-    expect(dialog.className).toContain('fixed inset-0');
-    expect(dialog).toContainElement(screen.getByTestId('bible-entity-workbench'));
-    expect(document.body.style.overflow).toBe('hidden');
-
-    unmount();
+    const workbench = screen.getByTestId('bible-entity-workbench');
+    expect(container).toContainElement(workbench);
+    expect(workbench.closest('.fixed.inset-0')).toBeNull();
     expect(document.body.style.overflow).not.toBe('hidden');
   });
 
@@ -110,7 +106,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
   it('displays Canon locked banner with approval date and no chapter range', () => {
     render(<BibleEntityDetailModal {...defaultProps} />);
 
-    expect(screen.getByText(/Đã khóa chuẩn/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Đã khóa chuẩn/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Ch\.\s*5\s*→\s*hết/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Đã duyệt/i)).toBeInTheDocument();
 
@@ -191,10 +187,10 @@ describe('BibleEntityDetailModal UX/UI', () => {
     );
 
     expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent(
-      'Writer · Lưu đặc tả',
+      'Biên kịch · Đặc tả',
     );
     expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent(
-      'Artist · Nộp artwork',
+      'Họa sĩ · Bản vẽ',
     );
 
     const input = document.querySelector<HTMLInputElement>('input[type="file"]');
@@ -204,9 +200,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     expect(await screen.findByAltText('concept.jpg')).toBeInTheDocument();
     expect(screen.queryByText(/Chưa có ảnh Reference Sheet/i)).not.toBeInTheDocument();
-    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent(
-      'Bản vẽ đã chọn, sẵn sàng nộp',
-    );
+    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent('Sẵn sàng nộp');
   });
 
   it('renders compact empty state without giant black box when no image exists', () => {
@@ -215,7 +209,9 @@ describe('BibleEntityDetailModal UX/UI', () => {
     );
 
     expect(screen.queryByTestId('auth-image')).not.toBeInTheDocument();
-    expect(screen.getByText(/Chưa có ảnh Reference Sheet cho mục này/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chưa có bản vẽ/i)).toBeInTheDocument();
+    expect(screen.queryByTestId('concept-comments-section')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('detail-rework-btn')).not.toBeInTheDocument();
 
     // For producer, shows action to create revision to add image
     const addImgBtn = screen.getByRole('button', {
@@ -319,7 +315,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     const reworkBtn = screen.getByTestId('detail-rework-btn');
     expect(reworkBtn).toBeDisabled();
-    expect(screen.getByText('Đã khoá Canon chính thức')).toBeInTheDocument();
+    expect(screen.getAllByText('Đã khóa chuẩn').length).toBeGreaterThan(0);
   });
 
   it('renders correct category type badge in header for characters and locations (Bug 1)', () => {
@@ -590,7 +586,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     // Verify Audit Trail has the real event items
     expect(screen.getByText('Lịch sử thay đổi')).toBeInTheDocument();
-    expect(screen.getByText(/Đã nộp Concept Art/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Đã nộp bản vẽ/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Bản vẽ chi tiết phục trang/)).toBeInTheDocument();
   });
 
@@ -619,7 +615,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       expect(screen.queryByText('Turnaround trước / nghiêng / sau')).not.toBeInTheDocument();
     });
 
-    it('shows whose turn it is: Artist uploads on a Draft visual entry', () => {
+    it('shows a compact handoff for Artist on a Draft visual entry', () => {
       localStorage.setItem(
         'activeWorkspace',
         JSON.stringify({ id: 'ws-1', currentUserRole: 'ARTIST' }),
@@ -633,9 +629,10 @@ describe('BibleEntityDetailModal UX/UI', () => {
         />,
       );
 
-      const strip = screen.getByTestId('bible-status-strip');
-      expect(strip.textContent).toContain('Artist tải Model Sheet theo đặc tả');
-      expect(strip.textContent).toContain('Đến lượt bạn');
+      const handoff = screen.getByTestId('writer-artist-handoff-bar');
+      expect(handoff.textContent).toContain('Họa sĩ · Bản vẽ');
+      expect(handoff.textContent).toContain('Đã nộp');
+      expect(screen.getByTestId('bible-status-strip')).not.toHaveTextContent('Đang chờ');
       localStorage.removeItem('activeWorkspace');
     });
 
@@ -663,7 +660,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       expect(screen.queryByTestId('bible-artwork-column')).toBeNull();
     });
 
-    it('lists script usages in the sidebar and warns about Gate 1', async () => {
+    it('lists script usages without a redundant Gate explanation', async () => {
       vi.spyOn(bibleService, 'getEntryHistory').mockResolvedValue([]);
       vi.spyOn(bibleService, 'getEntryUsages').mockResolvedValue([
         {
@@ -686,9 +683,9 @@ describe('BibleEntityDetailModal UX/UI', () => {
       render(<BibleEntityDetailModal {...defaultProps} seriesId='ser-1' rawEntry={draftEntry} />);
 
       expect(await screen.findByText('Biến cố')).toBeInTheDocument();
-      expect(screen.getByText('Đạt Canon')).toBeInTheDocument();
-      expect(screen.getByText('Chưa khoá Canon')).toBeInTheDocument();
-      expect(screen.getByText(/bị chặn ở Gate 1/)).toBeInTheDocument();
+      expect(screen.getByText('Đạt chuẩn')).toBeInTheDocument();
+      expect(screen.getByText('Chưa khóa chuẩn')).toBeInTheDocument();
+      expect(screen.queryByText(/bị chặn ở Gate 1/)).not.toBeInTheDocument();
     });
 
     it('switches to a sibling entry of the same category from the sidebar', () => {
@@ -846,7 +843,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       expect(confirmBtn).toBeDisabled();
       expect(confirmBtn).toHaveAttribute(
         'title',
-        'Bản vẽ đang bị yêu cầu vẽ lại; cần Artist nộp lại concept trước khi duyệt',
+        'Bản vẽ đang cần sửa; họa sĩ phải nộp lại trước khi duyệt',
       );
     });
 
@@ -885,7 +882,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       expect(await screen.findAllByText('Mặc định')).not.toHaveLength(0);
     });
 
-    it('hiển thị nút Yêu cầu vẽ lại Artwork và Yêu cầu sửa thông tin cho Editor', async () => {
+    it('hiển thị nút Yêu cầu vẽ lại và Yêu cầu sửa thông tin cho Editor', async () => {
       const conceptRev: BibleEntryRevisionDto = {
         id: 'rev-concept',
         bibleEntryId: mockEntityWithImage.id,
@@ -941,7 +938,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       // Verify artwork rework button
       const artworkBtn = screen.getByTestId('detail-rework-btn');
       expect(artworkBtn).toBeInTheDocument();
-      expect(artworkBtn.textContent).toContain('Yêu cầu vẽ lại Artwork');
+      expect(artworkBtn.textContent).toContain('Yêu cầu vẽ lại');
 
       fireEvent.click(artworkBtn);
       expect(mockRework).toHaveBeenCalledWith(mockEntityWithImage, conceptRev);

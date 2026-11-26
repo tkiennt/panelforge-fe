@@ -5,6 +5,7 @@ import {
   toSpecCategory,
   specFields,
   parseBibleDetails,
+  sanitizeArtistNotes,
 } from './bibleSpec';
 
 describe('bibleSpec', () => {
@@ -55,6 +56,15 @@ describe('bibleSpec', () => {
       expect(parseBibleDetails('')).toEqual({ age: '', artistNotes: '' });
       expect(parseBibleDetails('{}')).toEqual({ age: '', artistNotes: '' });
       expect(parseBibleDetails('Ghi chú tự do')).toEqual({ age: '', artistNotes: 'Ghi chú tự do' });
+    });
+
+    it('removes leaked DTO metadata from legacy Artist Notes', () => {
+      const dumped =
+        '- artistNotes: - Id: f1c462f8-3e0b-4cd0-8043-d968359b66a1 - Name: KRILLIN - Description: Áo cam - DetailsJson: {}';
+
+      expect(sanitizeArtistNotes(dumped)).toBe('Áo cam');
+      expect(parseBibleDetails(JSON.stringify({ artistNotes: dumped })).artistNotes).toBe('Áo cam');
+      expect(sanitizeArtistNotes('Tóc đen, áo cam')).toBe('Tóc đen, áo cam');
     });
 
     it('parses simplified format with age and artistNotes', () => {

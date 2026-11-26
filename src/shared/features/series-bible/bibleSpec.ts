@@ -31,7 +31,7 @@ const makeField = (
   get label() {
     if (key === 'age') return translate('bible.spec.fields.age.label', 'Tuổi');
     if (key === 'artistNotes')
-      return translate('bible.spec.fields.artistNotes.label', 'Ghi chú cho Artist (Artist Notes)');
+      return translate('bible.spec.fields.artistNotes.label', 'Ghi chú cho họa sĩ');
     return translate(`bible.spec.fields.${key}.label`, key);
   },
   get placeholder() {
@@ -107,6 +107,26 @@ export const LEGACY_FIELD_LABELS: Record<string, string> = {
 };
 
 /**
+ * Một số bản ghi cũ lưu cả DTO vào Artist Notes. Chỉ giữ phần mô tả mà người dùng
+ * đã nhập; không để UUID, tên trường hay JSON kỹ thuật lọt vào Workbench.
+ */
+export const sanitizeArtistNotes = (value: unknown): string => {
+  const note = typeof value === 'string' ? value.trim() : '';
+  if (!note) return '';
+
+  const looksLikeDtoDump = /(?:^|\s*-\s*)(?:artistNotes|Id|Name|Description|DetailsJson)\s*:/i.test(
+    note,
+  );
+  if (!looksLikeDtoDump) return note;
+
+  const description = note.match(
+    /(?:^|\s*-\s*)Description\s*:\s*([\s\S]*?)(?=\s*-\s*(?:artistNotes|Id|Name|DetailsJson)\s*:|$)/i,
+  )?.[1];
+
+  return description?.trim() || '';
+};
+
+/**
  * Trích xuất an toàn từ dữ liệu cũ (4 nhóm hoặc attributes phẳng) sang 2 trường mới gọn nhẹ.
  */
 export const parseBibleDetails = (
@@ -127,7 +147,7 @@ export const parseBibleDetails = (
       if (lower === 'age') {
         if (!age) age = strVal;
       } else if (lower === 'artistnotes' || lower === 'artist_notes') {
-        if (!artistNotes) artistNotes = strVal;
+        if (!artistNotes) artistNotes = sanitizeArtistNotes(strVal);
       } else if (LEGACY_FIELD_LABELS[k]) {
         bullets.push(`- ${LEGACY_FIELD_LABELS[k]}: ${strVal}`);
       } else if (typeof v === 'object' && !Array.isArray(v)) {
@@ -148,7 +168,7 @@ export const parseBibleDetails = (
       }
     } catch {
       if (!artistNotes && rawDetailsJson.trim() !== '{}') {
-        artistNotes = rawDetailsJson.trim();
+        artistNotes = sanitizeArtistNotes(rawDetailsJson);
       }
     }
   }
@@ -157,7 +177,7 @@ export const parseBibleDetails = (
     artistNotes = artistNotes ? `${artistNotes}\n\n${bullets.join('\n')}` : bullets.join('\n');
   }
 
-  return { age, artistNotes };
+  return { age, artistNotes: sanitizeArtistNotes(artistNotes) };
 };
 
 export const specFields = (category: SpecCategory): SpecField[] =>
