@@ -1988,6 +1988,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   }, [isPageReadOnly, selectedPage, currentStage?.id, gridTasks]);
   const [isStartingCell, setIsStartingCell] = useState(false);
 
+  const hasVisualScriptImpact = useMemo(() => {
+    if (!selectedPage) return false;
+    const gridImpact = gridTasks.some(
+      (task) => task.hasScriptImpact === true && (!task.pageId || task.pageId === selectedPage.id),
+    );
+    const legacyImpact = chapterAssignments.some((assignment) => {
+      if (assignment.hasScriptImpact !== true) return false;
+      if (assignment.pageId) return assignment.pageId === selectedPage.id;
+      return panelPageMap[assignment.targetEntityId]?.pageId === selectedPage.id;
+    });
+    return gridImpact || legacyImpact;
+  }, [selectedPage, gridTasks, chapterAssignments, panelPageMap]);
+
   const handleStartCurrentCell = async () => {
     if (!startableCurrentCell || !currentChapterId || isStartingCell) return;
     setIsStartingCell(true);
@@ -2908,6 +2921,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         />
       )}
 
+      {hasVisualScriptImpact && (
+        <div
+          data-testid='artist-script-impact-badge'
+          role='status'
+          className='shrink-0 border-b border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-700'
+        >
+          <span className='inline-flex rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700'>
+            ⚑ Kịch bản thay đổi
+          </span>
+        </div>
+      )}
+
       {isPageReadOnly && (
         <div
           data-testid='artist-page-readonly-banner'
@@ -3261,6 +3286,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 originalLang={originalLang}
                 textReadOnly={isTranslationMode ? !isActiveEditionEditable : isPageReadOnly}
                 onCommitText={(text) => balloons.updateElementText(selectedBalloon.elementId, text)}
+                onSyncScriptText={() => balloons.syncElementText(selectedBalloon.elementId)}
                 onChangeStyle={(patch) =>
                   balloons.updateElementStyle(selectedBalloon.elementId, patch)
                 }

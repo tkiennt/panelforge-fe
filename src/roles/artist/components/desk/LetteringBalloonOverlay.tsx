@@ -306,10 +306,10 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
 
             {b.isStale && (
               <span
-                className='absolute -top-2.5 right-2 z-30 px-1 py-0.2 rounded bg-amber-500 text-stone-900 text-[10px] font-bold flex items-center gap-0.5 shadow-sm'
+                className='absolute -top-3 right-2 z-30 flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 shadow-sm'
                 title={t('balloonOverlay.staleTitle')}
               >
-                <AlertTriangle className='w-2.5 h-2.5' /> {t('balloonOverlay.staleBadge')}
+                <AlertTriangle className='h-3 w-3' /> {t('balloonOverlay.staleBadge')}
               </span>
             )}
           </div>

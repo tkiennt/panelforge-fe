@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LetteringPropertyPanel } from './LetteringPropertyPanel';
 import type { ElementSnapshotDto } from '@/services/element.service';
 
@@ -94,6 +94,30 @@ describe('LetteringPropertyPanel (BR-05, BR-34)', () => {
       target: { value: 'cloud' },
     });
     expect(onStyle).toHaveBeenCalledWith({ balloonShape: 'cloud' });
+  });
+
+  it('hiện diff lời thoại lỗi thời và đồng bộ theo kịch bản bằng một lần bấm', async () => {
+    const onSync = vi.fn().mockResolvedValue(undefined);
+    render(
+      <LetteringPropertyPanel
+        element={balloon({
+          content: 'Bản thoại cũ',
+          renderedText: 'Bản thoại cũ',
+          currentLineText: 'Bản thoại mới',
+          isStale: true,
+        })}
+        scriptLine={{ ...line, dialogueText: 'Bản thoại mới' }}
+        onCommitText={vi.fn()}
+        onSyncScriptText={onSync}
+        onChangeStyle={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Lời thoại đã đổi')).toBeInTheDocument();
+    expect(screen.getByTestId('lettering-stale-diff')).toHaveTextContent('Bản thoại cũ');
+    expect(screen.getByTestId('lettering-stale-diff')).toHaveTextContent('Bản thoại mới');
+    fireEvent.click(screen.getByRole('button', { name: 'Cập nhật theo kịch bản' }));
+    await waitFor(() => expect(onSync).toHaveBeenCalledTimes(1));
   });
 });
 
