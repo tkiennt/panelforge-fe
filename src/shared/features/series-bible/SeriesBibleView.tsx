@@ -70,6 +70,7 @@ import {
 } from './bibleCategory';
 import { AddRevisionModal } from './AddRevisionModal';
 import { ReworkModal } from './ReworkModal';
+import { ArtistBibleOverview } from './ArtistBibleOverview';
 
 interface SeriesBibleViewProps {
   activeProject?: MangaProject;
@@ -1385,7 +1386,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       </div>
 
       {/* DRAWING QUEUE BANNER IF ACTIVE */}
-      {designQueue.length > 0 && (
+      {!isArtist && designQueue.length > 0 && (
         <div className='rounded-xl border border-amber-200/80 bg-amber-50/40 p-4 space-y-3'>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-2'>
@@ -1493,8 +1494,36 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         </div>
       )}
 
+      {isArtist && (
+        <ArtistBibleOverview
+          entities={localEntities}
+          filteredEntities={filteredEntities}
+          rawEntries={rawEntries}
+          designQueue={designQueue}
+          stats={bibleStats}
+          onOpenEntity={(entity) => {
+            setSelectedEntity(entity);
+            setWorkbenchOpen(true);
+          }}
+          onSubmitQueueItem={(item, entity) => {
+            void handleOpenAddRevision(
+              entity,
+              null,
+              true,
+              item.reworkFeedback ?? undefined,
+              item.reviewStatus === 'ConceptSubmitted' ||
+                item.reviewStatus === 'ReworkRequired',
+              false,
+              item.revisionId,
+            );
+          }}
+        />
+      )}
+
       {/* VIEW PANEL: TWO-COLUMN MANGA PAPER & INK WORKSPACE */}
-      <div className='grid grid-cols-1 lg:grid-cols-12 gap-5 items-start font-sans'>
+      <div
+        className={`grid grid-cols-1 lg:grid-cols-12 gap-5 items-start font-sans ${isArtist ? 'hidden' : ''}`}
+      >
         {/* CỘT TRÁI (35% - lg:col-span-4): Danh sách thực thể */}
         <div className='lg:col-span-4 space-y-2.5'>
           <div className='flex items-center justify-between text-xs px-1'>
