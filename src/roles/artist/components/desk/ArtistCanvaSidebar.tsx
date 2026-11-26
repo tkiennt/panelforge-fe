@@ -78,6 +78,8 @@ export interface BibleEntityItem {
   code?: string;
   name: string;
   subtitle?: string;
+  variantLabel?: string;
+  versionNumber?: number;
   category: 'character' | 'location' | 'lore';
   tag: string;
   description: string;
@@ -1691,7 +1693,12 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           <Sparkles className='w-4 h-4 text-emerald-400 shrink-0' />
                         )}
                         <span className='text-xs font-bold text-[var(--sb-text)] truncate'>
-                          {item.name}
+                          <span>{item.name}</span>
+                          {item.variantLabel && (
+                            <span className='font-normal text-[var(--sb-muted)]'>
+                              {' '}— {item.variantLabel} (v{item.versionNumber ?? 1})
+                            </span>
+                          )}
                         </span>
                       </div>
                       <div className='flex items-center gap-1 shrink-0'>
