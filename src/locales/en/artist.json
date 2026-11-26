@@ -744,6 +744,7 @@
     "delete": "Delete balloon",
     "labelPrefix": "Balloon {order}",
     "resizeTitle": "Drag to resize",
+    "tailTitle": "Drag to point the tail at the speaker",
     "staleTitle": "Script changed after balloon placement (BR-05 / isStale)",
     "staleBadge": "Script edited",
     "keepOutTitle": "Balloon covers {label}",

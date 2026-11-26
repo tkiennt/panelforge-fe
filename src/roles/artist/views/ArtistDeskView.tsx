@@ -3231,6 +3231,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   onResizeStart={balloons.onResizeStart}
                   onResizeMove={balloons.onResizeMove}
                   onResizeEnd={balloons.onResizeEnd}
+                  onTailChange={(id, tail) => void balloons.updateElementTail(id, tail)}
                 />
               )}
             </ArtistCanvasViewport>

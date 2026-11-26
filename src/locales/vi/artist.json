@@ -744,6 +744,7 @@
     "delete": "Xóa thoại",
     "labelPrefix": "Thoại {order}",
     "resizeTitle": "Kéo để thay đổi kích thước",
+    "tailTitle": "Kéo để chỉ đuôi bóng về người nói",
     "staleTitle": "Kịch bản đã đổi sau khi đặt bóng (BR-05 / isStale)",
     "staleBadge": "Sửa kịch bản",
     "keepOutTitle": "Bóng thoại đang che {label}",
