@@ -735,7 +735,6 @@ export function useLetteringBalloons(
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const el = pageElements.find((item) => item.elementId === elementId);
     if (!el) return;
-    setSelectedElementId(elementId);
     setDragging({
       elementId,
       startX: e.clientX,

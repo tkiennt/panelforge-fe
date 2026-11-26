@@ -59,6 +59,8 @@ describe('artwork', () => {
     expect(needsArtwork(assignment({ entityType: 'Panel' }))).toBe(true);
     expect(needsArtwork(assignment({ entityType: 'Chapter' }))).toBe(false);
     expect(needsArtwork(assignment({ assignedRole: 'Writer' as never }))).toBe(false);
+    expect(needsArtwork(assignment({ stageName: 'Lettering' }))).toBe(false);
+    expect(needsArtwork(assignment(), 'Ráp thoại (Letter)')).toBe(false);
   });
 
   it('resolvePageId: Page lấy thẳng, Panel suy ra từ StageProgress, Chapter là null', () => {

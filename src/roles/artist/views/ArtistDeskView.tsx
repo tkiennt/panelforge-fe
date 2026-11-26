@@ -23,10 +23,7 @@ import { useToast } from '@/shared/context/ToastContext';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { detectPanelsFromSketchImage, cropImageByBoundingBox } from '../lib/panelDetection';
 import { getRoleDefaultPath } from '@/roles/roles';
-import {
-  formatChapterLabel,
-  stageKindOf,
-} from '@/shared/features/pipeline-board/productionBoard.utils';
+import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
 import { getArtistStageKind } from '../utils/artistStage';
 import {
   FocusStageItem,
@@ -64,6 +61,7 @@ import { classifyScriptLine } from '@/shared/utils/textStyle';
 import {
   DEFAULT_ARTIST_STAGES,
   DEFAULT_INITIAL_PAGES,
+  buildArtistFocusStages,
   extractBibleVisualDetails,
   getBibleCategoryTag,
   getDeterministicColor,
@@ -325,55 +323,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       .getSeriesPipeline(seriesId)
       .then((pipeline) => {
         if (!alive || !Array.isArray(pipeline?.stages)) return;
-        const enabledSorted = [...pipeline.stages]
-          .filter((s) => s.isEnabled !== false)
-          .sort((a, b) => a.stageOrder - b.stageOrder);
-
-        // Bố cục tranh không phải 1 stage mà nằm chung với Pencil.
-        // Thanh header của Artist chuẩn hoá gồm đúng 3 trạng thái: Pencil -> Ink -> Letter
-        const artistPencil = enabledSorted.find(
-          (s) => getArtistStageKind(s) === 'pencil' || stageKindOf(s.name || '') === 'pencil',
-        );
-        const artistInk = enabledSorted.find(
-          (s) => getArtistStageKind(s) === 'ink' || stageKindOf(s.name || '') === 'ink',
-        );
-        const artistColor = enabledSorted.find((s) => getArtistStageKind(s) === 'color');
-        const artistLetter = enabledSorted.find(
-          (s) =>
-            getArtistStageKind(s) === 'lettering' ||
-            stageKindOf(s.name || '') === 'letter' ||
-            (s.name || '').toLowerCase().includes('dialogue') ||
-            (s.name || '').toLowerCase().includes('thoại'),
-        );
-
-        const normalizedArtistStages: FocusStageItem[] = [
-          {
-            id: artistPencil?.id || 'stage-pencil',
-            label: 'Pencil',
-            key: 'pencil',
-          },
-          {
-            id: artistInk?.id || 'stage-ink',
-            label: 'Ink',
-            key: 'ink',
-          },
-          ...(artistColor
-            ? [
-                {
-                  id: artistColor.id,
-                  label: 'Color',
-                  key: 'color',
-                },
-              ]
-            : []),
-          {
-            id: artistLetter?.id || 'stage-letter',
-            label: 'Letter',
-            key: 'lettering',
-          },
-        ];
-
-        setArtistStages(normalizedArtistStages);
+        setArtistStages(buildArtistFocusStages(pipeline.stages));
       })
       .catch(() => {
         // Giữ bộ công đoạn mặc định nếu chưa kết nối quy trình
@@ -407,32 +357,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           const fetchedGridTasks = (grid?.tasks ?? []).filter((t) => t.status !== 'Cancelled');
           if (alive) {
             setGridStages(grid?.stages ?? []);
-            const enabledColorFromGrid = (grid?.stages ?? []).find(
-              (s) =>
-                s.isEnabled !== false &&
-                getArtistStageKind({
-                  name: s.name,
-                  slug: s.name.toLowerCase(),
-                  allowedRole: s.allowedRole,
-                }) === 'color',
-            );
-            if (enabledColorFromGrid) {
-              setArtistStages((prev) => {
-                if (prev.some((st) => st.key === 'color' || st.id === enabledColorFromGrid.id)) {
-                  return prev;
-                }
-                const letterIdx = prev.findIndex((st) => st.key === 'lettering');
-                const colorItem: FocusStageItem = {
-                  id: enabledColorFromGrid.id,
-                  label: 'Color',
-                  key: 'color',
-                };
-                if (letterIdx >= 0) {
-                  return [...prev.slice(0, letterIdx), colorItem, ...prev.slice(letterIdx)];
-                }
-                return [...prev, colorItem];
-              });
-            }
           }
           if (alive && fetchedGridTasks.length > 0) {
             setGridTasks(fetchedGridTasks);

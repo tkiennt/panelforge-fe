@@ -371,7 +371,9 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
             CELL_STATUS_CLS[cell.status] ?? 'bg-stone-100 text-stone-700 border-stone-300';
           const metaLabel = t(`collaboration.taskGrid.status.${cell.status}`, cell.status);
           const canStart =
-            isOwner && (cell.status === 'Assigned' || cell.status === 'ReworkRequired');
+            isOwner &&
+            roleUpper !== 'ARTIST' &&
+            (cell.status === 'Assigned' || cell.status === 'ReworkRequired');
           const canSubmit = isOwner && cell.status === 'InProgress';
           const canWithdraw = isOwner && cell.status === 'Submitted';
           const attemptCount = cell.attemptCount ?? 0;

@@ -214,6 +214,12 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
   onResizeEnd,
 }) => {
   const { t } = useTranslation('artist');
+  const pointerGestureRef = React.useRef<{
+    elementId: string;
+    startX: number;
+    startY: number;
+    moved: boolean;
+  } | null>(null);
   return (
     <div
       data-testid='canvas-lettering-overlay'
@@ -236,10 +242,35 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
             data-testid={`lettering-element-${b.elementId}`}
             onClick={(e) => {
               e.stopPropagation();
+              const gesture = pointerGestureRef.current;
+              pointerGestureRef.current = null;
+              if (gesture?.elementId === b.elementId && gesture.moved) return;
               onSelect(b.elementId);
             }}
-            onPointerDown={(e) => !readOnly && onDragStart(e, b.elementId)}
-            onPointerMove={!readOnly ? onDragMove : undefined}
+            onPointerDown={(e) => {
+              if (readOnly) return;
+              pointerGestureRef.current = {
+                elementId: b.elementId,
+                startX: e.clientX,
+                startY: e.clientY,
+                moved: false,
+              };
+              onDragStart(e, b.elementId);
+            }}
+            onPointerMove={
+              !readOnly
+                ? (e) => {
+                    const gesture = pointerGestureRef.current;
+                    if (
+                      gesture?.elementId === b.elementId &&
+                      Math.hypot(e.clientX - gesture.startX, e.clientY - gesture.startY) > 4
+                    ) {
+                      gesture.moved = true;
+                    }
+                    onDragMove(e);
+                  }
+                : undefined
+            }
             onPointerUp={!readOnly ? onDragEnd : undefined}
             className={`absolute pointer-events-auto ${readOnly ? 'cursor-default' : 'cursor-move'} select-none touch-none ${
               isActive ? 'z-40 shadow-lg' : 'transition-shadow'
