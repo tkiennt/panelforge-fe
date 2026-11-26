@@ -1,5 +1,5 @@
 // src/shared/features/pipeline-board/TaskGridBoard.tsx
-import { Link } from 'react-router-dom';
+import { Link, useInRouterContext } from 'react-router-dom';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
@@ -52,7 +52,11 @@ import { chapterService } from '@/services/chapter.service';
 import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
 import { panelService } from '@/services/panel.service';
 import { elementService } from '@/services/element.service';
-import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
+import {
+  workspaceService,
+  type AutomationSettingsDto,
+  type WorkspaceMemberDto,
+} from '@/services/workspace.service';
 import { buildPageComposite } from '@/shared/utils/compositePageRenderer';
 import { loadPreviousStageArtworks } from '@/shared/utils/stageArtworks';
 import {
@@ -128,8 +132,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   isChapterLocked = false,
 }) => {
   const { t, lang } = useTranslation('pipeline');
+  const inRouter = useInRouterContext();
   const confirm = useConfirm();
   const [grid, setGrid] = useState<TaskGridDto | null>(null);
+  const [automationSettings, setAutomationSettings] = useState<AutomationSettingsDto | null>(null);
   const [reworkCommentsByTask, setReworkCommentsByTask] = useState<Record<string, string>>({});
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -301,6 +307,60 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   useEffect(() => {
     loadGrid();
   }, [loadGrid, refreshKey]);
+
+  useEffect(() => {
+    if (!workspaceId || typeof workspaceService.getAutomationSettings !== 'function') {
+      setAutomationSettings(null);
+      return;
+    }
+    let cancelled = false;
+    void Promise.resolve(workspaceService.getAutomationSettings(workspaceId))
+      .then((dto) => {
+        if (cancelled) return;
+        setAutomationSettings(dto && typeof dto === 'object' ? dto : null);
+      })
+      .catch(() => {
+        if (!cancelled) setAutomationSettings(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId, refreshKey]);
+
+  const automationChipModel = useMemo(() => {
+    if (!workspaceId || !automationSettings) return null;
+    const isOn = Boolean(automationSettings.autoNextStage || automationSettings.autoRouteReview);
+    const parts: string[] = [];
+    if (!isOn) {
+      parts.push(t('taskGridV3.automationChip.tooltipOffPrefix'));
+    }
+    if (automationSettings.autoNextStage) {
+      parts.push(
+        automationSettings.assignMode === 'BalanceOnly'
+          ? t('taskGridV3.automationChip.tooltipR1Balance')
+          : t('taskGridV3.automationChip.tooltipR1Keep'),
+      );
+    }
+    if (automationSettings.autoRouteReview) {
+      parts.push(t('taskGridV3.automationChip.tooltipR2'));
+    }
+    const leadHours = automationSettings.leadHours ?? 24;
+    parts.push(
+      automationSettings.escalationHours !== null &&
+        automationSettings.escalationHours !== undefined
+        ? t('taskGridV3.automationChip.tooltipR3WithEscalation', {
+            leadHours,
+            escalationHours: automationSettings.escalationHours,
+          })
+        : t('taskGridV3.automationChip.tooltipR3LeadOnly', { leadHours }),
+    );
+    return {
+      isOn,
+      label: isOn ? t('taskGridV3.automationChip.on') : t('taskGridV3.automationChip.off'),
+      tooltip: parts.join(' · '),
+      href: `/workspaces/${encodeURIComponent(workspaceId)}?tab=automation`,
+    };
+  }, [workspaceId, automationSettings, t]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -2235,6 +2295,34 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               })}
             </span>
           )}
+          {automationChipModel &&
+            (inRouter ? (
+              <Link
+                to={automationChipModel.href}
+                data-testid='task-grid-automation-chip'
+                title={automationChipModel.tooltip}
+                className={`rounded-lg border px-2.5 py-1 text-xs font-semibold inline-flex items-center transition-colors ${
+                  automationChipModel.isOn
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                    : 'bg-stone-100 border-stone-200 text-stone-600 hover:bg-stone-200/70'
+                }`}
+              >
+                {automationChipModel.label}
+              </Link>
+            ) : (
+              <a
+                href={automationChipModel.href}
+                data-testid='task-grid-automation-chip'
+                title={automationChipModel.tooltip}
+                className={`rounded-lg border px-2.5 py-1 text-xs font-semibold inline-flex items-center transition-colors ${
+                  automationChipModel.isOn
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                    : 'bg-stone-100 border-stone-200 text-stone-600 hover:bg-stone-200/70'
+                }`}
+              >
+                {automationChipModel.label}
+              </a>
+            ))}
           {outdatedCount > 0 && (
             <span
               data-testid='outdated-tasks-badge'

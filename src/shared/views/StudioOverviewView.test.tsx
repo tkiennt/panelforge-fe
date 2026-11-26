@@ -357,6 +357,20 @@ describe('StudioOverviewView Library UX/UI', () => {
       rowVersion: null,
     };
 
+    beforeEach(() => {
+      vi.spyOn(axiosClient, 'get').mockImplementation(async (url: string) => {
+        if (url.includes('/automation-activity')) {
+          return {
+            data: {
+              last7Days: { autoAssigned: 0, skipped: 0, escalated: 0 },
+              items: [],
+            },
+          } as any;
+        }
+        return { data: [] } as any;
+      });
+    });
+
     it('loads default automation settings with active R1/R2/R3 hints and no config-only notes (TASK-359 / TASK-361 / TASK-362)', async () => {
       const getSpy = vi
         .spyOn(workspaceService, 'getAutomationSettings')
@@ -379,21 +393,22 @@ describe('StudioOverviewView Library UX/UI', () => {
       expect(screen.queryByTestId('automation-step5-note')).not.toBeInTheDocument();
       expect(screen.getByText(/Ai làm trang ở công đoạn trước thì làm tiếp/i)).toBeInTheDocument();
       expect(screen.getByText(/Giao người đúng vai trò đang ít việc nhất/i)).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Báo Producer khi lô trễ quá số giờ này hoặc ô bị ngâm quá lâu. Để trống để tắt.',
-        ),
-      ).toBeInTheDocument();
 
       const autoNextSwitch = screen.getByRole('switch', { name: 'Tự giao công đoạn kế tiếp' });
       const autoRouteSwitch = screen.getByRole('switch', { name: 'Gợi ý người duyệt' });
+      const escalationSwitch = screen.getByRole('switch', {
+        name: 'Báo Producer khi trễ quá hạn',
+      });
       const keepOwnerRadio = screen.getByRole('radio', { name: /Giữ người cũ/i });
       const balanceRadio = screen.getByRole('radio', { name: /Chia theo tải/i });
       const leadInput = screen.getByLabelText('Nhắc trước hạn (giờ)') as HTMLInputElement;
-      const escalationInput = screen.getByLabelText('Leo thang sau (giờ)') as HTMLInputElement;
+      const escalationInput = screen.getByLabelText(
+        'Báo Producer sau khi trễ (giờ)',
+      ) as HTMLInputElement;
 
       expect(autoNextSwitch).not.toBeChecked();
       expect(autoRouteSwitch).not.toBeChecked();
+      expect(escalationSwitch).not.toBeChecked();
       expect(keepOwnerRadio).toBeChecked();
       expect(balanceRadio).not.toBeChecked();
       expect(leadInput.value).toBe('24');
@@ -452,7 +467,9 @@ describe('StudioOverviewView Library UX/UI', () => {
       fireEvent.click(screen.getByRole('radio', { name: /Chia theo tải/i }));
       fireEvent.click(screen.getByRole('switch', { name: 'Gợi ý người duyệt' }));
       fireEvent.change(screen.getByLabelText('Nhắc trước hạn (giờ)'), { target: { value: '12' } });
-      fireEvent.change(screen.getByLabelText('Leo thang sau (giờ)'), { target: { value: '48' } });
+      fireEvent.change(screen.getByLabelText('Báo Producer sau khi trễ (giờ)'), {
+        target: { value: '48' },
+      });
       fireEvent.click(screen.getByTestId('automation-save-btn'));
 
       await waitFor(() => {
@@ -467,7 +484,9 @@ describe('StudioOverviewView Library UX/UI', () => {
       });
 
       // Valid save #2 clears escalationHours -> null and sends rowVersion: 7
-      fireEvent.change(screen.getByLabelText('Leo thang sau (giờ)'), { target: { value: '' } });
+      fireEvent.change(screen.getByLabelText('Báo Producer sau khi trễ (giờ)'), {
+        target: { value: '' },
+      });
       fireEvent.click(screen.getByTestId('automation-save-btn'));
 
       await waitFor(() => {
@@ -566,8 +585,9 @@ describe('StudioOverviewView Library UX/UI', () => {
       expect(screen.getByRole('radio', { name: /Giữ người cũ/i })).toBeDisabled();
       expect(screen.getByRole('radio', { name: /Chia theo tải/i })).toBeDisabled();
       expect(screen.getByRole('switch', { name: 'Gợi ý người duyệt' })).toBeDisabled();
+      expect(screen.getByRole('switch', { name: 'Báo Producer khi trễ quá hạn' })).toBeDisabled();
       expect(screen.getByLabelText('Nhắc trước hạn (giờ)')).toBeDisabled();
-      expect(screen.getByLabelText('Leo thang sau (giờ)')).toBeDisabled();
+      expect(screen.getByLabelText('Báo Producer sau khi trễ (giờ)')).toBeDisabled();
       expect(screen.getByTestId('automation-save-btn')).toBeDisabled();
       expect(putSpy).not.toHaveBeenCalled();
 
@@ -597,6 +617,309 @@ describe('StudioOverviewView Library UX/UI', () => {
       });
       expect(screen.queryByTestId('studio-automation-tab')).not.toBeInTheDocument();
       expect(getSpy).not.toHaveBeenCalled();
+    });
+
+    it('renders How It Works block with saved rule statuses that only update after saving (TASK-364 / BR-11)', async () => {
+      vi.spyOn(workspaceService, 'getAutomationSettings').mockResolvedValue(
+        defaultAutomationSettings,
+      );
+      vi.spyOn(axiosClient, 'put')
+        .mockReset()
+        .mockResolvedValueOnce({
+          data: {
+            workspaceId: 'ws-test',
+            autoNextStage: true,
+            assignMode: 'BalanceOnly',
+            autoRouteReview: true,
+            leadHours: 24,
+            escalationHours: 12,
+            rowVersion: 3,
+          },
+        });
+
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=automation']}>
+          <Routes>
+            <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      const howItWorks = await screen.findByTestId('automation-how-it-works');
+      expect(howItWorks).toHaveTextContent('Cách hoạt động');
+      expect(howItWorks).toHaveTextContent(/Duyệt ô/i);
+      expect(howItWorks).toHaveTextContent(/giữ người làm trang hoặc cân tải/i);
+      expect(howItWorks).toHaveTextContent(/gợi ý 1 Editor/i);
+      expect(howItWorks).toHaveTextContent(/quá hạn báo Producer/i);
+
+      // Initially all 3 saved rules are OFF
+      expect(screen.getByTestId('automation-rule-status-r1')).toHaveTextContent('Đang tắt');
+      expect(screen.getByTestId('automation-rule-status-r2')).toHaveTextContent('Đang tắt');
+      expect(screen.getByTestId('automation-rule-status-r3')).toHaveTextContent('Đang tắt');
+
+      // Toggling draft form controls before clicking Save must NOT flip saved status badges
+      fireEvent.click(screen.getByRole('switch', { name: 'Tự giao công đoạn kế tiếp' }));
+      fireEvent.click(screen.getByRole('radio', { name: /Chia theo tải/i }));
+      fireEvent.click(screen.getByRole('switch', { name: 'Gợi ý người duyệt' }));
+      fireEvent.change(screen.getByLabelText('Báo Producer sau khi trễ (giờ)'), {
+        target: { value: '12' },
+      });
+
+      expect(screen.getByTestId('automation-rule-status-r1')).toHaveTextContent('Đang tắt');
+      expect(screen.getByTestId('automation-rule-status-r2')).toHaveTextContent('Đang tắt');
+      expect(screen.getByTestId('automation-rule-status-r3')).toHaveTextContent('Đang tắt');
+
+      // Saving updates saved rule statuses
+      fireEvent.click(screen.getByTestId('automation-save-btn'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('automation-rule-status-r1')).toHaveTextContent('Đang bật');
+        expect(screen.getByTestId('automation-rule-status-r2')).toHaveTextContent('Đang bật');
+        expect(screen.getByTestId('automation-rule-status-r3')).toHaveTextContent('Đang bật');
+      });
+    });
+
+    it('loads Recent Activity (take=20), renders 7-day counts and AutoAssigned/Skipped/Escalated items, and opens Grid V3 on click (TASK-364)', async () => {
+      vi.spyOn(workspaceService, 'getAutomationSettings').mockResolvedValue({
+        ...defaultAutomationSettings,
+        autoNextStage: true,
+        rowVersion: 1,
+      });
+      const axiosGetSpy = vi.spyOn(axiosClient, 'get').mockImplementation(async (url: string) => {
+        if (url.includes('/automation-activity')) {
+          return {
+            data: {
+              last7Days: { autoAssigned: 4, skipped: 2, escalated: 1 },
+              items: [
+                {
+                  kind: 'AutoAssigned',
+                  occurredAt: '2026-11-26T12:00:00Z',
+                  seriesId: 'series-1',
+                  seriesTitle: 'Hành Trình Bất Tận',
+                  chapterId: 'chap-10',
+                  chapterNumber: 1,
+                  stageName: 'Ink',
+                  pageNumbers: [3],
+                  assigneeUserId: 'u-artist',
+                  assigneeName: 'Artist A',
+                  reason: 'Giữ người đã làm trang này',
+                },
+                {
+                  kind: 'Skipped',
+                  occurredAt: '2026-11-26T11:00:00Z',
+                  seriesId: 'series-1',
+                  seriesTitle: 'Hành Trình Bất Tận',
+                  chapterId: 'chap-10',
+                  chapterNumber: 1,
+                  stageName: null,
+                  pageNumbers: [],
+                  assigneeUserId: null,
+                  assigneeName: null,
+                  reason: 'Không có Inker.',
+                },
+                {
+                  kind: 'Escalated',
+                  occurredAt: '2026-11-26T10:00:00Z',
+                  seriesId: 'series-2',
+                  seriesTitle: 'Thành Phố Hoàng Hôn',
+                  chapterId: 'chap-22',
+                  chapterNumber: 5,
+                  stageName: null,
+                  pageNumbers: [],
+                  assigneeUserId: null,
+                  assigneeName: null,
+                  reason:
+                    'Hạn 2026-11-25 10:00 UTC · lô abc. Gia hạn, chia lại hoặc nhắc người làm.',
+                },
+              ],
+            },
+          } as any;
+        }
+        return { data: [] } as any;
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=automation']}>
+          <Routes>
+            <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/workspace'
+              element={<div data-testid='grid-v3-destination'>Grid V3 Loaded</div>}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      const activityBlock = await screen.findByTestId('automation-recent-activity');
+      await waitFor(() => {
+        expect(axiosGetSpy).toHaveBeenCalledWith('/workspaces/ws-test/automation-activity', {
+          params: { take: 20 },
+        });
+      });
+
+      expect(screen.getByTestId('automation-stat-assigned')).toHaveTextContent('4');
+      expect(screen.getByTestId('automation-stat-skipped')).toHaveTextContent('2');
+      expect(screen.getByTestId('automation-stat-escalated')).toHaveTextContent('1');
+
+      expect(activityBlock).toHaveTextContent(
+        /✅.*Chương 1.*Ink.*Trang 3.*Artist A.*Giữ người đã làm trang này/,
+      );
+      expect(activityBlock).toHaveTextContent(/⚠️.*Không có Inker\./);
+      expect(activityBlock).toHaveTextContent(/⏰.*Gia hạn, chia lại hoặc nhắc người làm\./);
+
+      const links = screen.getAllByTestId('automation-activity-item');
+      expect(links).toHaveLength(3);
+      expect(links[0]).toHaveAttribute(
+        'href',
+        '/workspaces/ws-test/series/series-1/workspace?chapterId=chap-10&board=grid-v3',
+      );
+      expect(links[2]).toHaveAttribute(
+        'href',
+        '/workspaces/ws-test/series/series-2/workspace?chapterId=chap-22&board=grid-v3',
+      );
+
+      fireEvent.click(links[0]);
+      expect(await screen.findByTestId('grid-v3-destination')).toBeInTheDocument();
+    });
+
+    it('renders empty message for Recent Activity, allows Editor read access, and blocks Artist from fetching activity (TASK-364 / BR-07)', async () => {
+      const editorWorkspace = {
+        ...mockWorkspace,
+        isOwner: false,
+        currentUserRole: 'Editor',
+      };
+      localStorage.setItem('activeWorkspace', JSON.stringify(editorWorkspace));
+      localStorage.setItem('workspaceRole', 'EDITOR');
+      vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([editorWorkspace as any]);
+      vi.spyOn(workspaceService, 'getAutomationSettings').mockResolvedValue(
+        defaultAutomationSettings,
+      );
+      let failActivityOnce = true;
+      const axiosGetSpy = vi.spyOn(axiosClient, 'get').mockImplementation(async (url: string) => {
+        if (url.includes('/automation-activity')) {
+          if (failActivityOnce) {
+            failActivityOnce = false;
+            throw { response: { status: 500, data: { error: 'Lỗi tải hoạt động' } } };
+          }
+          return {
+            data: {
+              last7Days: { autoAssigned: 0, skipped: 0, escalated: 0 },
+              items: [],
+            },
+          } as any;
+        }
+        return { data: [] } as any;
+      });
+
+      const { unmount } = render(
+        <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=automation']}>
+          <Routes>
+            <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      expect(await screen.findByText('Lỗi tải hoạt động')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
+
+      expect(await screen.findByText('Chưa có hoạt động tự động nào')).toBeInTheDocument();
+      expect(axiosGetSpy).toHaveBeenCalledWith('/workspaces/ws-test/automation-activity', {
+        params: { take: 20 },
+      });
+
+      unmount();
+      axiosGetSpy.mockClear();
+
+      const artistWorkspace = {
+        ...mockWorkspace,
+        isOwner: false,
+        currentUserRole: 'Artist',
+      };
+      localStorage.setItem('activeWorkspace', JSON.stringify(artistWorkspace));
+      localStorage.setItem('workspaceRole', 'ARTIST');
+      vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([artistWorkspace as any]);
+
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=automation']}>
+          <Routes>
+            <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Chọn Bộ truyện để làm việc')).toBeInTheDocument();
+      });
+      expect(axiosGetSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('/automation-activity'),
+        expect.anything(),
+      );
+    });
+
+    it('supports muted inactive mode cards, escalation switch + quick hour chips, recommended preset, and undo dirty changes', async () => {
+      vi.spyOn(workspaceService, 'getAutomationSettings').mockResolvedValue(
+        defaultAutomationSettings,
+      );
+
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-test/series?tab=automation']}>
+          <Routes>
+            <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await screen.findByTestId('studio-automation-tab');
+
+      // 1) Concrete plain-language examples are shown
+      expect(screen.getByText(/Ví dụ: Trang 3 vừa duyệt xong/i)).toBeInTheDocument();
+
+      // 2) When autoNextStage is OFF, mode card does NOT glow orange and shows inactive hint
+      const keepOwnerCard = screen.getByTestId('assign-mode-card-KeepPageOwner');
+      expect(keepOwnerCard.className).not.toContain('border-orange-500');
+      expect(screen.getByText(/Bật tự giao để áp dụng chế độ này/i)).toBeInTheDocument();
+      expect(screen.queryByTestId('automation-dirty-indicator')).not.toBeInTheDocument();
+
+      // Turning autoNextStage ON lights up the selected mode card and marks form dirty
+      fireEvent.click(screen.getByRole('switch', { name: 'Tự giao công đoạn kế tiếp' }));
+      expect(keepOwnerCard.className).toContain('border-orange-500');
+      expect(screen.getByTestId('automation-dirty-indicator')).toHaveTextContent(
+        /Có thay đổi chưa lưu/i,
+      );
+
+      // 3) Escalation switch toggles default 24h -> quick chip 48h (≈ 2 ngày) -> OFF ('')
+      const escalationSwitch = screen.getByRole('switch', {
+        name: 'Báo Producer khi trễ quá hạn',
+      });
+      const escalationInput = screen.getByLabelText(
+        'Báo Producer sau khi trễ (giờ)',
+      ) as HTMLInputElement;
+      expect(escalationSwitch).not.toBeChecked();
+
+      fireEvent.click(escalationSwitch);
+      expect(escalationSwitch).toBeChecked();
+      expect(escalationInput.value).toBe('24');
+
+      fireEvent.click(screen.getByTestId('escalation-quick-chip-48'));
+      expect(escalationInput.value).toBe('48');
+      expect(screen.getByTestId('escalation-duration-preview')).toHaveTextContent(/2 ngày/i);
+
+      fireEvent.click(escalationSwitch);
+      expect(escalationSwitch).not.toBeChecked();
+      expect(escalationInput.value).toBe('');
+
+      // 4) Undo reverts everything back to savedSettings and clears dirty indicator
+      fireEvent.click(screen.getByTestId('automation-reset-btn'));
+      expect(screen.getByRole('switch', { name: 'Tự giao công đoạn kế tiếp' })).not.toBeChecked();
+      expect(screen.queryByTestId('automation-dirty-indicator')).not.toBeInTheDocument();
+
+      // 5) Recommended preset fills optimal Studio configuration in one click
+      fireEvent.click(screen.getByTestId('automation-recommended-preset-btn'));
+      expect(screen.getByRole('switch', { name: 'Tự giao công đoạn kế tiếp' })).toBeChecked();
+      expect(screen.getByRole('switch', { name: 'Gợi ý người duyệt' })).toBeChecked();
+      expect(escalationSwitch).toBeChecked();
+      expect(escalationInput.value).toBe('24');
+      expect(screen.getByTestId('automation-dirty-indicator')).toBeInTheDocument();
     });
   });
 });

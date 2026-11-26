@@ -235,6 +235,7 @@
       "setCoverFailed": "Failed to upload Studio cover.",
       "clearCoverFailed": "Failed to delete Studio cover.",
       "getAutomationSettingsFailed": "Failed to load Studio Automation settings.",
+      "getAutomationActivityFailed": "Failed to load recent Studio Automation activity.",
       "updateAutomationSettingsFailed": "Failed to save Studio Automation settings.",
       "conflict": "The action conflicts with the current state (409 Conflict)."
     },

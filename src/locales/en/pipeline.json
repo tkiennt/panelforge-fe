@@ -313,6 +313,16 @@
     "submitWholeLotCount": "Submit whole lot ({count} cells)",
     "inputOutdatedBadge": "Input changed",
     "boardTitle": "Task Grid",
+    "automationChip": {
+      "on": "⚡ Auto: On",
+      "off": "⚡ Auto: Off",
+      "tooltipR1Keep": "R1: Auto-assign next stage (keep page owner)",
+      "tooltipR1Balance": "R1: Auto-assign next stage (load balance)",
+      "tooltipR2": "R2: Suggest reviewer",
+      "tooltipR3LeadOnly": "R3: Remind {leadHours}h before due",
+      "tooltipR3WithEscalation": "R3: Remind {leadHours}h before due, escalate after {escalationHours}h",
+      "tooltipOffPrefix": "Auto-assign & reviewer routing off"
+    },
     "assignedLotsTitle": "Assigned task lots ({count} lots)",
     "noPagesTitle": "This chapter has no pages yet.",
     "noPagesDesc": "Pages are created when the Writer splits pages in the Script; once saved, the grid automatically adds cells for each page (Pencil, Ink, Letter…).",

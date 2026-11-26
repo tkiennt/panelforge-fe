@@ -1,4 +1,5 @@
 import React from 'react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TaskGridBoard } from './TaskGridBoard';
@@ -37,6 +38,7 @@ vi.mock('@/services/assignment.service', () => ({
 vi.mock('@/services/workspace.service', () => ({
   workspaceService: {
     getMembers: vi.fn(),
+    getAutomationSettings: vi.fn(),
   },
 }));
 
@@ -2629,6 +2631,153 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
         'title',
         reasonBalance,
       );
+    });
+  });
+
+  describe('Lưới V3 — Chip trạng thái Automation trên thanh công cụ (TASK-365)', () => {
+    it('hiển thị chip ⚡ Tự động: Bật kèm tooltip luật đang bật và bấm mở /workspaces/{workspaceId}?tab=automation', async () => {
+      vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(mockGrid as any);
+      vi.mocked(workspaceService.getMembers).mockResolvedValue([]);
+      vi.mocked(workspaceService.getAutomationSettings)
+        .mockResolvedValueOnce({
+          workspaceId: 'ws-1',
+          autoNextStage: true,
+          assignMode: 'KeepPageOwner',
+          autoRouteReview: true,
+          leadHours: 24,
+          escalationHours: 12,
+          rowVersion: 1,
+        })
+        .mockResolvedValueOnce({
+          workspaceId: 'ws-1',
+          autoNextStage: true,
+          assignMode: 'BalanceOnly',
+          autoRouteReview: false,
+          leadHours: 18,
+          escalationHours: null,
+          rowVersion: 2,
+        });
+
+      const DestinationProbe = () => {
+        const loc = useLocation();
+        return (
+          <div data-testid='automation-settings-dest'>
+            {loc.pathname}
+            {loc.search}
+          </div>
+        );
+      };
+
+      const { unmount } = render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/se-1/workspace?board=grid-v3']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/workspace'
+              element={
+                <TaskGridBoard
+                  chapterId='chap-1'
+                  seriesId='se-1'
+                  workspaceId='ws-1'
+                  currentUserId='user-producer'
+                  currentUserRole='Producer'
+                  isProducer={true}
+                />
+              }
+            />
+            <Route path='/workspaces/:workspaceId' element={<DestinationProbe />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      const chip = await screen.findByTestId('task-grid-automation-chip');
+      expect(chip).toHaveTextContent('⚡ Tự động: Bật');
+      expect(chip).toHaveAttribute('href', '/workspaces/ws-1?tab=automation');
+      expect(chip.getAttribute('title')).toMatch(/R1.*giữ người làm trang/i);
+      expect(chip.getAttribute('title')).toMatch(/R2/i);
+      expect(chip.getAttribute('title')).toMatch(/nhắc trước 24 giờ/i);
+      expect(chip.getAttribute('title')).toMatch(/báo trễ sau 12 giờ/i);
+
+      fireEvent.click(chip);
+      expect(await screen.findByTestId('automation-settings-dest')).toHaveTextContent(
+        '/workspaces/ws-1?tab=automation',
+      );
+
+      unmount();
+
+      // Chế độ cân tải, không đặt báo trễ
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          seriesId='se-1'
+          workspaceId='ws-1'
+          currentUserId='user-editor'
+          currentUserRole='Editor'
+          isEditor={true}
+        />,
+      );
+
+      const editorChip = await screen.findByTestId('task-grid-automation-chip');
+      expect(editorChip).toHaveTextContent('⚡ Tự động: Bật');
+      expect(editorChip.getAttribute('title')).toMatch(/R1.*cân tải/i);
+      expect(editorChip.getAttribute('title')).not.toMatch(/R2/i);
+      expect(editorChip.getAttribute('title')).toMatch(/nhắc trước 18 giờ/i);
+      expect(editorChip.getAttribute('title')).not.toMatch(/báo trễ sau/i);
+    });
+
+    it('hiển thị chip ⚡ Tự động: Tắt khi cả autoNextStage và autoRouteReview đều false', async () => {
+      vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(mockGrid as any);
+      vi.mocked(workspaceService.getMembers).mockResolvedValue([]);
+      vi.mocked(workspaceService.getAutomationSettings).mockResolvedValueOnce({
+        workspaceId: 'ws-1',
+        autoNextStage: false,
+        assignMode: 'KeepPageOwner',
+        autoRouteReview: false,
+        leadHours: 24,
+        escalationHours: null,
+        rowVersion: null,
+      });
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          seriesId='se-1'
+          workspaceId='ws-1'
+          currentUserId='user-editor'
+          currentUserRole='Editor'
+          isEditor={true}
+        />,
+      );
+
+      const chip = await screen.findByTestId('task-grid-automation-chip');
+      expect(chip).toHaveTextContent('⚡ Tự động: Tắt');
+      expect(chip).toHaveAttribute('href', '/workspaces/ws-1?tab=automation');
+      expect(chip.getAttribute('title')).toMatch(/nhắc trước 24 giờ/i);
+    });
+
+    it('ẩn chip hoàn toàn và không báo lỗi lưới khi vai trò Artist/Letterer/Writer nhận 403 (BR-07)', async () => {
+      vi.mocked(assignmentService.getTaskGrid).mockResolvedValue(mockGrid as any);
+      vi.mocked(workspaceService.getMembers).mockResolvedValue([]);
+      vi.mocked(workspaceService.getAutomationSettings).mockRejectedValueOnce(
+        Object.assign(new Error('Forbidden'), { status: 403 }),
+      );
+
+      render(
+        <TaskGridBoard
+          chapterId='chap-1'
+          seriesId='se-1'
+          workspaceId='ws-1'
+          currentUserId='user-artist-1'
+          currentUserRole='Artist'
+        />,
+      );
+
+      await screen.findByText('1. Pencil');
+      await waitFor(() => {
+        expect(workspaceService.getAutomationSettings).toHaveBeenCalledWith('ws-1');
+      });
+
+      expect(screen.queryByTestId('task-grid-automation-chip')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('task-grid-error')).not.toBeInTheDocument();
     });
   });
 });
