@@ -1344,7 +1344,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       data-testid='chapter-review-view'
     >
       {/* 1. TOP BAR / HEADER */}
-      <div className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-6 py-2.5 flex items-center justify-between gap-4 z-20 shadow-xs'>
+      <div className='relative shrink-0 bg-head-wash border-b border-head-line px-6 py-2.5 flex items-center justify-between gap-4 z-20 shadow-xs before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-linear-to-r before:from-orange-500 before:via-orange-400 before:to-orange-500'>
         <div className='flex items-center gap-3 min-w-0'>
           <button
             type='button'
@@ -1358,7 +1358,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               }
             }}
             aria-label={t('chapterReview.backToDeskAria')}
-            className='w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors shadow-2xs border border-[#D8D2C5]'
+            className='w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F0E9] text-stone-600 hover:text-stone-900 cursor-pointer transition-colors shadow-2xs border border-head-line'
           >
             <ArrowLeft className='w-4 h-4' />
           </button>
@@ -1369,7 +1369,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 Gate 2
               </span>
               <h2
-                className='text-sm sm:text-base font-serif font-bold text-[#1C1917] truncate'
+                className='text-sm sm:text-base font-serif font-bold text-stone-900 truncate'
                 title={chapterTitle}
               >
                 {chapterTitle} · Quality & Composite Gate
@@ -1393,16 +1393,16 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 </span>
               )}
             </div>
-            <p className='text-[11px] text-[#57534E] font-medium'>
+            <p className='text-[11px] text-stone-600 font-medium'>
               {t('chapterReview.roleLabel')}:{' '}
-              <span className='font-semibold text-[#1C1917]'>{effectiveRole || 'Editor'}</span> ·{' '}
+              <span className='font-semibold text-stone-900'>{effectiveRole || 'Editor'}</span> ·{' '}
               {t('chapterReview.finishedPagesCount', { count: pages.length })}
             </p>
           </div>
         </div>
 
         {/* 3-Step Stepper in Header */}
-        <div className='hidden lg:flex items-center gap-1.5 px-3 py-1 bg-[#F8F6F0] border border-[#D8D2C5] rounded-full text-xs font-semibold'>
+        <div className='hidden lg:flex items-center gap-1.5 px-3 py-1 bg-head-wash border border-head-line rounded-full text-xs font-semibold'>
           <span className='px-2 py-0.5 rounded-full bg-indigo-600 text-white flex items-center gap-1 shadow-xs'>
             <span>1</span>
             <span>{t('chapterReview.stepper.editor')}</span>
@@ -1429,7 +1429,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs ${
               totalOpenCrs > 0
                 ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
+                : 'bg-white text-stone-600 border-head-line hover:bg-stone-50'
             }`}
           >
             <AlertTriangle className='w-3.5 h-3.5 text-rose-600' />
@@ -1439,22 +1439,22 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
           <button
             type='button'
             onClick={() => setIsProvenanceOpen(true)}
-            className='px-3 py-1.5 flex items-center gap-1.5 border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
+            className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
             title={t('chapterReview.provenanceTitle')}
             data-testid='btn-provenance-modal'
           >
-            <History className='w-3.5 h-3.5 text-[#78716C]' />
+            <History className='w-3.5 h-3.5 text-stone-500' />
             <span>{t('chapterReview.provenance')}</span>
           </button>
 
           <button
             type='button'
             onClick={() => setIsSubmissionsOpen(true)}
-            className='px-3 py-1.5 flex items-center gap-1.5 border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
+            className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
             title={t('chapterReview.submissionsTitle')}
             data-testid='btn-submissions-history'
           >
-            <Clock className='w-3.5 h-3.5 text-[#78716C]' />
+            <Clock className='w-3.5 h-3.5 text-stone-500' />
             <span>{t('chapterReview.historyCount', { count: submissions.length })}</span>
           </button>
 
@@ -1549,8 +1549,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       {/* 2. THREE-COLUMN MAIN LAYOUT */}
       <div className='flex-1 flex overflow-hidden'>
         {/* COLUMN 1: LEFT SIDEBAR - PAGE LIST */}
-        <div className='w-72 md:w-80 shrink-0 border-r border-[#D8D2C5] bg-[#FCFBF8] flex flex-col h-full overflow-hidden'>
-          <div className='p-2.5 border-b border-[#D8D2C5] bg-[#F8F6F0] flex items-center justify-between gap-1'>
+        <div className='w-72 md:w-80 shrink-0 border-r border-head-line bg-[#FCFBF8] flex flex-col h-full overflow-hidden'>
+          <div className='p-2.5 border-b border-head-line bg-head-wash flex items-center justify-between gap-1'>
             <div className='inline-flex p-0.5 rounded-lg bg-stone-200/70 text-xs font-semibold'>
               <button
                 type='button'
@@ -1782,20 +1782,20 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         {/* COLUMN 2: CENTER - MAIN COMPOSITE VIEWER */}
         <div className='flex-1 flex flex-col h-full overflow-hidden bg-[#F3F0E9] relative'>
           {/* Top Viewer Toolbar */}
-          <div className='h-11 shrink-0 bg-[#FCFBF8]/95 backdrop-blur-md border-b border-[#D8D2C5] px-4 flex items-center justify-between text-[#1C1917] z-10'>
+          <div className='h-11 shrink-0 bg-head-wash/95 backdrop-blur-md border-b border-head-line px-4 flex items-center justify-between text-stone-900 z-10'>
             {/* Page navigation */}
             <div className='flex items-center gap-2'>
               <button
                 type='button'
                 disabled={selectedPageIndex <= 0}
                 onClick={() => setSelectedPageId(pages[selectedPageIndex - 1].id)}
-                className='p-1 rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
+                className='p-1 rounded-lg hover:bg-[#F3F0E9] text-stone-600 hover:text-stone-900 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
                 title={t('chapterReview.prevPageTitle')}
                 data-testid='btn-prev-page'
               >
                 <ChevronLeft className='w-4 h-4' />
               </button>
-              <span className='text-xs font-semibold font-mono text-[#1C1917]'>
+              <span className='text-xs font-semibold font-mono text-stone-900'>
                 {t('chapterReview.pageCounter', {
                   current: currentPage?.pageNumber || 1,
                   total: pages.length,
@@ -1805,7 +1805,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 type='button'
                 disabled={selectedPageIndex >= pages.length - 1}
                 onClick={() => setSelectedPageId(pages[selectedPageIndex + 1].id)}
-                className='p-1 rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
+                className='p-1 rounded-lg hover:bg-[#F3F0E9] text-stone-600 hover:text-stone-900 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
                 title={t('chapterReview.nextPageTitle')}
                 data-testid='btn-next-page'
               >
@@ -1815,14 +1815,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
             {/* Mode: Khoanh vùng vs Di chuyển */}
             <div className='flex items-center gap-2'>
-              <div className='flex items-center bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg p-0.5'>
+              <div className='flex items-center bg-[#F3F0E9] border border-head-line rounded-lg p-0.5'>
                 <button
                   type='button'
                   onClick={() => setIsDrawTool(true)}
                   className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                     isDrawTool
-                      ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-xs'
-                      : 'text-[#57534E] hover:text-[#1C1917]'
+                      ? 'bg-orange-50 text-stone-900 border border-[#C2410C] shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900'
                   }`}
                   data-testid='btn-tool-draw'
                 >
@@ -1834,8 +1834,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   onClick={() => setIsDrawTool(false)}
                   className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                     !isDrawTool
-                      ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-xs'
-                      : 'text-[#57534E] hover:text-[#1C1917]'
+                      ? 'bg-orange-50 text-stone-900 border border-[#C2410C] shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900'
                   }`}
                   data-testid='btn-tool-pan'
                 >
@@ -2033,16 +2033,16 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         </div>
 
         {/* COLUMN 3: RIGHT TAB PANEL */}
-        <div className='w-96 shrink-0 border-l border-[#D8D2C5] bg-[#FCFBF8] flex flex-col h-full overflow-hidden'>
+        <div className='w-96 shrink-0 border-l border-head-line bg-[#FCFBF8] flex flex-col h-full overflow-hidden'>
           {/* Tab Navigation */}
-          <div className='flex border-b border-[#D8D2C5] bg-[#F8F6F0] shrink-0 text-xs font-bold'>
+          <div className='flex border-b border-head-line bg-head-wash shrink-0 text-xs font-bold'>
             <button
               type='button'
               onClick={() => setActiveTab('changes')}
               className={`flex-1 py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
                 activeTab === 'changes'
-                  ? 'border-[#C2410C] text-[#1C1917] bg-[#FFF2E6]/60'
-                  : 'border-transparent text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
+                  ? 'border-[#C2410C] text-stone-900 bg-orange-50/60'
+                  : 'border-transparent text-stone-600 hover:text-stone-900 hover:bg-[#F3F0E9]'
               }`}
             >
               <span>{t('chapterReview.changeRequests', 'Yêu cầu sửa')}</span>
@@ -2057,13 +2057,13 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               onClick={() => setActiveTab('checklist')}
               className={`flex-1 py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
                 activeTab === 'checklist'
-                  ? 'border-[#C2410C] text-[#1C1917] bg-[#FFF2E6]/60'
-                  : 'border-transparent text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
+                  ? 'border-[#C2410C] text-stone-900 bg-orange-50/60'
+                  : 'border-transparent text-stone-600 hover:text-stone-900 hover:bg-[#F3F0E9]'
               }`}
             >
               <CheckSquare className='w-3.5 h-3.5 text-[#C2410C]' />
               <span>{t('chapterReview.checklist', 'Checklist')}</span>
-              <span className='px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-[#F3F0E9] text-[#57534E]'>
+              <span className='px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-[#F3F0E9] text-stone-600'>
                 {Object.values(checklist).filter(Boolean).length}/5
               </span>
             </button>
@@ -2072,14 +2072,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               onClick={() => setActiveTab('consistency')}
               className={`flex-1 py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
                 activeTab === 'consistency'
-                  ? 'border-[#C2410C] text-[#1C1917] bg-[#FFF2E6]/60'
-                  : 'border-transparent text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
+                  ? 'border-[#C2410C] text-stone-900 bg-orange-50/60'
+                  : 'border-transparent text-stone-600 hover:text-stone-900 hover:bg-[#F3F0E9]'
               }`}
             >
               <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' />
               <span>{t('chapterReview.consistency', 'Nhất quán')}</span>
               {findings.length > 0 && (
-                <span className='px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-[#F3F0E9] text-[#57534E]'>
+                <span className='px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-[#F3F0E9] text-stone-600'>
                   {findings.length}
                 </span>
               )}
@@ -2093,10 +2093,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               {isGridMode && currentPage && currentPageGridCells.length > 0 && (
                 <div
                   data-testid='gate2-grid-cells-panel'
-                  className='p-3.5 rounded-xl border border-[#D8D2C5] bg-white space-y-2.5 shadow-2xs'
+                  className='p-3.5 rounded-xl border border-head-line bg-white space-y-2.5 shadow-2xs'
                 >
                   <div className='flex items-center justify-between gap-2'>
-                    <span className='text-xs font-bold text-[#1C1917] flex items-center gap-1.5'>
+                    <span className='text-xs font-bold text-stone-900 flex items-center gap-1.5'>
                       <Layers className='w-3.5 h-3.5 text-[#C2410C]' />
                       <span>
                         {t('chapterReview.gate2GridTitle', {
