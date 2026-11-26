@@ -510,6 +510,7 @@
     "stageDirectionPrefix": "[Chỉ dẫn]:"
   },
   "statusDrawer": {
+    "unsaved": "Chưa lưu",
     "retry": "Thử lại",
     "frozenBadge": "🔒 Kịch bản đã chốt (chỉ đọc)",
     "frozenHandoffDesc": "Đã chuyển giao cho Artist phác thảo (Pencil) & bố cục khung.",

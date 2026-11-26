@@ -3059,7 +3059,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   onClick={keepOut.toggleDrawingMode}
                   disabled={isPageReadOnly || keepOut.isSaving}
                   aria-pressed={keepOut.isDrawingMode}
-                  title='Vẽ vùng cấm chữ trên tranh (tránh mặt/tay nhân vật)'
+                  title={t(
+                    'lettering.keepOut.title',
+                    'Vẽ vùng cấm chữ trên tranh (tránh mặt/tay nhân vật)',
+                  )}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                     keepOut.isDrawingMode
                       ? 'bg-red-600 text-white border-red-700 shadow-2xs'
@@ -3067,7 +3070,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   }`}
                 >
                   <ShieldAlert className='w-3.5 h-3.5' aria-hidden='true' />
-                  <span>Vùng cấm</span>
+                  <span>{t('lettering.keepOut.button', 'Vùng cấm')}</span>
                   {keepOut.zones.length > 0 && (
                     <span
                       data-testid='keepout-count-badge'
@@ -3105,7 +3108,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                       className={`w-3 h-3 ${keepOut.isLoading ? 'animate-spin' : ''}`}
                       aria-hidden='true'
                     />
-                    Tải lại
+                    {t('lettering.keepOut.reload', 'Tải lại')}
                   </button>
                 </div>
               )}

@@ -628,7 +628,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
   useEffect(() => {
     if (!registerSave) return;
-    registerSave(() => handleSave(false));
+    // Nút Lưu / Ctrl+S của view là thao tác lưu chủ động: luôn lưu như Ctrl+S trong editor
+    registerSave(() => handleSave(true));
     return () => registerSave(null);
   }, [registerSave, handleSave]);
 

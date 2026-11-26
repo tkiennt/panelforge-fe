@@ -1310,8 +1310,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             <div className='relative flex-1'>
               <Search className='w-3.5 h-3.5 absolute left-2.5 top-2.5 text-stone-400' />
               <input
-                type='text'
                 data-testid='bible-search-input'
+                type='text'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={getSearchPlaceholder()}
@@ -1561,7 +1561,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           className='px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-xs font-mono font-semibold'
                           data-testid={`pending-draft-badge-${entity.id}`}
                         >
-                          Có bản nháp v{entity.latestDraftVersionNumber}
+                          {t('bible.view.hasDraftVersion', {
+                            version: entity.latestDraftVersionNumber,
+                            defaultValue: `Có bản nháp v${entity.latestDraftVersionNumber}`,
+                          })}
                         </span>
                       </div>
                     )}
@@ -1582,12 +1585,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             <div className='flex items-center gap-1.5 min-w-0'>
                               <span className='w-1.5 h-1.5 rounded-full bg-orange-600 shrink-0'></span>
                               <span className='truncate font-semibold text-stone-900 text-xs'>
-                                {effRev?.variantLabel || 'Mặc định'}
+                                {effRev?.variantLabel || t('bible.view.defaultVariant', 'Mặc định')}
                               </span>
                             </div>
                             <span className='text-xs font-mono px-1.5 py-0.5 rounded bg-orange-100 text-orange-800 font-semibold shrink-0'>
                               v{effRev?.versionNumber || 1}{' '}
-                              {effRev?.reviewStatus === 'CanonLocked' ? 'Canon' : 'Đang áp dụng'}
+                              {effRev?.reviewStatus === 'CanonLocked'
+                                ? t('bible.view.statusCanon', 'Canon')
+                                : t('bible.view.statusInUse', 'Đang áp dụng')}
                             </span>
                           </div>
                         </div>
@@ -1603,7 +1608,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             {t('bible.view.artworkUploaded')}
                           </span>
                         ) : (
-                          <span>{entity.subtitle || 'Tiêu chuẩn'}</span>
+                          <span>
+                            {entity.subtitle || t('bible.view.standardSubtitle', 'Tiêu chuẩn')}
+                          </span>
                         )}
                       </span>
                       {isSelected ? (
@@ -1654,9 +1661,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             void handleOpenAddRevision(entity);
                           }}
                           className='px-2 py-0.5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium'
-                          data-testid={`add-revision-btn-${entity.id}`}
+                          data-testid={
+                            entity.isStub
+                              ? `define-stub-btn-${entity.id}`
+                              : `add-revision-btn-${entity.id}`
+                          }
                         >
-                          + Bản
+                          {entity.isStub
+                            ? t('bible.view.defineStubBtn', 'Định nghĩa')
+                            : t('bible.view.addRevisionBtn', '+ Bản')}
                         </button>
                       )}
 
@@ -1673,7 +1686,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         }`}
                         data-testid={`crowd-badge-${entity.id}`}
                       >
-                        {entity.isCrowd ? 'Quần chúng' : 'Đặt Quần chúng'}
+                        {entity.isCrowd
+                          ? t('bible.view.crowdStatusActive', 'Quần chúng')
+                          : t('bible.view.crowdStatusSet', 'Đặt Quần chúng')}
                       </button>
                     </div>
                   </div>
@@ -1738,7 +1753,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           className='px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-xs font-semibold'
                           data-testid='pending-draft-badge-detail'
                         >
-                          Có bản nháp v{selectedEntity.latestDraftVersionNumber}
+                          {t('bible.view.hasDraftVersion', {
+                            version: selectedEntity.latestDraftVersionNumber,
+                            defaultValue: `Có bản nháp v${selectedEntity.latestDraftVersionNumber}`,
+                          })}
                         </span>
                       )}
                     </div>
@@ -1755,7 +1773,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       </span>
                       <span>•</span>
                       <span className='font-mono'>
-                        Mã: <strong className='text-stone-800'>{selectedEntity.code}</strong>
+                        {t('bible.view.codePrefix', 'Mã:')}{' '}
+                        <strong className='text-stone-800'>{selectedEntity.code}</strong>
                       </span>
                       <span>•</span>
                       <span className='text-emerald-700 font-medium flex items-center gap-1'>
@@ -1783,7 +1802,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       } else {
                         onShowToast(
                           t('bible.view.downloadConcept', 'Tải Concept Art'),
-                          'Chưa có tệp tải về',
+                          t('bible.view.noDownloadFile', 'Chưa có tệp tải về'),
                         );
                       }
                     }}
@@ -1834,7 +1853,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       data-testid='add-new-variant-btn'
                     >
                       <Plus className='w-3.5 h-3.5' />
-                      <span>+ Biến thể</span>
+                      <span>{t('bible.view.addVariantBtn', '+ Biến thể')}</span>
                     </button>
                   )}
 
@@ -1927,7 +1946,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <div className='text-stone-500 font-mono'>
                         {selectedEntity.lockedAt
                           ? `Duyệt: ${new Date(selectedEntity.lockedAt).toLocaleDateString()}`
-                          : 'Chưa duyệt'}
+                          : t('bible.view.notApprovedYet', 'Chưa duyệt')}
                       </div>
                     </div>
                   </div>
@@ -1960,7 +1979,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <div className='space-y-2.5 pt-1'>
                           <div className='flex items-center justify-between text-xs'>
                             <span className='text-stone-600 font-normal'>
-                              Độ tuổi &amp; Ngày sinh:
+                              {t('bible.view.ageAndBirth', 'Độ tuổi & Ngày sinh:')}
                             </span>
                             <span className='font-bold text-stone-900 text-right'>
                               {selectedEntity.attributes?.age
@@ -1970,7 +1989,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           </div>
                           <div className='flex items-center justify-between text-xs'>
                             <span className='text-stone-600 font-normal'>
-                              Chiều cao &amp; Cân nặng:
+                              {t('bible.view.heightAndWeight', 'Chiều cao & Cân nặng:')}
                             </span>
                             <span className='font-bold text-stone-900 text-right'>
                               {selectedEntity.attributes?.height
@@ -1980,7 +1999,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           </div>
                           <div className='flex items-center justify-between text-xs'>
                             <span className='text-stone-600 font-normal'>
-                              Thể trạng &amp; Tỷ lệ:
+                              {t('bible.view.buildAndRatio', 'Thể trạng & Tỷ lệ:')}
                             </span>
                             <span className='font-bold text-stone-900 text-right'>
                               {selectedEntity.attributes?.build || '—'}
@@ -1998,11 +2017,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         </div>
                         <div className='p-3.5 rounded-lg bg-orange-50/40 border border-orange-200/60 text-xs leading-relaxed space-y-2.5 text-stone-700'>
                           <p>
-                            Màu tóc: {selectedEntity.attributes?.hair || '—'}. Mắt:{' '}
+                            {t('bible.view.hairColor', 'Màu tóc:')}{' '}
+                            {selectedEntity.attributes?.hair || '—'}{' '}
+                            {t('bible.view.eyeColor', '. Mắt:')}{' '}
                             {selectedEntity.attributes?.eyes || '—'}.
                           </p>
                           <p>
-                            <span className='font-bold text-orange-600'>Vết sẹo nhận diện: </span>
+                            <span className='font-bold text-orange-600'>
+                              {t('bible.view.identifyingMarks', 'Vết sẹo nhận diện:')}{' '}
+                            </span>
                             {selectedEntity.attributes?.marks || '—'}
                           </p>
                         </div>
@@ -2030,8 +2053,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             </span>
                           </div>
                           <div className='text-xs leading-relaxed'>
-                            Khi dán trame mưa đêm, sử dụng nét gạch xiên song song 65 độ, không để
-                            mảng đen che lấp vết nứt lò phản ứng dưới lòng đường.
+                            {t(
+                              'bible.view.artistTipLocationDesc',
+                              'Khi dán trame mưa đêm, sử dụng nét gạch xiên song song 65 độ, không để mảng đen che lấp vết nứt lò phản ứng dưới lòng đường.',
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2051,26 +2076,32 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <div className='divide-y divide-stone-200/80 text-xs'>
                           <div className='py-2 flex items-center justify-between gap-4'>
                             <span className='text-stone-500 font-medium shrink-0'>
-                              Kích thước tổng thể
+                              {t('bible.view.overallDimensions', 'Kích thước tổng thể')}
                             </span>
                             <span className='font-semibold text-stone-800 text-right'>
-                              Tổng dài 140 cm (Chuôi 28 cm, Lưỡi 112 cm)
+                              {t(
+                                'bible.view.overallDimensionsVal',
+                                'Tổng dài 140 cm (Chuôi 28 cm, Lưỡi 112 cm)',
+                              )}
                             </span>
                           </div>
                           <div className='py-2 flex items-center justify-between gap-4'>
                             <span className='text-stone-500 font-medium shrink-0'>
-                              Trọng lượng khi rút kiếm
+                              {t('bible.view.drawnWeight', 'Trọng lượng khi rút kiếm')}
                             </span>
                             <span className='font-semibold text-stone-800 text-right'>
-                              1.85 kg (Vỏ hợp kim siêu nhẹ)
+                              {t('bible.view.drawnWeightVal', '1.85 kg (Vỏ hợp kim siêu nhẹ)')}
                             </span>
                           </div>
                           <div className='py-2 flex items-center justify-between gap-4'>
                             <span className='text-stone-500 font-medium shrink-0'>
-                              Hiệu ứng tia sáng trame
+                              {t('bible.view.screenToneEffect', 'Hiệu ứng tia sáng trame')}
                             </span>
                             <span className='font-semibold text-stone-800 text-right'>
-                              Radial Gradient 85L / 15% tia sét
+                              {t(
+                                'bible.view.screenToneEffectVal',
+                                'Radial Gradient 85L / 15% tia sét',
+                              )}
                             </span>
                           </div>
                         </div>
@@ -2096,8 +2127,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               </span>
                             </div>
                             <div className='text-xs leading-relaxed'>
-                              Khi chém vào vật thể kim loại, viền nét kiếm không để đứt đoạn mà dùng
-                              nét brush xòe kết hợp tia lửa điện văng 4 góc.
+                              {t(
+                                'bible.view.artistTipPropDesc',
+                                'Khi chém vào vật thể kim loại, viền nét kiếm không để đứt đoạn mà dùng nét brush xòe kết hợp tia lửa điện văng 4 góc.',
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2110,7 +2143,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     <div className='p-4 rounded-xl bg-stone-50/70 border border-stone-200/80 space-y-3'>
                       <div className='flex items-center gap-2 text-stone-900 font-bold uppercase tracking-wider text-xs pb-2 border-b border-stone-200/80'>
                         <ShieldCheck className='w-4 h-4 text-stone-700' />
-                        <span>Quy chuẩn mỹ thuật &amp; Thiết lập thế giới</span>
+                        <span>
+                          {t(
+                            'bible.view.styleRulesTitle',
+                            'Quy chuẩn mỹ thuật & Thiết lập thế giới',
+                          )}
+                        </span>
                       </div>
                       <div className='space-y-2 text-xs text-stone-700 leading-relaxed'>
                         <p>
@@ -2118,7 +2156,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             'Quy chuẩn cố định cho toàn bộ họa sĩ sản xuất.'}
                         </p>
                         <div className='p-2.5 rounded-lg bg-stone-100 border border-stone-200/80 text-stone-700'>
-                          <span className='font-semibold'>Ràng buộc bất biến: </span>
+                          <span className='font-semibold'>
+                            {t('bible.view.immutableConstraint', 'Ràng buộc bất biến:')}{' '}
+                          </span>
                           {selectedEntity.attributes?.forbidden ||
                             'Bản đã khoá Canon không sửa trực tiếp. Muốn thay đổi cần tạo bản sửa đổi mới qua thao tác Thay thế (Supersede).'}
                         </div>
@@ -2363,19 +2403,19 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         v{rev.versionNumber}
                       </span>
                       <span className='font-semibold text-stone-900'>
-                        {rev.variantLabel || 'Mặc định'}
+                        {rev.variantLabel || t('bible.view.defaultVariant', 'Mặc định')}
                       </span>
                       {rev.reviewStatus === 'CanonLocked' ? (
                         <span className='px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold'>
-                          Đã khóa Canon
+                          {t('bible.view.statusCanonLocked', 'Đã khóa Canon')}
                         </span>
                       ) : rev.reviewStatus === 'ConceptSubmitted' ? (
                         <span className='px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold'>
-                          Chờ nét in
+                          {t('bible.view.statusWaitingInker', 'Chờ nét in')}
                         </span>
                       ) : rev.reviewStatus === 'ReworkRequired' ? (
                         <span className='px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold'>
-                          Cần sửa
+                          {t('bible.view.statusReworkNeeded', 'Cần sửa')}
                         </span>
                       ) : null}
                     </div>
@@ -2388,7 +2428,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
                   {rev.reworkFeedback && (
                     <div className='p-2 rounded bg-rose-50 border border-rose-200 text-xs text-rose-800'>
-                      <span className='font-semibold'>Nhận xét sửa: </span>
+                      <span className='font-semibold'>
+                        {t('bible.view.reworkComment', 'Nhận xét sửa:')}{' '}
+                      </span>
                       {rev.reworkFeedback}
                     </div>
                   )}
@@ -2405,7 +2447,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           className='px-3 py-1 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold'
                           data-testid={`btn-lock-canon-${rev.id}`}
                         >
-                          Khóa chuẩn
+                          {t('bible.view.lockCanonBtn', 'Khóa chuẩn')}
                         </button>
                       )}
                     </div>

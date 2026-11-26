@@ -1995,6 +1995,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
 
         const withdrawBtn = await screen.findByTestId('artist-withdraw-btn');
         expect(withdrawBtn).toHaveTextContent('Rút bài');
+        await waitFor(() => expect(withdrawBtn).not.toBeDisabled());
 
         // Lần 1: 409 -> báo đúng message Backend, không báo thành công giả, tải lại lưới
         fireEvent.click(withdrawBtn);
