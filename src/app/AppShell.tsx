@@ -309,7 +309,7 @@ export function AppShell({
             {
               icon: BookOpen,
               label: t('navigation.menu.publicCatalog'),
-              href: '/publisher/catalog',
+              href: '/catalog',
             },
             {
               icon: CreditCard,
