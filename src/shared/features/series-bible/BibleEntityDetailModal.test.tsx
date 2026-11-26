@@ -186,12 +186,8 @@ describe('BibleEntityDetailModal UX/UI', () => {
       />,
     );
 
-    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent(
-      'Biên kịch · Đặc tả',
-    );
-    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent(
-      'Họa sĩ · Bản vẽ',
-    );
+    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent('Biên kịch · Đặc tả');
+    expect(screen.getByTestId('writer-artist-handoff-bar')).toHaveTextContent('Họa sĩ · Bản vẽ');
 
     const input = document.querySelector<HTMLInputElement>('input[type="file"]');
     expect(input).not.toBeNull();
@@ -688,7 +684,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       expect(screen.queryByText(/bị chặn ở Gate 1/)).not.toBeInTheDocument();
     });
 
-    it('switches to a sibling entry of the same category from the sidebar', () => {
+    it('does not render the redundant same-category navigator', () => {
       const onSelectEntity = vi.fn();
       const other = {
         ...mockEntityNoImage,
@@ -705,8 +701,8 @@ describe('BibleEntityDetailModal UX/UI', () => {
         />,
       );
 
-      fireEvent.click(screen.getByRole('button', { name: /Lão Mã/ }));
-      expect(onSelectEntity).toHaveBeenCalledWith(other);
+      expect(screen.queryByRole('button', { name: /Lão Mã/ })).not.toBeInTheDocument();
+      expect(onSelectEntity).not.toHaveBeenCalled();
     });
   });
 
