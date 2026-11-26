@@ -715,7 +715,7 @@
     "directory": {
       "title": "Your Studio Workspaces",
       "subtitle": "Multi-Studio Manga/Webtoon parallel production management. Track assignments, series progress, and isolated storage quotas.",
-      "createStudioBtn": "+ Create New Studio",
+      "createStudioBtn": "Create New Studio",
       "filterRoleLabel": "Filter by role:",
       "filterAll": "All Studios ({count})",
       "filterProducer": "I am Producer ({count})",

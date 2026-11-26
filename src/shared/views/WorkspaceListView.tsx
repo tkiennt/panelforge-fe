@@ -424,7 +424,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             <button
               type='button'
               onClick={handleOpenCreate}
-              className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs whitespace-nowrap'
+              className='bg-white hover:bg-stone-50 text-stone-800 font-medium px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1.5 border border-stone-200 shadow-2xs whitespace-nowrap'
             >
               <Plus className='w-4 h-4' />
               <span>{t('workspace.shelf.create')}</span>
