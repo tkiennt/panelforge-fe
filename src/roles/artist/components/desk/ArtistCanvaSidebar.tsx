@@ -45,7 +45,6 @@ import { PageHistoryDto } from '@/services/page.service';
 import { ElementSnapshotDto, type TextStyleDto } from '@/services/element.service';
 import { CollapsibleSidebar, SidebarSection } from '@/shared/ui';
 import { ArtistScriptReader } from './ArtistScriptReader';
-import '@/styles/modules/sidebar-theme.css';
 
 export type CanvaSidebarTab =
   'pages' | 'script' | 'bible' | 'templates' | 'changes' | 'history' | 'lettering';
@@ -885,7 +884,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
 
 /**
  * ArtistCanvaSidebar - Sidebar Canva Navigation chuyên biệt cho Artist Desk
- * - Đồng bộ hoàn toàn bảng màu & biến CSS với Sidebar toàn hệ thống (.pf-sidebar & data-sb-theme).
+ * - Giữ bề mặt paper sáng riêng cho công cụ Artist, không kế thừa theme của sidebar điều hướng.
  * - Đóng vai trò là thanh Sidebar chính khi Artist vào màn hình làm việc bản vẽ.
  * - Thanh công cụ chính Canva Dock: [Pages] - [Script] - [Series Bible] - [Khung] cùng nút thu gọn.
  * - Mỗi thời điểm chỉ hiển thị một drawer chi tiết để giữ canvas đủ rộng.
@@ -953,22 +952,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   letteringHeaderSlot,
 }) => {
   const { t, lang } = useTranslation('artist');
-  // Đồng bộ theme hệ thống từ localStorage hoặc prop, mặc định theme màu sáng 'paper'
-  const [currentTheme, setCurrentTheme] = useState<SidebarTheme>(() => {
-    if (theme) return theme;
-    try {
-      const saved = localStorage.getItem('pf.sidebar.theme');
-      return (saved as SidebarTheme) || 'paper';
-    } catch {
-      return 'paper';
-    }
-  });
-
-  useEffect(() => {
-    if (theme) {
-      setCurrentTheme(theme);
-    }
-  }, [theme]);
+  // Artist tool drawer is a separate light canvas surface, independent from app navigation theme.
+  const currentTheme = theme ?? 'paper';
 
   // Trạng thái tab Canva: 'pages' | 'script' | 'bible' (mặc định 'script' nếu tab Pages ẩn)
   const [internalActiveTab, setInternalActiveTab] = useState<CanvaSidebarTab>(
@@ -1202,7 +1187,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
           {item.imageUrl ? (
             <AuthenticatedImage
               src={item.imageUrl}
-              alt=''
+              alt={item.name || ''}
               className='h-full w-full object-cover object-top'
               loading='lazy'
             />
@@ -1219,7 +1204,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             <span className='truncate text-xs font-bold text-[var(--sb-text)]'>{item.name}</span>
             {item.variantLabel && (
               <span className='font-normal text-[var(--sb-muted)]'>
-                {' '}— {item.variantLabel} (v{item.versionNumber ?? 1})
+                {' '}
+                — {item.variantLabel} (v{item.versionNumber ?? 1})
               </span>
             )}
             {item.status === 'CanonLocked' && (
