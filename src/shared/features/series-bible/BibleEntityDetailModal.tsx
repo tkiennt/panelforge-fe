@@ -106,10 +106,28 @@ export function groupRevisionsIntoVariants(
   }
 
   const variants: CharacterVariant[] = [];
+  const isDefaultVariantLabel = (lbl: string) => {
+    const l = lbl.toLowerCase();
+    return l.includes('mặc định') || l.includes('chuẩn') || l.includes('default');
+  };
+
   const sortedGroupKeys = Array.from(groupMap.keys()).sort((a, b) => {
-    const minVerA = Math.min(...groupMap.get(a)!.map((r) => r.versionNumber || 0));
-    const minVerB = Math.min(...groupMap.get(b)!.map((r) => r.versionNumber || 0));
-    return minVerA - minVerB;
+    const revsA = groupMap.get(a)!;
+    const revsB = groupMap.get(b)!;
+    const labelA = getRevisionVariantLabel(revsA[0]);
+    const labelB = getRevisionVariantLabel(revsB[0]);
+    if (isDefaultVariantLabel(labelA) && !isDefaultVariantLabel(labelB)) return -1;
+    if (!isDefaultVariantLabel(labelA) && isDefaultVariantLabel(labelB)) return 1;
+
+    const earliestA = Math.min(...revsA.map((r) => new Date(r.createdAt || 0).getTime()));
+    const earliestB = Math.min(...revsB.map((r) => new Date(r.createdAt || 0).getTime()));
+    if (earliestA !== earliestB) return earliestA - earliestB;
+
+    const minVerA = Math.min(...revsA.map((r) => r.versionNumber || 0));
+    const minVerB = Math.min(...revsB.map((r) => r.versionNumber || 0));
+    if (minVerA !== minVerB) return minVerA - minVerB;
+
+    return a.localeCompare(b);
   });
 
   for (const groupKey of sortedGroupKeys) {
@@ -1437,9 +1455,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       if (v.trim()) attrs[k] = v.trim();
       else delete attrs[k];
     }
-    const allRevs = variants.flatMap((v) => v.revisions);
-    const expected = allRevs.length
-      ? Math.max(...allRevs.map((r) => r.versionNumber))
+    const activeVariantRevs = activeVariant?.revisions ?? [];
+    const expected = activeVariantRevs.length
+      ? Math.max(...activeVariantRevs.map((r) => r.versionNumber || 0))
       : (activeRevision?.versionNumber ?? 1);
     setSavingSpec(true);
     try {
@@ -1696,8 +1714,105 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
       {/* ================= WORKSPACE BODY CONTAINER ================= */}
       <div className='space-y-4'>
+        {/* ================= TẦNG 1: THANH CHỌN BIẾN THỂ (VARIANT TABS / PILLS NGANG TRÊN CÙNG) ================= */}
+        <section
+          data-testid='variant-selector'
+          className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-3 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3'
+          aria-label={t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}
+        >
+          <div className='flex items-center gap-2 overflow-x-auto py-0.5 custom-scrollbar min-w-0'>
+            <div className='flex items-center gap-1.5 text-xs font-bold text-stone-600 uppercase tracking-wider mr-1 shrink-0'>
+              <Layers className='w-4 h-4 text-[#EA580C]' />
+              <span>{t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}</span>
+            </div>
+
+            {variants.map((variant) => {
+              const vLabel = variant.variantLabel || t('bible.detailModal.defaultVariant');
+              const isActive = selectedVariantKey === variant.variantKey;
+              const isDefaultVariant =
+                vLabel.toLowerCase().includes('chuẩn') ||
+                vLabel.toLowerCase().includes('mặc định') ||
+                vLabel.toLowerCase().includes('default');
+              const variantIcon = isDefaultVariant ? null : getVariantIcon(vLabel, entity.category);
+              const pendingDraftRev = variant.revisions.find(
+                (r) =>
+                  r.reviewStatus !== 'CanonLocked' &&
+                  ((r.versionNumber || 0) > 1 || r.supersedesRevisionId != null || variant.isLocked),
+              );
+
+              return (
+                <button
+                  type='button'
+                  key={variant.variantKey}
+                  onClick={() => {
+                    setSelectedVariantKey(variant.variantKey);
+                    setSelectedVersionId(null);
+                  }}
+                  data-testid={`variant-tab-${variant.variantKey}`}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+                    isActive
+                      ? 'bg-stone-900 text-white border-stone-900 shadow-xs'
+                      : 'bg-white text-stone-700 border-stone-200 hover:border-stone-300 hover:bg-stone-50'
+                  }`}
+                >
+                  {variantIcon && <span>{variantIcon}</span>}
+                  <span>{vLabel}</span>
+
+                  {variant.isLocked ? (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded font-bold border flex items-center gap-0.5 ${
+                        isActive
+                          ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      }`}
+                    >
+                      <Lock className='w-2.5 h-2.5' />
+                      {t('bible.detailModal.officialBadge', 'Đã khóa chuẩn')}
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded font-medium border ${
+                        isActive
+                          ? 'bg-stone-800 text-stone-300 border-stone-700'
+                          : 'bg-stone-100 text-stone-600 border-stone-200'
+                      }`}
+                    >
+                      {t('bible.detailModal.draftBadge', 'Bản nháp')}
+                    </span>
+                  )}
+
+                  {pendingDraftRev && (
+                    <span
+                      title={`Có bản nháp v${pendingDraftRev.versionNumber || 2}`}
+                      className='inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-900 border border-amber-300'
+                    >
+                      <span className='w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse' />
+                      <span>Có bản nháp v{pendingDraftRev.versionNumber || 2}</span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {effectiveCanCreateDraft && !isStubEntity && isWriterUser && (
+            <button
+              type='button'
+              onClick={() => {
+                onOpenAddRevision(entity, null, false, undefined, false, true);
+              }}
+              data-testid='add-new-variant-btn'
+              className='px-3 py-1.5 border border-dashed border-[#EA580C] hover:border-[#C2410C] text-[#EA580C] hover:text-[#C2410C] hover:bg-orange-50/50 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-2xs'
+              title={t('bible.detailModal.createNewVariantTitle', 'Tạo biến thể mới (bắt đầu từ v1)')}
+            >
+              <Plus className='w-3.5 h-3.5' />
+              <span>{t('bible.detailModal.createNewVariant', 'Thêm biến thể')}</span>
+            </button>
+          )}
+        </section>
+
         <div className='grid grid-cols-1 xl:grid-cols-[272px_minmax(0,1fr)] gap-5 items-start'>
-          {/* ================= SIDEBAR: mục cùng danh mục · giai đoạn · xuất hiện trong kịch bản ================= */}
+          {/* ================= SIDEBAR: mục cùng danh mục · xuất hiện trong kịch bản ================= */}
           <CollapsibleSidebar
             collapsed={false}
             label={t('bible.detailModal.navSidebarAria', 'Điều hướng mục Series Bible')}
@@ -1746,90 +1861,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </SidebarSection>
               </nav>
             )}
-
-            <section className='space-y-3' data-testid='variant-selector'>
-              <div className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
-                <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
-                  <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
-                    <Layers className='w-4 h-4 text-stone-500' />
-                    <span>{t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}</span>
-                  </div>
-                  <span className='text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 whitespace-nowrap'>
-                    {t('bible.detailModal.variantCount', { count: variants.length })}
-                  </span>
-                </div>
-
-                {/* Vertical list of variants */}
-                <div className='space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5'>
-                  {variants.map((variant) => {
-                    const vLabel = variant.variantLabel || t('bible.detailModal.defaultVariant');
-                    const isActive = selectedVariantKey === variant.variantKey;
-                    const isDefaultVariant =
-                      vLabel.toLowerCase().includes('chuẩn') ||
-                      vLabel.toLowerCase().includes('mặc định') ||
-                      vLabel.toLowerCase().includes('default');
-                    const variantIcon = isDefaultVariant
-                      ? null
-                      : getVariantIcon(vLabel, entity.category);
-                    return (
-                      <div
-                        key={variant.variantKey}
-                        onClick={() => {
-                          setSelectedVariantKey(variant.variantKey);
-                          setSelectedVersionId(null);
-                        }}
-                        data-testid={`variant-tab-${variant.variantKey}`}
-                        className={`px-3 py-2.5 rounded-xl border transition-all cursor-pointer space-y-1 ${
-                          isActive
-                            ? 'bg-stone-100 text-stone-900 border-stone-400 ring-1 ring-stone-400/30'
-                            : 'bg-white text-stone-700 border-stone-200 hover:border-stone-400 hover:bg-stone-50/60'
-                        }`}
-                      >
-                        <div className='flex items-center justify-between gap-1.5'>
-                          <div className='flex items-center gap-1.5 min-w-0 font-semibold text-xs sm:text-sm'>
-                            {variantIcon && <span>{variantIcon}</span>}
-                            <span className='truncate'>{variant.variantLabel}</span>
-                          </div>
-                          {variant.isLocked ? (
-                            <span className='text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0'>
-                              {t('bible.detailModal.officialBadge')}
-                            </span>
-                          ) : (
-                            <span className='text-xs font-medium px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 shrink-0'>
-                              {t('bible.detailModal.draftBadge')}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className='text-xs text-stone-500'>
-                          <span>
-                            {t('bible.detailModal.revisionCount', {
-                              count: variant.revisions.length,
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Bottom quick-create variant action */}
-                {effectiveCanCreateDraft && !isStubEntity && (
-                  <button
-                    type='button'
-                    onClick={() => {
-                      onOpenAddRevision(entity, null, false, undefined, false, true);
-                    }}
-                    data-testid='add-new-variant-btn'
-                    className='w-full py-2 border-2 border-dashed border-stone-300 hover:border-stone-400 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer'
-                    title={t('bible.detailModal.createNewVariantTitle')}
-                  >
-                    <Plus className='w-4 h-4' />
-                    <span>{t('bible.detailModal.createNewVariant')}</span>
-                  </button>
-                )}
-              </div>
-            </section>
 
             {seriesId && (
               <section
@@ -1912,6 +1943,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   activeVariant.revisions.map((rev) => {
                     const isSelected = rev.id === activeRevision?.id;
                     const isCanon = rev.reviewStatus === 'CanonLocked';
+                    const isSuperseded = Boolean(
+                      activeVariant?.revisions.some(
+                        (other) =>
+                          (other.versionNumber || 0) > (rev.versionNumber || 0) &&
+                          other.reviewStatus === 'CanonLocked',
+                      ),
+                    );
                     return (
                       <div
                         key={rev.id}
@@ -1922,29 +1960,38 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             : 'bg-white border-stone-200 hover:border-stone-300'
                         }`}
                       >
-                        <div className='flex items-center gap-2 min-w-0'>
+                        <div className='flex items-center gap-1.5 min-w-0 flex-wrap'>
                           <span className='font-mono font-bold text-stone-800'>
                             v{rev.versionNumber}
                           </span>
                           <span
                             className={`text-xs px-1.5 py-0.5 rounded-full border ${
-                              isCanon
+                              isCanon && !isSuperseded
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold'
-                                : rev.reviewStatus === 'ConceptSubmitted'
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : rev.reviewStatus === 'ReworkRequired'
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                    : 'bg-stone-100 text-stone-600 border-stone-200'
+                                : isSuperseded
+                                  ? 'bg-stone-100 text-stone-500 border-stone-200'
+                                  : rev.reviewStatus === 'ConceptSubmitted'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : rev.reviewStatus === 'ReworkRequired'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-stone-100 text-stone-600 border-stone-200'
                             }`}
                           >
-                            {isCanon
-                              ? t('bible.detailModal.officialBadge', 'Chính thức')
-                              : rev.reviewStatus === 'ConceptSubmitted'
-                                ? t('bible.detailModal.pendingReview', 'Chờ thẩm định')
-                                : rev.reviewStatus === 'ReworkRequired'
-                                  ? t('bible.detailModal.stepRework', 'Yêu cầu sửa')
-                                  : t('bible.detailModal.draftBadge', 'Bản nháp')}
+                            {isCanon && !isSuperseded
+                              ? t('bible.detailModal.officialBadge', '🔒 Đã khóa chuẩn')
+                              : isSuperseded
+                                ? t('bible.detailModal.supersededBadge', 'Đã thay thế')
+                                : rev.reviewStatus === 'ConceptSubmitted'
+                                  ? t('bible.detailModal.pendingReview', 'Chờ duyệt')
+                                  : rev.reviewStatus === 'ReworkRequired'
+                                    ? t('bible.detailModal.stepRework', 'Cần vẽ lại')
+                                    : t('bible.detailModal.draftBadge', 'Bản nháp')}
                           </span>
+                          {(rev.currentConceptVersionNumber || 0) > 1 && (
+                            <span className='text-[10px] px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 border border-stone-200'>
+                              Bản vẽ lần {rev.currentConceptVersionNumber}
+                            </span>
+                          )}
                         </div>
                         <span className='text-xs text-stone-400 font-mono'>
                           {new Date(rev.createdAt).toLocaleDateString(dateLocale)}
@@ -2498,9 +2545,19 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     {artworkImageUrl ? (
                       <div className='space-y-3'>
                         <div className='flex items-center justify-between text-xs font-semibold text-stone-700'>
-                          <span className='truncate max-w-[280px] text-xs font-bold text-[#1C1917]'>
-                            {artworkImageTitle || `${entity.name} - Model Sheet`}
-                          </span>
+                          <div className='flex items-center gap-2 truncate max-w-[320px]'>
+                            <span className='truncate text-xs font-bold text-[#1C1917]'>
+                              {artworkImageTitle || `${entity.name} - Model Sheet`}
+                            </span>
+                            {activeRevision && (activeRevision.currentConceptVersionNumber || 0) > 1 && (
+                              <span className='px-1.5 py-0.5 rounded text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200 shrink-0'>
+                                {t('bible.detailModal.conceptIteration', {
+                                  n: activeRevision.currentConceptVersionNumber,
+                                  defaultValue: `Bản vẽ lần ${activeRevision.currentConceptVersionNumber}`,
+                                })}
+                              </span>
+                            )}
+                          </div>
                           <span className='text-xs text-stone-400 font-mono'>
                             Turnaround / Model Sheet Canvas
                           </span>

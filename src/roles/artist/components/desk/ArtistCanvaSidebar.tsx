@@ -80,6 +80,8 @@ export interface BibleEntityItem {
   code?: string;
   name: string;
   subtitle?: string;
+  variantLabel?: string;
+  versionNumber?: number;
   category: 'character' | 'location' | 'lore';
   tag: string;
   description: string;
@@ -1215,6 +1217,11 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         <span className='min-w-0 flex-1'>
           <span className='flex items-center gap-1.5'>
             <span className='truncate text-xs font-bold text-[var(--sb-text)]'>{item.name}</span>
+            {item.variantLabel && (
+              <span className='font-normal text-[var(--sb-muted)]'>
+                {' '}— {item.variantLabel} (v{item.versionNumber ?? 1})
+              </span>
+            )}
             {item.status === 'CanonLocked' && (
               <span className='shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-xs font-semibold text-emerald-700'>
                 {t('canvaSidebar.canonLocked')}
