@@ -354,6 +354,11 @@ export function AppShell({
                   : `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
               },
               {
+                icon: ShieldCheck,
+                label: t('navigation.menu.editorReviewDesk', 'Kiểm tra & Hiệu đính'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk${chapterQuery}`,
+              },
+              {
                 icon: Download,
                 label: t('navigation.menu.packagingAndExport', 'Đóng gói & Xuất bản'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/export`,
@@ -451,16 +456,6 @@ export function AppShell({
                 icon: LayoutDashboard,
                 label: t('navigation.menu.studioWorkspaces'),
                 href: seriesListHref,
-              },
-              {
-                icon: ShieldCheck,
-                label: t('navigation.menu.reviewDesk'),
-                href: '/editor/desk',
-              },
-              {
-                icon: Layers,
-                label: t('navigation.menu.workAndReview'),
-                href: '/my-work',
               },
             ],
           },

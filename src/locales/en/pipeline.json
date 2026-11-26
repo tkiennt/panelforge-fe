@@ -738,6 +738,7 @@
     "backToMatrix": "Back to Page Matrix",
     "shonenFormat": "Shonen Standard",
     "subtabs": {
+      "navigationLabel": "Chapter production flow",
       "progress": "Page Matrix",
       "chapters": "Chapter Overview",
       "crew": "Crew Management",

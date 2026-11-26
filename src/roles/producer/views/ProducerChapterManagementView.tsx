@@ -66,6 +66,8 @@ import {
   renderRow,
   shortHash,
 } from '@/shared/features/script-versions/versionDiff';
+import { ProductionFlowTabs } from '@/shared/features/production-workspace/ProductionFlowTabs';
+import { buildSeriesPath } from '@/app/routePaths';
 
 export interface ProducerChapterManagementViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -481,7 +483,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             </button>
             <button
               type='button'
-              onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`)}
+              onClick={() => navigate(buildSeriesPath(workspaceId, seriesId, 'chapters'))}
               className='rounded-xl border border-stone-200 bg-white px-4 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50'
             >
               Dashboard
@@ -501,7 +503,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
           <div className='flex items-center gap-2.5 min-w-0'>
             <button
               type='button'
-              onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`)}
+              onClick={() => navigate(buildSeriesPath(workspaceId, seriesId, 'chapters'))}
               className='flex h-7 w-7 items-center justify-center rounded-lg border border-stone-200 bg-stone-50 text-stone-600 hover:bg-stone-100'
               title='Dashboard'
             >
@@ -582,85 +584,13 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             )}
           </div>
 
-          {/* Sub-tabs Navigation */}
-          <div
-            className='inline-flex p-1 rounded-lg bg-stone-100 border border-stone-200 hidden md:inline-flex'
-            id='subtab-bar'
-          >
-            <button
-              type='button'
-              data-subtab='progress'
-              id='subtab-progress'
-              onClick={() =>
-                navigate(
-                  `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapterId}&tab=progress`,
-                )
-              }
-              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.progress')}
-            </button>
-            <button
-              type='button'
-              data-subtab='chapters'
-              id='subtab-chapters'
-              className='subtab-btn px-2.5 py-1 rounded-md bg-white text-stone-900 font-semibold shadow-xs text-xs cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.chapters')}
-            </button>
-            <button
-              type='button'
-              data-subtab='crew'
-              id='subtab-crew'
-              onClick={() =>
-                navigate(
-                  `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapterId}&tab=crew`,
-                )
-              }
-              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.crew')}
-            </button>
-            <button
-              type='button'
-              data-subtab='script'
-              id='subtab-script'
-              onClick={() =>
-                navigate(
-                  `/workspaces/${workspaceId}/series/${seriesId}/script?chapterId=${selectedChapterId}`,
-                )
-              }
-              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.script')}
-            </button>
-            <button
-              type='button'
-              data-subtab='reader'
-              id='subtab-reader'
-              onClick={() =>
-                navigate(
-                  `/workspaces/${workspaceId}/series/${seriesId}/editor/desk?chapterId=${selectedChapterId}`,
-                )
-              }
-              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.reader')}
-            </button>
-            <button
-              type='button'
-              data-subtab='handoff'
-              id='subtab-handoff'
-              onClick={() =>
-                navigate(
-                  `/workspaces/${workspaceId}/series/${seriesId}/export?chapterId=${selectedChapterId}`,
-                )
-              }
-              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.handoff')}
-            </button>
-          </div>
+          <ProductionFlowTabs
+            workspaceId={workspaceId}
+            seriesId={seriesId}
+            chapterId={selectedChapterId}
+            activeTab='chapters'
+            className='hidden md:block'
+          />
 
           {/* Quick Action CTAs */}
           <div className='flex items-center gap-2'>

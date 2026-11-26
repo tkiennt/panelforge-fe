@@ -29,6 +29,11 @@ import { bibleService } from '@/services/bible.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { workspaceService } from '@/services/workspace.service';
+import {
+  buildScriptReviewUrl,
+  buildSeriesPath,
+  buildTaskReviewUrl,
+} from '@/app/routePaths';
 
 export interface EditorDeskViewProps {
   currentUserId?: string | null;
@@ -211,9 +216,10 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
   // Helper to determine destination review URL
   const getReviewUrl = (item: EditorReviewQueueItemDto) => {
+    if (!workspaceId || !seriesId) return '/workspaces';
     return item.stageSlug === 'script'
-      ? `/workspaces/${workspaceId}/series/${seriesId}/script?chapterId=${item.chapterId}&view=review`
-      : `/workspaces/${workspaceId}/series/${seriesId}/chapters/${item.chapterId}/review/${item.assignmentId}?chapterId=${item.chapterId}`;
+      ? buildScriptReviewUrl(workspaceId, seriesId, item.chapterId)
+      : buildTaskReviewUrl(workspaceId, seriesId, item.assignmentId, item.chapterId);
   };
 
   // Handle Open Review
@@ -445,7 +451,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
             <button
               type='button'
               onClick={() =>
-                navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible?tab=review`)
+                navigate(buildSeriesPath(workspaceId, seriesId, 'bible?tab=review'))
               }
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer'
             >
@@ -621,9 +627,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                     <button
                       type='button'
                       onClick={() =>
-                        navigate(
-                          `/workspaces/${workspaceId}/series/${seriesId}/script?chapterId=${c.id}&view=review`,
-                        )
+                        navigate(buildScriptReviewUrl(workspaceId, seriesId, c.id))
                       }
                       className='shrink-0 rounded-full bg-[#EA580C] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C]'
                     >
