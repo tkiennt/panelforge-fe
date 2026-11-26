@@ -60,7 +60,7 @@ import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProv
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { ReasonForm } from '@/shared/components/ReasonForm';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
-import { Modal } from '@/shared/ui';
+import { Modal, Card, CardHeader, PageHeader } from '@/shared/ui';
 import {
   DEFAULT_ROW_LABELS,
   renderRow,
@@ -496,7 +496,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   return (
     <div className='flex min-h-screen flex-col bg-[#FAF9F5] font-sans text-stone-900'>
       {/* ── TOP COMPACT COCKPIT BAR ── */}
-      <header className='sticky top-0 z-20 border-b border-stone-200 bg-white/95 backdrop-blur-md px-4 py-2.5 sm:px-6'>
+      <PageHeader variant='toolbar' className='sticky top-0 z-20 px-4 py-2.5 sm:px-6'>
         <div className='flex flex-wrap items-center justify-between gap-3'>
           {/* Chapter Breadcrumb & Selector */}
           <div className='flex items-center gap-2.5 min-w-0'>
@@ -798,7 +798,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             </div>
           </div>
         )}
-      </header>
+      </PageHeader>
 
       {/* ── UNFREEZE SCRIPT DIALOG ── */}
       {showUnfreezeDialog && (
@@ -826,44 +826,49 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       {/* ── DUAL-PANE COCKPIT WORKBENCH (SCRIPT + ART BIBLE REFERENCE) ── */}
       <main className='flex-1 max-w-7xl mx-auto w-full p-3 sm:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start'>
         {/* LEFT COLUMN (COL 7/12): SCRIPT VIEWER */}
-        <section
+        <Card
+          as='section'
           aria-label={t('producer.chapterManagement.scriptSectionAria')}
-          className='lg:col-span-7 flex flex-col rounded-2xl border border-stone-200 bg-white shadow-2xs overflow-hidden'
+          className='lg:col-span-7 flex flex-col shadow-2xs'
+          featured
         >
           {/* Script Pane Header */}
-          <div className='flex items-center justify-between border-b border-stone-100 bg-[#FCFBF8] px-4 py-2.5'>
-            <div className='flex items-center gap-2'>
-              <FileText className='h-4 w-4 text-orange-600' />
-              <h3 className='font-serif text-xs font-bold text-stone-900'>
-                {t('producer.chapterManagement.scriptSectionTitle', {
-                  count: filteredScriptRows.length,
-                })}
-              </h3>
-              {selectedEntityName && (
-                <span className='inline-flex items-center gap-1 rounded-md bg-orange-100 px-1.5 py-0.5 text-xs font-bold text-orange-800'>
-                  {t('producer.chapterManagement.filterTag', { name: selectedEntityName })}
-                  <button
-                    type='button'
-                    onClick={() => setSelectedEntityName(null)}
-                    className='text-orange-600 hover:text-orange-900'
-                  >
-                    ×
-                  </button>
+          <CardHeader
+            icon={<FileText className='h-4 w-4' />}
+            title={
+              <div className='flex items-center gap-2'>
+                <span className='font-serif text-xs font-bold text-stone-900'>
+                  {t('producer.chapterManagement.scriptSectionTitle', {
+                    count: filteredScriptRows.length,
+                  })}
                 </span>
-              )}
-            </div>
-
-            <div className='relative w-44'>
-              <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400' />
-              <input
-                type='text'
-                value={scriptSearch}
-                onChange={(e) => setScriptSearch(e.target.value)}
-                placeholder={t('producer.chapterManagement.searchScriptPlaceholder')}
-                className='h-7 w-full rounded-lg border border-stone-200 bg-white pl-7 pr-2 text-xs text-stone-900 placeholder-stone-400 focus:border-orange-500 focus:outline-none'
-              />
-            </div>
-          </div>
+                {selectedEntityName && (
+                  <span className='inline-flex items-center gap-1 rounded-md bg-orange-100 px-1.5 py-0.5 text-xs font-bold text-orange-800'>
+                    {t('producer.chapterManagement.filterTag', { name: selectedEntityName })}
+                    <button
+                      type='button'
+                      onClick={() => setSelectedEntityName(null)}
+                      className='text-orange-600 hover:text-orange-900'
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+              </div>
+            }
+            actions={
+              <div className='relative w-44'>
+                <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400' />
+                <input
+                  type='text'
+                  value={scriptSearch}
+                  onChange={(e) => setScriptSearch(e.target.value)}
+                  placeholder={t('producer.chapterManagement.searchScriptPlaceholder')}
+                  className='h-7 w-full rounded-lg border border-stone-200 bg-white pl-7 pr-2 text-xs text-stone-900 placeholder-stone-400 focus:border-orange-500 focus:outline-none'
+                />
+              </div>
+            }
+          />
 
           {/* Script Content List */}
           <div className='p-4 max-h-[calc(100vh-160px)] overflow-y-auto space-y-2 font-mono text-xs leading-relaxed'>
@@ -965,15 +970,16 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               })
             )}
           </div>
-        </section>
+        </Card>
 
         {/* RIGHT COLUMN (COL 5/12): INSPECTOR & REFERENCE (ART BIBLE / CHECKLIST / COMMENTS) */}
-        <section
+        <Card
+          as='section'
           aria-label={t('producer.chapterManagement.inspectorAria')}
-          className='lg:col-span-5 flex flex-col rounded-2xl border border-stone-200 bg-white shadow-2xs overflow-hidden sticky top-28'
+          className='lg:col-span-5 flex flex-col shadow-2xs sticky top-28'
         >
           {/* Inspector Tabs */}
-          <div className='flex border-b border-stone-200 bg-[#FCFBF8] px-2'>
+          <div className='flex border-b border-head-line bg-head-wash px-2'>
             <button
               type='button'
               onClick={() => setInspectorTab('bible')}
@@ -1135,8 +1141,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                             <span className='font-bold text-xs text-stone-900 truncate'>
                               <span>{ent.name}</span>
                               <span className='font-normal text-stone-500 font-sans'>
-                                {' '}— {ent.boundRevision?.variantLabel ||
-                                  t('producer.chapterManagement.defaultVariantLabel')} (v{ent.boundRevision?.versionNumber ?? 1})
+                                {' '}
+                                —{' '}
+                                {ent.boundRevision?.variantLabel ||
+                                  t('producer.chapterManagement.defaultVariantLabel')}{' '}
+                                (v{ent.boundRevision?.versionNumber ?? 1})
                               </span>
                             </span>
                             <span className='font-mono text-xs text-stone-400'>{ent.code}</span>
@@ -1183,7 +1192,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
           {inspectorTab === 'checklist' && (
             <div className='p-3 space-y-4 max-h-[calc(100vh-170px)] overflow-y-auto text-xs'>
               {/* Gate 1 Card */}
-              <div className='rounded-xl border border-stone-200 bg-white p-3 space-y-2.5 shadow-2xs'>
+              <div className='rounded-xl border border-stone-200 bg-[#FAF9F5] p-3 space-y-2.5 shadow-2xs'>
                 <div className='flex items-center justify-between'>
                   <span className='font-bold text-stone-900 flex items-center gap-1.5'>
                     <Play className='h-3.5 w-3.5 text-orange-600' />{' '}
@@ -1267,7 +1276,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               </div>
 
               {/* Gate 3 Card */}
-              <div className='rounded-xl border border-stone-200 bg-white p-3 space-y-2.5 shadow-2xs'>
+              <div className='rounded-xl border border-stone-200 bg-[#FAF9F5] p-3 space-y-2.5 shadow-2xs'>
                 <div className='flex items-center justify-between'>
                   <span className='font-bold text-stone-900 flex items-center gap-1.5'>
                     <Lock className='h-3.5 w-3.5 text-emerald-600' />{' '}
@@ -1483,7 +1492,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               </button>
 
               {/* Upload cover */}
-              <div className='rounded-xl border border-stone-200 bg-white p-3 space-y-2'>
+              <div className='rounded-xl border border-stone-200 bg-[#FAF9F5] p-3 space-y-2'>
                 <div className='flex items-center justify-between'>
                   <span className='font-bold text-stone-800'>
                     {t('producer.chapterManagement.coverTitle')}
@@ -1522,7 +1531,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               </div>
             </div>
           )}
-        </section>
+        </Card>
       </main>
 
       {/* ── CREATE CHAPTER MODAL ── */}

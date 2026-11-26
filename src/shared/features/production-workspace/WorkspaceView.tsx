@@ -37,6 +37,7 @@ import {
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
 import { RefreezeScriptModal } from '@/shared/modals/RefreezeScriptModal';
+import { Card, CardHeader } from '@/shared/ui';
 import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
 import { formatDate } from '@/lib/format';
 import { ProducerSharedHeader } from './ProducerSharedHeader';
@@ -617,7 +618,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             </div>
 
             {/* 2D Task Matrix Table */}
-            <div className='rounded-xl bg-white border border-stone-200 shadow-xs overflow-hidden'>
+            <Card className='shadow-xs' featured>
               {currentChapterId ? (
                 <TaskGridBoard
                   chapterId={currentChapterId}
@@ -637,7 +638,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   ].includes(String(currentChapter?.status))}
                 />
               ) : (
-                <div className='rounded-xl border border-dashed border-stone-200 bg-[#FCFBF8] p-10 text-center'>
+                <div className='rounded-xl border border-dashed border-head-line bg-head-wash p-10 text-center'>
                   <div className='font-semibold text-stone-900'>
                     {t('taskGridV3.noChapterSelectedTitle', 'Chưa chọn chương')}
                   </div>
@@ -649,7 +650,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </p>
                 </div>
               )}
-            </div>
+            </Card>
           </div>
         )}
 
@@ -1137,62 +1138,67 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             </div>
 
             {/* Crew Roster Table */}
-            <div className='bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden'>
-              <div className='px-5 py-3.5 bg-stone-50 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3'>
-                <div className='flex items-center gap-2'>
-                  <span className='text-xs font-bold text-stone-900 uppercase tracking-wider'>
-                    {t('workbench.crewOverview.rosterTitle', {
-                      chapter: currentChapter?.chapterNumber || '01',
-                      defaultValue: `Bảng phân bổ nhân sự Chapter ${currentChapter?.chapterNumber || '01'}`,
-                    })}
-                  </span>
-                  <span className='text-xs px-2 py-0.5 rounded bg-stone-200 text-stone-700 font-mono'>
-                    {t('workbench.crewOverview.rosterCount', {
-                      count: filteredMembers.length,
-                      defaultValue: `${filteredMembers.length} Thành viên`,
-                    })}
-                  </span>
-                </div>
-                <div className='flex items-center gap-2 text-xs'>
-                  <button
-                    type='button'
-                    onClick={() => setCrewRoleFilter('all')}
-                    className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
-                      crewRoleFilter === 'all'
-                        ? 'bg-stone-900 text-white'
-                        : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
-                    }`}
-                  >
-                    {t('workbench.crewOverview.filterAllRoles', 'Tất cả vai trò')}
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => setCrewRoleFilter('artist')}
-                    className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
-                      crewRoleFilter === 'artist'
-                        ? 'bg-stone-900 text-white'
-                        : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
-                    }`}
-                  >
-                    {t('workbench.crewOverview.filterArtists', 'Họa sĩ vẽ')}
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => setCrewRoleFilter('tech')}
-                    className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
-                      crewRoleFilter === 'tech'
-                        ? 'bg-stone-900 text-white'
-                        : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
-                    }`}
-                  >
-                    {t('workbench.crewOverview.filterTech', 'Kỹ thuật & Thoại')}
-                  </button>
-                </div>
-              </div>
+            <Card className='shadow-xs'>
+              <CardHeader
+                icon={<Users className='w-4 h-4' />}
+                title={
+                  <div className='flex items-center gap-2'>
+                    <span className='text-xs font-bold text-stone-900 uppercase tracking-wider'>
+                      {t('workbench.crewOverview.rosterTitle', {
+                        chapter: currentChapter?.chapterNumber || '01',
+                        defaultValue: `Bảng phân bổ nhân sự Chapter ${currentChapter?.chapterNumber || '01'}`,
+                      })}
+                    </span>
+                    <span className='text-xs px-2 py-0.5 rounded-full bg-kraft text-kraft-ink font-mono font-semibold'>
+                      {t('workbench.crewOverview.rosterCount', {
+                        count: filteredMembers.length,
+                        defaultValue: `${filteredMembers.length} Thành viên`,
+                      })}
+                    </span>
+                  </div>
+                }
+                actions={
+                  <div className='flex items-center gap-2 text-xs'>
+                    <button
+                      type='button'
+                      onClick={() => setCrewRoleFilter('all')}
+                      className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                        crewRoleFilter === 'all'
+                          ? 'bg-stone-900 text-white'
+                          : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
+                      }`}
+                    >
+                      {t('workbench.crewOverview.filterAllRoles', 'Tất cả vai trò')}
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setCrewRoleFilter('artist')}
+                      className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                        crewRoleFilter === 'artist'
+                          ? 'bg-stone-900 text-white'
+                          : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
+                      }`}
+                    >
+                      {t('workbench.crewOverview.filterArtists', 'Họa sĩ vẽ')}
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setCrewRoleFilter('tech')}
+                      className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                        crewRoleFilter === 'tech'
+                          ? 'bg-stone-900 text-white'
+                          : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
+                      }`}
+                    >
+                      {t('workbench.crewOverview.filterTech', 'Kỹ thuật & Thoại')}
+                    </button>
+                  </div>
+                }
+              />
 
               <div className='overflow-x-auto'>
                 <table className='w-full text-left border-collapse text-xs'>
-                  <thead className='bg-stone-50/70 border-b border-stone-200 text-stone-600 uppercase tracking-wider font-semibold'>
+                  <thead className='bg-head-wash text-kraft-ink text-xs font-semibold uppercase tracking-wide border-b border-head-line'>
                     <tr>
                       <th className='py-3 px-4'>
                         {t('workbench.crewOverview.colMember', 'Thành viên & Hồ sơ')}
@@ -1340,7 +1346,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Card>
           </div>
         )}
       </div>
