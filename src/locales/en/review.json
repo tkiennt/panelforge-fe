@@ -832,6 +832,8 @@
     "matchedBadge": "Matched ✓",
     "actionPanelNoDialogue": "Action panel (no dialogue).",
     "noPanelsInPage": "No panels on this page yet.",
+    "pageArtworkAlt": "Completed artwork for page {page}",
+    "pageArtworkEmpty": "Page {page} has no artwork to display yet",
     "panelAlt": "Panel {number}",
     "panelHash": "Panel #{number}",
     "statusNeedsRework": "Needs rework",

@@ -832,6 +832,8 @@
     "matchedBadge": "Đã khớp ✓",
     "actionPanelNoDialogue": "Khung hành động (không có lời thoại).",
     "noPanelsInPage": "Chưa có khung tranh nào trong trang này.",
+    "pageArtworkAlt": "Bản vẽ hoàn chỉnh của trang {page}",
+    "pageArtworkEmpty": "Trang {page} chưa có bản vẽ để hiển thị",
     "panelAlt": "Khung {number}",
     "panelHash": "Khung #{number}",
     "statusNeedsRework": "Cần sửa",

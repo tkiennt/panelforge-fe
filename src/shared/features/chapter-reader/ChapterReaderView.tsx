@@ -1,20 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  BookOpen,
-  CheckCircle2,
-  Flag,
-  Loader2,
-  ZoomIn,
-  ZoomOut,
-  Move,
-  Crop,
-  MessageSquare,
-  AlertTriangle,
-  History,
-} from 'lucide-react';
+import { BookOpen, CheckCircle2, Flag, Loader2, MessageSquare, History } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import { ChapterReadingMode } from './ChapterReadingMode';
 import { Badge, Button, EmptyState, PageHeader } from '@/shared/ui';
 import {
   buildChapterManagementUrl,
@@ -71,10 +58,9 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
 
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
-  const [readingMode, setReadingMode] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
-  const [zoomScale, setZoomScale] = useState(1);
-  const [activeTool, setActiveTool] = useState<'pan' | 'crop'>('crop');
+  const readerScrollRef = useRef<HTMLDivElement>(null);
+  const pageSectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   // Load all initial chapter metadata and assets
   const loadChapterData = useCallback(async () => {
@@ -162,12 +148,27 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
   const currentPageScriptBlocks = useMemo(() => {
     if (!currentPage) return [];
     const pNum = currentPage.pageNumber;
-    return currentPagePanels.map((p) => {
-      const lines = scriptRows.filter(
-        (r) => Number(r.page) === pNum && Number(r.panel) === p.panelNumber,
+    const pageRows = scriptRows.filter((row) => Number(row.page) === pNum);
+    const scriptPanelNumbers = Array.from(
+      new Set(pageRows.map((row) => Number(row.panel)).filter((panel) => panel > 0)),
+    ).sort((a, b) => a - b);
+    const panelNumbers =
+      scriptPanelNumbers.length > 0
+        ? scriptPanelNumbers
+        : currentPagePanels.map((panel) => panel.panelNumber);
+
+    return panelNumbers.map((panelNumber) => {
+      const panel = currentPagePanels.find((item) => item.panelNumber === panelNumber) ?? null;
+      const lines = pageRows.filter(
+        (row) =>
+          Number(row.panel) === panelNumber &&
+          row.type !== 'page' &&
+          row.type !== 'panel' &&
+          Boolean(row.text?.trim()),
       );
       return {
-        panel: p,
+        panel,
+        panelNumber,
         lines,
       };
     });
@@ -201,15 +202,39 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
     setSelectedPanelId(panelId);
   };
 
-  const handleSelectPage = (pageId: string) => {
-    setCurrentPageId(pageId);
-    const nextPanels = panelsByPage[pageId] || [];
-    if (nextPanels.length > 0) {
-      setSelectedPanelId(nextPanels[0].id);
-    } else {
-      setSelectedPanelId(null);
-    }
-  };
+  useEffect(() => {
+    const root = readerScrollRef.current;
+    if (!root || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const mostVisible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        const pageId = (mostVisible?.target as HTMLElement | undefined)?.dataset.pageId;
+        if (!pageId) return;
+
+        setCurrentPageId((current) => {
+          if (current === pageId) return current;
+          const firstPanel = panelsByPage[pageId]?.[0];
+          setSelectedPanelId(firstPanel?.id ?? null);
+          return pageId;
+        });
+      },
+      {
+        root,
+        rootMargin: '-18% 0px -45% 0px',
+        threshold: [0.2, 0.4, 0.6],
+      },
+    );
+
+    pages.forEach((page) => {
+      const element = pageSectionRefs.current[page.id];
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [pages, panelsByPage]);
 
   const handleAddComment = async (type: 'comment' | 'rework') => {
     if (!canReview || !commentText.trim() || !chapterId) return;
@@ -341,35 +366,6 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
         }
       />
 
-      {!loading && pages.length > 0 && (
-        <div className='flex justify-end px-4 sm:px-6 pt-3 max-w-[1720px] mx-auto w-full'>
-          <button
-            type='button'
-            onClick={() => setReadingMode(true)}
-            data-testid='open-reading-mode'
-            className='inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800 hover:border-orange-300 hover:bg-orange-50 cursor-pointer'
-          >
-            <BookOpen className='h-4 w-4 text-orange-600' aria-hidden='true' />
-            {t('readerView.readingModeBtn')}
-          </button>
-        </div>
-      )}
-
-      {readingMode && chapterId && seriesId && (
-        <ChapterReadingMode
-          chapterId={chapterId}
-          seriesId={seriesId}
-          readingDirection={series?.readingDirection}
-          pages={pages}
-          initialPageId={currentPageId}
-          onClose={() => setReadingMode(false)}
-          onReviewPage={(pageId) => {
-            setCurrentPageId(pageId);
-            setReadingMode(false);
-          }}
-        />
-      )}
-
       {loading && (
         <div className='flex flex-1 items-center justify-center py-24 text-stone-500'>
           <Loader2 className='w-6 h-6 animate-spin' />
@@ -437,7 +433,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
           </div>
 
           {/* 3-Column Reader Canvas Layout */}
-          <div className='min-h-[760px] flex overflow-hidden border border-stone-200 rounded-2xl bg-white shadow-xs'>
+          <div className='flex h-[calc(100vh-13rem)] min-h-[680px] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xs'>
             {/* Column 1: Left (w-80): Kịch bản đối chiếu */}
             <div className='w-80 shrink-0 bg-[#FAF9F5] border-r border-stone-200 flex flex-col justify-between overflow-y-auto'>
               <div className='p-3.5 space-y-3'>
@@ -467,28 +463,34 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                       {t('readerView.noMatchingScript')}
                     </div>
                   ) : (
-                    currentPageScriptBlocks.map(({ panel, lines }, idx) => {
-                      const isSelected = selectedPanel?.id === panel.id;
-                      const hasOpenCr = changeRequests.some(
-                        (c) => c.panelId === panel.id && String(c.status) === 'Open',
+                    currentPageScriptBlocks.map(({ panel, panelNumber, lines }, idx) => {
+                      const isSelected = Boolean(panel && selectedPanel?.id === panel.id);
+                      const hasOpenCr = Boolean(
+                        panel &&
+                        changeRequests.some(
+                          (request) =>
+                            request.panelId === panel.id && String(request.status) === 'Open',
+                        ),
                       );
 
                       return (
-                        <div
-                          key={panel.id}
+                        <button
+                          key={panel?.id ?? panelNumber}
+                          type='button'
                           id={`script-card-${idx + 1}`}
-                          onClick={() => handleSelectPanel(panel.id)}
-                          className={`p-2.5 rounded-xl cursor-pointer shadow-2xs transition-all space-y-1.5 ${
+                          onClick={() => panel && handleSelectPanel(panel.id)}
+                          disabled={!panel}
+                          className={`w-full p-2.5 text-left rounded-xl shadow-2xs transition-all space-y-1.5 ${
                             isSelected
                               ? 'bg-orange-50/70 border-2 border-orange-500'
-                              : 'bg-white border border-stone-200 hover:border-stone-400'
+                              : 'bg-white border border-stone-200 enabled:hover:border-stone-400'
                           }`}
                         >
                           <div className='flex items-center justify-between'>
                             <span className='text-xs font-bold text-stone-900'>
                               {t('readerView.panelCode', {
                                 page: currentPage.pageNumber,
-                                panel: panel.panelNumber,
+                                panel: panelNumber,
                               })}
                             </span>
                             {hasOpenCr ? (
@@ -503,34 +505,37 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                           </div>
 
                           {lines.length > 0 ? (
-                            lines.map((line, lIdx) => (
-                              <div key={line.key || lIdx} className='text-xs'>
-                                {line.type === 'Dialogue' ? (
-                                  <div className='bg-stone-50 p-1.5 rounded border border-stone-100 text-stone-800'>
-                                    {line.label && (
-                                      <span className='font-bold text-stone-900 mr-1'>
-                                        @{line.label}:
-                                      </span>
-                                    )}
-                                    <span>"{line.text}"</span>
-                                  </div>
-                                ) : line.type === 'Sfx' ? (
-                                  <div className='font-mono text-orange-700 font-bold text-xs'>
-                                    SFX: {line.text}
-                                  </div>
-                                ) : (
-                                  <p className='text-stone-600 italic leading-relaxed text-xs'>
-                                    {line.text}
-                                  </p>
-                                )}
-                              </div>
-                            ))
+                            lines.map((line, lIdx) => {
+                              const lineType = String(line.type).toLowerCase();
+                              return (
+                                <div key={line.key || lIdx} className='text-xs'>
+                                  {lineType === 'dialogue' || lineType === 'thought' ? (
+                                    <div className='bg-stone-50 p-1.5 rounded border border-stone-100 text-stone-800'>
+                                      {line.label && (
+                                        <span className='font-bold text-stone-900 mr-1'>
+                                          @{line.label}:
+                                        </span>
+                                      )}
+                                      <span>"{line.text}"</span>
+                                    </div>
+                                  ) : lineType === 'sfx' ? (
+                                    <div className='font-mono text-orange-700 font-bold text-xs'>
+                                      SFX: {line.text}
+                                    </div>
+                                  ) : (
+                                    <p className='text-stone-600 italic leading-relaxed text-xs'>
+                                      {line.text}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })
                           ) : (
                             <p className='text-stone-400 italic text-xs'>
                               {t('readerView.actionPanelNoDialogue')}
                             </p>
                           )}
-                        </div>
+                        </button>
                       );
                     })
                   )}
@@ -538,171 +543,70 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
               </div>
             </div>
 
-            {/* Column 2: Center (flex-1 bg-stone-900): Toolbar, Page Canvas, Bottom Switcher */}
-            <div className='flex-1 bg-stone-900 flex flex-col items-center justify-between p-3 relative overflow-hidden'>
-              {/* Floating Toolbar */}
-              <div className='bg-stone-800/90 backdrop-blur-xs text-white px-4 py-1.5 rounded-full text-xs flex items-center gap-3 z-10 shadow-lg border border-stone-700 select-none'>
-                <button
-                  type='button'
-                  onClick={() => setActiveTool('pan')}
-                  className={`flex items-center gap-1 transition-colors text-xs cursor-pointer ${
-                    activeTool === 'pan'
-                      ? 'text-orange-400 font-bold'
-                      : 'hover:text-orange-400 text-stone-300'
-                  }`}
-                >
-                  <Move className='w-3.5 h-3.5' />
-                  <span>{t('readerView.toolPan', 'Di chuyển')}</span>
-                </button>
-                <span className='text-stone-600'>|</span>
-                <button
-                  type='button'
-                  onClick={() => setActiveTool('crop')}
-                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors cursor-pointer ${
-                    activeTool === 'crop'
-                      ? 'bg-orange-600 text-white font-semibold shadow-xs'
-                      : 'hover:text-white text-stone-300'
-                  }`}
-                >
-                  <Crop className='w-3.5 h-3.5' />
-                  <span>{t('readerView.toolCrop', 'Soi & Ghim Panel')}</span>
-                </button>
-                <span className='text-stone-600'>|</span>
-                <div className='flex items-center gap-1 text-xs text-stone-300'>
-                  <button
-                    type='button'
-                    onClick={() => setZoomScale((z) => Math.max(0.5, z - 0.25))}
-                    className='hover:text-white px-1 font-mono font-bold cursor-pointer'
-                  >
-                    -
-                  </button>
-                  <span className='font-mono font-semibold text-white'>
-                    {Math.round(zoomScale * 100)}%
-                  </span>
-                  <button
-                    type='button'
-                    onClick={() => setZoomScale((z) => Math.min(2.5, z + 0.25))}
-                    className='hover:text-white px-1 font-mono font-bold cursor-pointer'
-                  >
-                    +
-                  </button>
-                </div>
-                <span className='text-stone-600'>|</span>
-                <span className='text-xs font-mono text-emerald-400 bg-stone-900/60 px-2 py-0.5 rounded border border-emerald-500/30'>
-                  {t('readerView.manuscriptSize')}
-                </span>
-              </div>
-
-              {/* Page Paper Container */}
-              <div className='flex-1 flex items-center justify-center w-full py-4 overflow-auto'>
-                <div
-                  style={{ transform: `scale(${zoomScale})`, transformOrigin: 'center center' }}
-                  className='bg-white rounded shadow-2xl relative w-[460px] min-h-[580px] p-4 flex flex-col gap-2.5 overflow-hidden select-none border-4 border-stone-300 transition-transform'
-                >
-                  {currentPagePanels.length === 0 ? (
-                    <div className='flex-1 flex items-center justify-center text-xs text-stone-400 italic'>
-                      {t('readerView.noPanelsInPage')}
-                    </div>
-                  ) : (
-                    currentPagePanels.map((panel, idx) => {
-                      const isSelected = selectedPanel?.id === panel.id;
-                      const hasOpenCr = changeRequests.some(
-                        (c) => c.panelId === panel.id && String(c.status) === 'Open',
-                      );
-                      const artworkSrc =
-                        loadedPageImages.find((entry) => entry.page.id === currentPage.id)
-                          ?.imageUrl ?? null;
-
-                      return (
-                        <div
-                          key={panel.id}
-                          id={`panel-frame-${idx + 1}`}
-                          onClick={() => handleSelectPanel(panel.id)}
-                          className={`min-h-[140px] flex-1 w-full rounded border-2 cursor-pointer relative overflow-hidden transition-all ${
-                            hasOpenCr
-                              ? 'border-rose-500 ring-rose-400/40 bg-rose-50/10'
-                              : isSelected
-                                ? 'border-orange-500 ring-2 ring-orange-400 bg-stone-50'
-                                : 'border-stone-200 hover:border-stone-400 bg-stone-50'
-                          }`}
-                        >
-                          {artworkSrc ? (
-                            <img
-                              src={artworkSrc}
-                              alt={t('readerView.panelAlt', { number: idx + 1 })}
-                              width={currentPage.widthPx || 1200}
-                              height={currentPage.heightPx || 1800}
-                              loading={idx === 0 ? 'eager' : 'lazy'}
-                              fetchPriority={idx === 0 ? 'high' : 'auto'}
-                              className='w-full h-full object-cover object-center block'
-                            />
-                          ) : (
-                            <div className='w-full h-full flex flex-col items-center justify-center p-4 text-stone-400 text-xs gap-1'>
-                              <BookOpen className='w-5 h-5 opacity-40' />
-                              <span>
-                                {t('readerView.panelHash', { number: panel.panelNumber })}
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Status pill on panel frame */}
-                          <div className='absolute top-1.5 left-1.5 text-xs font-mono px-2 py-0.5 rounded backdrop-blur-xs flex items-center gap-1 bg-stone-900/80 text-white'>
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                hasOpenCr
-                                  ? 'bg-rose-500'
-                                  : isSelected
-                                    ? 'bg-orange-400'
-                                    : 'bg-emerald-400'
-                              }`}
-                            />
-                            <span>
-                              {t('readerView.panelHash', { number: panel.panelNumber })} ·{' '}
-                              {hasOpenCr
-                                ? t('readerView.statusNeedsRework')
-                                : t('readerView.statusApproved')}
-                            </span>
-                          </div>
-
-                          {/* Pin overlay if rework requested */}
-                          {hasOpenCr && (
-                            <div className='absolute top-7 right-3 px-2 py-1 border border-dashed border-rose-600 bg-rose-500/20 rounded pointer-events-none flex items-center gap-1'>
-                              <span className='bg-rose-600 text-white font-mono text-xs font-bold px-1 rounded'>
-                                {t('readerView.needsReworkPin')}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              {/* Bottom Page Navigation Switcher */}
-              <div className='w-full h-12 bg-stone-950 border-t border-stone-800 px-4 flex items-center justify-center gap-2 select-none overflow-x-auto'>
-                {pages.map((p) => {
-                  const isCurrent = p.id === currentPage.id;
+            {/* Column 2: Continuous reader on the PanelForge paper surface */}
+            <div
+              ref={readerScrollRef}
+              className='min-w-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-[#F4F1EA] px-4 py-6 sm:px-6 [scrollbar-gutter:stable]'
+              data-testid='chapter-reader-scroll'
+            >
+              <div className='mx-auto max-w-[760px] space-y-8'>
+                {pages.map((page, pageIndex) => {
+                  const loadedPage = loadedPageImages.find((entry) => entry.page.id === page.id);
+                  const isCurrent = page.id === currentPage.id;
                   const pageHasRework = changeRequests.some(
-                    (c) => c.pageId === p.id && String(c.status) === 'Open',
+                    (request) => request.pageId === page.id && String(request.status) === 'Open',
                   );
+                  const aspectRatio =
+                    page.widthPx > 0 && page.heightPx > 0
+                      ? `${page.widthPx} / ${page.heightPx}`
+                      : '2 / 3';
 
                   return (
-                    <button
-                      key={p.id}
-                      type='button'
-                      onClick={() => handleSelectPage(p.id)}
-                      className={`px-3 py-1 rounded text-xs font-mono transition-colors cursor-pointer shrink-0 ${
+                    <section
+                      key={page.id}
+                      ref={(element) => {
+                        pageSectionRefs.current[page.id] = element;
+                      }}
+                      data-page-id={page.id}
+                      aria-current={isCurrent ? 'page' : undefined}
+                      className={`overflow-hidden rounded-xl border bg-white shadow-sm transition-[border-color,box-shadow] ${
                         isCurrent
-                          ? 'bg-orange-600 text-white font-bold shadow-xs'
-                          : 'bg-stone-800 hover:bg-stone-700 text-stone-300'
+                          ? 'border-orange-400 shadow-[0_12px_32px_-18px_rgba(234,88,12,0.45)]'
+                          : 'border-stone-200/90'
                       }`}
                     >
-                      {t('readerView.pageShort', {
-                        page: String(p.pageNumber).padStart(2, '0'),
-                      })}
-                      {pageHasRework ? ` ${t('readerView.pageReworkSuffix')}` : ''}
-                    </button>
+                      <div className='flex items-center justify-between gap-3 border-b border-stone-200 bg-[#FAF9F5] px-4 py-2.5'>
+                        <span className='font-mono text-xs font-semibold text-stone-700'>
+                          {t('readerView.pageShort', {
+                            page: String(page.pageNumber).padStart(2, '0'),
+                          })}
+                        </span>
+                        {pageHasRework && (
+                          <Badge tone='danger'>{t('readerView.statusNeedsRework')}</Badge>
+                        )}
+                      </div>
+
+                      <div className='relative w-full bg-white' style={{ aspectRatio }}>
+                        {loadedPage?.imageUrl ? (
+                          <img
+                            src={loadedPage.imageUrl}
+                            alt={t('readerView.pageArtworkAlt', { page: page.pageNumber })}
+                            width={page.widthPx || 1200}
+                            height={page.heightPx || 1800}
+                            loading={pageIndex === 0 ? 'eager' : 'lazy'}
+                            fetchPriority={pageIndex === 0 ? 'high' : 'auto'}
+                            className='block h-auto w-full object-contain'
+                          />
+                        ) : (
+                          <div className='flex h-full min-h-[420px] flex-col items-center justify-center gap-2 bg-stone-50 px-6 text-center text-stone-500'>
+                            <BookOpen className='h-7 w-7 text-stone-400' aria-hidden='true' />
+                            <span className='text-sm font-semibold'>
+                              {t('readerView.pageArtworkEmpty', { page: page.pageNumber })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </section>
                   );
                 })}
               </div>
