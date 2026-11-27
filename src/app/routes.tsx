@@ -783,6 +783,16 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               }
             />
 
+            {/* Admin Portal: dùng chung AppShell (header + sidebar) như Publisher Portal */}
+            <Route
+              path='admin'
+              element={
+                <AdminRoute activeRoles={activeProjectRoles} currentRole={currentRole}>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+
             {/* Dedicated Top-Level Publisher Portal */}
             <Route
               path='publisher'
@@ -951,23 +961,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               </Route>
             </Route>
           </Route>
-
-          {/* Standalone Global Admin Portal (Decoupled completely from GlobalAppShell) */}
-          <Route
-            path='admin'
-            element={
-              <AdminRoute activeRoles={activeProjectRoles} currentRole={currentRole}>
-                <AdminDashboard
-                  onLogout={handleLogout}
-                  currentUser={{
-                    name: currentUserInfo?.name || firebaseUser?.displayName || 'Administrator',
-                    email: currentUserInfo?.email || firebaseUser?.email || 'admin@panelforge.sys',
-                    role: currentRole,
-                  }}
-                />
-              </AdminRoute>
-            }
-          />
 
           <Route path='*' element={<Navigate to={defaultRedirectPath} replace />} />
         </Route>

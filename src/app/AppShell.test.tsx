@@ -185,11 +185,23 @@ describe('AppShell Component', () => {
       avatarInitials: 'AD',
     };
 
-    renderInRouter(adminUser, '/admin');
+    renderInRouter(adminUser, '/admin?tab=users');
 
-    expect(screen.getByText('System Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Users & Roles')).toBeInTheDocument();
-    expect(screen.getByText('AI Provider & Quota')).toBeInTheDocument();
+    // Header Admin Portal giống Publisher Portal
+    expect(screen.getByTestId('admin-portal-header')).toHaveTextContent('Cổng Quản Trị');
+    // Đủ các mục quản trị, mục đang mở được đánh dấu
+    for (const label of [
+      'Tổng quan',
+      'Người dùng & quyền',
+      'Cấu hình AI',
+      'Lưu trữ & quota',
+      'Chính sách phiên',
+      'Nhật ký hệ thống',
+      'Thống kê độc giả',
+    ]) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    expect(screen.queryByText('Studio Workspaces')).not.toBeInTheDocument();
   });
 
   it('hỗ trợ mở và đóng sidebar drawer trên màn hình nhỏ (< md) bằng nút hamburger', () => {
