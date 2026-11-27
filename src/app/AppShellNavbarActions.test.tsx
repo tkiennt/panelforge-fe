@@ -72,20 +72,56 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
       expect(screen.queryByText(/Profile & Security/i)).not.toBeInTheDocument();
     });
 
-    it('vẫn hiển thị nút Logout ở dưới cùng khi có callback onLogout', () => {
+    it('gộp Đăng xuất (i18n) và Hồ sơ & cài đặt vào popover menu của card user (mở rộng và thu gọn)', () => {
       const handleLogout = vi.fn();
-      render(
+      const handleNavClick = vi.fn();
+      const { rerender } = render(
         <MemoryRouter>
-          <AppShellSidebar {...defaultProps} onLogout={handleLogout} isCollapsed={false} />
+          <AppShellSidebar
+            {...defaultProps}
+            handleNavClick={handleNavClick}
+            onLogout={handleLogout}
+            isCollapsed={false}
+          />
         </MemoryRouter>,
       );
 
-      const logoutBtn = screen.getByTestId('sidebar-logout-btn');
-      expect(logoutBtn).toBeInTheDocument();
-      expect(screen.getByText('Logout')).toBeInTheDocument();
+      // Không còn chữ 'Logout' tiếng Anh nằm lẻ dưới card
+      expect(screen.queryByText('Logout')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('sidebar-logout-btn')).not.toBeInTheDocument();
 
+      // Bấm card user mở /profile với tooltip 'Hồ sơ & cài đặt'
+      const profileCardBtn = screen.getByTestId('sidebar-user-profile-btn');
+      expect(profileCardBtn).toHaveAttribute('title', 'Hồ sơ & cài đặt');
+      fireEvent.click(profileCardBtn);
+      expect(handleNavClick).toHaveBeenCalledWith(expect.anything(), '/profile');
+
+      // Mở menu popover từ nút bánh răng
+      const menuTrigger = screen.getByTestId('sidebar-user-menu-btn');
+      expect(menuTrigger).toHaveAttribute('title', 'Hồ sơ & cài đặt');
+      expect(screen.getByTestId('sidebar-user-menu')).toHaveAttribute('popover', 'auto');
+      fireEvent.click(menuTrigger);
+
+      const logoutBtn = screen.getByTestId('sidebar-logout-btn');
+      expect(logoutBtn).toHaveTextContent('Đăng xuất');
       fireEvent.click(logoutBtn);
       expect(handleLogout).toHaveBeenCalledTimes(1);
+
+      // Ở trạng thái thu gọn (rail), bấm avatar mở cùng popover menu chứa Hồ sơ & Đăng xuất
+      rerender(
+        <MemoryRouter>
+          <AppShellSidebar
+            {...defaultProps}
+            handleNavClick={handleNavClick}
+            onLogout={handleLogout}
+            isCollapsed={true}
+          />
+        </MemoryRouter>,
+      );
+      fireEvent.click(screen.getByTestId('sidebar-user-menu-btn'));
+      expect(screen.getByTestId('sidebar-menu-profile-btn')).toHaveTextContent('Hồ sơ & cài đặt');
+      fireEvent.click(screen.getByTestId('sidebar-logout-btn'));
+      expect(handleLogout).toHaveBeenCalledTimes(2);
     });
   });
 

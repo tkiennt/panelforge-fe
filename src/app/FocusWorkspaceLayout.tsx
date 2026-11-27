@@ -657,7 +657,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
     if (effectiveRole === 'ARTIST') {
       return [
         {
-          section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+          section: '',
           items: [
             {
               icon: Layers,
@@ -677,8 +677,13 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
             },
             {
               icon: FileText,
-              label: t('navigation.menu.scriptReference', 'Kịch bản tham chiếu'),
+              label: t('navigation.menu.productionScript', 'Kịch bản'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+              readOnly: true,
+              tooltip: t(
+                'navigation.sidebar.scriptReadOnlyTooltip',
+                'Kịch bản — chỉ đọc (chỉ xem, không chỉnh sửa)',
+              ),
             },
           ],
         },
@@ -698,13 +703,12 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
     if (effectiveRole === 'LETTERER') {
       return [
         {
-          section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+          section: '',
           items: [
             {
               icon: Layers,
               label: t('navigation.menu.myWork', 'Việc của tôi'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
-              badge: { type: 'count', count: 2 },
             },
           ],
         },
@@ -718,8 +722,13 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
             },
             {
               icon: FileText,
-              label: t('navigation.menu.scriptReadOnly', 'Kịch bản (chỉ đọc)'),
+              label: t('navigation.menu.productionScript', 'Kịch bản'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+              readOnly: true,
+              tooltip: t(
+                'navigation.sidebar.scriptReadOnlyTooltip',
+                'Kịch bản — chỉ đọc (chỉ xem, không chỉnh sửa)',
+              ),
             },
           ],
         },
@@ -739,13 +748,12 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
     if (effectiveRole === 'EDITOR') {
       return [
         {
-          section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+          section: '',
           items: [
             {
               icon: Layers,
               label: t('navigation.menu.myWork', 'Việc của tôi'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
-              badge: { type: 'count', count: 3 },
             },
           ],
         },
@@ -805,7 +813,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
         ],
       },
     ];
-  }, [t, workspaceId, seriesId, effectiveRole, chapterQuery]);
+  }, [t, workspaceId, seriesId, effectiveRole, chapterQuery, location.pathname]);
 
   const handleNavClick = useCallback(
     (e: React.MouseEvent, href: string) => {

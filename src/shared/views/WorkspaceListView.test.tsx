@@ -346,16 +346,38 @@ describe('WorkspaceListView Component', () => {
     expect(screen.getByText('Invited Studio')).toBeInTheDocument();
   });
 
-  it('shows only relevant role pills when every studio is owned', async () => {
-    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([ws()] as any);
+  it('hides redundant role filter when all studios share one role, and shows only active role pills when spanning multiple roles', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValueOnce([
+      ws({ id: 'ws-w1', name: 'Writer One', isOwner: false, currentUserRole: 'WRITER' }),
+      ws({ id: 'ws-w2', name: 'Writer Two', isOwner: false, currentUserRole: 'WRITER' }),
+    ] as any);
+    const { unmount } = renderView({
+      currentUser: { name: 'Brian Writer', email: 'w@x.com', role: 'USER', canCreateStudio: false },
+    });
+
+    await waitFor(() => expect(screen.getByText('Writer One')).toBeInTheDocument());
+    expect(
+      screen.queryByRole('group', { name: /Lọc theo vai trò|Filter by role/i }),
+    ).not.toBeInTheDocument();
+    // Raw internal SystemRole 'USER' is not leaked next to user name in top header
+    expect(screen.queryByText('USER')).not.toBeInTheDocument();
+    unmount();
+
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValueOnce([
+      ws({ id: 'ws-p', name: 'Alpha Studio', isOwner: true, currentUserRole: 'PRODUCER' }),
+      ws({ id: 'ws-l', name: 'Letter Studio', isOwner: false, currentUserRole: 'LETTERER' }),
+    ] as any);
     renderView();
 
-    await waitFor(() => expect(screen.getByText('Alpha Studio')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Letter Studio')).toBeInTheDocument());
     const roleGroup = screen.getByRole('group', { name: /Lọc theo vai trò|Filter by role/i });
     expect(
       within(roleGroup).getByRole('button', { name: /Tất cả Studio|All/i }),
     ).toBeInTheDocument();
     expect(within(roleGroup).getByRole('button', { name: /Producer/i })).toBeInTheDocument();
+    expect(
+      within(roleGroup).getByRole('button', { name: /Đặt thoại|Letterer/i }),
+    ).toBeInTheDocument();
     expect(
       within(roleGroup).queryByRole('button', { name: /Họa sĩ|Artist/i }),
     ).not.toBeInTheDocument();
@@ -468,7 +490,8 @@ describe('WorkspaceListView Component', () => {
         isOwner: false,
         currentUserRole: 'ARTIST',
         seriesCount: 0,
-        storageQuotaBytes: 0,
+        storageQuotaBytes: 10000000000,
+        usedStorageBytes: 21300000,
       }),
     ] as any);
     renderView();

@@ -450,7 +450,7 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+            section: '',
             items: [
               {
                 icon: Layers,
@@ -567,7 +567,7 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+            section: '',
             items: [
               {
                 icon: Layers,
@@ -586,8 +586,13 @@ export function AppShell({
               },
               {
                 icon: FileText,
-                label: t('navigation.menu.scriptReference', 'Kịch bản tham chiếu'),
+                label: t('navigation.menu.productionScript', 'Kịch bản'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+                readOnly: true,
+                tooltip: t(
+                  'navigation.sidebar.scriptReadOnlyTooltip',
+                  'Kịch bản — chỉ đọc (chỉ xem, không chỉnh sửa)',
+                ),
               },
             ],
           },
@@ -622,7 +627,7 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+            section: '',
             items: [
               {
                 icon: Layers,
@@ -641,8 +646,13 @@ export function AppShell({
               },
               {
                 icon: FileText,
-                label: t('navigation.menu.scriptReadOnly', 'Kịch bản (chỉ đọc)'),
+                label: t('navigation.menu.productionScript', 'Kịch bản'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+                readOnly: true,
+                tooltip: t(
+                  'navigation.sidebar.scriptReadOnlyTooltip',
+                  'Kịch bản — chỉ đọc (chỉ xem, không chỉnh sửa)',
+                ),
               },
             ],
           },
@@ -962,10 +972,11 @@ export function AppShell({
               <div className='flex items-center shrink-0'>
                 <button
                   type='button'
-                  onClick={() => navigate('/workspaces')}
-                  className='flex items-center gap-1.5 cursor-pointer'
+                  onClick={() => navigate(seriesListHref)}
+                  className='flex items-center gap-2 cursor-pointer'
                 >
-                  <span className='text-lg font-bold text-orange-600 tracking-tight'>
+                  <BrandMark size={28} className='shrink-0' />
+                  <span className='font-serif text-lg font-medium tracking-tight text-stone-900'>
                     {t('workspace.studioHub.brand')}
                   </span>
                   <span className='text-xs font-bold tracking-wider uppercase bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded'>
@@ -1010,22 +1021,7 @@ export function AppShell({
               </div>
             ) : (
               <nav className='flex items-center text-xs font-semibold text-stone-900 truncate'>
-                <button
-                  type='button'
-                  data-testid='back-to-workspaces-breadcrumb'
-                  className='text-stone-700 hover:text-stone-900 cursor-pointer transition-colors flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 shrink-0'
-                  onClick={() => navigate('/workspaces')}
-                  title={t(
-                    'navigation.header.backToWorkspaces',
-                    'Quay lại danh sách Workspace (Workspaces Catalog)',
-                  )}
-                >
-                  <Briefcase className='w-4 h-4 text-stone-500' />
-                  <span className='font-semibold'>Workspaces</span>
-                </button>
-                <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
-
-                {/* Studio Switcher Dropdown (2-tier Navigation) */}
+                {/* Studio Switcher Dropdown: đổi studio / xem tất cả / tạo studio */}
                 <StudioSwitcher
                   activeWorkspaceId={activeWorkspace?.id || workspaceId}
                   activeWorkspaceName={activeWorkspace?.name}

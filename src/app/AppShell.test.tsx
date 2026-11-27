@@ -56,9 +56,12 @@ describe('AppShell Component', () => {
 
     renderInRouter(artistUser, '/workspaces/ws-1/series/ser-1/my-work');
 
+    const sidebar = screen.getByTestId('app-shell-sidebar');
     expect(screen.getByText('Bàn vẽ truyện')).toBeInTheDocument();
     expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản tham chiếu')).toBeInTheDocument();
+    const scriptLink = within(sidebar).getByRole('link', { name: /Kịch bản/i });
+    expect(scriptLink).toHaveAttribute('title', expect.stringMatching(/chỉ đọc/i));
+    expect(within(scriptLink).getByTestId('sidebar-item-readonly-icon')).toBeInTheDocument();
     expect(screen.getByText('Series Bible')).toBeInTheDocument();
     // Artist không được thấy màn Letterer
     expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
@@ -75,9 +78,14 @@ describe('AppShell Component', () => {
 
     renderInRouter(lettererUser, '/workspaces/ws-1/series/ser-1/my-work');
 
+    const sidebar = screen.getByTestId('app-shell-sidebar');
     expect(screen.getByText('Chèn chữ & Bóng thoại')).toBeInTheDocument();
     expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản (chỉ đọc)')).toBeInTheDocument();
+    expect(within(sidebar).queryByText('TỔNG QUAN')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kịch bản (chỉ đọc)')).not.toBeInTheDocument();
+    const scriptLink = within(sidebar).getByRole('link', { name: /Kịch bản/i });
+    expect(scriptLink).toHaveAttribute('title', expect.stringMatching(/chỉ đọc/i));
+    expect(within(scriptLink).getByTestId('sidebar-item-readonly-icon')).toBeInTheDocument();
     expect(screen.getByText('Series Bible')).toBeInTheDocument();
     // Letterer không thấy màn Artist
     expect(screen.queryByText('Bàn vẽ Khung tranh')).not.toBeInTheDocument();
@@ -337,10 +345,10 @@ describe('AppShell Component', () => {
     expect(activeLink).toBeInTheDocument();
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 
-    // Mục đang chọn: vạch nhấn + nền nhẹ qua token scope của sidebar
+    // Mục đang chọn: highlight nền + aria-current, không còn chấm cam active-dot dễ gây hiểu nhầm
     expect(activeLink).toHaveClass('pf-sb-item');
     expect(activeLink).toHaveClass('rounded-xl');
-    expect(activeLink.querySelector('span[aria-hidden="true"]')).toBeInTheDocument();
+    expect(activeLink.querySelector('.active-dot')).not.toBeInTheDocument();
   });
 
   it('highlights Quy trình sản xuất on the production page even though its link carries ?chapterId', () => {
@@ -378,13 +386,73 @@ describe('AppShell Component', () => {
     expect(sidebar).toHaveClass('pf-sidebar');
     expect(sidebar).toHaveAttribute('data-sb-theme', 'ink');
 
-    // Đổi preset: áp dụng ngay và lưu trên thiết bị
-    fireEvent.click(screen.getByTestId('sidebar-theme-btn'));
+    // Đổi preset nằm trong menu cài đặt của card user (Popover API), không còn nút bảng màu lẻ
+    expect(screen.queryByTestId('sidebar-theme-btn')).not.toBeInTheDocument();
+    const userMenuBtn = within(sidebar).getByTestId('sidebar-user-menu-btn');
+    expect(userMenuBtn).toHaveAttribute('title', 'Hồ sơ & cài đặt');
+    fireEvent.click(userMenuBtn);
     const ocean = screen.getByTestId('sidebar-theme-ocean');
     expect(screen.getByTestId('sidebar-theme-ink')).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(ocean);
     expect(sidebar).toHaveAttribute('data-sb-theme', 'ocean');
     expect(localStorage.getItem('pf.sidebar.theme')).toBe('ocean');
+  });
+
+  it('thẻ BỘ TRUYỆN ĐANG MỞ hiển thị trạng thái thật của series hoặc vai trò thay vì chữ Active cứng', () => {
+    const artistUser: CurrentUser = {
+      name: 'Minh Họa',
+      role: 'USER',
+      workspaceRole: 'ARTIST' as any,
+      activeRoles: ['ARTIST'],
+      avatarInitials: 'MH',
+    };
+
+    const { rerender } = renderInRouter(artistUser, '/workspaces/ws-1/series/ser-1/my-work', {
+      activeSeries: {
+        id: 'ser-1',
+        title: 'Đốm Lửa Trường An',
+        subtitle: '',
+        isCompleted: false,
+        chaptersCount: 3,
+      } as any,
+    });
+
+    const sidebar = screen.getByTestId('app-shell-sidebar');
+    expect(within(sidebar).queryByText('Active')).not.toBeInTheDocument();
+    expect(within(sidebar).getByTestId('sidebar-series-status-badge')).toHaveTextContent(
+      'Đang sản xuất',
+    );
+
+    rerender(
+      <I18nProvider>
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/my-work']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/*'
+              element={
+                <AppShell
+                  currentUser={artistUser}
+                  activeSeries={
+                    {
+                      id: 'ser-1',
+                      title: 'Đốm Lửa Trường An',
+                      subtitle: '',
+                      isCompleted: true,
+                      chaptersCount: 12,
+                    } as any
+                  }
+                >
+                  <div />
+                </AppShell>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+    expect(
+      within(screen.getByTestId('app-shell-sidebar')).getByTestId('sidebar-series-status-badge'),
+    ).toHaveTextContent('Hoàn thành');
   });
 
   it('không còn hiển thị chữ AI: Sẵn sàng và nút Export trên navbar header', () => {

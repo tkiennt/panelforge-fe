@@ -1,13 +1,13 @@
 {
   "roles": {
-    "producer": "Điều Phối",
-    "writer": "Biên Kịch",
-    "artist": "Họa Sĩ",
-    "letterer": "Thoại & Chữ",
-    "editor": "Biên Tập",
-    "publisher": "Phát Hành",
-    "admin": "Quản Trị",
-    "reader": "Độc Giả",
+    "producer": "Điều phối",
+    "writer": "Biên kịch",
+    "artist": "Họa sĩ",
+    "letterer": "Thoại & chữ",
+    "editor": "Biên tập",
+    "publisher": "Phát hành",
+    "admin": "Quản trị",
+    "reader": "Độc giả",
     "member": "Thành viên"
   },
   "sections": {
@@ -142,7 +142,10 @@
     "designAssets": "THIẾT KẾ TÀI NGUYÊN",
     "chapterWriting": "SÁNG TÁC CHƯƠNG",
     "seriesOverview": "TỔNG QUAN",
-    "crew": "Đội ngũ"
+    "crew": "Đội ngũ",
+    "profileAndSettings": "Hồ sơ & cài đặt",
+    "readOnlyBadge": "Chỉ đọc",
+    "scriptReadOnlyTooltip": "Kịch bản — chỉ đọc (chỉ xem, không chỉnh sửa)"
   },
   "focus": {
     "workspaceTitle": {

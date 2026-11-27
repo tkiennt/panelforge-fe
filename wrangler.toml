@@ -3,3 +3,15 @@
 name = "panelforge"
 pages_build_output_dir = "./dist"
 compatibility_date = "2026-11-01"
+
+# Có file này thì Cloudflare chỉ lấy biến build từ đây (biến trong dashboard bị bỏ qua lúc build).
+# Production = nhánh main → BE bản chính thức trên Azure.
+[vars]
+VITE_API_URL = "https://panelforge.koreacentral.cloudapp.azure.com/api"
+VITE_APP_URL = "https://panelforge.koreacentral.cloudapp.azure.com"
+
+# Preview = mọi nhánh khác (dev.panelforge-dx3.pages.dev cho nhánh dev) → BE bản test, cổng 8443.
+# BE bản test chỉ mở CORS cho dev.panelforge-dx3.pages.dev và localhost:3000.
+[env.preview.vars]
+VITE_API_URL = "https://panelforge.koreacentral.cloudapp.azure.com:8443/api"
+VITE_APP_URL = "https://panelforge.koreacentral.cloudapp.azure.com:8443"
