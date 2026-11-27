@@ -886,5 +886,27 @@
       "ReworkRequired": "Cần sửa",
       "Blocked": "Bị chặn"
     }
+  },
+  "myWorkHub": {
+    "title": "Việc của tôi",
+    "description": "Mọi việc được giao cho bạn ở tất cả Studio, kèm hàng chờ duyệt của các bộ truyện bạn làm Editor.",
+    "backToStudios": "Về danh sách Studio",
+    "bucket": {
+      "inProgress": "Đang làm",
+      "rework": "Cần sửa",
+      "toReview": "Chờ duyệt"
+    },
+    "filterStudio": "Lọc theo Studio",
+    "filterRole": "Lọc theo vai trò",
+    "allStudios": "Mọi Studio",
+    "allRoles": "Mọi vai trò",
+    "loading": "Đang tải việc của bạn…",
+    "loadError": "Không tải được việc của bạn",
+    "empty": "Không có việc nào trong nhóm này.",
+    "chapter": "Chương {n}",
+    "pages": "Trang {pages}",
+    "overdue": "Quá hạn",
+    "due": "Hạn {date}",
+    "openMyWork": "Việc của tôi"
   }
 }

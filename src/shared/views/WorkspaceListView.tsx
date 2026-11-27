@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import {
   Building2,
@@ -62,6 +63,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
 }) => {
   const confirm = useConfirm();
   const { t, lang } = useTranslation();
+  const navigate = useNavigate();
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -548,16 +550,27 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   </div>
                 }
                 actions={
-                  canCreate && (
+                  <div className='flex items-center gap-2 shrink-0 self-start md:self-auto'>
+                    {/* UIQ-11q: việc xuyên mọi Studio */}
                     <button
                       type='button'
-                      onClick={handleOpenCreate}
-                      className='bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs shrink-0 self-start md:self-auto'
+                      onClick={() => navigate('/my-work')}
+                      data-testid='open-my-work-hub'
+                      className='bg-white hover:bg-orange-50 border border-stone-200 text-stone-800 font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer'
                     >
-                      <Plus className='w-4 h-4' />
-                      <span>{t('workspace.studioHub.directory.createStudioBtn')}</span>
+                      {t('workspace.myWorkHub.openMyWork')}
                     </button>
-                  )
+                    {canCreate && (
+                      <button
+                        type='button'
+                        onClick={handleOpenCreate}
+                        className='bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs'
+                      >
+                        <Plus className='w-4 h-4' />
+                        <span>{t('workspace.studioHub.directory.createStudioBtn')}</span>
+                      </button>
+                    )}
+                  </div>
                 }
               />
 

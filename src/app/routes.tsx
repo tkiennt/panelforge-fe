@@ -104,6 +104,9 @@ const PublicPreviewView = lazy(() =>
   import('@/roles/reader/views/PublicPreviewView').then((m) => ({ default: m.PublicPreviewView })),
 );
 import { LandingPageView } from '@/roles/guest/views/LandingPageView';
+const MyWorkHubView = lazy(() =>
+  import('@/shared/views/MyWorkHubView').then((m) => ({ default: m.MyWorkHubView })),
+);
 const WorkspaceListView = lazy(() =>
   import('@/shared/views/WorkspaceListView').then((m) => ({ default: m.WorkspaceListView })),
 );
@@ -414,6 +417,9 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               )
             }
           />
+
+          {/* UIQ-11q: việc của tôi xuyên mọi Studio */}
+          <Route path='my-work' element={<MyWorkHubView />} />
 
           <Route
             element={

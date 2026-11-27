@@ -886,5 +886,27 @@
       "ReworkRequired": "Needs fix",
       "Blocked": "Blocked"
     }
+  },
+  "myWorkHub": {
+    "title": "My work",
+    "description": "Everything assigned to you across all studios, plus the review queue of series where you are Editor.",
+    "backToStudios": "Back to studios",
+    "bucket": {
+      "inProgress": "In progress",
+      "rework": "Needs fixes",
+      "toReview": "To review"
+    },
+    "filterStudio": "Filter by studio",
+    "filterRole": "Filter by role",
+    "allStudios": "All studios",
+    "allRoles": "All roles",
+    "loading": "Loading your work…",
+    "loadError": "Could not load your work",
+    "empty": "Nothing in this group.",
+    "chapter": "Chapter {n}",
+    "pages": "Pages {pages}",
+    "overdue": "Overdue",
+    "due": "Due {date}",
+    "openMyWork": "My work"
   }
 }
