@@ -992,7 +992,7 @@ export function AppShell({
               <div className='flex items-center shrink-0'>
                 <button
                   type='button'
-                  onClick={() => navigate(seriesListHref)}
+                  onClick={() => navigate('/workspaces')}
                   className='focus-ring flex items-center gap-2 rounded-lg cursor-pointer'
                 >
                   <BrandMark size={26} className='shrink-0' />
@@ -1052,7 +1052,8 @@ export function AppShell({
                 </div>
               </div>
             ) : (
-              <nav className='flex items-center text-xs font-semibold text-stone-900 truncate'>
+              <nav className='flex items-center text-xs font-semibold text-stone-900 min-w-0'>
+                {/* Không dùng truncate (overflow hidden) trên nav: sẽ cắt mất dropdown của StudioSwitcher */}
                 {/* Studio Switcher Dropdown: đổi studio / xem tất cả / tạo studio */}
                 <StudioSwitcher
                   activeWorkspaceId={activeWorkspace?.id || workspaceId}

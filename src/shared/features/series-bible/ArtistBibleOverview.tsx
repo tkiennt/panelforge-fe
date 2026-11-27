@@ -254,10 +254,19 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                           <h3 className='truncate text-base font-bold text-stone-900'>
                             {entity.name}
                           </h3>
-                          {revision?.stageName ? (
-                            <p className='mt-0.5 text-xs font-medium text-stone-500'>
-                              {revision.stageName}
-                            </p>
+                          {/* UIQ-11h: biến thể tạo hình + tuổi thay cho "Era" cũ (BR-15) */}
+                          {entity.category === 'characters' || revision?.stageName ? (
+                            <span
+                              className='mt-1 inline-flex max-w-full items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800'
+                              data-testid={`bible-card-variant-${entity.id}`}
+                            >
+                              <span className='truncate'>
+                                {revision?.stageName || t('bible.view.defaultVariant', 'Mặc định')}
+                                {entity.category === 'characters' && entity.age
+                                  ? ` · ${entity.age}`
+                                  : ''}
+                              </span>
+                            </span>
                           ) : null}
                           {entity.latestDraftVersionNumber ? (
                             <span

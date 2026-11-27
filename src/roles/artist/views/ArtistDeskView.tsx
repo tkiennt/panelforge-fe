@@ -1951,10 +1951,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             : t,
         ),
       );
-      toast.success(
-        t('artist.deskView.startCellSuccessTitle'),
-        t('artist.deskView.startCellSuccessDesc', { stage: currentStage?.label ?? '' }),
-      );
     } catch (err: any) {
       toast.error(t('artist.deskView.startCellErrorTitle'), err?.message || '');
     } finally {
@@ -2694,6 +2690,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const activeEditionStatus = normalizeEditionStatus(activeEdition?.status);
   const isActiveEditionEditable = isEditionEditableStatus(activeEdition?.status);
   const canEditCurrentTranslation = isTranslationMode && isActiveEditionEditable;
+
+  // UIQ-11e: bỏ nút "Bắt đầu làm" — mở trang đến lượt mình thì tự chuyển nhiệm vụ sang InProgress
+  // (BE vẫn yêu cầu InProgress trước khi nộp). Mỗi ô chỉ tự thử một lần để không lặp khi lỗi.
+  const autoStartedCellRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!startableCurrentCell || canEditCurrentTranslation) return;
+    if (autoStartedCellRef.current === startableCurrentCell.id) return;
+    autoStartedCellRef.current = startableCurrentCell.id;
+    void handleStartCurrentCell();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startableCurrentCell?.id, canEditCurrentTranslation]);
   const editionBadgeStyle =
     EDITION_STATUS_STYLES[activeEditionStatus] || EDITION_STATUS_STYLES.Draft;
 
@@ -2987,18 +2994,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             : startableCurrentCell
               ? t('artist.deskView.readyToStartBanner', { stage: currentStage?.label ?? '' })
               : t('artist.deskView.readOnlyBanner')}
-          {startableCurrentCell && !canEditCurrentTranslation && (
-            <button
-              type='button'
-              data-testid='artist-start-cell-btn'
-              disabled={isStartingCell}
-              onClick={() => void handleStartCurrentCell()}
-              className='ml-3 inline-flex items-center rounded-md bg-orange-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-60'
-            >
-              {isStartingCell
-                ? t('artist.deskView.startingCell')
-                : t('artist.deskView.startCellBtn')}
-            </button>
+          {startableCurrentCell && isStartingCell && (
+            <span className='ml-3'>{t('artist.deskView.startingCell')}</span>
           )}
         </div>
       )}

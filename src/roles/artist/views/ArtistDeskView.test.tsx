@@ -1896,6 +1896,11 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         ],
       } as any);
 
+      const startSpy = vi.spyOn(assignmentService, 'startStageTask').mockResolvedValue({
+        id: 'cell-p1-pencil',
+        status: 'InProgress',
+      } as any);
+
       try {
         render(
           <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
@@ -1912,19 +1917,8 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
           </MemoryRouter>,
         );
 
-        // Page 1 has status Assigned (not InProgress/ReworkRequired) -> read-only banner & disabled upload dropzone
-        await waitFor(() => {
-          expect(screen.getByTestId('artist-page-readonly-banner')).toBeInTheDocument();
-        });
-        expect(screen.getByTestId('panel-dropzone-1')).toBeDisabled();
-        expect(screen.getByTestId('btn-open-templates-simple')).toBeDisabled();
-
-        // Ô Assigned đã đến lượt → banner có nút Bắt đầu ngay trên bàn vẽ, không phải sang màn khác
-        const startSpy = vi.spyOn(assignmentService, 'startStageTask').mockResolvedValue({
-          id: 'cell-p1-pencil',
-          status: 'InProgress',
-        } as any);
-        fireEvent.click(await screen.findByTestId('artist-start-cell-btn'));
+        // Ô Assigned đã đến lượt → mở trang là tự bắt đầu (UIQ-11e), không còn nút Bắt đầu làm
+        expect(screen.queryByTestId('artist-start-cell-btn')).not.toBeInTheDocument();
         await waitFor(() => {
           expect(startSpy).toHaveBeenCalledWith('chap-1', 'cell-p1-pencil');
           expect(screen.queryByTestId('artist-page-readonly-banner')).not.toBeInTheDocument();

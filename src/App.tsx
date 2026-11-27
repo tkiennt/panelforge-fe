@@ -776,21 +776,7 @@ function AppContent() {
         } else if (landing?.suggestedLanding === 'PublisherPortal' || role === 'PUBLISHER') {
           navigate('/publisher/series');
         } else {
-          try {
-            const list = await workspaceService.getMyWorkspaces();
-            const lastActiveId =
-              localStorage.getItem('activeWorkspaceId') ||
-              localStorage.getItem('lastActiveWorkspaceId');
-            const target = (lastActiveId && list.find((w) => w.id === lastActiveId)) || list[0];
-            if (target) {
-              localStorage.setItem('activeWorkspaceId', target.id);
-              setActiveWorkspace(target as any);
-              navigate(`/workspaces/${target.id}`);
-              return;
-            }
-          } catch {
-            // fallback if api error
-          }
+          // Spec §5.3 Bước 2: sau đăng nhập luôn vào màn chọn Studio, không tự vào studio gần nhất.
           navigate('/workspaces');
         }
       })
@@ -800,21 +786,6 @@ function AppContent() {
         } else if (role === 'PUBLISHER') {
           navigate('/publisher/series');
         } else {
-          try {
-            const list = await workspaceService.getMyWorkspaces();
-            const lastActiveId =
-              localStorage.getItem('activeWorkspaceId') ||
-              localStorage.getItem('lastActiveWorkspaceId');
-            const target = (lastActiveId && list.find((w) => w.id === lastActiveId)) || list[0];
-            if (target) {
-              localStorage.setItem('activeWorkspaceId', target.id);
-              setActiveWorkspace(target as any);
-              navigate(`/workspaces/${target.id}`);
-              return;
-            }
-          } catch {
-            // fallback
-          }
           navigate('/workspaces');
         }
       });

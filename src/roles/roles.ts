@@ -21,7 +21,8 @@ export const ROLE_MANIFEST = {
     label: 'Producer',
     scope: 'workspace',
     folder: 'roles/producer',
-    defaultRoute: 'workspace',
+    // Spec §5.3 Bước 4: vào Series mở Tổng quan chương, không nhảy vào tab Sản xuất.
+    defaultRoute: 'chapters',
   },
   WRITER: {
     label: 'Writer',
