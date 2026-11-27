@@ -60,7 +60,7 @@ import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { EmptyFolderState } from '@/shared/components/lucian';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useTranslation } from '@/lib/i18n';
-import { CollapsibleSidebar, Modal, SidebarSection } from '@/shared/ui';
+import { CollapsibleSidebar, Modal, PageHeader, SidebarSection } from '@/shared/ui';
 import {
   CATEGORIES,
   mapCategoryToTab,
@@ -1199,39 +1199,28 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         </div>
       )}
 
-      {/* TOP FILTER & CATEGORY BAR (Stitch view-bible Card Header) */}
-      <div className='p-4 rounded-xl bg-white border border-stone-200/80 shadow-xs space-y-3 select-none'>
-        <div className='flex flex-col md:flex-row items-start md:items-center justify-between gap-3'>
-          <div className='flex items-center gap-3'>
-            <div className='w-9 h-9 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/80'>
-              <BookOpen className='w-5 h-5' />
-            </div>
-            <div>
-              <div className='flex items-center gap-2'>
-                <span className='sr-only'>{t('bible.view.canonHub', 'Canon Hub')}</span>
-                <h1
-                  className='text-base font-bold text-stone-900 leading-tight'
-                  aria-label={t('bible.view.seriesBible', 'Series Bible')}
-                >
-                  {t('bible.view.pageTitle', 'Hồ sơ thiết kế & Model Sheets')}
-                </h1>
-                <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded bg-stone-100 text-stone-600'>
-                  {t(
-                    'bible.view.knowledgeEntries',
-                    { count: localEntities.length },
-                    `${localEntities.length} mục tri thức`,
-                  )}
-                </span>
-              </div>
-              <p className='text-xs text-stone-500 mt-0.5'>
-                {t(
-                  'bible.view.pageSubtitle',
-                  'Kho quy chuẩn tạo hình, tính cách và bối cảnh chuẩn cho toàn bộ họa sĩ xưởng.',
-                )}
-              </p>
-            </div>
+      {/* PAGE HEADER */}
+      <PageHeader
+        icon={<BookOpen className='w-5 h-5' />}
+        eyebrow={t('bible.view.canonHub', 'Canon Hub')}
+        titleAriaLabel={t('bible.view.seriesBible', 'Series Bible')}
+        title={
+          <div className='flex items-center gap-2'>
+            <span>{t('bible.view.pageTitle', 'Hồ sơ thiết kế & Model Sheets')}</span>
+            <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-kraft text-kraft-ink'>
+              {t(
+                'bible.view.knowledgeEntries',
+                { count: localEntities.length },
+                `${localEntities.length} mục tri thức`,
+              )}
+            </span>
           </div>
-
+        }
+        description={t(
+          'bible.view.pageSubtitle',
+          'Kho quy chuẩn tạo hình, tính cách và bối cảnh chuẩn cho toàn bộ họa sĩ xưởng.',
+        )}
+        actions={
           <div className='flex items-center gap-2 shrink-0'>
             {availableSeries.length > 1 && (
               <select
@@ -1278,10 +1267,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               </span>
             )}
           </div>
-        </div>
+        }
+      />
 
-        {/* Row 2: Category segmented tabs, search and status filter */}
-        <div className='flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pt-3 border-t border-stone-100'>
+      {/* CATEGORY & FILTER TOOLBAR */}
+      <div className='p-3.5 rounded-xl bg-white border border-stone-200/80 shadow-xs select-none'>
+        <div className='flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3'>
           {/* Segmented Tabs (acts as sidebar for test assertions) */}
           <div
             className='inline-flex p-1 rounded-lg bg-stone-100 border border-stone-200/80 text-xs flex-wrap gap-0.5'
@@ -1585,7 +1576,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   `${filteredEntities.length} mục hiển thị`,
                 )}
               </span>
-        </div>
+            </div>
 
             <div className='space-y-2.5' id='master-entities-list'>
               {filteredEntities.length === 0 ? (

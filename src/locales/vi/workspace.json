@@ -715,7 +715,7 @@
     "directory": {
       "title": "Không gian Studio của bạn",
       "subtitle": "Quản trị & phối hợp sản xuất đa Studio Manga / Webtoon song song. Theo dõi phân quyền chỉ định, tiến độ các bộ truyện và tài nguyên lưu trữ độc lập.",
-      "createStudioBtn": "+ Tạo Studio mới",
+      "createStudioBtn": "Tạo Studio mới",
       "filterRoleLabel": "Lọc theo vai trò:",
       "filterAll": "Tất cả Studio ({count})",
       "filterProducer": "Tôi là Producer ({count})",

@@ -59,7 +59,7 @@ import {
 } from '@/shared/features/collaboration/ChapterReviewArtworkOverview';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { SubmissionHistory } from '@/shared/features/collaboration/SubmissionHistory';
-import { Modal } from '@/shared/ui';
+import { Modal, PageHeader } from '@/shared/ui';
 import {
   Box,
   CHECKLIST_ITEMS,
@@ -1314,6 +1314,30 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
   const effectiveReviewStatus = gridReviewTask ? gridReviewTask.status : assignment.status;
   const isApproved = String(effectiveReviewStatus) === 'Approved';
+
+  const getStatusLabel = (status: unknown): string => {
+    const raw = String(status ?? '').trim();
+    if (!raw) return '';
+    const map: Record<string, string> = {
+      unassigned: 'chapterReview.status.unassigned',
+      assigned: 'chapterReview.status.assigned',
+      inprogress: 'chapterReview.status.inProgress',
+      submitted: 'chapterReview.status.submitted',
+      underreview: 'chapterReview.status.underReview',
+      approved: 'chapterReview.status.approved',
+      reworkrequired: 'chapterReview.status.reworkRequired',
+      blocked: 'chapterReview.status.blocked',
+    };
+    const mappedKey = map[raw.toLowerCase()];
+    if (mappedKey) {
+      const translated = t(mappedKey);
+      if (translated && translated !== mappedKey) return translated;
+    }
+    const camel = raw.charAt(0).toLowerCase() + raw.slice(1);
+    const directKey = `chapterReview.status.${camel}`;
+    const translated = t(directKey);
+    return translated !== directKey ? translated : raw;
+  };
   const isSelfGate2Review = Boolean(
     isGridMode &&
     gridReviewTask &&
@@ -1344,8 +1368,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       data-testid='chapter-review-view'
     >
       {/* 1. TOP BAR / HEADER */}
-      <div className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-6 py-2.5 flex items-center justify-between gap-4 z-20 shadow-xs'>
-        <div className='flex items-center gap-3 min-w-0'>
+      <PageHeader variant='toolbar' className='shrink-0 px-6 gap-4 z-20'>
+        <div className='flex items-center gap-3 min-w-0 flex-1'>
           <button
             type='button'
             onClick={() => {
@@ -1358,158 +1382,184 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               }
             }}
             aria-label={t('chapterReview.backToDeskAria')}
-            className='w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors shadow-2xs border border-[#D8D2C5]'
+            className='w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F0E9] text-stone-600 hover:text-stone-900 cursor-pointer transition-colors shadow-2xs border border-head-line shrink-0'
           >
             <ArrowLeft className='w-4 h-4' />
           </button>
 
-          <div className='min-w-0'>
-            <div className='flex items-center gap-2 flex-wrap'>
-              <span className='px-2 py-0.5 rounded text-[11px] font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 uppercase tracking-wide'>
-                Gate 2
+          <div className='min-w-0 flex-1'>
+            <div className='flex flex-nowrap items-center gap-2 min-w-0'>
+              <span className='px-2 py-0.5 rounded text-xs font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 uppercase tracking-wide shrink-0'>
+                {t('chapterReview.gate2Badge')}
               </span>
               <h2
-                className='text-sm sm:text-base font-serif font-bold text-[#1C1917] truncate'
-                title={chapterTitle}
+                className='text-sm sm:text-base font-serif font-bold text-stone-900 truncate min-w-0 min-w-[12rem]'
+                title={
+                  chapterTitle
+                    ? `${chapterTitle} · ${t('chapterReview.gate2Subtitle')}`
+                    : t('chapterReview.gate2Subtitle')
+                }
               >
-                {chapterTitle} · Quality & Composite Gate
+                {chapterTitle ? `${chapterTitle} · ` : ''}
+                {t('chapterReview.gate2Subtitle')}
               </h2>
               <span
-                className={`px-2 py-0.5 rounded text-xs font-bold ${
+                className={`px-2 py-0.5 rounded text-xs font-bold shrink-0 ${
                   isApproved
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : 'bg-amber-50 text-amber-800 border border-amber-200'
                 }`}
               >
-                {effectiveReviewStatus}
+                {getStatusLabel(effectiveReviewStatus)}
               </span>
               {gridReviewTask?.isInputOutdated && (
                 <span
                   data-testid='chapter-review-input-outdated-badge'
-                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-xs font-semibold text-amber-900'
+                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-xs font-semibold text-amber-900 shrink-0'
                 >
                   <AlertTriangle className='w-3 h-3 text-amber-700 shrink-0' />
                   <span>{t('chapterReview.inputOutdatedBadge')}</span>
                 </span>
               )}
             </div>
-            <p className='text-[11px] text-[#57534E] font-medium'>
+            <p className='text-xs text-stone-600 font-medium truncate'>
               {t('chapterReview.roleLabel')}:{' '}
-              <span className='font-semibold text-[#1C1917]'>{effectiveRole || 'Editor'}</span> ·{' '}
+              <span className='font-semibold text-stone-900'>{effectiveRole || 'Editor'}</span> ·{' '}
               {t('chapterReview.finishedPagesCount', { count: pages.length })}
             </p>
           </div>
         </div>
 
-        {/* 3-Step Stepper in Header */}
-        <div className='hidden lg:flex items-center gap-1.5 px-3 py-1 bg-[#F8F6F0] border border-[#D8D2C5] rounded-full text-xs font-semibold'>
-          <span className='px-2 py-0.5 rounded-full bg-indigo-600 text-white flex items-center gap-1 shadow-xs'>
-            <span>1</span>
-            <span>{t('chapterReview.stepper.editor')}</span>
-          </span>
-          <span className='text-stone-400'>→</span>
-          <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
-            <span>2</span>
-            <span>{t('chapterReview.stepper.producer')}</span>
-          </span>
-          <span className='text-stone-400'>→</span>
-          <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
-            <span>3</span>
-            <span>{t('chapterReview.stepper.publisher')}</span>
-          </span>
+        {/* Right side (stepper + buttons) */}
+        <div className='flex items-center gap-3 shrink-0'>
+          {/* 3-Step Stepper in Header */}
+          <div className='hidden 2xl:flex items-center gap-1.5 px-3 py-1 bg-head-wash border border-head-line rounded-full text-xs font-semibold shrink-0'>
+            <span className='px-2 py-0.5 rounded-full bg-stone-900 text-white flex items-center gap-1'>
+              <span>1</span>
+              <span>{t('chapterReview.stepper.editor')}</span>
+            </span>
+            <span className='text-stone-400'>→</span>
+            <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
+              <span>2</span>
+              <span>{t('chapterReview.stepper.producer')}</span>
+            </span>
+            <span className='text-stone-400'>→</span>
+            <span className='px-2 py-0.5 rounded-full text-stone-500 flex items-center gap-1'>
+              <span>3</span>
+              <span>{t('chapterReview.stepper.publisher')}</span>
+            </span>
+          </div>
+
+          {/* Action Buttons */}
+          <div className='flex items-center gap-2 shrink-0'>
+            {/* Button Yêu cầu vẽ lại (Stitch id="btn-rework-count") */}
+            <button
+              id='btn-rework-count'
+              type='button'
+              onClick={() => setActiveTab('changes')}
+              aria-label={t('chapterReview.redrawRequestsBtn', { count: totalOpenCrs })}
+              title={t('chapterReview.redrawRequestsBtn', { count: totalOpenCrs })}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs shrink-0 ${
+                totalOpenCrs > 0
+                  ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                  : 'bg-white text-stone-600 border-head-line hover:bg-stone-50'
+              }`}
+            >
+              <AlertTriangle className='w-3.5 h-3.5 text-rose-600 shrink-0' />
+              <span className='hidden xl:inline'>
+                {t('chapterReview.redrawRequestsBtn', { count: totalOpenCrs })}
+              </span>
+              <span
+                className={`xl:hidden px-1.5 py-0.5 rounded-full text-xs font-bold leading-none ${
+                  totalOpenCrs > 0 ? 'bg-rose-100 text-rose-700' : 'bg-stone-100 text-stone-600'
+                }`}
+              >
+                {totalOpenCrs}
+              </span>
+            </button>
+
+            <button
+              type='button'
+              onClick={() => setIsProvenanceOpen(true)}
+              aria-label={t('chapterReview.provenance')}
+              title={t('chapterReview.provenanceTitle')}
+              data-testid='btn-provenance-modal'
+              className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors shrink-0'
+            >
+              <History className='w-3.5 h-3.5 text-stone-500 shrink-0' />
+              <span className='hidden xl:inline'>{t('chapterReview.provenance')}</span>
+            </button>
+
+            <button
+              type='button'
+              onClick={() => setIsSubmissionsOpen(true)}
+              aria-label={t('chapterReview.historyCount', { count: submissions.length })}
+              title={t('chapterReview.submissionsTitle')}
+              data-testid='btn-submissions-history'
+              className='px-3 py-1.5 flex items-center gap-1.5 border border-head-line bg-white hover:bg-stone-50 text-stone-900 text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors shrink-0'
+            >
+              <Clock className='w-3.5 h-3.5 text-stone-500 shrink-0' />
+              <span className='hidden xl:inline'>
+                {t('chapterReview.historyCount', { count: submissions.length })}
+              </span>
+              <span className='xl:hidden px-1.5 py-0.5 rounded-full text-xs font-semibold bg-stone-100 text-stone-600 leading-none'>
+                {submissions.length}
+              </span>
+            </button>
+
+            {(String(effectiveReviewStatus) === 'Assigned' ||
+              (isGridMode && String(effectiveReviewStatus) === 'ReworkRequired')) && (
+              <button
+                type='button'
+                disabled={actionBusy}
+                onClick={() => void handleStartReview()}
+                className='px-4 py-1.5 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full disabled:opacity-50 cursor-pointer shadow-xs transition-colors'
+              >
+                <Eye className='w-3.5 h-3.5' />
+                <span>{t('chapterReview.startReviewBtn')}</span>
+              </button>
+            )}
+
+            {canSubmitGate2Grid && (
+              <button
+                type='button'
+                disabled={actionBusy || !!unfinishedWarning}
+                onClick={() => void handleSubmitGate2GridReview()}
+                data-testid='btn-submit-chapter-review'
+                className='px-4 py-1.5 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-colors'
+              >
+                <Send className='w-3.5 h-3.5' />
+                <span>{t('chapterReview.gate2GridSubmitChapterReview')}</span>
+              </button>
+            )}
+
+            {canApprove && (
+              <button
+                type='button'
+                disabled={actionBusy || isApproved || !!unfinishedWarning}
+                onClick={() => void handleApproveChapter()}
+                title={
+                  unfinishedWarning
+                    ? t('chapterReview.approveBlockedTitle')
+                    : t('chapterReview.approveTooltip')
+                }
+                className='px-5 py-2 flex items-center gap-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-all active:scale-98'
+                data-testid='btn-approve-chapter-review'
+              >
+                <CheckCircle2 className='w-4 h-4' />
+                <span>{t('chapterReview.approveGate2Btn')}</span>
+              </button>
+            )}
+
+            {isApproved && (
+              <div className='px-4 py-2 flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-full shadow-xs'>
+                <CheckCircle2 className='w-4 h-4 text-emerald-600' />
+                <span>{t('chapterReview.approvedChapterBadge')}</span>
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* Action Buttons */}
-        <div className='flex items-center gap-2 shrink-0'>
-          {/* Button Yêu cầu vẽ lại (Stitch id="btn-rework-count") */}
-          <button
-            id='btn-rework-count'
-            type='button'
-            onClick={() => setActiveTab('changes')}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs ${
-              totalOpenCrs > 0
-                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
-            }`}
-          >
-            <AlertTriangle className='w-3.5 h-3.5 text-rose-600' />
-            <span>{t('chapterReview.redrawRequestsBtn', { count: totalOpenCrs })}</span>
-          </button>
-
-          <button
-            type='button'
-            onClick={() => setIsProvenanceOpen(true)}
-            className='px-3 py-1.5 flex items-center gap-1.5 border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
-            title={t('chapterReview.provenanceTitle')}
-            data-testid='btn-provenance-modal'
-          >
-            <History className='w-3.5 h-3.5 text-[#78716C]' />
-            <span>{t('chapterReview.provenance')}</span>
-          </button>
-
-          <button
-            type='button'
-            onClick={() => setIsSubmissionsOpen(true)}
-            className='px-3 py-1.5 flex items-center gap-1.5 border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] text-xs font-semibold rounded-full cursor-pointer shadow-xs transition-colors'
-            title={t('chapterReview.submissionsTitle')}
-            data-testid='btn-submissions-history'
-          >
-            <Clock className='w-3.5 h-3.5 text-[#78716C]' />
-            <span>{t('chapterReview.historyCount', { count: submissions.length })}</span>
-          </button>
-
-          {(String(effectiveReviewStatus) === 'Assigned' ||
-            (isGridMode && String(effectiveReviewStatus) === 'ReworkRequired')) && (
-            <button
-              type='button'
-              disabled={actionBusy}
-              onClick={() => void handleStartReview()}
-              className='px-4 py-1.5 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full disabled:opacity-50 cursor-pointer shadow-xs transition-colors'
-            >
-              <Eye className='w-3.5 h-3.5' />
-              <span>{t('chapterReview.startReviewBtn')}</span>
-            </button>
-          )}
-
-          {canSubmitGate2Grid && (
-            <button
-              type='button'
-              disabled={actionBusy || !!unfinishedWarning}
-              onClick={() => void handleSubmitGate2GridReview()}
-              data-testid='btn-submit-chapter-review'
-              className='px-4 py-1.5 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-colors'
-            >
-              <Send className='w-3.5 h-3.5' />
-              <span>{t('chapterReview.gate2GridSubmitChapterReview')}</span>
-            </button>
-          )}
-
-          {canApprove && (
-            <button
-              type='button'
-              disabled={actionBusy || isApproved || !!unfinishedWarning}
-              onClick={() => void handleApproveChapter()}
-              title={
-                unfinishedWarning
-                  ? t('chapterReview.approveBlockedTitle')
-                  : t('chapterReview.approveTooltip')
-              }
-              className='px-5 py-2 flex items-center gap-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold rounded-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs transition-all active:scale-98'
-              data-testid='btn-approve-chapter-review'
-            >
-              <CheckCircle2 className='w-4 h-4' />
-              <span>{t('chapterReview.approveGate2Btn')}</span>
-            </button>
-          )}
-
-          {isApproved && (
-            <div className='px-4 py-2 flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-full shadow-xs'>
-              <CheckCircle2 className='w-4 h-4 text-emerald-600' />
-              <span>{t('chapterReview.approvedChapterBadge')}</span>
-            </div>
-          )}
-        </div>
-      </div>
+      </PageHeader>
 
       {/* WARNING BANNERS */}
       {unfinishedWarning && unfinishedWarning.length > 0 && (
@@ -1549,8 +1599,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
       {/* 2. THREE-COLUMN MAIN LAYOUT */}
       <div className='flex-1 flex overflow-hidden'>
         {/* COLUMN 1: LEFT SIDEBAR - PAGE LIST */}
-        <div className='w-72 md:w-80 shrink-0 border-r border-[#D8D2C5] bg-[#FCFBF8] flex flex-col h-full overflow-hidden'>
-          <div className='p-2.5 border-b border-[#D8D2C5] bg-[#F8F6F0] flex items-center justify-between gap-1'>
+        <div className='w-72 md:w-80 shrink-0 border-r border-head-line bg-[#FCFBF8] flex flex-col h-full overflow-hidden'>
+          <div className='p-2.5 border-b border-head-line bg-head-wash flex items-center justify-between gap-1'>
             <div className='inline-flex p-0.5 rounded-lg bg-stone-200/70 text-xs font-semibold'>
               <button
                 type='button'
@@ -1576,7 +1626,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 <span>{t('chapterReview.scriptTab')}</span>
               </button>
             </div>
-            <span className='text-[11px] text-[#57534E] font-medium'>
+            <span className='text-xs text-stone-600 font-medium'>
               {t('chapterReview.selectedPageLabel', { page: currentPage?.pageNumber || 1 })}
             </span>
           </div>
@@ -1589,11 +1639,11 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     <BookOpen className='w-3.5 h-3.5 text-orange-600' />
                     {t('chapterReview.scriptReferenceTitle')}
                   </span>
-                  <span className='text-[10px] font-mono px-1.5 py-0.5 bg-stone-200 text-stone-700 rounded'>
+                  <span className='text-xs font-mono px-1.5 py-0.5 bg-stone-200 text-stone-700 rounded'>
                     {t('chapterReview.pageBadge', { page: currentPage?.pageNumber || 1 })}
                   </span>
                 </div>
-                <p className='text-[11px] text-stone-500 mt-0.5'>
+                <p className='text-xs text-stone-500 mt-0.5'>
                   {t('chapterReview.scriptReferenceHint')}
                 </p>
               </div>
@@ -1629,16 +1679,16 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                             })}
                           </span>
                           {pCrs.length > 0 ? (
-                            <span className='px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold'>
+                            <span className='px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold'>
                               {t('chapterReview.panelOpenCrs', { count: pCrs.length })}
                             </span>
                           ) : (
-                            <span className='px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold'>
+                            <span className='px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold'>
                               {t('chapterReview.panelMatched')}
                             </span>
                           )}
                         </div>
-                        <p className='text-[11px] text-stone-600 italic leading-relaxed'>
+                        <p className='text-xs text-stone-600 italic leading-relaxed'>
                           {p.direction || t('chapterReview.panelDirectionFallback')}
                         </p>
                       </div>
@@ -1703,7 +1753,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                           className='w-full h-full object-contain'
                         />
                       ) : (
-                        <span className='text-[10px] text-stone-400 font-medium text-center px-1'>
+                        <span className='text-xs text-stone-400 font-medium text-center px-1'>
                           {cached
                             ? cached.hasArtwork
                               ? t('chapterReview.thumbImage')
@@ -1713,12 +1763,12 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       )}
 
                       {cached?.hasArtwork && !cached.hasText && (
-                        <span className='absolute top-1 left-1 px-1 py-0.2 rounded text-[8px] font-bold bg-amber-500 text-white'>
+                        <span className='absolute top-1 left-1 px-1.5 py-0.5 rounded text-xs font-bold bg-amber-500 text-white'>
                           {t('chapterReview.noTextShort')}
                         </span>
                       )}
                       {cached?.baseStageName && (
-                        <span className='absolute bottom-1 right-1 px-1 py-0.2 rounded text-[8px] font-bold bg-black/75 text-white font-mono'>
+                        <span className='absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-xs font-bold bg-black/75 text-white font-mono'>
                           {cached.baseStageName}
                         </span>
                       )}
@@ -1732,20 +1782,20 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                             {t('artworkReview.header.page', { number: page.pageNumber })}
                           </h4>
                           {pageCrCount > 0 ? (
-                            <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200'>
+                            <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200'>
                               {t('chapterReview.issuesCount', { count: pageCrCount })}
                             </span>
                           ) : isPageIncomplete ? (
-                            <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200'>
+                            <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200'>
                               {t('chapterReview.pageIncomplete')}
                             </span>
                           ) : (
-                            <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800'>
+                            <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800'>
                               {t('chapterReview.pagePassed')}
                             </span>
                           )}
                         </div>
-                        <p className='text-[11px] text-stone-500'>
+                        <p className='text-xs text-stone-500'>
                           {panelCount > 0
                             ? t('chapterReview.panelsCount', { count: panelCount })
                             : t('chapterReview.singlePage')}{' '}
@@ -1782,20 +1832,20 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         {/* COLUMN 2: CENTER - MAIN COMPOSITE VIEWER */}
         <div className='flex-1 flex flex-col h-full overflow-hidden bg-[#F3F0E9] relative'>
           {/* Top Viewer Toolbar */}
-          <div className='h-11 shrink-0 bg-[#FCFBF8]/95 backdrop-blur-md border-b border-[#D8D2C5] px-4 flex items-center justify-between text-[#1C1917] z-10'>
+          <div className='h-11 shrink-0 bg-head-wash/95 backdrop-blur-md border-b border-head-line px-4 flex items-center justify-between text-stone-900 z-10'>
             {/* Page navigation */}
             <div className='flex items-center gap-2'>
               <button
                 type='button'
                 disabled={selectedPageIndex <= 0}
                 onClick={() => setSelectedPageId(pages[selectedPageIndex - 1].id)}
-                className='p-1 rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
+                className='p-1 rounded-lg hover:bg-[#F3F0E9] text-stone-600 hover:text-stone-900 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
                 title={t('chapterReview.prevPageTitle')}
                 data-testid='btn-prev-page'
               >
                 <ChevronLeft className='w-4 h-4' />
               </button>
-              <span className='text-xs font-semibold font-mono text-[#1C1917]'>
+              <span className='text-xs font-semibold font-mono text-stone-900'>
                 {t('chapterReview.pageCounter', {
                   current: currentPage?.pageNumber || 1,
                   total: pages.length,
@@ -1805,7 +1855,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 type='button'
                 disabled={selectedPageIndex >= pages.length - 1}
                 onClick={() => setSelectedPageId(pages[selectedPageIndex + 1].id)}
-                className='p-1 rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
+                className='p-1 rounded-lg hover:bg-[#F3F0E9] text-stone-600 hover:text-stone-900 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
                 title={t('chapterReview.nextPageTitle')}
                 data-testid='btn-next-page'
               >
@@ -1815,14 +1865,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
             {/* Mode: Khoanh vùng vs Di chuyển */}
             <div className='flex items-center gap-2'>
-              <div className='flex items-center bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg p-0.5'>
+              <div className='flex items-center bg-[#F3F0E9] border border-head-line rounded-lg p-0.5'>
                 <button
                   type='button'
                   onClick={() => setIsDrawTool(true)}
                   className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                     isDrawTool
-                      ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-xs'
-                      : 'text-[#57534E] hover:text-[#1C1917]'
+                      ? 'bg-orange-50 text-stone-900 border border-[#C2410C] shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900'
                   }`}
                   data-testid='btn-tool-draw'
                 >
@@ -1834,8 +1884,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   onClick={() => setIsDrawTool(false)}
                   className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                     !isDrawTool
-                      ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-xs'
-                      : 'text-[#57534E] hover:text-[#1C1917]'
+                      ? 'bg-orange-50 text-stone-900 border border-[#C2410C] shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900'
                   }`}
                   data-testid='btn-tool-pan'
                 >
@@ -1973,7 +2023,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     }}
                     className='absolute border-2 border-amber-500 bg-amber-500/25 pointer-events-none z-30 flex items-start p-1'
                   >
-                    <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-600 text-white shadow-xs'>
+                    <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-amber-600 text-white shadow-xs'>
                       {t('chapterReview.draftRegionBadge')}
                       {draftRegion.panelId ? ` (${t('chapterReview.panelTag')})` : ''}
                     </span>
@@ -2013,14 +2063,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       } ${isHigh ? 'ring-4 ring-yellow-400 animate-pulse' : ''}`}
                     >
                       <span
-                        className={`px-1 py-0.2 rounded text-[9px] font-extrabold text-white ${
+                        className={`px-1.5 py-0.5 rounded text-xs font-extrabold text-white ${
                           isOp ? 'bg-red-600' : isVer ? 'bg-emerald-600' : 'bg-amber-600'
                         }`}
                       >
                         #{idx + 1}
                       </span>
                       {cr.panelId && (
-                        <span className='px-1 py-0.2 rounded text-[9px] font-bold bg-black/60 text-white'>
+                        <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-black/60 text-white'>
                           {t('chapterReview.panelTag')}
                         </span>
                       )}
@@ -2033,21 +2083,21 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
         </div>
 
         {/* COLUMN 3: RIGHT TAB PANEL */}
-        <div className='w-96 shrink-0 border-l border-[#D8D2C5] bg-[#FCFBF8] flex flex-col h-full overflow-hidden'>
+        <div className='w-96 shrink-0 border-l border-head-line bg-[#FCFBF8] flex flex-col h-full overflow-hidden'>
           {/* Tab Navigation */}
-          <div className='flex border-b border-[#D8D2C5] bg-[#F8F6F0] shrink-0 text-xs font-bold'>
+          <div className='flex border-b border-head-line bg-head-wash shrink-0 text-xs font-bold'>
             <button
               type='button'
               onClick={() => setActiveTab('changes')}
               className={`flex-1 py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
                 activeTab === 'changes'
-                  ? 'border-[#C2410C] text-[#1C1917] bg-[#FFF2E6]/60'
-                  : 'border-transparent text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
+                  ? 'border-[#C2410C] text-stone-900 bg-orange-50/60'
+                  : 'border-transparent text-stone-600 hover:text-stone-900 hover:bg-[#F3F0E9]'
               }`}
             >
               <span>{t('chapterReview.changeRequests', 'Yêu cầu sửa')}</span>
               {changeRequests.filter((c) => String(c.status) === 'Open').length > 0 && (
-                <span className='px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-red-100 text-red-700'>
+                <span className='px-1.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700'>
                   {changeRequests.filter((c) => String(c.status) === 'Open').length}
                 </span>
               )}
@@ -2057,13 +2107,13 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               onClick={() => setActiveTab('checklist')}
               className={`flex-1 py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
                 activeTab === 'checklist'
-                  ? 'border-[#C2410C] text-[#1C1917] bg-[#FFF2E6]/60'
-                  : 'border-transparent text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
+                  ? 'border-[#C2410C] text-stone-900 bg-orange-50/60'
+                  : 'border-transparent text-stone-600 hover:text-stone-900 hover:bg-[#F3F0E9]'
               }`}
             >
               <CheckSquare className='w-3.5 h-3.5 text-[#C2410C]' />
               <span>{t('chapterReview.checklist', 'Checklist')}</span>
-              <span className='px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-[#F3F0E9] text-[#57534E]'>
+              <span className='px-1.5 py-0.5 rounded-full text-xs font-mono font-bold bg-stone-100 text-stone-600'>
                 {Object.values(checklist).filter(Boolean).length}/5
               </span>
             </button>
@@ -2072,14 +2122,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               onClick={() => setActiveTab('consistency')}
               className={`flex-1 py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
                 activeTab === 'consistency'
-                  ? 'border-[#C2410C] text-[#1C1917] bg-[#FFF2E6]/60'
-                  : 'border-transparent text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
+                  ? 'border-[#C2410C] text-stone-900 bg-orange-50/60'
+                  : 'border-transparent text-stone-600 hover:text-stone-900 hover:bg-[#F3F0E9]'
               }`}
             >
               <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' />
               <span>{t('chapterReview.consistency', 'Nhất quán')}</span>
               {findings.length > 0 && (
-                <span className='px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-[#F3F0E9] text-[#57534E]'>
+                <span className='px-1.5 py-0.5 rounded-full text-xs font-mono font-bold bg-stone-100 text-stone-600'>
                   {findings.length}
                 </span>
               )}
@@ -2093,10 +2143,10 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               {isGridMode && currentPage && currentPageGridCells.length > 0 && (
                 <div
                   data-testid='gate2-grid-cells-panel'
-                  className='p-3.5 rounded-xl border border-[#D8D2C5] bg-white space-y-2.5 shadow-2xs'
+                  className='p-3.5 rounded-xl border border-head-line bg-white space-y-2.5 shadow-2xs'
                 >
                   <div className='flex items-center justify-between gap-2'>
-                    <span className='text-xs font-bold text-[#1C1917] flex items-center gap-1.5'>
+                    <span className='text-xs font-bold text-stone-900 flex items-center gap-1.5'>
                       <Layers className='w-3.5 h-3.5 text-[#C2410C]' />
                       <span>
                         {t('chapterReview.gate2GridTitle', {
@@ -2147,7 +2197,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                 {st?.stageOrder ? `${st.stageOrder}. ` : ''}
                                 {st?.name || 'Stage'}
                               </div>
-                              <div className='text-[11px] text-stone-500 truncate'>
+                              <div className='text-xs text-stone-500 truncate'>
                                 👤 {assigneeLabel}
                               </div>
                             </div>
@@ -2155,7 +2205,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                               {cell.isInputOutdated && (
                                 <span
                                   data-testid={`gate2-cell-input-outdated-${cell.id}`}
-                                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded border border-amber-300 bg-amber-100 text-[11px] font-semibold text-amber-900'
+                                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded border border-amber-300 bg-amber-100 text-xs font-semibold text-amber-900'
                                 >
                                   <AlertTriangle className='w-3 h-3 text-amber-700 shrink-0' />
                                   <span>
@@ -2163,7 +2213,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   </span>
                                 </span>
                               )}
-                              <span className='px-2 py-0.5 rounded border border-stone-300 bg-white text-[11px] font-semibold text-stone-800'>
+                              <span className='px-2 py-0.5 rounded border border-stone-300 bg-white text-xs font-semibold text-stone-800'>
                                 {cell.status}
                               </span>
                             </div>
@@ -2181,7 +2231,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   ? `${t('chapterReview.reopenReasonPrefix', 'Producer mở lại:')} ${reworkDisplay.text}`
                                   : `${t('chapterReview.gate2GridLastComment', 'Nhận xét lần duyệt gần nhất')}: ${reworkDisplay.text}`
                               }
-                              className='rounded border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] text-rose-900'
+                              className='rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-900'
                             >
                               {reworkDisplay.kind === 'reopen' ? (
                                 <>
@@ -2206,7 +2256,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                           {isCellLockedByOther && (
                             <div
                               data-testid={`gate2-cell-locked-by-other-${cell.id}`}
-                              className='rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-900 flex items-center justify-between gap-1.5 flex-wrap'
+                              className='rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 flex items-center justify-between gap-1.5 flex-wrap'
                             >
                               <span className='inline-flex items-center gap-1'>
                                 <Lock className='w-3 h-3 text-amber-600 shrink-0' />
@@ -2220,7 +2270,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   data-testid={`gate2-force-release-cell-${cell.id}`}
                                   disabled={gridCellBusyId !== null}
                                   onClick={() => void handleReleaseGridCellReview(cell)}
-                                  className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 text-[11px] font-semibold text-amber-950 cursor-pointer disabled:opacity-50'
+                                  className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-950 cursor-pointer disabled:opacity-50'
                                 >
                                   <RotateCcw className='w-3 h-3' />
                                   <span>{t('chapterReview.forceReleaseReviewBtn')}</span>
@@ -2234,7 +2284,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                               {isSelfCell ? (
                                 <span
                                   data-testid={`gate2-cell-self-locked-${cell.id}`}
-                                  className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-900'
+                                  className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900'
                                 >
                                   <Lock className='w-3 h-3 text-amber-600' />
                                   <span>{t('chapterReview.gate2GridSelfReviewLocked')}</span>
@@ -2339,7 +2389,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                     <button
                       type='button'
                       onClick={() => setDraftRegion(null)}
-                      className='text-[11px] font-semibold text-stone-500 hover:text-red-600 flex items-center gap-1 cursor-pointer'
+                      className='text-xs font-semibold text-stone-500 hover:text-red-600 flex items-center gap-1 cursor-pointer'
                     >
                       <Trash2 className='w-3 h-3' /> {t('chapterReview.form.clearRegion')}
                     </button>
@@ -2356,7 +2406,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       {Math.round(draftRegion.box.h * 100)}%
                     </span>
                     {draftRegion.panelId && (
-                      <span className='px-1.5 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold'>
+                      <span className='px-1.5 py-0.5 rounded bg-amber-600 text-white text-xs font-bold'>
                         {t('chapterReview.panelTag')}
                       </span>
                     )}
@@ -2366,7 +2416,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                 {/* Form fields */}
                 <form onSubmit={handleSubmitReturnWork} className='space-y-2.5'>
                   <div>
-                    <label className='block text-[11px] font-bold text-stone-700 mb-1'>
+                    <label className='block text-xs font-bold text-stone-700 mb-1'>
                       {t('chapterReview.form.stageLabel')} <span className='text-red-500'>*</span>
                     </label>
                     <select
@@ -2389,12 +2439,12 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
                   <div>
                     <div className='flex items-center justify-between mb-1'>
-                      <label className='block text-[11px] font-bold text-stone-700'>
+                      <label className='block text-xs font-bold text-stone-700'>
                         {t('chapterReview.form.descLabel')} <span className='text-red-500'>*</span>
                       </label>
                       <span
                         id='selected-panel-badge'
-                        className='font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200 text-[10px]'
+                        className='font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200 text-xs'
                       >
                         {t('readerView.selectedPanelBadge', { number: selectedPanelNumber })}
                       </span>
@@ -2411,7 +2461,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   </div>
 
                   <div>
-                    <label className='block text-[11px] font-bold text-stone-700 mb-1'>
+                    <label className='block text-xs font-bold text-stone-700 mb-1'>
                       {t('chapterReview.form.dueDateLabel')}
                     </label>
                     <input
@@ -2477,7 +2527,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   <span className='text-xs font-bold text-stone-900'>
                     {t('chapterReview.crListTitle', { count: changeRequests.length })}
                   </span>
-                  <div className='flex items-center gap-1 text-[11px]'>
+                  <div className='flex items-center gap-1 text-xs'>
                     {(['All', 'Open', 'Resolved', 'Verified'] as const).map((st) => (
                       <button
                         key={st}
@@ -2507,7 +2557,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
                       return (
                         <div key={page.id} className='space-y-2'>
-                          <div className='text-[11px] font-bold text-stone-500 bg-stone-100 px-2 py-1 rounded flex items-center justify-between'>
+                          <div className='text-xs font-bold text-stone-500 bg-stone-100 px-2 py-1 rounded flex items-center justify-between'>
                             <span>
                               {t('artworkReview.header.page', { number: page.pageNumber })}
                             </span>
@@ -2535,7 +2585,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                   <div className='flex items-center justify-between gap-1'>
                                     <div className='flex items-center gap-1.5'>
                                       <span
-                                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                        className={`px-1.5 py-0.5 rounded text-xs font-bold ${
                                           isOp
                                             ? 'bg-red-100 text-red-800'
                                             : isRes
@@ -2549,7 +2599,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                         {st?.name || t('chapterReview.defaultStageName')}
                                       </span>
                                     </div>
-                                    <span className='text-[10px] text-stone-400'>
+                                    <span className='text-xs text-stone-400'>
                                       {member?.fullName ||
                                         member?.email ||
                                         t('chapterReview.defaultAssignee')}
@@ -2566,7 +2616,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                           setSelectedPageId(page.id);
                                           setHighlightedCrId(cr.id);
                                         }}
-                                        className='text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer'
+                                        className='text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer'
                                       >
                                         <Square className='w-3 h-3' />{' '}
                                         {t('chapterReview.viewOnImage')}
@@ -2580,14 +2630,14 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                                       <button
                                         type='button'
                                         onClick={() => void handleReopenChangeRequest(cr.id)}
-                                        className='px-2 py-1 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-bold cursor-pointer'
+                                        className='px-2 py-1 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold cursor-pointer'
                                       >
                                         {t('chapterReview.reopenBtn')}
                                       </button>
                                       <button
                                         type='button'
                                         onClick={() => void handleVerifyChangeRequest(cr.id)}
-                                        className='px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer flex items-center gap-1'
+                                        className='px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer flex items-center gap-1'
                                       >
                                         <CheckCircle2 className='w-3 h-3' />{' '}
                                         {t('chapterReview.verifyBtn')}
@@ -2615,7 +2665,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                   <CheckSquare className='w-4 h-4 text-purple-700' />
                   {t('chapterReview.checklistTitle')}
                 </h4>
-                <p className='text-[11px] text-purple-700'>{t('chapterReview.checklistHint')}</p>
+                <p className='text-xs text-purple-700'>{t('chapterReview.checklistHint')}</p>
               </div>
 
               <div className='space-y-3' data-testid='checklist-container'>
@@ -2687,19 +2737,19 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
                       >
                         <div className='flex items-center justify-between'>
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            className={`px-1.5 py-0.5 rounded text-xs font-bold ${
                               SEVERITY_STYLE[String(f.severity)] || 'bg-stone-100 text-stone-600'
                             }`}
                           >
                             {f.severity} · {f.ruleCode}
                           </span>
-                          <span className='text-[10px] text-stone-500 font-bold'>
+                          <span className='text-xs text-stone-500 font-bold'>
                             {t(`chapterReview.findingStatus.${String(f.status)}`, String(f.status))}
                           </span>
                         </div>
                         <p className='text-stone-800'>{f.message}</p>
                         {f.evidence && (
-                          <blockquote className='text-[11px] text-stone-500 border-l-2 border-stone-300 pl-2 italic'>
+                          <blockquote className='text-xs text-stone-500 border-l-2 border-stone-300 pl-2 italic'>
                             {f.evidence}
                           </blockquote>
                         )}

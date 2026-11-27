@@ -123,7 +123,7 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
   };
 
   return (
-    <div className='w-full bg-white border-b border-stone-200 sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-3 shadow-2xs'>
+    <div className='w-full bg-white/95 border-b border-stone-200 sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-2.5 shadow-[inset_0_2px_0_var(--studio-accent)]'>
       <div className='max-w-[1640px] mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4'>
         {/* Left: Back Link, Title, Subtitle, Status Pill */}
         <div className='flex flex-wrap items-center gap-3'>
