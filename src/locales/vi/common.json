@@ -200,7 +200,12 @@
     "confirmPasswordPlaceholder": "Nhập lại mật khẩu vừa tạo",
     "backToRegister": "Quay lại form đăng ký",
     "verifyPinTitle": "Xác thực mã PIN",
-    "changeEmail": "Đổi email khác"
+    "changeEmail": "Đổi email khác",
+    "twoFactorUseRecovery": "Mất điện thoại? Dùng mã khôi phục",
+    "twoFactorUseAuthenticator": "Dùng mã 6 số từ Authenticator",
+    "twoFactorRecoveryLabel": "Mã khôi phục",
+    "twoFactorRecoveryHint": "Nhập một mã khôi phục đã lưu khi bật 2FA (dạng ABCDE-FGHJK). Mỗi mã chỉ dùng được một lần.",
+    "errRecoveryCodeFormat": "Mã khôi phục gồm 10 ký tự chữ và số, dạng ABCDE-FGHJK."
   },
   "modals": {
     "provenance": {

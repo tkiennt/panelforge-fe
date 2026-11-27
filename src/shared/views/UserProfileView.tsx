@@ -457,7 +457,13 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
       const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.setItem(
         'user',
-        JSON.stringify({ ...savedUser, isTwoFactorEnabled: enabled, twoFactorEnabled: enabled }),
+        JSON.stringify({
+          ...savedUser,
+          isTwoFactorEnabled: enabled,
+          twoFactorEnabled: enabled,
+          // Bật 2FA cấp 10 mã khôi phục mới; tắt thì xoá hết
+          twoFactorRecoveryCodesLeft: enabled ? 10 : 0,
+        }),
       );
     } catch {
       // bỏ qua
@@ -1586,6 +1592,16 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
         twoFactorEnabled={is2faActive}
         isTwoFactorEnabled={is2faActive}
         onClose={() => setIsTwoFactorOpen(false)}
+        recoveryCodesLeft={(() => {
+          try {
+            const left = JSON.parse(
+              localStorage.getItem('user') || '{}',
+            ).twoFactorRecoveryCodesLeft;
+            return typeof left === 'number' ? left : undefined;
+          } catch {
+            return undefined;
+          }
+        })()}
         onSuccess={() => rememberTwoFactorState(true)}
         onDisabled={() => rememberTwoFactorState(false)}
       />

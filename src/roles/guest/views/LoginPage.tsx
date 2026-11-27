@@ -16,6 +16,11 @@ import {
 } from 'lucide-react';
 import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
+import {
+  isRecoveryCode,
+  normalizeRecoveryInput,
+  onlyDigits,
+} from '@/shared/features/account/recoveryCodes';
 import { AuthResponse, SystemRole, normalizeSystemRole } from '@/types';
 import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/auth.css';
@@ -55,6 +60,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   // 2FA state
   const [twoFactorCode, setTwoFactorCode] = useState('');
+  // Mất điện thoại: nhập mã khôi phục (ABCDE-FGHJK) thay cho mã 6 số
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [twoFactorEmail, setTwoFactorEmail] = useState('');
   const [rememberDevice, setRememberDevice] = useState(true);
 
@@ -171,8 +178,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const handleTwoFactorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanCode = twoFactorCode.trim();
-    if (cleanCode.length !== 6) {
-      setServerError(t('common.auth.errTwoFactorCodeLength'));
+    if (useRecoveryCode ? !isRecoveryCode(cleanCode) : cleanCode.length !== 6) {
+      setServerError(
+        useRecoveryCode
+          ? t('common.auth.errRecoveryCodeFormat')
+          : t('common.auth.errTwoFactorCodeLength'),
+      );
       return;
     }
 
@@ -638,22 +649,52 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               htmlFor='two-factor-code'
               className='block text-xs font-semibold text-[#171717] mb-1.5'
             >
-              {t('common.auth.twoFactorCodeLabel', 'Mã xác thực 6 chữ số')}
+              {useRecoveryCode
+                ? t('common.auth.twoFactorRecoveryLabel')
+                : t('common.auth.twoFactorCodeLabel', 'Mã xác thực 6 chữ số')}
             </label>
             <input
               id='two-factor-code'
               type='text'
-              inputMode='numeric'
-              pattern='[0-9]*'
-              maxLength={6}
+              inputMode={useRecoveryCode ? 'text' : 'numeric'}
+              autoComplete={useRecoveryCode ? 'off' : 'one-time-code'}
+              autoCapitalize={useRecoveryCode ? 'characters' : undefined}
+              spellCheck={false}
               value={twoFactorCode}
-              onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
-              placeholder='000000'
+              onChange={(e) =>
+                setTwoFactorCode(
+                  useRecoveryCode
+                    ? normalizeRecoveryInput(e.target.value)
+                    : onlyDigits(e.target.value),
+                )
+              }
+              placeholder={useRecoveryCode ? 'ABCDE-FGHJK' : '000000'}
+              aria-describedby={useRecoveryCode ? 'two-factor-recovery-hint' : undefined}
               autoFocus
               required
               disabled={isLoading}
-              className='w-full text-center text-2xl font-mono font-bold tracking-[0.4em] py-3 px-4 bg-white border border-[#E7E5E4] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 rounded-xl outline-none transition-all shadow-xs'
+              className={`w-full text-center text-2xl font-mono font-bold py-3 px-4 bg-white border border-[#E7E5E4] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 rounded-xl outline-none transition-all shadow-xs ${
+                useRecoveryCode ? 'tracking-[0.15em]' : 'tracking-[0.4em]'
+              }`}
             />
+            {useRecoveryCode && (
+              <p id='two-factor-recovery-hint' className='mt-1.5 text-xs text-[#777169]'>
+                {t('common.auth.twoFactorRecoveryHint')}
+              </p>
+            )}
+            <button
+              type='button'
+              onClick={() => {
+                setUseRecoveryCode((v) => !v);
+                setTwoFactorCode('');
+                setServerError(null);
+              }}
+              className='mt-2 text-xs font-semibold text-[#C2410C] hover:underline underline-offset-2 cursor-pointer'
+            >
+              {useRecoveryCode
+                ? t('common.auth.twoFactorUseAuthenticator')
+                : t('common.auth.twoFactorUseRecovery')}
+            </button>
           </div>
 
           <div className='flex items-center gap-2 pt-1'>
@@ -671,7 +712,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
           <button
             type='submit'
-            disabled={isLoading || twoFactorCode.trim().length !== 6}
+            disabled={
+              isLoading ||
+              (useRecoveryCode ? !isRecoveryCode(twoFactorCode) : twoFactorCode.trim().length !== 6)
+            }
             className='w-full py-3 px-4 bg-[#F97316] hover:bg-[#EA580C] disabled:bg-stone-300 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer'
           >
             {isLoading ? (

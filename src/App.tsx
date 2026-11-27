@@ -86,6 +86,7 @@ function AppContent() {
     role: SystemRole;
     canCreateStudio?: boolean;
     isTwoFactorEnabled?: boolean;
+    twoFactorRecoveryCodesLeft?: number;
     avatarUrl?: string | null;
   } | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -349,6 +350,7 @@ function AppContent() {
           canCreateStudio: !!me.canCreateStudio,
           // Trạng thái 2FA thật từ BE (trước đây không có → modal 2FA tưởng chưa bật sau khi tải lại trang)
           isTwoFactorEnabled: !!me.twoFactorEnabled,
+          twoFactorRecoveryCodesLeft: me.twoFactorRecoveryCodesLeft,
           avatarUrl: avatar,
         });
         const isTwoFactorEnabled = !!me.twoFactorEnabled;
@@ -903,12 +905,15 @@ function AppContent() {
         onClose={() => setIsTwoFactorModalOpen(false)}
         twoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
         isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
+        recoveryCodesLeft={currentUserInfo?.twoFactorRecoveryCodesLeft}
         onSuccess={() => {
           showToast(
             t('navigation.app.twoFactorUpdatedTitle'),
             t('navigation.app.twoFactorEnabledDesc'),
           );
-          setCurrentUserInfo((prev) => (prev ? { ...prev, isTwoFactorEnabled: true } : prev));
+          setCurrentUserInfo((prev) =>
+            prev ? { ...prev, isTwoFactorEnabled: true, twoFactorRecoveryCodesLeft: 10 } : prev,
+          );
           const savedUser = localStorage.getItem('user');
           if (savedUser) {
             try {

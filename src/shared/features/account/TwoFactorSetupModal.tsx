@@ -8,33 +8,49 @@ import {
   KeyRound,
   RefreshCw,
   Trash2,
+  LifeBuoy,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { authService } from '@/services/auth.service';
 import { Alert, Button, Modal } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
+import { RecoveryCodesPanel } from './RecoveryCodesPanel';
+import { isRecoveryCode, normalizeRecoveryInput, onlyDigits } from './recoveryCodes';
 
 interface TwoFactorSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
   twoFactorEnabled?: boolean;
   isTwoFactorEnabled?: boolean;
+  /** Số mã khôi phục còn lại (GET /Auth/me twoFactorRecoveryCodesLeft); không truyền thì ẩn dòng này. */
+  recoveryCodesLeft?: number;
   token?: string;
   onSuccess?: () => void;
   /** Gọi khi người dùng đóng modal sau khi đã tắt 2FA thành công */
   onDisabled?: () => void;
 }
 
-type Step = 'status' | 'loading' | 'setup' | 'success' | 'error' | 'disabled';
+type Step = 'status' | 'loading' | 'setup' | 'success' | 'codes' | 'error' | 'disabled';
+type StatusForm = 'none' | 'disable' | 'regenerate';
 
 const SETUP_FORM_ID = 'pf-2fa-setup-form';
-const DISABLE_FORM_ID = 'pf-2fa-disable-form';
+const STATUS_FORM_ID = 'pf-2fa-status-form';
 
 const otpInputClass =
   'w-full rounded-xl border border-stone-300 bg-white py-3 text-center font-mono font-bold tracking-[0.5em] text-stone-900 outline-none placeholder:text-stone-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 aria-[invalid=true]:border-rose-500 aria-[invalid=true]:ring-rose-100';
 
-/** Chỉ giữ chữ số, tối đa 6 (dán "123 456" hay "123-456" vẫn được). */
-const onlyDigits = (value: string) => value.replace(/\D/g, '').slice(0, 6);
+const MOCK_RECOVERY_CODES = [
+  '2B4CD-6F8GH',
+  'JK3MN-5PQ7R',
+  'ST9UV-WX2YZ',
+  'A3B4C-D5E6F',
+  'G7H8J-K9M2N',
+  'P3Q4R-S5T6U',
+  'V7W8X-Y9Z2A',
+  'B3C4D-E5F6G',
+  'H7J8K-M9N2P',
+  'Q3R4S-T5U6V',
+];
 
 const StepBadge: React.FC<{ n: number }> = ({ n }) => (
   <span
@@ -45,11 +61,60 @@ const StepBadge: React.FC<{ n: number }> = ({ n }) => (
   </span>
 );
 
+/** Ô nhập yếu tố thứ hai: mã 6 số, hoặc mã khôi phục khi mất điện thoại. */
+const SecondFactorInput: React.FC<{
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  recovery: boolean;
+  onToggleRecovery: () => void;
+  invalid: boolean;
+}> = ({ id, value, onChange, recovery, onToggleRecovery, invalid }) => {
+  const { t } = useTranslation();
+  return (
+    <div className='space-y-1.5'>
+      <label htmlFor={id} className='block text-xs font-semibold text-stone-800'>
+        {recovery
+          ? t('profile.twoFactorModal.recoveryCodeLabel')
+          : t('profile.twoFactorModal.secondFactorLabel')}
+      </label>
+      <input
+        id={id}
+        type='text'
+        inputMode={recovery ? 'text' : 'numeric'}
+        autoComplete={recovery ? 'off' : 'one-time-code'}
+        autoCapitalize={recovery ? 'characters' : undefined}
+        spellCheck={false}
+        value={value}
+        onChange={(e) =>
+          onChange(recovery ? normalizeRecoveryInput(e.target.value) : onlyDigits(e.target.value))
+        }
+        placeholder={recovery ? 'ABCDE-FGHJK' : '000000'}
+        aria-invalid={invalid || undefined}
+        className={`${otpInputClass} text-xl ${recovery ? 'tracking-[0.2em]' : ''}`}
+      />
+      <button
+        type='button'
+        onClick={onToggleRecovery}
+        className='text-xs font-semibold text-orange-700 underline-offset-2 hover:underline cursor-pointer'
+      >
+        {recovery
+          ? t('profile.twoFactorModal.useAuthenticatorCode')
+          : t('profile.twoFactorModal.useRecoveryCode')}
+      </button>
+    </div>
+  );
+};
+
+const secondFactorReady = (value: string, recovery: boolean) =>
+  recovery ? isRecoveryCode(value) : value.length === 6;
+
 export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   isOpen,
   onClose,
   twoFactorEnabled,
   isTwoFactorEnabled,
+  recoveryCodesLeft,
   token,
   onSuccess,
   onDisabled,
@@ -64,16 +129,21 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [showDisableForm, setShowDisableForm] = useState(false);
-  const [disableCode, setDisableCode] = useState('');
+  const [statusForm, setStatusForm] = useState<StatusForm>('none');
+  const [factorCode, setFactorCode] = useState('');
+  const [useRecovery, setUseRecovery] = useState(false);
   const [disablePassword, setDisablePassword] = useState('');
-  const [isDisabling, setIsDisabling] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+  const [savedAck, setSavedAck] = useState(false);
+  const [codesLeft, setCodesLeft] = useState<number | undefined>(recoveryCodesLeft);
   const justDisabledRef = useRef(false);
   const wasOpenRef = useRef(false);
 
   // Token chỉ dùng cho chế độ demo 'mock-...'; phiên thật nằm ở cookie HttpOnly
   const activeToken =
     token || (typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '');
+  const isMock = activeToken.startsWith('mock-');
 
   const is2faActive = Boolean(twoFactorEnabled ?? isTwoFactorEnabled);
 
@@ -106,17 +176,29 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
     }
   }, [activeToken, t]);
 
+  const resetStatusForm = () => {
+    setStatusForm('none');
+    setFactorCode('');
+    setUseRecovery(false);
+    setDisablePassword('');
+    setErrorMessage(null);
+  };
+
   // Chỉ khởi tạo khi modal vừa MỞ. Không chạy lại khi cha đổi trạng thái 2FA lúc modal còn mở
   // (vd. onSuccess bật cờ 2FA → trước đây nhảy sang màn "trạng thái", mất màn "thành công").
   useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
       justDisabledRef.current = false;
-      setShowDisableForm(false);
-      setDisableCode('');
+      setStatusForm('none');
+      setFactorCode('');
+      setUseRecovery(false);
       setDisablePassword('');
       setStatusMessage(null);
       setErrorMessage(null);
       setCopied(false);
+      setRecoveryCodes(null);
+      setSavedAck(false);
+      setCodesLeft(recoveryCodesLeft);
       if (is2faActive) {
         setStep('status');
       } else {
@@ -124,7 +206,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
       }
     }
     wasOpenRef.current = isOpen;
-  }, [isOpen, is2faActive, loadTwoFactorData]);
+  }, [isOpen, is2faActive, loadTwoFactorData, recoveryCodesLeft]);
 
   const handleCopyKey = async () => {
     if (!backupKey) return;
@@ -161,9 +243,13 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
     setErrorMessage(null);
 
     try {
-      if (!activeToken.startsWith('mock-')) {
-        await authService.verifyTwoFactor({ code }, activeToken || undefined);
-      }
+      const response = isMock
+        ? { recoveryCodes: MOCK_RECOVERY_CODES }
+        : await authService.verifyTwoFactor({ code }, activeToken || undefined);
+      const codes: string[] | undefined = response?.recoveryCodes;
+      setRecoveryCodes(codes?.length ? codes : null);
+      setCodesLeft(codes?.length);
+      setSavedAck(false);
       setStep('success');
       onSuccess?.();
     } catch (err: any) {
@@ -174,18 +260,30 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
     }
   };
 
-  const handleDisable = async (e: React.FormEvent) => {
+  const handleStatusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (disableCode.length !== 6) {
+    if (!secondFactorReady(factorCode, useRecovery)) {
       setErrorMessage(t('profile.twoFactorModal.otpLengthError'));
       return;
     }
-    setIsDisabling(true);
+    setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      if (!activeToken.startsWith('mock-')) {
+      if (statusForm === 'regenerate') {
+        const codes = isMock
+          ? MOCK_RECOVERY_CODES
+          : (await authService.regenerateRecoveryCodes(factorCode)).recoveryCodes;
+        setRecoveryCodes(codes);
+        setCodesLeft(codes.length);
+        setSavedAck(false);
+        resetStatusForm();
+        setStep('codes');
+        return;
+      }
+
+      if (!isMock) {
         await authService.disableTwoFactor({
-          code: disableCode,
+          code: factorCode,
           currentPassword: disablePassword || undefined,
         });
       }
@@ -202,15 +300,18 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
         // bỏ qua
       }
       localStorage.removeItem('pf_remember_device');
-      setDisableCode('');
-      setDisablePassword('');
-      setShowDisableForm(false);
+      resetStatusForm();
       setStep('disabled');
     } catch (err: any) {
-      setErrorMessage(err.message || t('profile.twoFactorModal.disableError'));
-      setDisableCode('');
+      setErrorMessage(
+        err.message ||
+          (statusForm === 'regenerate'
+            ? t('errors.services.auth.regenerateRecoveryCodesFailed')
+            : t('profile.twoFactorModal.disableError')),
+      );
+      setFactorCode('');
     } finally {
-      setIsDisabling(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -224,6 +325,10 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  // Còn mã khôi phục chưa xác nhận đã lưu → không cho đóng bằng nút X / Esc (mã chỉ hiện một lần)
+  const mustAckCodes =
+    Boolean(recoveryCodes) && !savedAck && (step === 'success' || step === 'codes');
 
   const errorAlert = errorMessage ? (
     <Alert tone='danger' role='alert' className='text-xs'>
@@ -254,33 +359,33 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
           </>
         );
       case 'status':
-        return showDisableForm ? (
-          <>
-            <Button
-              variant='ghost'
-              size='sm'
-              disabled={isDisabling}
-              onClick={() => {
-                setShowDisableForm(false);
-                setErrorMessage(null);
-              }}
-            >
-              {t('profile.twoFactorModal.cancel')}
-            </Button>
-            <Button
-              type='submit'
-              form={DISABLE_FORM_ID}
-              variant='danger'
-              size='sm'
-              disabled={isDisabling || disableCode.length !== 6}
-              leadingIcon={isDisabling ? <RefreshCw className='animate-spin' /> : undefined}
-            >
-              {isDisabling
-                ? t('profile.twoFactorModal.disabling')
-                : t('profile.twoFactorModal.confirmDisable')}
-            </Button>
-          </>
-        ) : (
+        if (statusForm !== 'none') {
+          const isDisable = statusForm === 'disable';
+          return (
+            <>
+              <Button variant='ghost' size='sm' disabled={isSubmitting} onClick={resetStatusForm}>
+                {t('profile.twoFactorModal.cancel')}
+              </Button>
+              <Button
+                type='submit'
+                form={STATUS_FORM_ID}
+                variant={isDisable ? 'danger' : 'primary'}
+                size='sm'
+                disabled={isSubmitting || !secondFactorReady(factorCode, useRecovery)}
+                leadingIcon={isSubmitting ? <RefreshCw className='animate-spin' /> : undefined}
+              >
+                {isSubmitting
+                  ? isDisable
+                    ? t('profile.twoFactorModal.disabling')
+                    : t('profile.twoFactorModal.recoveryRegenerating')
+                  : isDisable
+                    ? t('profile.twoFactorModal.confirmDisable')
+                    : t('profile.twoFactorModal.recoveryRegenerateConfirm')}
+              </Button>
+            </>
+          );
+        }
+        return (
           <div className='flex w-full flex-wrap items-center justify-between gap-2'>
             <div className='flex flex-wrap items-center gap-2'>
               <Button
@@ -296,8 +401,8 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                 size='sm'
                 leadingIcon={<ShieldOff />}
                 onClick={() => {
-                  setErrorMessage(null);
-                  setShowDisableForm(true);
+                  resetStatusForm();
+                  setStatusForm('disable');
                 }}
               >
                 {t('profile.twoFactorModal.disableBtn')}
@@ -310,8 +415,24 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
         );
       case 'success':
         return (
-          <Button variant='primary' size='sm' onClick={handleClose}>
-            {t('profile.twoFactorModal.doneAndClose')}
+          <Button variant='primary' size='sm' onClick={handleClose} disabled={mustAckCodes}>
+            {recoveryCodes
+              ? t('profile.twoFactorModal.doneSaved')
+              : t('profile.twoFactorModal.doneAndClose')}
+          </Button>
+        );
+      case 'codes':
+        return (
+          <Button
+            variant='primary'
+            size='sm'
+            disabled={mustAckCodes}
+            onClick={() => {
+              setRecoveryCodes(null);
+              setStep('status');
+            }}
+          >
+            {t('profile.twoFactorModal.doneSaved')}
           </Button>
         );
       case 'disabled':
@@ -329,6 +450,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
+      dismissible={!mustAckCodes}
       closeLabel={t('profile.twoFactorModal.close')}
       size='md'
       title={
@@ -340,7 +462,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
       description={t('profile.twoFactorModal.subheading')}
       footer={footer}
     >
-      {/* Đã bật 2FA: trạng thái + tắt 2FA */}
+      {/* Đã bật 2FA: trạng thái, mã khôi phục, tắt 2FA */}
       {step === 'status' && (
         <div className='space-y-4'>
           <Alert tone='success' title={t('profile.twoFactorModal.activeTitle')}>
@@ -363,6 +485,19 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                 {t('profile.twoFactorModal.securityStatusActive')}
               </dd>
             </div>
+            {codesLeft !== undefined && (
+              <div className='flex items-center justify-between gap-3 py-2.5'>
+                <dt className='font-medium text-stone-900'>
+                  {t('profile.twoFactorModal.recoveryLeftLabel')}
+                </dt>
+                <dd
+                  className={codesLeft <= 2 ? 'font-semibold text-amber-700' : 'text-stone-700'}
+                  data-testid='recovery-codes-left'
+                >
+                  {t('profile.twoFactorModal.recoveryLeft', { count: codesLeft })}
+                </dd>
+              </div>
+            )}
             <div className='flex items-center justify-between gap-3 py-2.5'>
               <dt className='font-medium text-stone-900'>
                 {t('profile.twoFactorModal.trustedDeviceLabel')}
@@ -377,56 +512,89 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
             </div>
           </dl>
 
-          {showDisableForm && (
+          {statusForm === 'none' && (
+            <div className='flex flex-wrap items-center justify-between gap-2 rounded-xl border border-stone-200 px-4 py-3'>
+              <p className='flex items-center gap-2 text-xs text-stone-700'>
+                <LifeBuoy className='size-4 shrink-0 text-amber-700' aria-hidden='true' />
+                {codesLeft !== undefined && codesLeft <= 2
+                  ? t('profile.twoFactorModal.recoveryLow')
+                  : t('profile.twoFactorModal.recoveryRegenerateHint')}
+              </p>
+              <Button
+                size='sm'
+                variant='secondary'
+                onClick={() => {
+                  resetStatusForm();
+                  setStatusForm('regenerate');
+                }}
+              >
+                {t('profile.twoFactorModal.recoveryRegenerateBtn')}
+              </Button>
+            </div>
+          )}
+
+          {statusForm !== 'none' && (
             <form
-              id={DISABLE_FORM_ID}
-              onSubmit={handleDisable}
-              className='space-y-3 rounded-xl border border-rose-200 bg-rose-50/50 p-4'
+              id={STATUS_FORM_ID}
+              onSubmit={handleStatusSubmit}
+              className={`space-y-3 rounded-xl border p-4 ${
+                statusForm === 'disable'
+                  ? 'border-rose-200 bg-rose-50/50'
+                  : 'border-amber-200 bg-amber-50/50'
+              }`}
             >
-              <h3 className='flex items-center gap-1.5 text-sm font-bold text-rose-800'>
-                <ShieldOff className='size-4' aria-hidden='true' />
-                {t('profile.twoFactorModal.disableHeading')}
+              <h3
+                className={`flex items-center gap-1.5 text-sm font-bold ${
+                  statusForm === 'disable' ? 'text-rose-800' : 'text-stone-900'
+                }`}
+              >
+                {statusForm === 'disable' ? (
+                  <ShieldOff className='size-4' aria-hidden='true' />
+                ) : (
+                  <LifeBuoy className='size-4 text-amber-700' aria-hidden='true' />
+                )}
+                {statusForm === 'disable'
+                  ? t('profile.twoFactorModal.disableHeading')
+                  : t('profile.twoFactorModal.recoveryRegenerateHeading')}
               </h3>
+              {statusForm === 'regenerate' && (
+                <p className='text-xs text-stone-600'>
+                  {t('profile.twoFactorModal.recoveryRegenerateHint')}
+                </p>
+              )}
               {errorAlert}
-              <div className='space-y-1.5'>
-                <label
-                  htmlFor='pf-2fa-disable-password'
-                  className='block text-xs font-semibold text-stone-800'
-                >
-                  {t('profile.twoFactorModal.currentPasswordLabel')}{' '}
-                  <span className='font-normal text-stone-500'>
-                    {t('profile.twoFactorModal.socialLoginHint')}
-                  </span>
-                </label>
-                <input
-                  id='pf-2fa-disable-password'
-                  type='password'
-                  value={disablePassword}
-                  onChange={(e) => setDisablePassword(e.target.value)}
-                  autoComplete='current-password'
-                  className='w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100'
-                />
-              </div>
-              <div className='space-y-1.5'>
-                <label
-                  htmlFor='pf-2fa-disable-code'
-                  className='block text-xs font-semibold text-stone-800'
-                >
-                  {t('profile.twoFactorModal.currentOtpLabel')}
-                </label>
-                <input
-                  id='pf-2fa-disable-code'
-                  type='text'
-                  inputMode='numeric'
-                  autoComplete='one-time-code'
-                  pattern='[0-9]{6}'
-                  value={disableCode}
-                  onChange={(e) => setDisableCode(onlyDigits(e.target.value))}
-                  placeholder='000000'
-                  aria-invalid={Boolean(errorMessage) || undefined}
-                  className={`${otpInputClass} text-xl`}
-                />
-              </div>
+              {statusForm === 'disable' && (
+                <div className='space-y-1.5'>
+                  <label
+                    htmlFor='pf-2fa-disable-password'
+                    className='block text-xs font-semibold text-stone-800'
+                  >
+                    {t('profile.twoFactorModal.currentPasswordLabel')}{' '}
+                    <span className='font-normal text-stone-500'>
+                      {t('profile.twoFactorModal.socialLoginHint')}
+                    </span>
+                  </label>
+                  <input
+                    id='pf-2fa-disable-password'
+                    type='password'
+                    value={disablePassword}
+                    onChange={(e) => setDisablePassword(e.target.value)}
+                    autoComplete='current-password'
+                    className='w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100'
+                  />
+                </div>
+              )}
+              <SecondFactorInput
+                id='pf-2fa-status-code'
+                value={factorCode}
+                onChange={setFactorCode}
+                recovery={useRecovery}
+                onToggleRecovery={() => {
+                  setUseRecovery((v) => !v);
+                  setFactorCode('');
+                }}
+                invalid={Boolean(errorMessage)}
+              />
             </form>
           )}
         </div>
@@ -574,25 +742,40 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
       )}
 
       {step === 'success' && (
-        <div className='space-y-4 py-6 text-center'>
-          <div className='mx-auto grid size-14 place-items-center rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-600'>
-            <ShieldCheck className='size-8' aria-hidden='true' />
+        <div className='space-y-4'>
+          <div className='flex items-start gap-3 text-left'>
+            <div className='grid size-11 shrink-0 place-items-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600'>
+              <ShieldCheck className='size-6' aria-hidden='true' />
+            </div>
+            <div>
+              <h3 className='font-serif text-lg font-bold text-stone-900'>
+                {t('profile.twoFactorModal.successTitle')}
+              </h3>
+              <p className='mt-1 text-xs leading-relaxed text-stone-600'>
+                {t('profile.twoFactorModal.successDesc')}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className='font-serif text-xl font-bold text-stone-900'>
-              {t('profile.twoFactorModal.successTitle')}
-            </h3>
-            <p className='mx-auto mt-2 max-w-md text-xs leading-relaxed text-stone-600'>
-              {t('profile.twoFactorModal.successDesc')}
-            </p>
-          </div>
-          <p className='mx-auto inline-flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600'>
-            <Check className='size-4 shrink-0 text-emerald-600' aria-hidden='true' />
-            {t('profile.twoFactorModal.protectionStatusLabel')}{' '}
-            <strong className='text-stone-900'>
-              {t('profile.twoFactorModal.protectionStatusActive')}
-            </strong>
-          </p>
+          {recoveryCodes && (
+            <RecoveryCodesPanel
+              codes={recoveryCodes}
+              acknowledged={savedAck}
+              onAcknowledgedChange={setSavedAck}
+            />
+          )}
+        </div>
+      )}
+
+      {step === 'codes' && recoveryCodes && (
+        <div className='space-y-4'>
+          <Alert tone='success' title={t('profile.twoFactorModal.recoveryNewTitle')}>
+            {t('profile.twoFactorModal.recoveryRegenerateHint')}
+          </Alert>
+          <RecoveryCodesPanel
+            codes={recoveryCodes}
+            acknowledged={savedAck}
+            onAcknowledgedChange={setSavedAck}
+          />
         </div>
       )}
     </Modal>

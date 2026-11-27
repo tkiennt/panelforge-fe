@@ -32,6 +32,8 @@ export interface CurrentUserDto {
   canCreateStudio: boolean;
   /** GET /api/Auth/me: 2FA (TOTP) đang bật cho tài khoản. */
   twoFactorEnabled?: boolean;
+  /** Số mã khôi phục 2FA chưa dùng. */
+  twoFactorRecoveryCodesLeft?: number;
   avatar?: string | null;
   avatarUrl?: string | null;
 }
@@ -218,6 +220,21 @@ export const authService = {
       await axiosClient.post('/Auth/logout', {});
     } catch {
       // bỏ qua: lỗi mạng không chặn việc dọn dẹp phiên phía FE
+    }
+  },
+
+  /** POST /Auth/2fa/recovery-codes { code }: tạo bộ mã khôi phục mới (mã cũ hết hiệu lực). code = mã 6 số hoặc một mã khôi phục. */
+  regenerateRecoveryCodes: async (code: string) => {
+    try {
+      const response = await axiosClient.post('/Auth/2fa/recovery-codes', { code });
+      return response.data as { recoveryCodes: string[] };
+    } catch (error) {
+      throw new Error(
+        await parseErrorResponse(
+          error,
+          translate('errors.services.auth.regenerateRecoveryCodesFailed'),
+        ),
+      );
     }
   },
 
