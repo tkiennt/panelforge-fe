@@ -84,7 +84,6 @@ import { useFocusHeaderContext } from '@/app/FocusWorkspaceLayout';
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
-import { TypeToConfirmModal } from '@/shared/components/lucian';
 import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { Modal } from '@/shared/ui';
@@ -964,15 +963,31 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   };
 
-  // Xử lý Xoá Chương (Delete Chapter - Lucian #269 TypeToConfirmModal)
-  const handleConfirmDeleteChapter = async () => {
-    if (!chapterToDelete) return;
+  // Xử lý Xoá Chương (Delete Chapter - TypeToConfirm via useConfirm)
+  const handleConfirmDeleteChapter = async (targetChapter: ChapterDto) => {
+    const confirmed = await confirm({
+      variant: 'type-to-confirm',
+      confirmationText: t('writer.scriptEditor.deleteChapterTarget', {
+        number: targetChapter.chapterNumber,
+      }),
+      title: t('writer.scriptEditor.deleteChapterTitle', {
+        number: targetChapter.chapterNumber,
+      }),
+      description: t('writer.scriptEditor.deleteChapterDesc', {
+        number: targetChapter.chapterNumber,
+      }),
+      confirmLabel: t('writer.scriptEditor.deleteChapterBtn'),
+      cancelLabel: t('writer.scriptEditor.cancel'),
+    });
+
+    if (!confirmed) return;
+
     setIsDeletingChapter(true);
     try {
-      await chapterService.deleteChapter(chapterToDelete.id);
+      await chapterService.deleteChapter(targetChapter.id);
       notify(
         t('writer.scriptEditor.chapterDeletedTitle'),
-        t('writer.scriptEditor.chapterDeletedDesc', { number: chapterToDelete.chapterNumber }),
+        t('writer.scriptEditor.chapterDeletedDesc', { number: targetChapter.chapterNumber }),
       );
       setChapterToDelete(null);
       if (seriesId) {
@@ -2312,7 +2327,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             onClose={() => setActiveLeftDrawer(null)}
             onDeleteChapter={
               isProducer && currentChapter && !isChapterLocked
-                ? () => setChapterToDelete(currentChapter)
+                ? () => void handleConfirmDeleteChapter(currentChapter)
                 : undefined
             }
           />
@@ -2718,31 +2733,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }}
         onClose={() => setConflictModalOpen(false)}
       />
-
-      {/* Lucian #269: Type-to-Confirm Modal Xoá Chương (Destructive Chapter Delete) */}
-      {chapterToDelete && (
-        <TypeToConfirmModal
-          isOpen={Boolean(chapterToDelete)}
-          targetName={t('writer.scriptEditor.deleteChapterTarget', {
-            number: chapterToDelete.chapterNumber,
-          })}
-          title={t('writer.scriptEditor.deleteChapterTitle', {
-            number: chapterToDelete.chapterNumber,
-          })}
-          description={t('writer.scriptEditor.deleteChapterDesc', {
-            number: chapterToDelete.chapterNumber,
-          })}
-          confirmButtonText={
-            isDeletingChapter
-              ? t('writer.scriptEditor.deleting')
-              : t('writer.scriptEditor.deleteChapterBtn')
-          }
-          cancelButtonText={t('writer.scriptEditor.cancel')}
-          isDeleting={isDeletingChapter}
-          onConfirm={handleConfirmDeleteChapter}
-          onCancel={() => setChapterToDelete(null)}
-        />
-      )}
 
       {/* Modal Xoá Phân Cảnh (Note phân cảnh, không ảnh hưởng logic kịch bản) */}
       {sceneToDelete && (

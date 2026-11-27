@@ -27,7 +27,6 @@ import { PageContainer } from '@/shared/components/PageContainer';
 import { useTranslation } from '@/lib/i18n';
 import { WorkspaceCoverPickerDialog } from '@/shared/components/WorkspaceCoverPickerDialog';
 import { useConfirm } from '@/shared/context/ConfirmContext';
-import { LucianInlineAlert } from '@/shared/components/lucian';
 import { BlankPageSketch } from '@/shared/components/BlankPageSketch';
 import './workspaceShelf.css';
 
@@ -69,6 +68,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const [coverModalWorkspace, setCoverModalWorkspace] = useState<WorkspaceDto | null>(null);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [now] = useState(() => Date.now());
+  const [adminAlertDismissed, setAdminAlertDismissed] = useState(false);
 
   const isAdmin =
     currentUser?.role?.toUpperCase() === 'ADMINISTRATOR' ||
@@ -449,13 +449,16 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
       <main className='w-full flex-1 bg-[#FAF9F5]'>
         <PageContainer className='py-6 md:py-8 flex flex-col gap-6 max-w-[1840px]'>
           {/* Admin Role Limitation Notice */}
-          {isAdmin && (
-            <LucianInlineAlert
-              type='info'
+          {isAdmin && !adminAlertDismissed && (
+            <Alert
+              tone='info'
               title={t('workspace.notices.adminBadge')}
-              description={t('workspace.shelf.adminRestrictionDesc')}
-              dismissible={true}
-            />
+              dismissLabel={t('common.alert.dismiss', 'Dismiss alert')}
+              onDismiss={() => setAdminAlertDismissed(true)}
+              announce
+            >
+              <p>{t('workspace.shelf.adminRestrictionDesc')}</p>
+            </Alert>
           )}
 
           {loading ? (

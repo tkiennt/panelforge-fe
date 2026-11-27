@@ -59,7 +59,7 @@ import { PreviewLinksModal } from '../modals/PreviewLinksModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { ReasonForm } from '@/shared/components/ReasonForm';
-import { TypeToConfirmModal } from '@/shared/components/lucian';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 import { Modal, Card, CardHeader, PageHeader } from '@/shared/ui';
 import {
   DEFAULT_ROW_LABELS,
@@ -81,6 +81,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 }) => {
   const { t, lang } = useTranslation('production');
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const { workspaceId = '', seriesId = '' } = useParams<{
     workspaceId: string;
     seriesId: string;
@@ -359,18 +360,40 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
     }
   };
 
-  const handleDeleteOrArchiveChapter = async () => {
-    if (!deleteTargetChapter) return;
+  const handleDeleteOrArchiveChapter = async (targetChapter: ChapterDto) => {
+    const isPreProd =
+      targetChapter.status === 'PreProduction' &&
+      (!targetChapter.pagesCount || targetChapter.pagesCount === 0);
+    const confirmed = await confirm({
+      variant: 'type-to-confirm',
+      title: isPreProd
+        ? t('producer.chapterManagement.deleteChapterTitle', {
+            number: targetChapter.chapterNumber,
+          })
+        : t('producer.chapterManagement.archiveChapterTitle', {
+            number: targetChapter.chapterNumber,
+          }),
+      description: isPreProd
+        ? t('producer.chapterManagement.deleteChapterDesc')
+        : t('producer.chapterManagement.archiveChapterDesc'),
+      confirmationText: 'DELETE',
+      confirmLabel: isPreProd
+        ? t('producer.chapterManagement.deleteBtn')
+        : t('producer.chapterManagement.archiveBtn'),
+      cancelLabel: t('common.actions.cancel', 'Cancel'),
+    });
+
+    if (!confirmed) return;
+
     setIsDeleting(true);
     try {
-      await chapterService.deleteChapter(deleteTargetChapter.id);
+      await chapterService.deleteChapter(targetChapter.id);
       onShowToast?.(
-        deleteTargetChapter.status === 'PreProduction' &&
-          (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
+        isPreProd
           ? t('producer.chapterManagement.deletedPermanently')
           : t('producer.chapterManagement.archivedChapter'),
         t('producer.chapterManagement.chapterLabel', {
-          number: deleteTargetChapter.chapterNumber,
+          number: targetChapter.chapterNumber,
         }),
       );
       setDeleteTargetChapter(null);
@@ -726,8 +749,8 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   <button
                     type='button'
                     onClick={() => {
-                      setDeleteTargetChapter(chapter);
                       setToolsMenuOpen(false);
+                      if (chapter) void handleDeleteOrArchiveChapter(chapter);
                     }}
                     className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-rose-700 hover:bg-rose-50'
                   >
@@ -1771,39 +1794,6 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
           chapterStatus={chapter.status}
           workspaceRole={workspaceRole as any}
           onClose={() => setPreviewLinksOpen(false)}
-        />
-      )}
-
-      {/* Delete / Archive Confirmation Modal (V2.6 D3) */}
-      {deleteTargetChapter && (
-        <TypeToConfirmModal
-          isOpen
-          title={
-            deleteTargetChapter.status === 'PreProduction' &&
-            (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
-              ? t('producer.chapterManagement.deleteChapterTitle', {
-                  number: deleteTargetChapter.chapterNumber,
-                })
-              : t('producer.chapterManagement.archiveChapterTitle', {
-                  number: deleteTargetChapter.chapterNumber,
-                })
-          }
-          description={
-            deleteTargetChapter.status === 'PreProduction' &&
-            (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
-              ? t('producer.chapterManagement.deleteChapterDesc')
-              : t('producer.chapterManagement.archiveChapterDesc')
-          }
-          targetName='DELETE'
-          confirmButtonText={
-            deleteTargetChapter.status === 'PreProduction' &&
-            (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
-              ? t('producer.chapterManagement.deleteBtn')
-              : t('producer.chapterManagement.archiveBtn')
-          }
-          onConfirm={handleDeleteOrArchiveChapter}
-          onCancel={() => setDeleteTargetChapter(null)}
-          isDeleting={isDeleting}
         />
       )}
     </div>
