@@ -2401,7 +2401,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           tabIndex={0}
           role='region'
           aria-label={t('taskGridV3.boardTitle')}
-          className='overflow-auto max-h-[72vh] rounded-xl border border-stone-200 bg-white shadow-2xs min-w-0'
+          className='w-fit max-w-full overflow-auto max-h-[72vh] rounded-xl border border-stone-200 bg-white shadow-2xs min-w-0'
         >
           <table className='w-max table-fixed border-collapse text-left text-xs'>
             <thead className='sticky top-0 z-20'>
