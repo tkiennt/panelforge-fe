@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -56,9 +56,11 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
   const { t, lang } = useTranslation('production');
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams<{ workspaceId: string; seriesId: string }>();
+  const [searchParams] = useSearchParams();
+  const urlChapterId = searchParams.get('chapterId') || '';
 
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
-  const [chapterId, setChapterId] = useState('');
+  const [chapterId, setChapterId] = useState(urlChapterId);
   const [seriesTitle, setSeriesTitle] = useState('');
   const [seriesFormat, setSeriesFormat] = useState('');
   const [formats, setFormats] = useState<ExportPresetCode[]>(['PDF']);
@@ -84,7 +86,11 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
           (c) => c.status === 'ChapterApproved' || c.status === 'HandedOffAndPublished',
         );
         setChapters(exportable);
-        setChapterId((current) => current || exportable[0]?.id || '');
+        setChapterId((current) => {
+          if (urlChapterId && exportable.some((c) => c.id === urlChapterId)) return urlChapterId;
+          if (current && exportable.some((c) => c.id === current)) return current;
+          return exportable[0]?.id || '';
+        });
       })
       .catch((err) => onShowToast(t('producer.exportView.loadChaptersError'), err.message));
   }, [seriesId, onShowToast, t]);

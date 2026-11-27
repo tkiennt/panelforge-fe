@@ -545,6 +545,18 @@
     "visualReport": "Visual Report"
   },
   "chapterReview": {
+    "gate2Badge": "Gate 2",
+    "gate2Subtitle": "Quality & Composite Gate",
+    "status": {
+      "unassigned": "Unassigned",
+      "assigned": "Assigned",
+      "inProgress": "In Progress",
+      "submitted": "Submitted",
+      "underReview": "Under Review",
+      "approved": "Approved",
+      "reworkRequired": "Rework Required",
+      "blocked": "Blocked"
+    },
     "stepper": {
       "editor": "Editor Review",
       "producer": "Producer Review",

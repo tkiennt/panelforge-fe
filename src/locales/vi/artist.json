@@ -45,6 +45,7 @@
     "noBalloons": "Trang chưa có bóng thoại.",
     "balloonTitle": "Thoại {order}",
     "linkedToLine": "Đã liên kết với dòng {line}",
+    "saving": "Đang lưu…",
     "unlinked": "Chưa liên kết",
     "addEmptyBalloon": "Thêm bóng trống"
   },
@@ -377,13 +378,13 @@
     "statusScriptFrozen": "Kịch bản đã chốt",
     "statusPreProduction": "Tiền kỳ (viết kịch bản)",
     "statusInProduction": "Đang sản xuất",
-    "pageTitlePrefix": "Bàn vẽ họa sĩ — {series}",
-    "subtitleHighlight": "Chọn Chương Để Mở Bàn Vẽ Chuyên Dụng",
-    "subtitleBody": " — Lựa chọn một chương để bước vào không gian vẽ toàn màn hình độc lập (Focus Workspace), phân rã bố cục khung tranh (Panel Templates), nạp bản thảo chì (Pencil), đi nét mực (Ink) và tải tranh hoàn thiện.",
+    "eyebrow": "Sản xuất truyện",
+    "pageTitlePrefix": "Bàn vẽ truyện — {series}",
+    "subtitle": "Chọn chương để xem và thực hiện công việc sản xuất được giao.",
     "statsTotal": "Tổng chương",
     "statsFrozen": "Sẵn sàng vẽ",
     "statsInProgress": "Đang sản xuất",
-    "searchPlaceholder": "Tìm theo số chương, tiêu đề hoặc nội dung tóm tắt...",
+    "searchPlaceholder": "Tìm số hoặc tên chương...",
     "clearSearchTitle": "Xóa tìm kiếm",
     "sortAriaLabel": "Sắp xếp chương",
     "sortAsc": "Chương tăng dần (1 → N)",
@@ -414,14 +415,16 @@
     "scenesCount": "{count} cảnh",
     "readyToDraw": "Sẵn sàng vẽ",
     "scriptNotFrozen": "Chưa chốt kịch bản",
+    "chapterStatusLabel": "Trạng thái chương",
+    "scriptStatusLabel": "Trạng thái kịch bản",
     "updatedAt": "Cập nhật: {date}",
     "newlyCreated": "Mới tạo",
-    "enterDesk": "Vào bàn vẽ",
+    "openDesk": "Mở bàn vẽ",
     "tableColChapter": "Chương",
-    "tableColTitleOutline": "Tiêu đề & Tóm tắt",
-    "tableColStatus": "Trạng thái kịch bản",
+    "tableColTitle": "Tên chương",
+    "tableColChapterStatus": "Trạng thái chương",
+    "tableColScriptStatus": "Kịch bản",
     "tableColPages": "Số trang",
-    "tableColScenes": "Số phân cảnh",
     "tableColActions": "Thao tác"
   },
   "deskView": {
@@ -503,7 +506,10 @@
     "startingCell": "Đang mở…",
     "startCellSuccessTitle": "Đã bắt đầu",
     "startCellSuccessDesc": "Bạn có thể chỉnh sửa công đoạn {stage} ngay trên trang này.",
-    "startCellErrorTitle": "Không bắt đầu được"
+    "startCellErrorTitle": "Không bắt đầu được",
+    "uploadPendingDesc": "Đã nạp {file} vào Khung #{panel}. Ảnh sẽ được tải lên khi lưu bố cục.",
+    "pendingUploadFailedTitle": "{count} ảnh khung chưa tải lên được",
+    "pendingUploadFailedDesc": "Ảnh vẫn ở trên khung; nạp lại ảnh đó để thử tải lên."
   },
   "canvaSidebar": {
     "narrationFlashback": "Hồi tưởng",
@@ -668,27 +674,31 @@
   "canvasViewport": {
     "trimLineTitle": "Đường xén thành phẩm (Trim Line - 3mm Bleed)",
     "safeAreaTitle": "Vùng an toàn nội dung thoại & hình vẽ chính (Live Safe Area)",
-    "detectingPanels": "Đang dò rãnh tranh và tách các ô panel...",
-    "emptyPrompt": "Tải phác thảo hoặc chọn mẫu khung để bắt đầu."
+    "detectingPanels": "Đang tách khung tranh...",
+    "originalPage": "Ảnh trang truyện gốc",
+    "noPageImage": "Chưa có ảnh",
+    "emptyTitle": "Chưa có ảnh trang",
+    "emptyPrompt": "Dùng nút Tải ảnh trang truyện lên trên thanh công cụ để bắt đầu."
   },
   "dialogs": {
     "closeArtworkPreview": "Đóng xem tranh"
   },
   "layoutToolbar": {
     "steps": {
-      "sketch": "Phác thảo",
-      "splitOrTemplate": "Tách khung / Chọn mẫu",
-      "saveLayout": "Lưu bố cục",
-      "uploadArtwork": "Nạp tranh"
+      "pageImage": "Tải ảnh",
+      "extract": "Tách khung",
+      "review": "Kiểm tra",
+      "saved": "Đã lưu"
     },
+    "processingTitle": "Xử lý ảnh",
     "needSketchFirst": "Cần tải phác thảo trước",
     "needPanelsFirst": "Cần chọn mẫu khung hoặc tách khung trước",
     "noChangesToSave": "Chưa có thay đổi để lưu",
     "ariaLabel": "Quy trình bố cục trang",
-    "uploadSketch": "Tải phác thảo",
-    "chooseTemplate": "Chọn mẫu khung",
+    "uploadPageImage": "Tải ảnh trang truyện lên",
+    "chooseTemplate": "Chọn bố cục mẫu",
     "splittingPanels": "Đang tách khung...",
-    "splitPanels": "Tách khung",
+    "extractPanels": "Tách khung tranh",
     "saveLayout": "Lưu bố cục"
   },
   "scriptRefSidebar": {
@@ -757,6 +767,7 @@
     "delete": "Xóa thoại",
     "labelPrefix": "Thoại {order}",
     "resizeTitle": "Kéo để thay đổi kích thước",
+    "tailTitle": "Kéo để chỉ đuôi bóng về người nói",
     "staleTitle": "Lời thoại đã đổi sau khi đặt bóng",
     "staleBadge": "Lời thoại đã đổi",
     "keepOutTitle": "Bóng thoại đang che {label}",
@@ -772,7 +783,7 @@
     "replaceAria": "Thay tranh khung {panelNum}",
     "removeTitle": "Gỡ tranh",
     "removeAria": "Gỡ tranh khung {panelNum}",
-    "uploadPanel": "+ Nạp tranh Khung #{panelNum}",
+    "uploadPanel": "+ Tải ảnh khung #{panelNum} lên",
     "dropOrClick": "Kéo thả hoặc nhấn để chọn"
   },
   "inkBar": {
@@ -961,11 +972,12 @@
     "saveFailed": "Lưu vùng cấm chữ thất bại."
   },
   "splitStrip": {
-    "title": "Ảnh đã tách theo khung",
-    "heading": "Ảnh theo khung ({filled}/{total})",
+    "title": "Kết quả tách khung",
+    "regionsCount": "{count} vùng khung",
+    "imagesCount": "{count} ảnh khung",
     "selectAria": "Chọn khung {panelNum}",
     "imageAlt": "Ảnh khung {panelNum}",
-    "empty": "Trống",
+    "empty": "Chưa có ảnh khung",
     "downloadTitle": "Tải ảnh xuống",
     "downloadAria": "Tải ảnh khung {panelNum}"
   }

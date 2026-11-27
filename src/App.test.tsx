@@ -125,9 +125,9 @@ describe('App Integration Smoke Test', () => {
       { timeout: 10000 },
     );
 
-    // 6. User bấm nút "Workspaces" trên breadcrumb để rời khỏi Workspace
-    const backBtn = screen.getByTestId('back-to-workspaces-breadcrumb');
-    fireEvent.click(backBtn);
+    // 6. User mở Studio Switcher và chọn "Xem tất cả Studio" để rời khỏi Workspace
+    fireEvent.click(screen.getByTestId('studio-switcher-trigger'));
+    fireEvent.click(await screen.findByTestId('studio-switcher-view-all-btn'));
 
     // 7. Xác nhận đã quay lại WorkspaceListView và currentWorkspaceRole đã được reset
     await waitFor(
@@ -186,7 +186,7 @@ describe('App Integration Smoke Test', () => {
     // Phải render Admin Console và System Admin Zone
     await waitFor(
       () => {
-        expect(screen.getByText('Quản trị hệ thống')).toBeInTheDocument();
+        expect(screen.getByText('PanelForge // Cổng Quản Trị')).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
         // Menu của Admin phải hiện đầy đủ
         expect(screen.getAllByText('Tổng quan').length).toBeGreaterThan(0);
@@ -361,8 +361,9 @@ describe('App Integration Smoke Test', () => {
       expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
     });
 
-    // Trang Admin có nút Đăng xuất riêng ở chân sidebar
-    fireEvent.click(screen.getByRole('button', { name: 'Đăng xuất' }));
+    // Admin Portal dùng AppShell chung: đăng xuất qua menu người dùng trên header
+    fireEvent.click(screen.getByTestId('header-user-menu-btn'));
+    fireEvent.click(screen.getByTestId('logout-btn'));
 
     // Xác nhận toàn bộ localStorage liên quan đến auth đã được dọn sạch 100%
     await waitFor(() => {

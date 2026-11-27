@@ -17,10 +17,18 @@ Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng 
 - **`account/`**: Quản lý tài khoản cá nhân, xác thực hai lớp và đổi mật khẩu (`ChangePasswordModal.tsx`, `TwoFactorSetupModal.tsx`).
 - **`provenance/`** (CF4): Lịch sử & nguồn gốc chương: bản duyệt (snapshot), Provenance Report (Producer/Editor), lịch sử AI và lịch sử canvas từng trang có so sánh / khôi phục cho Producer, Artist (`ChapterProvenanceModal.tsx`, `PageHistoryPanel.tsx`, `provenanceRules.ts`).
 
-### 2.3 UI Components (`src/shared/components/ui/`)
-Các khối giao diện nguyên tử có kiểm soát quyền truy cập:
-- `Badge.tsx`, `Button.tsx`, `Card.tsx`, `Input.tsx`
-- `PermissionButton.tsx`, `PermissionField.tsx`, `PermissionGuard.tsx`
+### 2.3 UI primitives (`src/shared/ui/`)
+- `Button` / `IconButton`: hành động có biến thể ngữ nghĩa, kích thước và trạng thái loading dùng chung.
+- `Badge` / `StatusBadge`: pill ngữ nghĩa và trạng thái nghiệp vụ đọc từ `shared/lib/statusTone.ts`.
+- `Field` / `Input` / `Textarea` / `Select` / `SearchInput`: nhập liệu có label, hint, lỗi và ARIA thống nhất.
+- `Tabs`: tab nội trang có roving focus và điều khiển Arrow/Home/End.
+- `EmptyState` / `Skeleton`: trạng thái trống và đang tải theo nền giấy ấm.
+- `ProgressBar`: tiến độ có ARIA và chặn phép chia cho 0.
+- `Metric`: nhãn, số liệu mono và gợi ý ngắn.
+- `Avatar`: ảnh có kích thước cố định/lazy-load hoặc chữ cái đầu.
+- `CountChip`: chip đếm bằng màu giấy kraft dùng cho header và tab.
+- `PageHeader` / `SectionHeader` / `Card` / `CardHeader` / `CardBody`: bề mặt và phân cấp header theo DESIGN_RULES §4.8.
+- `Modal` / `Drawer` / `ConfirmDialog` / `Alert` / `Toast`: overlay và phản hồi dùng chung.
 
 ### 2.4 Modals dùng chung (`src/shared/modals/`)
 - `AuditLogModal.tsx`: Xem nhật ký kiểm toán hành động trong hệ thống.

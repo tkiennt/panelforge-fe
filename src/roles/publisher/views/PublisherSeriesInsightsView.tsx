@@ -1,29 +1,49 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertTriangle, Eye, ChevronRight } from 'lucide-react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Loader2, AlertTriangle, Eye, ChevronRight, Grid3X3 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { getApiErrorMessage } from '@/lib/api-error';
 import {
+  CONTENT_LANGUAGES,
   monetizationService,
   type ContentLanguage,
   type SeriesInsightsDto,
 } from '@/services/payment.service';
 import { LanguageFilter, StatCards } from '../components/MonetizationWidgets';
 import { useMoney } from '../components/useMoney';
+import { formatContentLanguageName } from '../components/multilingual';
 
 /**
  * Publisher → General → chọn bộ truyện: dashboard tổng (lượt xem, lượt mua, đánh giá, doanh thu) lọc theo ngôn ngữ,
  * và danh sách chương; bấm một chương để vào màn chương có sidebar General / Manage.
  */
 export const PublisherSeriesInsightsView: React.FC = () => {
-  const { t } = useTranslation('payments');
+  const { t, lang: uiLang } = useTranslation('payments');
   const { seriesId = '' } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { num, vnd } = useMoney();
-  const [language, setLanguage] = useState<ContentLanguage | ''>('');
+  const initialLangParam = searchParams.get('lang') ?? '';
+  const initialLang: ContentLanguage | '' = CONTENT_LANGUAGES.includes(
+    initialLangParam as ContentLanguage,
+  )
+    ? (initialLangParam as ContentLanguage)
+    : '';
+  const [language, setLanguage] = useState<ContentLanguage | ''>(initialLang);
   const [data, setData] = useState<SeriesInsightsDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleLanguageChange = (nextLang: ContentLanguage | '') => {
+    setLanguage(nextLang);
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextLang) {
+      nextParams.set('lang', nextLang);
+    } else {
+      nextParams.delete('lang');
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -56,7 +76,14 @@ export const PublisherSeriesInsightsView: React.FC = () => {
           {data && <p className='text-xs text-[#737373]'>{data.workspaceName}</p>}
         </div>
         <div className='flex flex-wrap items-center gap-2'>
-          <LanguageFilter value={language} onChange={setLanguage} />
+          <LanguageFilter value={language} onChange={handleLanguageChange} />
+          <Link
+            to={`/publisher/series/${seriesId}`}
+            className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E7E7E7] text-xs font-medium hover:bg-[#FAF8F4]'
+          >
+            <Grid3X3 className='w-3.5 h-3.5 text-[#F97316]' />
+            {uiLang === 'en' ? 'Publishing Matrix' : 'Ma trận xuất bản'}
+          </Link>
           {data && (
             <Link
               to={`/publisher/revenue/workspaces/${data.workspaceId}?seriesId=${data.seriesId}`}
@@ -96,6 +123,9 @@ export const PublisherSeriesInsightsView: React.FC = () => {
                         <th className='text-left font-medium px-4 py-2'>
                           {t('insights.filterLabel')}
                         </th>
+                        <th className='text-left font-medium px-4 py-2'>
+                          {uiLang === 'en' ? 'Currency' : 'Tiền tệ'}
+                        </th>
                         <th className='text-right font-medium px-4 py-2'>{t('insights.views')}</th>
                         <th className='text-right font-medium px-4 py-2'>
                           {t('insights.purchases')}
@@ -109,7 +139,10 @@ export const PublisherSeriesInsightsView: React.FC = () => {
                     <tbody>
                       {data.byLanguage.map((l) => (
                         <tr key={l.language} className='border-t border-[#F0F0F0]'>
-                          <td className='px-4 py-2 font-medium'>{t(`lang.${l.language}`)}</td>
+                          <td className='px-4 py-2 font-medium'>
+                            {formatContentLanguageName(l.language, uiLang)}
+                          </td>
+                          <td className='px-4 py-2 text-xs font-mono text-[#737373]'>VND</td>
                           <td className='px-4 py-2 text-right tabular-nums'>
                             {num(l.stats.views)}
                           </td>
@@ -121,7 +154,7 @@ export const PublisherSeriesInsightsView: React.FC = () => {
                               ? `${l.stats.ratingAverage.toFixed(1)}★ (${l.stats.ratingCount})`
                               : '—'}
                           </td>
-                          <td className='px-4 py-2 text-right tabular-nums'>
+                          <td className='px-4 py-2 text-right tabular-nums font-medium'>
                             {vnd(l.stats.revenueVnd)}
                           </td>
                         </tr>
@@ -165,7 +198,9 @@ export const PublisherSeriesInsightsView: React.FC = () => {
                           className='border-t border-[#F0F0F0] hover:bg-[#FAF8F4] cursor-pointer'
                           onClick={() =>
                             navigate(
-                              `/publisher/revenue/series/${seriesId}/chapters/${c.chapterId}`,
+                              `/publisher/revenue/series/${seriesId}/chapters/${c.chapterId}${
+                                language ? `?section=editions&lang=${language}` : ''
+                              }`,
                             )
                           }
                         >
@@ -176,7 +211,7 @@ export const PublisherSeriesInsightsView: React.FC = () => {
                                 <span className='font-normal text-[#555555]'> · {c.title}</span>
                               )}
                             </div>
-                            <div className='flex gap-1.5 mt-0.5 text-[10px]'>
+                            <div className='flex gap-1.5 mt-0.5 text-xs'>
                               <span
                                 className={`px-1.5 py-0.5 rounded ${
                                   c.isLocked

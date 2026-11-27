@@ -716,7 +716,7 @@
     "directory": {
       "title": "Không gian Studio của bạn",
       "subtitle": "Quản trị & phối hợp sản xuất đa Studio Manga / Webtoon song song. Theo dõi phân quyền chỉ định, tiến độ các bộ truyện và tài nguyên lưu trữ độc lập.",
-      "createStudioBtn": "+ Tạo Studio mới",
+      "createStudioBtn": "Tạo Studio mới",
       "filterRoleLabel": "Lọc theo vai trò:",
       "filterAll": "Tất cả Studio ({count})",
       "filterProducer": "Tôi là Producer ({count})",
@@ -728,11 +728,13 @@
       "featuredSeries": "Bộ truyện tiêu biểu:",
       "currentStudio": "Studio đang chọn",
       "enterStudio": "Vào Studio Hub",
-      "createNewCard": "+ Tạo Không Gian Studio Mới",
+      "createNewCard": "Tạo Không Gian Studio Mới",
       "createNewDesc": "Khởi tạo Studio riêng biệt với kho lưu trữ, ê-kíp và danh mục xuất bản độc lập",
       "startSetup": "Bắt đầu thiết lập",
       "filterArtist": "Tôi là Họa sĩ ({count})",
       "filterWriter": "Tôi là Biên kịch ({count})",
+      "filterLetterer": "Tôi là Đặt thoại ({count})",
+      "adminBadge": "Admin",
       "filterRole": "Tôi là {role} ({count})",
       "rolePermissionEditor": "Quyền: Giám sát biên tập"
     },

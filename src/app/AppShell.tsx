@@ -48,9 +48,11 @@ import {
   Download,
   Plus,
   FileCheck,
+  HardDrive,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
-import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
+import { SIDEBAR_ID } from './sidebarTheme';
+import { useSidebarTheme } from './useSidebarTheme';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 import { getRoleDefaultPath } from '@/roles/roles';
@@ -62,7 +64,6 @@ import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
 import {
   buildChapterManagementUrl,
   buildChapterReaderUrl,
-  buildEditorDeskUrl,
   buildProductionWorkspaceUrl,
   buildScriptReviewUrl,
   buildSeriesExportUrl,
@@ -98,19 +99,32 @@ interface GlobalAppShellProps {
 const getRoleNavConfig = (
   t: (k: string, fallback?: string) => string,
 ): Record<string, { section: string; items: any[] }[]> => ({
+  // Khung Admin dùng chung AppShell như Publisher Portal; nhãn lấy từ admin.nav.* để khớp nội dung tab.
   ADMINISTRATOR: [
     {
-      section: t('navigation.sections.systemAdmin'),
+      section: t('admin.nav.groups.overview'),
       items: [
-        { icon: LayoutDashboard, label: t('navigation.menu.systemDashboard'), href: '/admin' },
-        { icon: Users, label: t('navigation.menu.usersAndRoles'), href: '/admin?tab=users' },
+        { icon: LayoutDashboard, label: t('admin.nav.items.dashboard'), href: '/admin' },
+        { icon: Users, label: t('admin.nav.items.users'), href: '/admin?tab=users' },
+      ],
+    },
+    {
+      section: t('admin.nav.groups.config'),
+      items: [
+        { icon: Cpu, label: t('admin.nav.items.aiConfig'), href: '/admin?tab=ai-config' },
+        { icon: HardDrive, label: t('admin.nav.items.storage'), href: '/admin?tab=storage' },
         {
-          icon: Cpu,
-          label: t('navigation.menu.aiQuota'),
-          href: '/admin?tab=ai-config',
-          badge: { type: 'dot', color: 'bg-emerald-500' },
+          icon: Shield,
+          label: t('admin.nav.items.sessionPolicy'),
+          href: '/admin?tab=session-policy',
         },
-        { icon: List, label: t('navigation.menu.auditLog'), href: '/admin?tab=audit' },
+      ],
+    },
+    {
+      section: t('admin.nav.groups.monitoring'),
+      items: [
+        { icon: List, label: t('admin.nav.items.audit'), href: '/admin?tab=audit' },
+        { icon: Eye, label: t('admin.nav.items.analytics'), href: '/admin?tab=analytics' },
       ],
     },
   ],
@@ -262,6 +276,7 @@ export function AppShell({
 
   const isPublisher =
     currentUser.role === 'PUBLISHER' || location.pathname.startsWith('/publisher');
+  const isAdminPortal = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
 
   const effectiveRole = currentUser.workspaceRole
     ? String(currentUser.workspaceRole).toUpperCase()
@@ -296,9 +311,10 @@ export function AppShell({
   const getNavSections = () => {
     const roleNavConfig = getRoleNavConfig(t);
     if (
-      (currentUser.role === 'ADMINISTRATOR' ||
+      isAdminPortal ||
+      ((currentUser.role === 'ADMINISTRATOR' ||
         currentUser.activeRoles?.includes('ADMINISTRATOR')) &&
-      !currentUser.workspaceRole
+        !currentUser.workspaceRole)
     ) {
       return roleNavConfig['ADMINISTRATOR'] || [];
     }
@@ -308,22 +324,37 @@ export function AppShell({
     if (isPublisher || effectiveRole === 'PUBLISHER') {
       return [
         {
-          section: t('navigation.sections.publisherDesk'),
+          section: t('navigation.sections.publisherOverview', 'TỔNG QUAN'),
+          items: [
+            {
+              icon: LayoutDashboard,
+              label: t('navigation.menu.publisherOverview', 'Tổng quan xuất bản'),
+              href: '/publisher/desk',
+            },
+          ],
+        },
+        {
+          section: t('navigation.sections.publisherPublishing', 'XUẤT BẢN'),
           items: [
             {
               icon: BookMarked,
-              label: t('navigation.menu.publisherManagement'),
+              label: t('navigation.menu.publisherManagement', 'Quản lý xuất bản'),
               href: '/publisher/series',
               badge: { type: 'dot', color: 'bg-orange-500' },
             },
             {
               icon: BookOpen,
-              label: t('navigation.menu.publicCatalog'),
-              href: '/publisher/catalog',
+              label: t('navigation.menu.publicCatalog', 'Danh mục công khai'),
+              href: '/catalog',
             },
+          ],
+        },
+        {
+          section: t('navigation.sections.publisherBusiness', 'KINH DOANH'),
+          items: [
             {
               icon: CreditCard,
-              label: t('navigation.menu.revenue'),
+              label: t('navigation.menu.revenue', 'Doanh thu & Lượt đọc'),
               href: '/publisher/revenue',
             },
           ],
@@ -335,19 +366,19 @@ export function AppShell({
       if (isSeriesContext) {
         const workspacePath = buildSeriesPath(workspaceId!, seriesId!, 'workspace');
         const isWorkspacePath = location.pathname === workspacePath;
-        const productionTab = searchParams.get('tab') ?? 'progress';
+        const isReviewOrDeliveryPath =
+          location.pathname.endsWith('/reader') ||
+          location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'export');
         return [
           {
-            section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+            section: t('navigation.sidebar.chapterManagement', 'QUẢN LÝ CHƯƠNG'),
             items: [
               {
-                icon: Kanban,
-                label: t('navigation.menu.pageMatrix', 'Ma trận trang'),
-                href: buildProductionWorkspaceUrl(workspaceId!, seriesId!, {
-                  chapterId: chapterId ?? undefined,
-                  tab: 'progress',
-                }),
-                isActive: isWorkspacePath && productionTab === 'progress',
+                icon: LayoutDashboard,
+                label: t('navigation.menu.chapterOverviewShort', 'Tổng quan'),
+                href: buildChapterManagementUrl(workspaceId!, seriesId!, chapterId ?? undefined),
+                isActive:
+                  location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'chapters'),
                 badge: chapterNumberLabel
                   ? {
                       type: 'text',
@@ -357,54 +388,27 @@ export function AppShell({
                   : undefined,
               },
               {
-                icon: LayoutDashboard,
-                label: t('navigation.menu.chapterOverview', 'Tổng quan chương'),
-                href: buildChapterManagementUrl(workspaceId!, seriesId!, chapterId ?? undefined),
-                isActive:
-                  location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'chapters'),
-              },
-              {
-                icon: Users,
-                label: t('navigation.menu.crewManagement', 'Quản lý Ê-kíp'),
-                href: buildProductionWorkspaceUrl(workspaceId!, seriesId!, {
-                  chapterId: chapterId ?? undefined,
-                  tab: 'crew',
-                }),
-                isActive: isWorkspacePath && productionTab === 'crew',
-              },
-              {
                 icon: FileCheck,
-                label: t('navigation.menu.productionScript', 'Kịch bản'),
+                label: t('navigation.menu.preProduction', 'Tiền sản xuất'),
                 href: chapterId
                   ? buildScriptReviewUrl(workspaceId!, seriesId!, chapterId)
                   : buildChapterManagementUrl(workspaceId!, seriesId!),
                 isActive: location.pathname.includes('/script'),
               },
               {
-                icon: BookOpen,
-                label: t('navigation.menu.readerAndReview', 'Đọc thử & Soát trang'),
-                href: chapterId
-                  ? buildChapterReaderUrl(workspaceId!, seriesId!, chapterId)
-                  : buildProductionWorkspaceUrl(workspaceId!, seriesId!, { tab: 'progress' }),
-                isActive: location.pathname.endsWith('/reader'),
+                icon: Kanban,
+                label: t('navigation.menu.chapterProductionBoard', 'Sản xuất'),
+                href: buildProductionWorkspaceUrl(workspaceId!, seriesId!, {
+                  chapterId: chapterId ?? undefined,
+                  tab: 'progress',
+                }),
+                isActive: isWorkspacePath,
               },
-              {
-                icon: Download,
-                label: t('navigation.menu.handoff', 'Bàn giao'),
-                href: buildSeriesExportUrl(workspaceId!, seriesId!, chapterId ?? undefined),
-                isActive: location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'export'),
-              },
-            ],
-          },
-          {
-            section: t('navigation.sections.qualityReview', 'KIỂM DUYỆT'),
-            items: [
               {
                 icon: ShieldCheck,
-                label: t('navigation.menu.editorReviewDesk', 'Kiểm tra & Hiệu đính'),
-                href: buildEditorDeskUrl(workspaceId!, seriesId!, {
-                  chapterId: chapterId ?? undefined,
-                }),
+                label: t('navigation.menu.reviewAndDelivery', 'Kiểm duyệt & Bàn giao'),
+                href: buildSeriesExportUrl(workspaceId!, seriesId!, chapterId ?? undefined),
+                isActive: isReviewOrDeliveryPath,
               },
             ],
           },
@@ -413,7 +417,7 @@ export function AppShell({
             items: [
               {
                 icon: BookMarked,
-                label: t('navigation.menu.library', 'Thư viện'),
+                label: t('navigation.menu.seriesBibleLibrary', 'Series Bible / Thư viện'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
               },
               {
@@ -449,7 +453,7 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+            section: '',
             items: [
               {
                 icon: Layers,
@@ -505,17 +509,17 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+            section: t('navigation.writerSections.overview', 'TỔNG QUAN'),
             items: [
               {
                 icon: Layers,
-                label: t('navigation.menu.myWork', 'Việc của tôi'),
+                label: t('navigation.menu.writerWorkspace', 'Không gian sáng tác'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
               },
             ],
           },
           {
-            section: t('navigation.sidebar.chapterWriting', 'SÁNG TÁC CHƯƠNG'),
+            section: t('navigation.writerSections.writing', 'SÁNG TÁC'),
             items: [
               {
                 icon: FileText,
@@ -525,7 +529,7 @@ export function AppShell({
             ],
           },
           {
-            section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+            section: t('navigation.writerSections.storyWorld', 'THẾ GIỚI TRUYỆN'),
             items: [
               {
                 icon: BookMarked,
@@ -533,10 +537,15 @@ export function AppShell({
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
                 badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
               },
+            ],
+          },
+          {
+            section: t('navigation.writerSections.collaboration', 'PHỐI HỢP'),
+            items: [
               {
-                icon: Users,
-                label: t('navigation.menu.characterProfilesAndLore', 'Hồ sơ Nhân vật & Lore'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/bible?tab=entities`,
+                icon: MessageSquare,
+                label: t('navigation.menu.writerFeedback', 'Góp ý & Yêu cầu chỉnh sửa'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work?view=feedback`,
               },
             ],
           },
@@ -561,32 +570,37 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+            section: '',
             items: [
               {
                 icon: Layers,
-                label: t('navigation.menu.myWork', 'Việc của tôi'),
+                label: t('navigation.menu.artistMyWork', 'Công việc của tôi'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
               },
             ],
           },
           {
-            section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+            section: t('navigation.sidebar.comicProduction', 'SẢN XUẤT TRUYỆN'),
             items: [
               {
                 icon: LayoutTemplate,
-                label: t('navigation.menu.panelCanvasDesk', 'Bàn vẽ Khung tranh'),
+                label: t('navigation.menu.artistDesk', 'Bàn vẽ truyện'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
               },
               {
                 icon: FileText,
-                label: t('navigation.menu.scriptReadOnly', 'Kịch bản (chỉ đọc)'),
+                label: t('navigation.menu.productionScript', 'Kịch bản'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+                readOnly: true,
+                tooltip: t(
+                  'navigation.sidebar.scriptReadOnlyTooltip',
+                  'Kịch bản — chỉ đọc (chỉ xem, không chỉnh sửa)',
+                ),
               },
             ],
           },
           {
-            section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+            section: t('navigation.sidebar.designAssets', 'THIẾT KẾ TÀI NGUYÊN'),
             items: [
               {
                 icon: BookMarked,
@@ -616,7 +630,7 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+            section: '',
             items: [
               {
                 icon: Layers,
@@ -635,8 +649,13 @@ export function AppShell({
               },
               {
                 icon: FileText,
-                label: t('navigation.menu.scriptReadOnly', 'Kịch bản (chỉ đọc)'),
+                label: t('navigation.menu.productionScript', 'Kịch bản'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+                readOnly: true,
+                tooltip: t(
+                  'navigation.sidebar.scriptReadOnlyTooltip',
+                  'Kịch bản — chỉ đọc (chỉ xem, không chỉnh sửa)',
+                ),
               },
             ],
           },
@@ -762,23 +781,7 @@ export function AppShell({
     });
   };
 
-  // Giao diện thanh bên: cài đặt trên thiết bị (localStorage), mặc định "Mực đậm"
-  const [sidebarTheme, setSidebarTheme] = useState<SidebarTheme>(() => {
-    try {
-      const saved = localStorage.getItem('pf.sidebar.theme');
-      return SIDEBAR_THEMES.some((x) => x.id === saved) ? (saved as SidebarTheme) : 'ink';
-    } catch {
-      return 'ink';
-    }
-  });
-  const handleChangeSidebarTheme = (next: SidebarTheme) => {
-    setSidebarTheme(next);
-    try {
-      localStorage.setItem('pf.sidebar.theme', next);
-    } catch {
-      // ignore
-    }
-  };
+  const [sidebarTheme, handleChangeSidebarTheme] = useSidebarTheme();
 
   const navSections = rawSections.map((sec) => ({
     ...sec,
@@ -966,13 +969,13 @@ export function AppShell({
 
       {/* --- RIGHT WRAPPER --- */}
       <div className='flex-1 flex flex-col min-w-0 h-full bg-[#FAF9F5] relative overflow-hidden'>
-        <header className='h-16 bg-white border-b border-stone-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-20 shadow-xs'>
+        <header className='h-16 bg-white border-b border-stone-200 flex items-center justify-between gap-3 px-4 md:px-6 shrink-0 z-20 shadow-xs'>
           <div className={`flex items-center gap-2 ${isStudioHome ? 'shrink-0' : 'min-w-0'}`}>
             {isStudioHome && (
               <div className='flex items-center shrink-0'>
                 <button
                   type='button'
-                  onClick={() => navigate('/workspaces')}
+                  onClick={() => navigate(seriesListHref)}
                   className='flex items-center gap-2 cursor-pointer'
                 >
                   <BrandMark size={28} className='shrink-0' />
@@ -998,7 +1001,19 @@ export function AppShell({
                 <Menu className='w-5 h-5' />
               </button>
             )}
-            {isPublisher ? (
+            {isAdminPortal ? (
+              <div className='flex items-center gap-3' data-testid='admin-portal-header'>
+                <BrandMark size={28} className='shrink-0' />
+                <div className='flex items-center gap-2'>
+                  <span className='text-stone-900 font-serif font-bold text-sm'>
+                    {t('navigation.header.adminPortal')}
+                  </span>
+                  <span className='px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200 text-xs font-mono font-bold'>
+                    ADMIN PORTAL
+                  </span>
+                </div>
+              </div>
+            ) : isPublisher ? (
               <div className='flex items-center gap-3'>
                 <BrandMark size={28} className='shrink-0' />
                 <div className='flex items-center gap-2'>
@@ -1021,22 +1036,7 @@ export function AppShell({
               </div>
             ) : (
               <nav className='flex items-center text-xs font-semibold text-stone-900 truncate'>
-                <button
-                  type='button'
-                  data-testid='back-to-workspaces-breadcrumb'
-                  className='text-stone-700 hover:text-stone-900 cursor-pointer transition-colors flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 shrink-0'
-                  onClick={() => navigate('/workspaces')}
-                  title={t(
-                    'navigation.header.backToWorkspaces',
-                    'Quay lại danh sách Workspace (Workspaces Catalog)',
-                  )}
-                >
-                  <Briefcase className='w-4 h-4 text-stone-500' />
-                  <span className='font-semibold'>Workspaces</span>
-                </button>
-                <span className='mx-1.5 text-stone-300 font-bold select-none shrink-0'>/</span>
-
-                {/* Studio Switcher Dropdown (2-tier Navigation) */}
+                {/* Studio Switcher Dropdown: đổi studio / xem tất cả / tạo studio */}
                 <StudioSwitcher
                   activeWorkspaceId={activeWorkspace?.id || workspaceId}
                   activeWorkspaceName={activeWorkspace?.name}
@@ -1059,12 +1059,12 @@ export function AppShell({
                           ),
                         )
                       }
-                      className={`font-semibold truncate flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer shrink-0 ${
+                      className={`font-semibold min-w-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer ${
                         chapterId ? 'text-stone-600 hover:text-stone-900' : 'text-stone-900'
                       }`}
                       title={t('navigation.header.goToSeries', 'Chuyển đến Series Workspace')}
                     >
-                      <BookOpen className='w-4 h-4 text-orange-600' />
+                      <BookOpen className='w-4 h-4 text-orange-600 shrink-0' />
                       <span className='truncate'>{activeSeries?.title || 'Active Series'}</span>
                     </button>
                     {chapterNumberLabel && (
@@ -1207,7 +1207,20 @@ export function AppShell({
                       <span>{t('navigation.menu.twoFactor')}</span>
                     </button>
 
-                    {isPublisher ? (
+                    {isAdminPortal ? (
+                      <button
+                        type='button'
+                        data-testid='user-menu-admin-dashboard'
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          navigate('/admin');
+                        }}
+                        className='w-full text-left flex items-center gap-2 text-xs text-stone-700 hover:text-stone-900 hover:bg-orange-50 px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                      >
+                        <LayoutDashboard className='w-3.5 h-3.5 text-orange-600' />
+                        <span>{t('navigation.menu.systemDashboard')}</span>
+                      </button>
+                    ) : isPublisher ? (
                       <button
                         type='button'
                         data-testid='user-menu-publisher-desk'

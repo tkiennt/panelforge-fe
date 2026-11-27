@@ -18,10 +18,12 @@ import {
   tailFromStyle,
   balloonPath,
   fillRgba,
-  textSafeArea,
   defaultTail,
+  layoutBalloonText,
+  letteringCase,
+  type TailPoint,
 } from '@/shared/lib/lettering/balloonRender';
-import { resolveTextStyle, textStyleCss } from '@/shared/lib/lettering/textStyle';
+import { pageUnit, resolveTextStyle, textStyleCss } from '@/shared/lib/lettering/textStyle';
 import type { ResizeHandle } from '../../hooks/useLetteringBalloons';
 
 const HANDLES: { id: ResizeHandle; position: string; cursor: string }[] = [
@@ -139,22 +141,54 @@ interface LetteringBalloonOverlayProps {
   onResizeStart: (e: React.PointerEvent, elementId: string, handle: ResizeHandle) => void;
   onResizeMove: (e: React.PointerEvent) => void;
   onResizeEnd: (e: React.PointerEvent) => void;
+  /** Thả đầu đuôi bóng (toạ độ nội bộ của bóng, px trang). Không truyền thì không có tay nắm đuôi. */
+  onTailChange?: (elementId: string, tail: TailPoint) => void;
 }
 
-const BalloonShape: React.FC<{ element: ElementSnapshotDto; activeLang?: string }> = ({
-  element: b,
-  activeLang,
-}) => {
+/** Vẽ lại khi font web tải xong: ngắt dòng đo bằng canvas, đo trước khi có font sẽ lệch. */
+function useFontsVersion(): number {
+  const [version, setVersion] = React.useState(0);
+  React.useEffect(() => {
+    const fonts = typeof document !== 'undefined' ? document.fonts : undefined;
+    if (!fonts) return;
+    let alive = true;
+    const bump = () => alive && setVersion((v) => v + 1);
+    void fonts.ready.then(bump);
+    fonts.addEventListener?.('loadingdone', bump);
+    return () => {
+      alive = false;
+      fonts.removeEventListener?.('loadingdone', bump);
+    };
+  }, []);
+  return version;
+}
+
+const BalloonShape: React.FC<{
+  element: ElementSnapshotDto;
+  activeLang?: string;
+  pageWidth: number;
+  /** Đuôi đang kéo (chưa lưu) — ưu tiên hơn đuôi đã lưu. */
+  tailOverride?: TailPoint | null;
+}> = ({ element: b, activeLang, pageWidth, tailOverride }) => {
   const textStyle = resolveTextStyle(b);
   const appearance = resolveAppearance(b.elementType, appearanceFromStyle(b.style));
-  const tail = tailFromStyle(b.style) ?? defaultTail(b.width, b.height);
+  const tail = tailOverride ?? tailFromStyle(b.style) ?? defaultTail(b.width, b.height);
   const path = balloonPath(appearance.shape, b.width, b.height, tail);
   const fill = fillRgba(appearance);
-  const safeArea = textSafeArea(appearance.shape, b.width, b.height);
-  const displayText = activeLang && b.texts?.[activeLang] ? b.texts[activeLang] : b.content;
+  const rawText = activeLang && b.texts?.[activeLang] ? b.texts[activeLang] : (b.content ?? '');
+  // Cùng bố cục với bản xuất: ngắt dòng hình thoi, câu tràn tự thu nhỏ, bản EN in hoa
+  const layout = layoutBalloonText(
+    letteringCase(rawText, activeLang),
+    textStyle,
+    appearance.shape,
+    b.width,
+    b.height,
+  );
+  const { area } = layout;
+  const align = textStyle.align ?? 'center';
 
   return (
-    <div className='relative w-full h-full flex items-center justify-center overflow-visible'>
+    <div className='relative w-full h-full overflow-visible'>
       {path && appearance.shape !== 'none' && (
         <svg
           viewBox={`0 0 ${b.width} ${b.height}`}
@@ -170,26 +204,82 @@ const BalloonShape: React.FC<{ element: ElementSnapshotDto; activeLang?: string 
         </svg>
       )}
       <div
-        className='absolute flex items-center justify-center p-1.5 text-center pointer-events-none overflow-hidden'
+        className='absolute flex flex-col justify-center pointer-events-none'
         style={{
-          left: `${(safeArea.x / b.width) * 100}%`,
-          top: `${(safeArea.y / b.height) * 100}%`,
-          width: `${(safeArea.w / b.width) * 100}%`,
-          height: `${(safeArea.h / b.height) * 100}%`,
+          left: `${(area.x / b.width) * 100}%`,
+          top: `${(area.y / b.height) * 100}%`,
+          width: `${(area.w / b.width) * 100}%`,
+          height: `${(area.h / b.height) * 100}%`,
+          alignItems: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center',
         }}
       >
         <span
-          className='select-none line-clamp-4 leading-tight break-words text-stone-900'
+          data-testid={`lettering-text-${b.elementId}`}
+          data-font-size={layout.fontSize}
+          className='select-none whitespace-pre text-stone-900'
           style={{
             ...textStyleCss(textStyle),
             color: textStyle.color || '#1c1917',
-            fontSize: `${Math.max(11, Math.min(22, textStyle.fontSize * 0.7))}px`,
+            // fontSize/strokeWidth lưu theo px của trang → quy đổi theo bề rộng trang đang hiển thị
+            fontSize: pageUnit(layout.fontSize, pageWidth),
+            lineHeight: pageUnit(layout.lineHeightPx, pageWidth),
+            WebkitTextStroke:
+              textStyle.strokeColor && textStyle.strokeWidth
+                ? `${pageUnit(textStyle.strokeWidth, pageWidth)} ${textStyle.strokeColor}`
+                : undefined,
           }}
         >
-          {displayText}
+          {layout.lines.join('\n')}
         </span>
       </div>
     </div>
+  );
+};
+
+/** Tay nắm đầu đuôi bóng oval: kéo để chỉ về người nói, thả mới lưu. */
+const TailHandle: React.FC<{
+  element: ElementSnapshotDto;
+  tail: TailPoint;
+  title: string;
+  onMove: (tail: TailPoint) => void;
+  onCommit: (tail: TailPoint) => void;
+}> = ({ element: b, tail, title, onMove, onCommit }) => {
+  const dragRef = React.useRef<{ box: DOMRect; last: TailPoint } | null>(null);
+  const toLocal = (e: React.PointerEvent, box: DOMRect): TailPoint => ({
+    x: Math.round(((e.clientX - box.left) / box.width) * b.width),
+    y: Math.round(((e.clientY - box.top) / box.height) * b.height),
+  });
+  return (
+    <div
+      data-testid={`lettering-tail-${b.elementId}`}
+      role='slider'
+      aria-label={title}
+      aria-valuetext={`${tail.x}, ${tail.y}`}
+      title={title}
+      className='absolute z-40 w-4 h-4 -ml-2 -mt-2 rounded-full bg-orange-500 border-2 border-white shadow cursor-crosshair pointer-events-auto touch-none'
+      style={{ left: `${(tail.x / b.width) * 100}%`, top: `${(tail.y / b.height) * 100}%` }}
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        const box = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect();
+        dragRef.current = { box, last: tail };
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+      }}
+      onPointerMove={(e) => {
+        const drag = dragRef.current;
+        if (!drag) return;
+        e.stopPropagation();
+        drag.last = toLocal(e, drag.box);
+        onMove(drag.last);
+      }}
+      onPointerUp={(e) => {
+        const drag = dragRef.current;
+        if (!drag) return;
+        e.stopPropagation();
+        dragRef.current = null;
+        onCommit(drag.last);
+      }}
+    />
   );
 };
 
@@ -212,8 +302,11 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
   onResizeStart,
   onResizeMove,
   onResizeEnd,
+  onTailChange,
 }) => {
   const { t } = useTranslation('artist');
+  useFontsVersion();
+  const [tailDraft, setTailDraft] = React.useState<{ id: string; tail: TailPoint } | null>(null);
   const pointerGestureRef = React.useRef<{
     elementId: string;
     startX: number;
@@ -224,6 +317,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
     <div
       data-testid='canvas-lettering-overlay'
       className='absolute inset-0 z-25 pointer-events-none'
+      style={{ containerType: 'inline-size' }}
     >
       {elements.map((b, idx) => {
         const isSelected = selectedId === b.elementId;
@@ -314,7 +408,32 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
                 />
               ))}
 
-            <BalloonShape element={b} activeLang={activeLang} />
+            <BalloonShape
+              element={b}
+              activeLang={activeLang}
+              pageWidth={pageWidth}
+              tailOverride={tailDraft?.id === b.elementId ? tailDraft.tail : null}
+            />
+
+            {isSelected &&
+              !readOnly &&
+              onTailChange &&
+              resolveAppearance(b.elementType, appearanceFromStyle(b.style)).shape === 'oval' && (
+                <TailHandle
+                  element={b}
+                  tail={
+                    (tailDraft?.id === b.elementId ? tailDraft.tail : null) ??
+                    tailFromStyle(b.style) ??
+                    defaultTail(b.width, b.height)
+                  }
+                  title={t('balloonOverlay.tailTitle')}
+                  onMove={(tail) => setTailDraft({ id: b.elementId, tail })}
+                  onCommit={(tail) => {
+                    setTailDraft(null);
+                    onTailChange(b.elementId, tail);
+                  }}
+                />
+              )}
 
             {!isSelected && (
               <span className='absolute -top-2 -left-2 z-20 min-w-5 h-5 px-1 rounded-full bg-stone-900 text-white font-mono text-xs font-bold flex items-center justify-center'>
@@ -325,7 +444,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
             {keepOutCollision && (
               <span
                 data-testid={`keepout-collision-badge-${b.elementId}`}
-                className='absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-30 px-1.5 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold flex items-center gap-0.5 shadow-sm whitespace-nowrap pointer-events-none'
+                className='absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-30 px-1.5 py-0.5 rounded bg-red-600 text-white text-xs font-bold flex items-center gap-0.5 shadow-sm whitespace-nowrap pointer-events-none'
                 title={t('balloonOverlay.keepOutTitle', {
                   label: keepOutCollision.label || t('balloonOverlay.keepOutDefaultLabel'),
                 })}

@@ -116,7 +116,7 @@ export const SidebarItem = forwardRef<HTMLAnchorElement | HTMLButtonElement, Sid
         {Icon && (
           <Icon
             className={cn(
-              'size-4 shrink-0 transition-colors',
+              'pf-sb-icon size-4 shrink-0 transition-colors',
               active ? 'text-orange-600' : 'text-stone-500 group-hover:text-stone-800',
             )}
             aria-hidden='true'
@@ -124,15 +124,9 @@ export const SidebarItem = forwardRef<HTMLAnchorElement | HTMLButtonElement, Sid
         )}
         <span className={collapsed ? 'sr-only' : 'flex-1 truncate text-left'}>{label}</span>
         {badge != null && !collapsed && (
-          <span className='ml-auto shrink-0 flex items-center' aria-label={badgeLabel}>
+          <span className='ml-auto shrink-0 flex items-center tabular-nums' aria-label={badgeLabel}>
             {badge}
           </span>
-        )}
-        {active && !collapsed && (
-          <span
-            className='active-dot ml-auto w-1.5 h-1.5 rounded-full bg-orange-600 shrink-0'
-            aria-hidden='true'
-          />
         )}
         {collapsed && (
           <span

@@ -37,10 +37,19 @@ import {
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
 import { RefreezeScriptModal } from '@/shared/modals/RefreezeScriptModal';
+import { Card, CardHeader } from '@/shared/ui';
 import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
 import { formatDate } from '@/lib/format';
 import { ProducerSharedHeader } from './ProducerSharedHeader';
-import { buildChapterManagementUrl, buildChapterReaderUrl } from '@/app/routePaths';
+import {
+  notifyChapterHubChanged,
+  useChapterReadiness,
+} from './useChapterProductionHub';
+import {
+  buildChapterManagementUrl,
+  buildChapterReaderUrl,
+  buildScriptReviewUrl,
+} from '@/app/routePaths';
 import {
   countGateWarnings,
   daysUntil,
@@ -276,13 +285,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     );
   }, [currentChapter, tf]);
 
-  // Gate 1 check: Only allow starting production when chapter is PreProduction and conditions met
-  const canStartProduction = useMemo(() => {
-    if (!currentChapter) return false;
-    const isPreProd = currentChapter.status === 'PreProduction';
-    if (lockGate) return isPreProd && !lockGate.items.some((i) => i.blocking);
-    return isPreProd;
-  }, [currentChapter, lockGate]);
+  const { readiness: chapterReadiness, refetch: refetchReadiness } =
+    useChapterReadiness(currentChapterId || null);
 
   const canRefreezeScript = useMemo(() => {
     if (!currentChapter) return false;
@@ -390,6 +394,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         seriesTitle={seriesTitle}
         seriesFormat={seriesDetail?.format}
         currentChapter={currentChapter}
+        readiness={chapterReadiness}
         onChapterChange={(nextId) => {
           setCurrentChapterId(nextId);
           setSearchParams((prev) => {
@@ -401,12 +406,56 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         loadingChapters={loadingChapters}
         actionCta={
           <div className='flex items-center gap-2'>
+            {/* Sub-tab switch inside Production Workspace: Board vs Team */}
+            <div className='inline-flex items-center rounded-lg border border-stone-200 bg-stone-50 p-0.5 text-xs'>
+              <button
+                type='button'
+                onClick={() => {
+                  setActiveSubtab('progress');
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set('tab', 'progress');
+                    return next;
+                  });
+                }}
+                data-testid='production-subtab-board'
+                className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
+                  activeSubtab === 'progress'
+                    ? 'bg-white text-stone-900 shadow-2xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Bảng sản xuất
+              </button>
+              <button
+                type='button'
+                onClick={() => {
+                  setActiveSubtab('crew');
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set('tab', 'crew');
+                    return next;
+                  });
+                }}
+                data-testid='production-subtab-crew'
+                className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
+                  activeSubtab === 'crew'
+                    ? 'bg-white text-stone-900 shadow-2xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Ê-kíp & Tải việc
+              </button>
+            </div>
+
             {/* Refresh Button */}
             <button
               type='button'
               onClick={() => {
                 loadChapters();
+                refetchReadiness();
                 setRefreshKey((k) => k + 1);
+                notifyChapterHubChanged({ seriesId, chapterId: currentChapterId });
               }}
               aria-label={tf('productionWorkspace.workspace.refreshAria')}
               title={tf('productionWorkspace.workspace.refreshAria')}
@@ -415,34 +464,28 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               <RefreshCw className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
             </button>
 
-            {/* Start Production / Refreeze CTA */}
-            <button
-              type='button'
-              disabled={!canStartProduction && !canRefreezeScript}
-              onClick={() => setStartProductionOpen(true)}
-              className={`px-4 py-2 rounded-lg text-white text-xs font-medium transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer ${
-                canStartProduction || canRefreezeScript
-                  ? 'bg-orange-600 hover:bg-orange-700'
-                  : 'bg-stone-300 text-stone-500 cursor-not-allowed opacity-60'
-              }`}
-              title={
-                canRefreezeScript
-                  ? 'Khóa lại kịch bản sau khi Biên kịch nộp bản sửa'
-                  : canStartProduction
-                    ? t('workbench.startProduction', 'Bắt đầu sản xuất')
-                    : t(
-                        'workbench.startProductionHint',
-                        'Chỉ khả dụng khi Kịch bản và Gate 1 được duyệt',
-                      )
-              }
-            >
-              <Rocket className='w-3.5 h-3.5' aria-hidden='true' />
-              <span>
-                {canRefreezeScript
-                  ? 'Khóa lại kịch bản'
-                  : t('workbench.startProduction', 'Bắt đầu sản xuất')}
-              </span>
-            </button>
+            {/* Contextual Action: Refreeze if unfrozen in production, else Overview if still PreProduction */}
+            {canRefreezeScript && isProducer ? (
+              <button
+                type='button'
+                onClick={() => setStartProductionOpen(true)}
+                className='px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer'
+              >
+                <Rocket className='w-3.5 h-3.5' aria-hidden='true' />
+                <span>Khóa lại kịch bản</span>
+              </button>
+            ) : currentChapter?.status === 'PreProduction' && workspaceId && seriesId ? (
+              <button
+                type='button'
+                onClick={() =>
+                  navigate(buildChapterManagementUrl(workspaceId, seriesId, currentChapterId))
+                }
+                className='px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer'
+              >
+                <Rocket className='w-3.5 h-3.5' aria-hidden='true' />
+                <span>Về Tổng quan để Bắt đầu SX</span>
+              </button>
+            ) : null}
           </div>
         }
       />
@@ -454,13 +497,13 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         {/* ========================================================================= */}
         {activeSubtab === 'progress' && (
           <div className='space-y-4' id='view-progress'>
-            {/* Pre-Production Readiness Bar */}
+            {/* Production Snapshot & Progress Summary Bar (uses authoritative /readiness — NO duplicate Pre-production Gate) */}
             <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              {/* Card 1: Trạng thái Kịch bản */}
+              {/* Card 1: Production Script Snapshot */}
               <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs flex flex-col justify-between space-y-2.5'>
                 <div className='flex items-center justify-between'>
                   <span className='text-xs font-semibold text-stone-700 uppercase tracking-wider'>
-                    {t('workbench.readiness.scriptTitle', 'Trạng thái Kịch bản')}
+                    Bản Kịch bản Sản xuất
                   </span>
                   <span
                     data-testid='readiness-script-status'
@@ -476,30 +519,32 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 <div>
                   <div className='text-base font-bold text-stone-900'>
                     {t('workbench.readiness.scriptSize', {
-                      scenes: currentChapter?.scenesCount ?? 0,
-                      pages: currentChapter?.pagesCount ?? 0,
+                      scenes: chapterReadiness?.script.sceneCount ?? currentChapter?.scenesCount ?? 0,
+                      pages: chapterReadiness?.script.pageCount ?? currentChapter?.pagesCount ?? 0,
                     })}
                   </div>
                   <div className='text-xs text-stone-500 mt-0.5'>
-                    {currentChapter?.isScriptFrozen
-                      ? t('workbench.readiness.scriptFrozen')
-                      : t('workbench.readiness.scriptNotFrozen')}
+                    {chapterReadiness?.script.productionVersionNumber
+                      ? `Đang sản xuất theo bản v${chapterReadiness.script.productionVersionNumber}`
+                      : chapterReadiness?.script.approvedVersionNumber
+                        ? `Bản gửi duyệt v${chapterReadiness.script.approvedVersionNumber} (chưa khóa SX)`
+                        : currentChapter?.isScriptFrozen
+                          ? t('workbench.readiness.scriptFrozen')
+                          : t('workbench.readiness.scriptNotFrozen')}
                   </div>
                 </div>
                 <div className='pt-2 border-t border-stone-100 flex items-center justify-between'>
-                  <span className='text-xs text-stone-400'>
-                    {t('workbench.readiness.scriptVersion', {
-                      version: currentChapter?.versionVector ?? 1,
-                    })}
+                  <span className='text-xs text-stone-400 font-mono'>
+                    {chapterReadiness?.script.latestVersionNumber
+                      ? `Mới nhất: v${chapterReadiness.script.latestVersionNumber}`
+                      : 'Chưa có bản lưu'}
                   </span>
                   <button
                     type='button'
                     onClick={() =>
-                      navigate(
-                        `/workspaces/${workspaceId}/series/${seriesId}/script${
-                          currentChapterId ? `?chapterId=${currentChapterId}` : ''
-                        }`,
-                      )
+                      workspaceId && seriesId && currentChapterId
+                        ? navigate(buildScriptReviewUrl(workspaceId, seriesId, currentChapterId))
+                        : undefined
                     }
                     className='text-orange-700 hover:underline text-xs font-medium cursor-pointer'
                   >
@@ -508,20 +553,26 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 </div>
               </div>
 
-              {/* Card 2: Series Bible */}
+              {/* Card 2: Chapter-Scoped Series Bible Snapshot */}
               <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs flex flex-col justify-between space-y-2.5'>
                 <div className='flex items-center justify-between'>
                   <span className='text-xs font-semibold text-stone-700 uppercase tracking-wider'>
-                    {t('workbench.readiness.bibleTitle', 'Series Bible')}
+                    Tài liệu Chương (Bible)
                   </span>
                   <span
                     className={`text-xs px-2 py-0.5 rounded font-medium border ${
-                      bibleMetrics.total > 0 && bibleMetrics.pending === 0
+                      (chapterReadiness
+                        ? chapterReadiness.bible.requiredTotal === 0 ||
+                          chapterReadiness.bible.readyCount === chapterReadiness.bible.requiredTotal
+                        : bibleMetrics.total > 0 && bibleMetrics.pending === 0)
                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                         : 'bg-amber-50 text-amber-700 border-amber-200'
                     }`}
                   >
-                    {bibleMetrics.total > 0 && bibleMetrics.pending === 0
+                    {(chapterReadiness
+                      ? chapterReadiness.bible.requiredTotal === 0 ||
+                        chapterReadiness.bible.readyCount === chapterReadiness.bible.requiredTotal
+                      : bibleMetrics.total > 0 && bibleMetrics.pending === 0)
                       ? t('workbench.readiness.bibleReady')
                       : t('workbench.readiness.bibleReview')}
                   </span>
@@ -532,31 +583,41 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       className='text-base font-bold text-stone-900'
                       data-testid='readiness-bible-locked'
                     >
-                      {t('workbench.readiness.bibleLocked', {
-                        locked: bibleMetrics.locked,
-                        total: bibleMetrics.total,
-                      })}
+                      {chapterReadiness
+                        ? `${chapterReadiness.bible.readyCount}/${chapterReadiness.bible.requiredTotal}`
+                        : t('workbench.readiness.bibleLocked', {
+                            locked: bibleMetrics.locked,
+                            total: bibleMetrics.total,
+                          })}
                     </span>
                     <span className='text-xs text-stone-500'>
                       {t('workbench.readiness.bibleSub', 'đã khóa chuẩn')}
                     </span>
                   </div>
                   <div className='text-xs text-stone-600 mt-0.5'>
-                    {bibleMetrics.total === 0
-                      ? t('workbench.readiness.bibleEmpty')
-                      : t('workbench.readiness.bibleDetail', {
-                          locked: bibleMetrics.locked,
-                          pending: bibleMetrics.pending,
-                        })}
+                    {chapterReadiness
+                      ? chapterReadiness.bible.crowdOptionalCount > 0
+                        ? `Phạm vi chương · ${chapterReadiness.bible.crowdOptionalCount} quần chúng tùy chọn`
+                        : 'Phạm vi thực thể bắt buộc trong chương'
+                      : bibleMetrics.total === 0
+                        ? t('workbench.readiness.bibleEmpty')
+                        : t('workbench.readiness.bibleDetail', {
+                            locked: bibleMetrics.locked,
+                            pending: bibleMetrics.pending,
+                          })}
                   </div>
                 </div>
                 <div className='pt-2 border-t border-stone-100 flex items-center justify-between'>
-                  <span className='text-xs text-stone-400'>
-                    {t('workbench.readiness.nonCrowdCheck', 'Non-Crowd Check')}
-                  </span>
+                  <span className='text-xs text-stone-400'>Chapter Scope</span>
                   <button
                     type='button'
-                    onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible`)}
+                    onClick={() =>
+                      workspaceId && seriesId && currentChapterId
+                        ? navigate(
+                            `${buildScriptReviewUrl(workspaceId, seriesId, currentChapterId)}?tab=entities`,
+                          )
+                        : navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible`)
+                    }
                     className='text-orange-700 hover:underline text-xs font-medium cursor-pointer'
                   >
                     {t('workbench.readiness.checkBible', 'Kiểm tra ngay →')}
@@ -564,17 +625,19 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 </div>
               </div>
 
-              {/* Card 3: Tiến độ Trang truyện */}
+              {/* Card 3: Separated Task / Page / Panel Production Progress */}
               <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs flex flex-col justify-between space-y-2.5'>
                 <div className='flex items-center justify-between'>
                   <span className='text-xs font-semibold text-stone-700 uppercase tracking-wider'>
-                    {t('workbench.readiness.pageProgressTitle', 'Tiến độ Trang truyện')}
+                    Tiến độ Ô công việc (Task)
                   </span>
-                  <span className='text-xs font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'>
-                    {t('workbench.readiness.completedBadge', {
-                      completed: currentMetrics.approvedPanels,
-                      total: currentMetrics.panelCount,
-                    })}
+                  <span className='text-xs font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200 font-mono'>
+                    {chapterReadiness
+                      ? `${chapterReadiness.production.approvedTasks}/${chapterReadiness.production.totalTasks} ô`
+                      : t('workbench.readiness.completedBadge', {
+                          completed: currentMetrics.approvedPanels,
+                          total: currentMetrics.panelCount,
+                        })}
                   </span>
                 </div>
                 <div>
@@ -583,13 +646,16 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       className='text-2xl font-bold text-stone-900'
                       data-testid='readiness-page-percent'
                     >
-                      {currentMetrics.percent}%
+                      {chapterReadiness
+                        ? chapterReadiness.production.taskProgressPercent
+                        : currentMetrics.percent}
+                      %
                     </span>
                     {(currentMetrics.rework > 0 || gateWarnings > 0) && (
                       <span className='text-xs text-rose-700 font-semibold flex items-center gap-1'>
                         <Flag className='w-3 h-3 text-rose-600' />
                         {t('workbench.readiness.reworkAlert', {
-                          rework: currentMetrics.rework,
+                          rework: chapterReadiness?.production.reworkTasks ?? currentMetrics.rework,
                           flags: gateWarnings,
                         })}
                       </span>
@@ -597,17 +663,25 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </div>
                   <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden mt-1.5'>
                     <div
-                      className='bg-orange-600 h-full'
-                      style={{ width: `${currentMetrics.percent}%` }}
+                      className='bg-orange-600 h-full transition-all'
+                      style={{
+                        width: `${
+                          chapterReadiness
+                            ? chapterReadiness.production.taskProgressPercent
+                            : currentMetrics.percent
+                        }%`,
+                      }}
                     />
                   </div>
                 </div>
                 <div className='pt-2 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500'>
                   <span>
-                    {t('workbench.readiness.pageLoad', {
-                      pages: currentMetrics.pageCount,
-                      panels: currentMetrics.panelCount,
-                    })}
+                    {chapterReadiness
+                      ? `Trang xong: ${chapterReadiness.production.completedPages}/${chapterReadiness.production.totalPages} · Panel cuối: ${chapterReadiness.production.approvedPanels}/${chapterReadiness.production.totalPanels}`
+                      : t('workbench.readiness.pageLoad', {
+                          pages: currentMetrics.pageCount,
+                          panels: currentMetrics.panelCount,
+                        })}
                   </span>
                   <span className='font-mono font-medium text-stone-700'>
                     Ch.{currentChapter?.chapterNumber || '01'}
@@ -617,7 +691,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             </div>
 
             {/* 2D Task Matrix Table */}
-            <div className='rounded-xl bg-white border border-stone-200 shadow-xs overflow-hidden'>
+            <Card className='shadow-xs' featured>
               {currentChapterId ? (
                 <TaskGridBoard
                   chapterId={currentChapterId}
@@ -637,7 +711,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   ].includes(String(currentChapter?.status))}
                 />
               ) : (
-                <div className='rounded-xl border border-dashed border-stone-200 bg-[#FCFBF8] p-10 text-center'>
+                <div className='rounded-xl border border-dashed border-head-line bg-head-wash p-10 text-center'>
                   <div className='font-semibold text-stone-900'>
                     {t('taskGridV3.noChapterSelectedTitle', 'Chưa chọn chương')}
                   </div>
@@ -649,7 +723,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </p>
                 </div>
               )}
-            </div>
+            </Card>
           </div>
         )}
 
@@ -1137,62 +1211,67 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             </div>
 
             {/* Crew Roster Table */}
-            <div className='bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden'>
-              <div className='px-5 py-3.5 bg-stone-50 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3'>
-                <div className='flex items-center gap-2'>
-                  <span className='text-xs font-bold text-stone-900 uppercase tracking-wider'>
-                    {t('workbench.crewOverview.rosterTitle', {
-                      chapter: currentChapter?.chapterNumber || '01',
-                      defaultValue: `Bảng phân bổ nhân sự Chapter ${currentChapter?.chapterNumber || '01'}`,
-                    })}
-                  </span>
-                  <span className='text-xs px-2 py-0.5 rounded bg-stone-200 text-stone-700 font-mono'>
-                    {t('workbench.crewOverview.rosterCount', {
-                      count: filteredMembers.length,
-                      defaultValue: `${filteredMembers.length} Thành viên`,
-                    })}
-                  </span>
-                </div>
-                <div className='flex items-center gap-2 text-xs'>
-                  <button
-                    type='button'
-                    onClick={() => setCrewRoleFilter('all')}
-                    className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
-                      crewRoleFilter === 'all'
-                        ? 'bg-stone-900 text-white'
-                        : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
-                    }`}
-                  >
-                    {t('workbench.crewOverview.filterAllRoles', 'Tất cả vai trò')}
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => setCrewRoleFilter('artist')}
-                    className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
-                      crewRoleFilter === 'artist'
-                        ? 'bg-stone-900 text-white'
-                        : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
-                    }`}
-                  >
-                    {t('workbench.crewOverview.filterArtists', 'Họa sĩ vẽ')}
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => setCrewRoleFilter('tech')}
-                    className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
-                      crewRoleFilter === 'tech'
-                        ? 'bg-stone-900 text-white'
-                        : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
-                    }`}
-                  >
-                    {t('workbench.crewOverview.filterTech', 'Kỹ thuật & Thoại')}
-                  </button>
-                </div>
-              </div>
+            <Card className='shadow-xs'>
+              <CardHeader
+                icon={<Users className='w-4 h-4' />}
+                title={
+                  <div className='flex items-center gap-2'>
+                    <span className='text-xs font-bold text-stone-900 uppercase tracking-wider'>
+                      {t('workbench.crewOverview.rosterTitle', {
+                        chapter: currentChapter?.chapterNumber || '01',
+                        defaultValue: `Bảng phân bổ nhân sự Chapter ${currentChapter?.chapterNumber || '01'}`,
+                      })}
+                    </span>
+                    <span className='text-xs px-2 py-0.5 rounded-full bg-kraft text-kraft-ink font-mono font-semibold'>
+                      {t('workbench.crewOverview.rosterCount', {
+                        count: filteredMembers.length,
+                        defaultValue: `${filteredMembers.length} Thành viên`,
+                      })}
+                    </span>
+                  </div>
+                }
+                actions={
+                  <div className='flex items-center gap-2 text-xs'>
+                    <button
+                      type='button'
+                      onClick={() => setCrewRoleFilter('all')}
+                      className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                        crewRoleFilter === 'all'
+                          ? 'bg-stone-900 text-white'
+                          : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
+                      }`}
+                    >
+                      {t('workbench.crewOverview.filterAllRoles', 'Tất cả vai trò')}
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setCrewRoleFilter('artist')}
+                      className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                        crewRoleFilter === 'artist'
+                          ? 'bg-stone-900 text-white'
+                          : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
+                      }`}
+                    >
+                      {t('workbench.crewOverview.filterArtists', 'Họa sĩ vẽ')}
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setCrewRoleFilter('tech')}
+                      className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                        crewRoleFilter === 'tech'
+                          ? 'bg-stone-900 text-white'
+                          : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
+                      }`}
+                    >
+                      {t('workbench.crewOverview.filterTech', 'Kỹ thuật & Thoại')}
+                    </button>
+                  </div>
+                }
+              />
 
               <div className='overflow-x-auto'>
                 <table className='w-full text-left border-collapse text-xs'>
-                  <thead className='bg-stone-50/70 border-b border-stone-200 text-stone-600 uppercase tracking-wider font-semibold'>
+                  <thead className='bg-head-wash text-kraft-ink text-xs font-semibold uppercase tracking-wide border-b border-head-line'>
                     <tr>
                       <th className='py-3 px-4'>
                         {t('workbench.crewOverview.colMember', 'Thành viên & Hồ sơ')}
@@ -1340,7 +1419,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Card>
           </div>
         )}
       </div>

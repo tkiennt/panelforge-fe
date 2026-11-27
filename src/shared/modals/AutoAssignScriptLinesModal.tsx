@@ -143,7 +143,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
               <div className='text-xs font-semibold text-[#1C1917]'>
                 {t('common.modals.autoAssign.analyzingTitle')}
               </div>
-              <p className='text-[11px] max-w-sm'>{t('common.modals.autoAssign.analyzingDesc')}</p>
+              <p className='text-xs max-w-sm'>{t('common.modals.autoAssign.analyzingDesc')}</p>
             </div>
           ) : previewResult ? (
             <div className='space-y-3.5'>
@@ -212,7 +212,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                     >
                       <div className='flex items-center justify-between text-xs border-b border-[#F3F0E9] pb-1.5'>
                         <span className='font-bold text-[#1C1917] flex items-center gap-1.5'>
-                          <span className='w-5 h-5 rounded-full bg-[#FFF2E6] text-[#C2410C] font-mono text-[11px] font-bold flex items-center justify-center'>
+                          <span className='w-5 h-5 rounded-full bg-[#FFF2E6] text-[#C2410C] font-mono text-xs font-bold flex items-center justify-center'>
                             {idx + 1}
                           </span>
                           <span>
@@ -220,13 +220,13 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                               number: panel?.panelNumber ?? idx + 1,
                             })}
                           </span>
-                          <span className='text-[10px] text-[#57534E] font-normal'>
+                          <span className='text-xs text-[#57534E] font-normal'>
                             {t('common.modals.autoAssign.readingOrder', {
                               order: panel?.readingOrder ?? idx + 1,
                             })}
                           </span>
                         </span>
-                        <span className='text-[10px] font-mono font-bold text-[#57534E] bg-[#F8F6F0] px-2 py-0.5 rounded-full border border-[#D8D2C5]'>
+                        <span className='text-xs font-mono font-bold text-[#57534E] bg-[#F8F6F0] px-2 py-0.5 rounded-full border border-[#D8D2C5]'>
                           {t('common.modals.autoAssign.lineCount', {
                             count: grp.scriptLineIds.length,
                           })}
@@ -249,16 +249,16 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                               key={lid}
                               className='text-xs flex items-start gap-2 p-1.5 rounded-lg bg-[#FAF8F5] border border-[#EBE6DD]'
                             >
-                              <span className='text-[10px] font-mono text-[#57534E] mt-0.5 shrink-0'>
+                              <span className='text-xs font-mono text-[#57534E] mt-0.5 shrink-0'>
                                 #{line.lineOrder}
                               </span>
                               {isDialogue ? (
-                                <span className='shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-sky-800 border border-sky-200 flex items-center gap-1'>
+                                <span className='shrink-0 px-1.5 py-0.5 rounded text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200 flex items-center gap-1'>
                                   <MessageSquare className='w-2.5 h-2.5 text-sky-600' />
                                   <span>{characterName}</span>
                                 </span>
                               ) : (
-                                <span className='shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-stone-100 text-stone-700 border border-stone-200 flex items-center gap-1'>
+                                <span className='shrink-0 px-1.5 py-0.5 rounded text-xs font-semibold bg-stone-100 text-stone-700 border border-stone-200 flex items-center gap-1'>
                                   <Film className='w-2.5 h-2.5 text-stone-500' />
                                   <span>{t('common.modals.autoAssign.directionBadge')}</span>
                                 </span>
@@ -292,7 +292,7 @@ export const AutoAssignScriptLinesModal: React.FC<Props> = ({
                         if (!line) return null;
                         return (
                           <div key={lid} className='text-xs text-[#57534E] flex items-center gap-2'>
-                            <span className='font-mono text-[10px]'>#{line.lineOrder}</span>
+                            <span className='font-mono text-xs'>#{line.lineOrder}</span>
                             <span className='truncate'>
                               {line.dialogueText || line.stageDirection}
                             </span>

@@ -53,11 +53,20 @@ describe('mergeResplitArtworks', () => {
       old2: art('drawn', 'old2'),
     };
     const r = mergeResplitArtworks(oldPanels, newPanels, previous, crops);
-    expect(r.mapped.new1.id).toBe('drawn');
-    expect(r.mapped.new1.panelId).toBe('new1');
-    expect(r.mapped.new2.id).toBe('crop2');
+    // Tranh tự vẽ ở khung cũ 2 sang khung mới 2; ảnh cắt cũ ở khung 1 nhường cho ảnh cắt mới.
+    expect(r.mapped.new2.id).toBe('drawn');
+    expect(r.mapped.new2.panelId).toBe('new2');
+    expect(r.mapped.new1.id).toBe('crop1');
     expect(r.mapped.new3.id).toBe('crop3');
-    expect(r.discarded.map((a) => a.id).sort()).toEqual(['auto', 'crop1']);
+    expect(r.discarded.map((a) => a.id).sort()).toEqual(['auto', 'crop2']);
+  });
+
+  it('keeps each uploaded artwork at the same reading position, leaving gaps empty', () => {
+    const previous = { old2: art('second', 'old2') }; // khung cũ 1 trống, khung cũ 2 có tranh
+    const r = mergeResplitArtworks(oldPanels, newPanels, previous, crops);
+    expect(r.mapped.new2.id).toBe('second'); // không dồn lên khung 1
+    expect(r.mapped.new1.id).toBe('crop1');
+    expect(r.mapped.new3.id).toBe('crop3');
   });
 
   it('sends uploaded artwork that no longer fits to page history', () => {

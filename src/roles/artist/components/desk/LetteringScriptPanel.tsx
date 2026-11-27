@@ -37,15 +37,20 @@ const Avatar: React.FC<{ line: ScriptLineItem; size?: number }> = ({ line, size 
   />
 );
 
+import type { ChapterPanelRef } from './ArtistScriptReader';
+
 export interface LetteringScriptPanelProps {
   chapterTitle?: string;
   scriptLines: ScriptLineItem[];
+  chapterPanels?: ChapterPanelRef[];
   activePageNumber: number;
   /** ID của trang đang mở. */
   pageId?: string;
   /** Bóng chữ của trang đang mở. */
   elements: ElementSnapshotDto[];
   selectedElementId: string | null;
+  /** Bóng đang chờ server lưu: chưa được coi là đã liên kết. */
+  pendingElementIds?: ReadonlySet<string>;
   onSelectElementId?: (id: string | null) => void;
   onAddElement?: (type: BalloonType, scriptLine?: ScriptLineItem) => void;
   /** Callback cập nhật bản dịch bóng thoại (fallback gọi updateElementTranslation). */
@@ -72,10 +77,12 @@ export interface LetteringScriptPanelProps {
 export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   chapterTitle,
   scriptLines,
+  chapterPanels,
   activePageNumber,
   pageId,
   elements,
   selectedElementId,
+  pendingElementIds,
   onSelectElementId,
   onAddElement,
   onUpdateElementTranslation,
@@ -88,9 +95,38 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   const [expanded, setExpanded] = useState(true);
   const [linkFilter, setLinkFilter] = useState<'all' | 'unlinked' | 'linked'>('all');
   const [showAllElements, setShowAllElements] = useState(false);
+  const [showAllPanels, setShowAllPanels] = useState(false);
 
   // Trạng thái dịch hội thoại
   const { t } = useTranslation('production');
+
+  // Thống kê số khung có thoại vs tổng số khung trên trang hiện tại
+  const panelStats = useMemo(() => {
+    const pagePanels = (chapterPanels || []).filter(
+      (p) => typeof p.pageNumber === 'number' && p.pageNumber === activePageNumber,
+    );
+    const totalCount = pagePanels.length;
+    const pageLines = scriptLines.filter((l) => l.pageNumber === activePageNumber);
+    const letterableLines = pageLines.filter((l) => suggestBalloonType(l).letterable);
+    const panelsWithDialogue = new Set(
+      letterableLines
+        .map((l) => l.panelNumber)
+        .filter((n): n is number => typeof n === 'number' && n > 0),
+    );
+    const fallbackTotalPanels = new Set(
+      pageLines
+        .map((l) => l.panelNumber)
+        .filter((n): n is number => typeof n === 'number' && n > 0),
+    );
+    const effectiveTotal = Math.max(totalCount, fallbackTotalPanels.size);
+    return {
+      withDialogue: panelsWithDialogue.size,
+      total: effectiveTotal,
+      emptyPanels: pagePanels.filter(
+        (p) => p.panelNumber && !panelsWithDialogue.has(p.panelNumber),
+      ),
+    };
+  }, [chapterPanels, activePageNumber, scriptLines]);
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [isTranslatingLine, setIsTranslatingLine] = useState<Record<string, boolean>>({});
   const [lineError, setLineError] = useState<Record<string, string | null>>({});
@@ -432,6 +468,30 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
         {expanded && (
           <div className='px-2 pb-2 space-y-2'>
+            {panelStats.total > 0 && (
+              <div className='flex items-center justify-between text-2xs text-stone-500 px-1 pt-0.5'>
+                <span className='font-medium'>
+                  {t('artist.letteringScript.dialoguePanelCount', {
+                    count: panelStats.withDialogue,
+                    total: panelStats.total,
+                    defaultValue: `Hiển thị ${panelStats.withDialogue}/${panelStats.total} khung có thoại`,
+                  })}
+                </span>
+                <button
+                  type='button'
+                  onClick={() => setShowAllPanels((prev) => !prev)}
+                  className={`text-2xs font-medium cursor-pointer underline transition-colors ${
+                    showAllPanels
+                      ? 'text-orange-600 font-bold'
+                      : 'text-stone-500 hover:text-stone-800'
+                  }`}
+                >
+                  {showAllPanels
+                    ? t('artist.letteringScript.hideNonDialogue', 'Ẩn khung không thoại')
+                    : t('artist.letteringScript.showNonDialogue', 'Hiện cả khung không thoại')}
+                </button>
+              </div>
+            )}
             <div
               role='group'
               aria-label={t('artist.letteringScript.filterAriaLabel')}
@@ -516,12 +576,19 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                       )}
                       <div className='min-w-0 flex-1'>
                         <p
-                          className='text-xs font-bold truncate'
+                          className='text-xs font-bold truncate flex items-center gap-1.5'
                           style={{ color: line.characterColor || '#C2410C' }}
                         >
-                          {isNarration
-                            ? t('artist.letteringScript.narrationSpeaker')
-                            : line.characterName || t('artist.letteringScript.characterFallback')}
+                          <span
+                            className='w-1.5 h-1.5 rounded-full shrink-0'
+                            style={{ backgroundColor: line.characterColor || '#C2410C' }}
+                            aria-hidden='true'
+                          />
+                          <span className='truncate'>
+                            {isNarration
+                              ? t('artist.letteringScript.narrationSpeaker')
+                              : line.characterName || t('artist.letteringScript.characterFallback')}
+                          </span>
                           <span
                             data-testid={`lettering-script-kind-${line.id}`}
                             className='ml-1.5 font-normal text-xs text-stone-400'
@@ -701,6 +768,27 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
               })}
             </ul>
 
+            {showAllPanels && panelStats.emptyPanels.length > 0 && (
+              <div className='space-y-1.5 p-2 bg-stone-50 rounded-lg border border-dashed border-stone-200 mt-2'>
+                <div className='text-3xs font-bold uppercase tracking-wider text-stone-400'>
+                  {t('artist.letteringScript.nonDialoguePanelsHeader', 'Khung không có thoại')}
+                </div>
+                {panelStats.emptyPanels.map((p) => (
+                  <div
+                    key={p.id}
+                    className='text-xs text-stone-500 italic flex items-center justify-between'
+                  >
+                    <span>Panel {p.panelNumber || 1}</span>
+                    <span className='text-3xs text-stone-400 truncate max-w-[140px]'>
+                      {p.direction
+                        ? p.direction
+                        : t('artist.letteringScript.visualOnly', 'Chỉ có hình ảnh')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <p className='flex items-start gap-2 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-900'>
               <Info className='w-3.5 h-3.5 mt-0.5 shrink-0' aria-hidden='true' />
               {t('artist.letteringScript.hint')}
@@ -750,6 +838,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
             {shownElements.map((el, idx) => {
               const lineNo = el.scriptLineId ? numberByLineId.get(el.scriptLineId) : undefined;
               const selected = el.elementId === selectedElementId;
+              const pending = pendingElementIds?.has(el.elementId) ?? false;
               return (
                 <li key={el.elementId}>
                   <button
@@ -775,21 +864,35 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                         {el.isStale && (
                           <span
                             data-testid='text-stale-badge'
-                            className='px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 text-[10px] font-semibold'
+                            className='px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 text-xs font-semibold'
                           >
                             Thoại lỗi thời
                           </span>
                         )}
                       </span>
                       <span
-                        className={`block text-xs ${el.scriptLineId ? 'text-emerald-700' : 'text-stone-500'}`}
+                        className={`block text-xs ${
+                          pending
+                            ? 'text-amber-700'
+                            : el.scriptLineId
+                              ? 'text-emerald-700'
+                              : 'text-stone-500'
+                        }`}
+                        data-testid={pending ? `lettering-item-pending-${el.elementId}` : undefined}
                       >
-                        {el.scriptLineId
-                          ? t('artist.letteringScript.linkedToLine', { line: lineNo ?? '?' })
-                          : t('artist.letteringScript.unlinked')}
+                        {pending
+                          ? t('artist.letteringScript.saving')
+                          : el.scriptLineId
+                            ? t('artist.letteringScript.linkedToLine', { line: lineNo ?? '?' })
+                            : t('artist.letteringScript.unlinked')}
                       </span>
                     </span>
-                    {el.scriptLineId ? (
+                    {pending ? (
+                      <Loader2
+                        className='w-5 h-5 text-amber-600 animate-spin shrink-0'
+                        aria-hidden='true'
+                      />
+                    ) : el.scriptLineId ? (
                       <CheckCircle2
                         className='w-5 h-5 text-emerald-600 shrink-0'
                         aria-hidden='true'

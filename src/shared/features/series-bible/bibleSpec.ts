@@ -2,8 +2,10 @@ import { translate } from '@/lib/i18n';
 
 /**
  * Đặc tả tạo hình Series Bible V2.6:
- * - age: string? (chỉ cho Character, theo biến thể)
- * - artistNotes: string? (ghi chú ngoại hình, trang phục, nét vẽ tự do)
+ * - artistNotes: string? (Character Notes & Design Brief tự do)
+ *
+ * `age` và các thuộc tính tạo hình cũ vẫn được parser đọc để bảo toàn dữ liệu,
+ * nhưng không còn là trường nhập liệu riêng trong Writer Workspace.
  */
 export type SpecCategory = 'character' | 'location' | 'prop' | 'terminology' | 'style';
 
@@ -31,7 +33,7 @@ const makeField = (
   get label() {
     if (key === 'age') return translate('bible.spec.fields.age.label', 'Tuổi');
     if (key === 'artistNotes')
-      return translate('bible.spec.fields.artistNotes.label', 'Ghi chú cho Artist (Artist Notes)');
+      return translate('bible.spec.fields.artistNotes.label', 'Ghi chú cho họa sĩ');
     return translate(`bible.spec.fields.${key}.label`, key);
   },
   get placeholder() {
@@ -56,10 +58,7 @@ const makeGroup = (key: string, fields: SpecField[]): SpecGroup => ({
 
 export const SPEC_SCHEMA: Record<SpecCategory, SpecGroup[]> = {
   character: [
-    makeGroup('notes', [
-      makeField('age', { hasPlaceholder: true }),
-      makeField('artistNotes', { hasPlaceholder: true, multiline: true }),
-    ]),
+    makeGroup('notes', [makeField('artistNotes', { hasPlaceholder: true, multiline: true })]),
   ],
   location: [
     makeGroup('notes', [makeField('artistNotes', { hasPlaceholder: true, multiline: true })]),
@@ -107,6 +106,56 @@ export const LEGACY_FIELD_LABELS: Record<string, string> = {
 };
 
 /**
+ * Một số bản ghi cũ lưu cả DTO vào Artist Notes. Chỉ giữ phần mô tả mà người dùng
+ * đã nhập; không để UUID, tên trường hay JSON kỹ thuật lọt vào Workbench.
+ */
+export const sanitizeArtistNotes = (value: unknown): string => {
+  const note = typeof value === 'string' ? value.trim() : '';
+  if (!note) return '';
+
+  const looksLikeDtoDump = /(?:^|\s*-\s*)(?:artistNotes|Id|Name|Description|DetailsJson)\s*:/i.test(
+    note,
+  );
+  if (!looksLikeDtoDump) return note;
+
+  const description = note.match(
+    /(?:^|\s*-\s*)Description\s*:\s*([\s\S]*?)(?=\s*-\s*(?:artistNotes|Id|Name|DetailsJson)\s*:|$)/i,
+  )?.[1];
+
+  return description?.trim() || '';
+};
+
+export interface ArtistNoteSpecItem {
+  label: string;
+  value: string;
+}
+
+/**
+ * Tách các dòng đặc tả kiểu "- Nhãn: Giá trị" để trình bày như spec sheet.
+ * Phần văn bản tự do vẫn được giữ nguyên làm ghi chú, không thay đổi payload API.
+ */
+export const parseArtistNoteSpecs = (
+  value: unknown,
+): { items: ArtistNoteSpecItem[]; note: string } => {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) return { items: [], note: '' };
+
+  const items: ArtistNoteSpecItem[] = [];
+  const noteLines: string[] = [];
+
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.trim().match(/^[-•]\s*([^:]+):\s*(.+)$/);
+    if (match) {
+      items.push({ label: match[1].trim(), value: match[2].trim() });
+    } else if (line.trim()) {
+      noteLines.push(line.trim());
+    }
+  }
+
+  return { items, note: noteLines.join('\n') };
+};
+
+/**
  * Trích xuất an toàn từ dữ liệu cũ (4 nhóm hoặc attributes phẳng) sang 2 trường mới gọn nhẹ.
  */
 export const parseBibleDetails = (
@@ -115,7 +164,7 @@ export const parseBibleDetails = (
 ): { age: string; artistNotes: string } => {
   let age = '';
   let artistNotes = '';
-  const bullets: string[] = [];
+  const legacyBullets = new Map<string, string>();
 
   const processObject = (obj: Record<string, any>) => {
     for (const [k, v] of Object.entries(obj)) {
@@ -127,9 +176,13 @@ export const parseBibleDetails = (
       if (lower === 'age') {
         if (!age) age = strVal;
       } else if (lower === 'artistnotes' || lower === 'artist_notes') {
-        if (!artistNotes) artistNotes = strVal;
-      } else if (LEGACY_FIELD_LABELS[k]) {
-        bullets.push(`- ${LEGACY_FIELD_LABELS[k]}: ${strVal}`);
+        if (!artistNotes) artistNotes = sanitizeArtistNotes(strVal);
+      } else if (LEGACY_FIELD_LABELS[lower]) {
+        // Details may arrive both as top-level attributes and as DetailsJson.
+        // Keep the first value for each semantic field so notes never repeat.
+        if (!legacyBullets.has(lower)) {
+          legacyBullets.set(lower, `- ${LEGACY_FIELD_LABELS[lower]}: ${strVal}`);
+        }
       } else if (typeof v === 'object' && !Array.isArray(v)) {
         processObject(v);
       }
@@ -148,30 +201,21 @@ export const parseBibleDetails = (
       }
     } catch {
       if (!artistNotes && rawDetailsJson.trim() !== '{}') {
-        artistNotes = rawDetailsJson.trim();
+        artistNotes = sanitizeArtistNotes(rawDetailsJson);
       }
     }
   }
 
+  const bullets = Array.from(legacyBullets.values());
   if (bullets.length > 0) {
     artistNotes = artistNotes ? `${artistNotes}\n\n${bullets.join('\n')}` : bullets.join('\n');
   }
 
-  return { age, artistNotes };
+  return { age, artistNotes: sanitizeArtistNotes(artistNotes) };
 };
 
 export const specFields = (category: SpecCategory): SpecField[] =>
   SPEC_SCHEMA[category].flatMap((g) => g.fields);
-
-/** Tỉ lệ trường đã điền */
-export const specCompleteness = (
-  category: SpecCategory,
-  attributes: Record<string, unknown>,
-): { filled: number; total: number } => {
-  const fields = specFields(category);
-  const filled = fields.filter((f) => String(attributes[f.key] ?? '').trim() !== '').length;
-  return { filled, total: fields.length };
-};
 
 /** Gộp giá trị form vào attributes cũ: trường để trống bị xoá, khoá ngoài schema được giữ nguyên. */
 export const mergeSpecAttributes = (

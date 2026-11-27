@@ -13,7 +13,7 @@ export const ChapterPriceBadge: React.FC<{
   const { t } = useTranslation();
   if (isMonetizationConfigured === false) {
     return (
-      <span className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-stone-50 text-stone-600 border border-stone-200'>
+      <span className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-stone-50 text-stone-600 border border-stone-200'>
         {t('payments.chapterPricing.notConfigured')}
       </span>
     );
@@ -21,7 +21,7 @@ export const ChapterPriceBadge: React.FC<{
   if (!isLocked) {
     return (
       <span
-        className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200'
+        className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200'
         title={t('payments.chapterPricing.freeTitle')}
       >
         {t('payments.chapterPricing.free')}
@@ -31,7 +31,7 @@ export const ChapterPriceBadge: React.FC<{
   const price = priceVnd ?? 0;
   return (
     <span
-      className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200'
+      className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200'
       title={t('payments.chapterPricing.paidTitle', { price: formatVnd(price) })}
     >
       🔒 {formatVnd(price)}

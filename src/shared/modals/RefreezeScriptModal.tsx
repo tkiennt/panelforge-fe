@@ -296,7 +296,7 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
                 Khóa lại kịch bản — Chương {resolvedChapterNumber}
                 {resolvedTitle ? `: ${resolvedTitle}` : ''}
               </h3>
-              <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200'>
+              <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200'>
                 Đang sản xuất
               </span>
             </div>
@@ -488,7 +488,7 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
                     Trang mới bổ sung ({addedPages.length})
                   </h4>
                   {addedPages.length > 0 && !allAddedPagesAssigned && (
-                    <span className='text-[11px] font-semibold text-[#D97706]'>
+                    <span className='text-xs font-semibold text-[#D97706]'>
                       Cần giao 100% Họa sĩ cho trang mới
                     </span>
                   )}
@@ -648,13 +648,13 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
                             <span className='font-bold text-rose-900'>
                               ⚑ Trang {vi.pageNumber} — Khung {vi.panelNumber}
                             </span>
-                            <span className='text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800'>
+                            <span className='text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800'>
                               {vi.affectedStages.join(', ')}
                             </span>
                           </div>
                           <p className='text-stone-700'>{vi.reason}</p>
                           {vi.affectedAssigneeNames.length > 0 && (
-                            <p className='text-[11px] text-stone-600'>
+                            <p className='text-xs text-stone-600'>
                               Họa sĩ chịu ảnh hưởng: {vi.affectedAssigneeNames.join(', ')}
                             </p>
                           )}
@@ -679,7 +679,7 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
                             {ti.speakerLabel ? ` (${ti.speakerLabel})` : ''}
                           </span>
                           {ti.isStale && (
-                            <span className='text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300'>
+                            <span className='text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300'>
                               Thoại cũ trên bóng chữ
                             </span>
                           )}

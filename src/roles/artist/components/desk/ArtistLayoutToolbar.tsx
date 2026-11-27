@@ -18,10 +18,10 @@ interface ArtistLayoutToolbarProps {
 }
 
 const STEP_KEYS = [
-  'layoutToolbar.steps.sketch',
-  'layoutToolbar.steps.splitOrTemplate',
-  'layoutToolbar.steps.saveLayout',
-  'layoutToolbar.steps.uploadArtwork',
+  'layoutToolbar.steps.pageImage',
+  'layoutToolbar.steps.extract',
+  'layoutToolbar.steps.review',
+  'layoutToolbar.steps.saved',
 ] as const;
 
 export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
@@ -71,40 +71,43 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
   return (
     <section
       aria-label={t('layoutToolbar.ariaLabel')}
-      className='w-full min-h-11 shrink-0 border-b border-[#E7E5E4] bg-white px-3 py-2 flex flex-wrap items-center justify-start 2xl:justify-between gap-x-3 gap-y-2'
+      className='w-full min-h-12 shrink-0 border-b border-[#E7E5E4] bg-white px-3 py-2 flex flex-wrap items-center justify-between gap-2'
       data-testid='artist-layout-toolbar'
     >
-      {!layoutLockedReason && (
-        <ol className='hidden 2xl:flex items-center gap-1.5 text-xs text-stone-500 whitespace-nowrap shrink-0'>
-          {STEP_KEYS.map((key, index) => {
-            const step = index + 1;
-            const label = t(key);
-            return (
-              <li
-                key={key}
-                aria-current={step === currentStep ? 'step' : undefined}
-                className={`inline-flex items-center gap-1 ${
-                  step < currentStep
-                    ? 'text-emerald-700 font-medium'
-                    : step === currentStep
-                      ? 'font-bold text-stone-900'
-                      : 'text-stone-500'
-                }`}
-              >
-                <span>
-                  {step} {label}
-                </span>
-                {step < currentStep && <Check className='h-3 w-3' aria-hidden='true' />}
-                {step < STEP_KEYS.length && (
-                  <span className='text-stone-300' aria-hidden='true'>
-                    →
-                  </span>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      )}
+      <div className='flex min-w-0 items-center gap-3'>
+        <span className='shrink-0 text-xs font-bold text-stone-900'>
+          {t('layoutToolbar.processingTitle')}
+        </span>
+        {!layoutLockedReason && (
+          <ol className='hidden xl:flex items-center gap-1.5 text-xs text-stone-500 whitespace-nowrap'>
+            {STEP_KEYS.map((key, index) => {
+              const step = index + 1;
+              const label = t(key);
+              return (
+                <li
+                  key={key}
+                  aria-current={step === currentStep ? 'step' : undefined}
+                  className={`inline-flex items-center gap-1 ${
+                    step < currentStep
+                      ? 'text-emerald-700 font-medium'
+                      : step === currentStep
+                        ? 'font-bold text-stone-900'
+                        : 'text-stone-500'
+                  }`}
+                >
+                  <span>{label}</span>
+                  {step < currentStep && <Check className='h-3 w-3' aria-hidden='true' />}
+                  {step < STEP_KEYS.length && (
+                    <span className='text-stone-300' aria-hidden='true'>
+                      →
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </div>
 
       <div className='flex flex-wrap items-center justify-start gap-1.5 min-w-0'>
         <span title={layoutLockedReason} className='shrink-0'>
@@ -117,7 +120,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
             className={buttonClass(1)}
           >
             <Upload className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
-            {t('layoutToolbar.uploadSketch')}
+            {t('layoutToolbar.uploadPageImage')}
           </button>
         </span>
         <span title={layoutLockedReason} className='shrink-0'>
@@ -150,7 +153,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
             )}
             {isDetectingPanels
               ? t('layoutToolbar.splittingPanels')
-              : t('layoutToolbar.splitPanels')}
+              : t('layoutToolbar.extractPanels')}
           </button>
         </span>
         <span title={saveReason} className='shrink-0'>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { FocusWorkspaceLayout } from './FocusWorkspaceLayout';
 import { CurrentUser } from './AppShell';
@@ -84,6 +84,21 @@ describe('FocusWorkspaceLayout Component', () => {
     fireEvent.click(screen.getByText(/Thoát toàn màn hình/i));
     expect(screen.getByTestId('focus-studio-header')).toBeInTheDocument();
     expect(screen.queryByTestId('focus-zen-pill')).not.toBeInTheDocument();
+  });
+
+  it('reuses and updates the persisted sidebar theme in focus routes', () => {
+    localStorage.setItem('pf.sidebar.theme', 'ocean');
+    renderLayout();
+
+    const sidebar = screen.getByTestId('app-shell-sidebar');
+    expect(sidebar).toHaveAttribute('data-sb-theme', 'ocean');
+
+    fireEvent.click(within(sidebar).getByTestId('sidebar-user-menu-btn'));
+    fireEvent.click(screen.getByTestId('sidebar-theme-paper'));
+
+    expect(sidebar).toHaveAttribute('data-sb-theme', 'paper');
+    expect(localStorage.getItem('pf.sidebar.theme')).toBe('paper');
+    localStorage.removeItem('pf.sidebar.theme');
   });
 
   it('hides focus mode button and zen toggle UI for writer script editor, and renders clean breadcrumb with suffix', () => {

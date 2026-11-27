@@ -127,6 +127,7 @@
       "statusPreProduction": "Pre-production (scripting)",
       "statusPublished": "Published",
       "statusInProduction": "In production",
+      "eyebrow": "Lettering Production Desk",
       "heading": "Dialogue & Lettering Desk — {series}",
       "subHeadingStrong": "Select a Chapter to Open the Dedicated Lettering Desk",
       "subHeadingDesc": "— Choose a chapter to enter the fullscreen Focus Workspace, position speech balloons, anchor script lines, adjust typography, and export finished lettered pages.",

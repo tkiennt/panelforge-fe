@@ -482,7 +482,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               id='register-password-requirements'
               className='mt-2 p-2.5 rounded-lg bg-stone-100/70 border border-stone-200/80 space-y-1'
             >
-              <div className='text-[10px] font-mono uppercase font-semibold text-stone-500 mb-1'>
+              <div className='text-xs font-mono uppercase font-semibold text-stone-500 mb-1'>
                 {t('common.auth.passwordChecklistTitle', 'Yêu cầu mật khẩu:')}
               </div>
               <div className='flex items-center gap-2 text-xs'>
@@ -624,7 +624,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
           {/* Divider "hoặc" */}
           <div className='relative flex items-center justify-center my-3.5'>
             <div className='w-full border-t border-[#E7E5E4]' />
-            <span className='absolute bg-[#FAF8F5] px-3 text-[11px] font-mono text-[#777169] uppercase tracking-wider'>
+            <span className='absolute bg-[#FAF8F5] px-3 text-xs font-mono text-[#777169] uppercase tracking-wider'>
               {t('common.auth.or', 'hoặc')}
             </span>
           </div>
@@ -683,7 +683,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               <label htmlFor='register-pin' className='block text-xs font-semibold text-[#171717]'>
                 {t('common.auth.pinSecurityLabel', 'Mã PIN bảo mật 6 số')}
               </label>
-              <span className='text-[11px] font-mono text-stone-500'>
+              <span className='text-xs font-mono text-stone-500'>
                 {t('common.auth.pinExpires', 'Hạn 15 phút')}
               </span>
             </div>
@@ -701,7 +701,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
               disabled={isLoading}
               className='w-full text-center text-3xl font-mono font-bold tracking-[0.5em] py-3.5 px-4 bg-white border border-[#E7E5E4] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 rounded-xl outline-none transition-all shadow-xs'
             />
-            <p className='text-[11px] text-[#777169] text-center mt-2'>
+            <p className='text-xs text-[#777169] text-center mt-2'>
               {t('common.auth.checkSpamHint', 'Kiểm tra hộp thư chính hoặc thư rác (Spam).')}
             </p>
           </div>

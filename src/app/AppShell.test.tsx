@@ -56,9 +56,12 @@ describe('AppShell Component', () => {
 
     renderInRouter(artistUser, '/workspaces/ws-1/series/ser-1/my-work');
 
-    expect(screen.getByText('Bàn vẽ Khung tranh')).toBeInTheDocument();
-    expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản (chỉ đọc)')).toBeInTheDocument();
+    const sidebar = screen.getByTestId('app-shell-sidebar');
+    expect(screen.getByText('Bàn vẽ truyện')).toBeInTheDocument();
+    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
+    const scriptLink = within(sidebar).getByRole('link', { name: /Kịch bản/i });
+    expect(scriptLink).toHaveAttribute('title', expect.stringMatching(/chỉ đọc/i));
+    expect(within(scriptLink).getByTestId('sidebar-item-readonly-icon')).toBeInTheDocument();
     expect(screen.getByText('Series Bible')).toBeInTheDocument();
     // Artist không được thấy màn Letterer
     expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
@@ -75,15 +78,20 @@ describe('AppShell Component', () => {
 
     renderInRouter(lettererUser, '/workspaces/ws-1/series/ser-1/my-work');
 
+    const sidebar = screen.getByTestId('app-shell-sidebar');
     expect(screen.getByText('Chèn chữ & Bóng thoại')).toBeInTheDocument();
     expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản (chỉ đọc)')).toBeInTheDocument();
+    expect(within(sidebar).queryByText('TỔNG QUAN')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kịch bản (chỉ đọc)')).not.toBeInTheDocument();
+    const scriptLink = within(sidebar).getByRole('link', { name: /Kịch bản/i });
+    expect(scriptLink).toHaveAttribute('title', expect.stringMatching(/chỉ đọc/i));
+    expect(within(scriptLink).getByTestId('sidebar-item-readonly-icon')).toBeInTheDocument();
     expect(screen.getByText('Series Bible')).toBeInTheDocument();
     // Letterer không thấy màn Artist
     expect(screen.queryByText('Bàn vẽ Khung tranh')).not.toBeInTheDocument();
   });
 
-  it('vai trò WRITER không thấy cả Bàn vẽ lẫn Chèn chữ', () => {
+  it('vai trò WRITER dùng đúng 4 workspace, không lặp hồ sơ nhân vật', () => {
     const writerUser: CurrentUser = {
       name: 'Trần Văn Kịch Bản',
       role: 'USER',
@@ -94,10 +102,14 @@ describe('AppShell Component', () => {
 
     renderInRouter(writerUser, '/workspaces/ws-1/series/ser-1/my-work');
 
+    expect(screen.getByText('Không gian sáng tác')).toBeInTheDocument();
     expect(screen.getByText('Kịch bản Chương')).toBeInTheDocument();
-    expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
     expect(screen.getByText('Series Bible')).toBeInTheDocument();
-    expect(screen.getByText('Hồ sơ Nhân vật & Lore')).toBeInTheDocument();
+    expect(screen.getByText('Góp ý & Yêu cầu chỉnh sửa')).toBeInTheDocument();
+    expect(screen.queryByText('Hồ sơ Nhân vật & Lore')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Góp ý & Yêu cầu chỉnh sửa' }).getAttribute('href'),
+    ).toContain('/workspaces/ws-1/series/ser-1/my-work?view=feedback');
     expect(screen.queryByText('Bàn vẽ Khung tranh')).not.toBeInTheDocument();
     expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
   });
@@ -133,16 +145,13 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
-    expect(screen.getByText('Ma trận trang')).toBeInTheDocument();
-    expect(screen.getByText('Tổng quan chương')).toBeInTheDocument();
-    expect(screen.getByText('Quản lý Ê-kíp')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản')).toBeInTheDocument();
-    expect(screen.getByText('Đọc thử & Soát trang')).toBeInTheDocument();
-    expect(screen.getByText('Bàn giao')).toBeInTheDocument();
-    expect(screen.getByText('Kiểm tra & Hiệu đính')).toBeInTheDocument();
-    expect(screen.getByText('Thư viện')).toBeInTheDocument();
+    expect(screen.getByText('Tổng quan')).toBeInTheDocument();
+    expect(screen.getByText('Tiền sản xuất')).toBeInTheDocument();
+    expect(screen.getByText('Sản xuất')).toBeInTheDocument();
+    expect(screen.getByText('Kiểm duyệt & Bàn giao')).toBeInTheDocument();
+    expect(screen.getByText('Series Bible / Thư viện')).toBeInTheDocument();
     expect(screen.getByText('Doanh thu & Lượt đọc')).toBeInTheDocument();
-    // Removed old items:
+    // Removed fragmented / old items:
     expect(screen.queryByText('Tiến độ & Giao việc')).not.toBeInTheDocument();
     expect(screen.queryByText('Kịch bản & Cổng duyệt')).not.toBeInTheDocument();
     expect(screen.queryByText('Đọc duyệt tranh')).not.toBeInTheDocument();
@@ -192,11 +201,23 @@ describe('AppShell Component', () => {
       avatarInitials: 'AD',
     };
 
-    renderInRouter(adminUser, '/admin');
+    renderInRouter(adminUser, '/admin?tab=users');
 
-    expect(screen.getByText('System Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Users & Roles')).toBeInTheDocument();
-    expect(screen.getByText('AI Provider & Quota')).toBeInTheDocument();
+    // Header Admin Portal giống Publisher Portal
+    expect(screen.getByTestId('admin-portal-header')).toHaveTextContent('Cổng Quản Trị');
+    // Đủ các mục quản trị, mục đang mở được đánh dấu
+    for (const label of [
+      'Tổng quan',
+      'Người dùng & quyền',
+      'Cấu hình AI',
+      'Lưu trữ & quota',
+      'Chính sách phiên',
+      'Nhật ký hệ thống',
+      'Thống kê độc giả',
+    ]) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    expect(screen.queryByText('Studio Workspaces')).not.toBeInTheDocument();
   });
 
   it('hỗ trợ mở và đóng sidebar drawer trên màn hình nhỏ (< md) bằng nút hamburger', () => {
@@ -329,14 +350,14 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/workspace');
 
-    const activeLink = screen.getByRole('link', { name: /Ma trận trang/i });
+    const activeLink = screen.getByRole('link', { name: /^Sản xuất$/i });
     expect(activeLink).toBeInTheDocument();
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 
-    // Mục đang chọn: vạch nhấn + nền nhẹ qua token scope của sidebar
+    // Mục đang chọn: highlight nền + aria-current, không còn chấm cam active-dot dễ gây hiểu nhầm
     expect(activeLink).toHaveClass('pf-sb-item');
     expect(activeLink).toHaveClass('rounded-xl');
-    expect(activeLink.querySelector('span[aria-hidden="true"]')).toBeInTheDocument();
+    expect(activeLink.querySelector('.active-dot')).not.toBeInTheDocument();
   });
 
   it('highlights Quy trình sản xuất on the production page even though its link carries ?chapterId', () => {
@@ -374,13 +395,73 @@ describe('AppShell Component', () => {
     expect(sidebar).toHaveClass('pf-sidebar');
     expect(sidebar).toHaveAttribute('data-sb-theme', 'ink');
 
-    // Đổi preset: áp dụng ngay và lưu trên thiết bị
-    fireEvent.click(screen.getByTestId('sidebar-theme-btn'));
+    // Đổi preset nằm trong menu cài đặt của card user (Popover API), không còn nút bảng màu lẻ
+    expect(screen.queryByTestId('sidebar-theme-btn')).not.toBeInTheDocument();
+    const userMenuBtn = within(sidebar).getByTestId('sidebar-user-menu-btn');
+    expect(userMenuBtn).toHaveAttribute('title', 'Hồ sơ & cài đặt');
+    fireEvent.click(userMenuBtn);
     const ocean = screen.getByTestId('sidebar-theme-ocean');
     expect(screen.getByTestId('sidebar-theme-ink')).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(ocean);
     expect(sidebar).toHaveAttribute('data-sb-theme', 'ocean');
     expect(localStorage.getItem('pf.sidebar.theme')).toBe('ocean');
+  });
+
+  it('thẻ BỘ TRUYỆN ĐANG MỞ hiển thị trạng thái thật của series hoặc vai trò thay vì chữ Active cứng', () => {
+    const artistUser: CurrentUser = {
+      name: 'Minh Họa',
+      role: 'USER',
+      workspaceRole: 'ARTIST' as any,
+      activeRoles: ['ARTIST'],
+      avatarInitials: 'MH',
+    };
+
+    const { rerender } = renderInRouter(artistUser, '/workspaces/ws-1/series/ser-1/my-work', {
+      activeSeries: {
+        id: 'ser-1',
+        title: 'Đốm Lửa Trường An',
+        subtitle: '',
+        isCompleted: false,
+        chaptersCount: 3,
+      } as any,
+    });
+
+    const sidebar = screen.getByTestId('app-shell-sidebar');
+    expect(within(sidebar).queryByText('Active')).not.toBeInTheDocument();
+    expect(within(sidebar).getByTestId('sidebar-series-status-badge')).toHaveTextContent(
+      'Đang sản xuất',
+    );
+
+    rerender(
+      <I18nProvider>
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/my-work']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/*'
+              element={
+                <AppShell
+                  currentUser={artistUser}
+                  activeSeries={
+                    {
+                      id: 'ser-1',
+                      title: 'Đốm Lửa Trường An',
+                      subtitle: '',
+                      isCompleted: true,
+                      chaptersCount: 12,
+                    } as any
+                  }
+                >
+                  <div />
+                </AppShell>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+    expect(
+      within(screen.getByTestId('app-shell-sidebar')).getByTestId('sidebar-series-status-badge'),
+    ).toHaveTextContent('Hoàn thành');
   });
 
   it('không còn hiển thị chữ AI: Sẵn sàng và nút Export trên navbar header', () => {
@@ -413,8 +494,8 @@ describe('AppShell Component', () => {
     renderInRouter(artistUser, '/workspaces/ws-1/series/ser-1/my-work');
 
     // Mặc định là Tiếng Việt
-    expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
-    expect(screen.getByText('Bàn vẽ Khung tranh')).toBeInTheDocument();
+    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
+    expect(screen.getByText('Bàn vẽ truyện')).toBeInTheDocument();
 
     // Chuyển sang Tiếng Anh
     const enBtn = screen.getByTestId('lang-btn-en');
@@ -422,14 +503,14 @@ describe('AppShell Component', () => {
 
     // Kiểm tra các nhãn điều hướng đổi sang English
     expect(screen.getByText('My Work')).toBeInTheDocument();
-    expect(screen.getByText('Panel Canvas')).toBeInTheDocument();
+    expect(screen.getByText('Drawing Workspace')).toBeInTheDocument();
 
     // Chuyển lại về Tiếng Việt
     const viBtn = screen.getByTestId('lang-btn-vi');
     fireEvent.click(viBtn);
 
-    expect(screen.getByText('Việc của tôi')).toBeInTheDocument();
-    expect(screen.getByText('Bàn vẽ Khung tranh')).toBeInTheDocument();
+    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
+    expect(screen.getByText('Bàn vẽ truyện')).toBeInTheDocument();
   });
 
   it('hiển thị thẻ img với avatarUrl khi có ảnh đại diện của user', () => {

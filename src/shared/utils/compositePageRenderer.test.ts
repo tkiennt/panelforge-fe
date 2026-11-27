@@ -14,7 +14,7 @@ import {
 } from './compositePageRenderer';
 import { parseBoundingBox } from './panelBoundingBox';
 import { panelArtworkCoverage } from '@/shared/features/collaboration/collaborationRules';
-import { layoutText, resolveAppearance } from '@/shared/lib/lettering/balloonRender';
+import { layoutBalloonText, resolveAppearance } from '@/shared/lib/lettering/balloonRender';
 import { resolveTextStyle } from '@/shared/lib/lettering/textStyle';
 
 const rectBox = JSON.stringify({
@@ -497,12 +497,12 @@ describe('lớp chữ cho màn duyệt Letter', () => {
     vi.unstubAllGlobals();
   });
 
-  it('cùng cỡ chữ và cách ngắt dòng với bàn Letterer (không tự thu nhỏ), giữ xuống dòng thủ công', () => {
+  it('cùng cỡ chữ và cách ngắt dòng với bàn Letterer, giữ xuống dòng thủ công', () => {
     const content = 'Đêm thứ tư liên tiếp, đèn phòng lab chưa từng tắt.\n72 giờ nữa!';
     const el = text({ content });
     const { ctx, texts } = recorder();
     drawTextElement(ctx, el, rect);
-    const expected = layoutText(
+    const expected = layoutBalloonText(
       content,
       resolveTextStyle(el),
       'oval',

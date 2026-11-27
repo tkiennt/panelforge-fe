@@ -591,7 +591,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                             : item.status === 'Revoked'
                               ? 'bg-red-50 text-red-700 border-red-300'
-                              : 'bg-zinc-100 text-zinc-600 border-zinc-300';
+                              : 'bg-stone-100 text-stone-600 border-stone-300';
                         const statusLabel =
                           item.status === 'Active' && !isExpired
                             ? t('common.modals.previewLinks.statusActive')

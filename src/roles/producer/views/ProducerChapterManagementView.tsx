@@ -3,51 +3,42 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
   AlertTriangle,
-  Archive,
-  ArrowLeft,
+  ArrowRight,
   BookOpen,
-  Calendar,
   CheckCircle2,
+  ChevronRight,
   Clock,
   Edit2,
-  ExternalLink,
-  Eye,
   FileText,
-  Filter,
   Globe,
   History,
   Layers,
+  LayoutGrid,
   Lock,
   MessageSquare,
   MoreHorizontal,
   Palette,
   Play,
   Plus,
-  RotateCcw,
-  Search,
+  RefreshCw,
+  Rocket,
   Share2,
+  ShieldAlert,
   Trash2,
   Unlock,
-  UserCheck,
-  X,
+  Users,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import {
   chapterService,
   type ChapterDto,
   type ChapterLockGateDto,
+  type ChapterReadinessDto,
+  type ChapterReviewDto,
   type CreateChapterRequest,
-  type ScriptCommentDto,
-  type ScriptStatus,
-  type ScriptVersionDetailDto,
   type UpdateChapterRequest,
 } from '@/services/chapter.service';
-import {
-  chapterCastService,
-  type ChapterCastBlockerDto,
-  type ChapterCastDto,
-  type ChapterCastItemDto,
-} from '@/services/chapterCast.service';
+import { chapterCastService, type ChapterCastDto } from '@/services/chapterCast.service';
 import { seriesService, type SeriesDetailDto } from '@/services/series.service';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { pageService, type PageDto } from '@/services/page.service';
@@ -57,29 +48,44 @@ import { ChapterAssignmentsModal } from '../modals/ChapterAssignmentsModal';
 import { ChapterEditionsModal } from '../modals/ChapterEditionsModal';
 import { PreviewLinksModal } from '../modals/PreviewLinksModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
-import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { ReasonForm } from '@/shared/components/ReasonForm';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
 import { Modal } from '@/shared/ui';
+import { ProducerSharedHeader } from '@/shared/features/production-workspace/ProducerSharedHeader';
 import {
-  DEFAULT_ROW_LABELS,
-  renderRow,
-  shortHash,
-} from '@/shared/features/script-versions/versionDiff';
-import { buildSeriesPath } from '@/app/routePaths';
+  buildReadinessResolutionUrl,
+  computeChapterLifecycleSteps,
+  notifyChapterHubChanged,
+  useChapterReadiness,
+} from '@/shared/features/production-workspace/useChapterProductionHub';
+import {
+  buildBibleUrl,
+  buildChapterReaderUrl,
+  buildProductionWorkspaceUrl,
+  buildScriptReviewUrl,
+  buildSeriesExportUrl,
+} from '@/app/routePaths';
 
 export interface ProducerChapterManagementViewProps {
   onShowToast?: (title: string, desc: string) => void;
   workspaceRole?: string | null;
 }
 
-type InspectorTab = 'bible' | 'checklist' | 'comments' | 'tools';
+const CATEGORY_LABELS: Record<string, string> = {
+  Character: 'Nhân vật',
+  Location: 'Bối cảnh',
+  Prop: 'Đạo cụ',
+  Costume: 'Trang phục',
+  Term: 'Thuật ngữ',
+  Rule: 'Quy tắc',
+  Event: 'Sự kiện',
+};
 
 export const ProducerChapterManagementView: React.FC<ProducerChapterManagementViewProps> = ({
   onShowToast,
   workspaceRole,
 }) => {
-  const { t, lang } = useTranslation('production');
+  const { t } = useTranslation('production');
   const navigate = useNavigate();
   const { workspaceId = '', seriesId = '' } = useParams<{
     workspaceId: string;
@@ -95,24 +101,23 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [selectedChapterId, setSelectedChapterId] = useState<string>(urlChapterId);
 
-  // Selected Chapter Detailed Data
+  // Selected Chapter Supporting Data
   const [chapter, setChapter] = useState<ChapterDto | null>(null);
-  const [pushedScript, setPushedScript] = useState<ScriptVersionDetailDto | null>(null);
   const [cast, setCast] = useState<ChapterCastDto | null>(null);
   const [lockGate, setLockGate] = useState<ChapterLockGateDto | null>(null);
-  const [comments, setComments] = useState<ScriptCommentDto[]>([]);
+  const [reviews, setReviews] = useState<ChapterReviewDto[]>([]);
   const [pages, setPages] = useState<PageDto[]>([]);
   const [stages, setStages] = useState<PipelineStageDto[]>([]);
 
-  // UI States
-  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('bible');
-  const [scriptSearch, setScriptSearch] = useState('');
-  const [bibleCategory, setBibleCategory] = useState<string>('all');
-  const [bibleSearch, setBibleSearch] = useState('');
-  const [selectedEntityName, setSelectedEntityName] = useState<string | null>(null);
-  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  // Authoritative Readiness Hook (GET /api/chapters/{chapterId}/readiness)
+  const {
+    readiness: serverReadiness,
+    loading: loadingReadiness,
+    refetch: refetchReadiness,
+  } = useChapterReadiness(selectedChapterId || null);
 
-  // Modals & Action States
+  // UI & Modal States
+  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
   const [startProductionOpen, setStartProductionOpen] = useState(false);
   const [showUnfreezeDialog, setShowUnfreezeDialog] = useState(false);
   const [unfreezeBusy, setUnfreezeBusy] = useState(false);
@@ -125,12 +130,14 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   const [deleteTargetChapter, setDeleteTargetChapter] = useState<ChapterDto | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Form states for Create / Edit Chapter
+  // Create / Edit Chapter Form
   const [formChapterNumber, setFormChapterNumber] = useState<number>(1);
   const [formTitle, setFormTitle] = useState('');
   const [formTargetReleaseDate, setFormTargetReleaseDate] = useState('');
   const [formOutline, setFormOutline] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
+
+  const isProducer = !workspaceRole || workspaceRole.toUpperCase() === 'PRODUCER' || workspaceRole.toUpperCase() === 'OWNER';
 
   // ── Load Series & Chapters List ──
   const loadSeriesAndChapters = useCallback(async () => {
@@ -164,100 +171,244 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         setSelectedChapterId('');
       }
     } catch (err: any) {
-      setError(err?.message || t('producer.chapterManagement.loadDataError'));
+      setError(err?.message || 'Không thể tải danh sách chương.');
     } finally {
       setLoading(false);
     }
-  }, [seriesId, urlChapterId, setSearchParams, t]);
+  }, [seriesId, urlChapterId, setSearchParams]);
 
   useEffect(() => {
-    loadSeriesAndChapters();
+    void loadSeriesAndChapters();
   }, [loadSeriesAndChapters]);
 
-  // ── Load Chapter Detailed Context ──
+  // ── Load Supporting Chapter Detail Data ──
   const loadChapterDetails = useCallback(
     async (cId: string) => {
-      if (!cId) {
-        setChapter(null);
-        setPushedScript(null);
-        setCast(null);
-        setLockGate(null);
-        setComments([]);
-        setPages([]);
-        return;
-      }
+      if (!cId) return;
+      const listMatch = chapters.find((c) => c.id === cId) || null;
+      if (listMatch) setChapter(listMatch);
 
-      try {
-        const [chapterData, castData, lockGateData, commentsData, pagesData] = await Promise.all([
-          chapterService.getChapterById(cId).catch(() => null),
-          chapterCastService.getChapterCast(cId).catch(() => null),
-          chapterService.getChapterLockGate(cId).catch(() => null),
-          chapterService.getScriptComments(cId).catch(() => []),
-          pageService.getPagesByChapter(cId).catch(() => []),
-        ]);
+      const [detailRes, castRes, gateRes, pagesRes, reviewsRes] = await Promise.all([
+        typeof chapterService.getChapterById === 'function'
+          ? chapterService.getChapterById(cId).catch(() => null)
+          : Promise.resolve(null),
+        typeof chapterCastService.getChapterCast === 'function'
+          ? chapterCastService.getChapterCast(cId).catch(() => null)
+          : Promise.resolve(null),
+        typeof chapterService.getChapterLockGate === 'function'
+          ? chapterService.getChapterLockGate(cId).catch(() => null)
+          : Promise.resolve(null),
+        typeof pageService.getPagesByChapter === 'function'
+          ? pageService.getPagesByChapter(cId).catch(() => [])
+          : Promise.resolve([]),
+        typeof chapterService.getChapterReviews === 'function'
+          ? chapterService.getChapterReviews(cId).catch(() => [])
+          : Promise.resolve([]),
+      ]);
 
-        setChapter(chapterData);
-        setCast(castData);
-        setLockGate(lockGateData);
-        setComments(commentsData || []);
-        setPages(pagesData || []);
-
-        let scriptVersion: ScriptVersionDetailDto | null = null;
-        if (chapterData?.lastSubmittedVersionId) {
-          scriptVersion = await chapterService
-            .getScriptVersion(cId, chapterData.lastSubmittedVersionId)
-            .catch(() => null);
-        }
-
-        if (!scriptVersion) {
-          try {
-            const workingCopy = await chapterService.getScriptWorkingCopy(cId);
-            if (workingCopy && workingCopy.rows && workingCopy.rows.length > 0) {
-              scriptVersion = {
-                version: {
-                  id: 'working-copy',
-                  versionNumber: 0,
-                  message: t('producer.chapterManagement.workingCopyMessage'),
-                  authorUserId: '',
-                  authorName: '',
-                  createdAt: new Date().toISOString(),
-                  lineCount: workingCopy.lineCount || workingCopy.rows.length,
-                  contentHash: workingCopy.contentHash || '',
-                  submittedAt: null,
-                },
-                rows: workingCopy.rows,
-              };
-            }
-          } catch {
-            // Bỏ qua nếu không có working copy
-          }
-        }
-
-        setPushedScript(scriptVersion);
-      } catch (err: any) {
-        onShowToast?.(
-          t('producer.chapterManagement.loadChapterErrorTitle'),
-          err?.message || t('producer.chapterManagement.loadChapterErrorDesc'),
-        );
-      }
+      if (detailRes) setChapter(detailRes as ChapterDto);
+      if (castRes) setCast(castRes);
+      if (gateRes) setLockGate(gateRes);
+      if (Array.isArray(pagesRes)) setPages(pagesRes);
+      if (Array.isArray(reviewsRes)) setReviews(reviewsRes);
     },
-    [onShowToast, t],
+    [chapters],
   );
 
   useEffect(() => {
     if (selectedChapterId) {
-      loadChapterDetails(selectedChapterId);
+      void loadChapterDetails(selectedChapterId);
     }
   }, [selectedChapterId, loadChapterDetails]);
 
-  const handleSelectChapter = (newId: string) => {
-    setSelectedChapterId(newId);
-    setSearchParams({ chapterId: newId });
+  const refreshAll = useCallback(async () => {
+    await loadSeriesAndChapters();
+    if (selectedChapterId) {
+      await loadChapterDetails(selectedChapterId);
+      refetchReadiness();
+      notifyChapterHubChanged({ seriesId, chapterId: selectedChapterId });
+    }
+  }, [loadSeriesAndChapters, loadChapterDetails, selectedChapterId, refetchReadiness, seriesId]);
+
+  const handleSelectChapter = (nextId: string) => {
+    setSelectedChapterId(nextId);
+    setSearchParams({ chapterId: nextId }, { replace: true });
   };
 
-  // ── Actions ──
-  const handleOpenCreateChapter = () => {
-    const nextNum = chapters.length > 0 ? Math.max(...chapters.map((c) => c.chapterNumber)) + 1 : 1;
+  // Fallback readiness synthesizer (only used when server /readiness hasn't loaded or in legacy mocked unit tests)
+  const readiness: ChapterReadinessDto | null = useMemo(() => {
+    if (serverReadiness) return serverReadiness;
+    if (!chapter) return null;
+
+    const entities = cast?.entities ?? [];
+    const required = entities.filter((e) => !e.isCrowd);
+    const ready = required.filter(
+      (e) => e.isCanonLocked || e.boundRevision?.isCanonLocked || e.bibleStatus === 'CanonLocked',
+    );
+    const isStarted = chapter.status && chapter.status !== 'PreProduction';
+    const scriptSubmitted = Boolean(
+      isStarted || chapter.scriptStatus === 'InReview' || chapter.scriptStatus === 'Frozen',
+    );
+    const bibleReady = cast?.gate?.canStart ?? true;
+    const hasPages = (pages.length || chapter.pagesCount || 0) > 0;
+
+    const blockers: ChapterReadinessDto['blockers'] = [];
+    if (!isStarted && !scriptSubmitted) {
+      blockers.push({
+        code: 'SCRIPT_NOT_SUBMITTED',
+        severity: 'BLOCKING',
+        message: 'Kịch bản đang ở trạng thái Draft, chưa được Writer gửi duyệt.',
+        resourceType: 'script',
+        resourceId: chapter.id,
+        resolutionTarget: { workspace: 'pre-production', section: 'script', resourceId: chapter.id },
+      });
+    }
+    if (!isStarted && !bibleReady) {
+      (cast?.gate?.blockers ?? []).forEach((b) =>
+        blockers.push({
+          code: 'BIBLE_REFERENCE_BLOCKED',
+          severity: 'BLOCKING',
+          message: `${b.entryName}: ${b.reason}`,
+          resourceType: 'bible_entry',
+          resourceId: b.bibleEntryId,
+          versionId: b.revisionId ?? undefined,
+          resolutionTarget: {
+            workspace: 'pre-production',
+            section: 'entities',
+            resourceId: b.bibleEntryId,
+          },
+        }),
+      );
+    }
+
+    const checks: ChapterReadinessDto['checks'] = [
+      {
+        code: 'SCRIPT_SUBMITTED',
+        group: 'SCRIPT',
+        label: 'Kịch bản đã gửi duyệt',
+        passed: scriptSubmitted,
+        mandatory: true,
+        statusText: scriptSubmitted ? 'Đã gửi duyệt' : 'Đang soạn (Draft)',
+        resolutionTarget: { workspace: 'pre-production', section: 'script', resourceId: chapter.id },
+      },
+      {
+        code: 'BIBLE_CANON_LOCKED',
+        group: 'BIBLE',
+        label: 'Tài liệu tham khảo bắt buộc đã khóa chuẩn',
+        passed: bibleReady,
+        mandatory: true,
+        statusText:
+          required.length === 0 ? 'Không có thực thể bắt buộc' : `${ready.length}/${required.length} đã sẵn sàng`,
+        resolutionTarget: { workspace: 'pre-production', section: 'entities', resourceId: chapter.id },
+      },
+      {
+        code: 'CHAPTER_PAGES_READY',
+        group: 'SETUP',
+        label: 'Cấu trúc trang của chương',
+        passed: hasPages,
+        mandatory: true,
+        statusText: `${pages.length || chapter.pagesCount || 0} trang`,
+        resolutionTarget: { workspace: 'pre-production', section: 'script', resourceId: chapter.id },
+      },
+    ];
+
+    const passedCount = checks.filter((c) => c.passed).length;
+    const canStart = !isStarted && blockers.length === 0 && passedCount === checks.length;
+
+    return {
+      chapterId: chapter.id,
+      seriesId: chapter.seriesId,
+      chapterNumber: chapter.chapterNumber,
+      chapterTitle: chapter.title || '',
+      chapterStatus: chapter.status || 'PreProduction',
+      targetReleaseDate: chapter.targetReleaseDate,
+      isHandedOff: Boolean(chapter.isHandedOff),
+      evaluatedScriptVersionId: chapter.frozenScriptVersionId ?? chapter.lastSubmittedVersionId ?? null,
+      status: isStarted ? 'STARTED' : canStart ? 'READY' : 'NOT_READY',
+      canStartProduction: canStart,
+      checks,
+      blockers,
+      warnings: [],
+      summary: {
+        required: checks.length,
+        passed: passedCount,
+        remaining: checks.length - passedCount,
+      },
+      script: {
+        latestVersionId: chapter.lastSubmittedVersionId ?? null,
+        latestVersionNumber: null,
+        approvedVersionId: chapter.lastSubmittedVersionId ?? null,
+        approvedVersionNumber: null,
+        productionVersionId: chapter.frozenScriptVersionId ?? null,
+        productionVersionNumber: null,
+        scriptStatus: chapter.scriptStatus || 'Draft',
+        isScriptFrozen: Boolean(chapter.isScriptFrozen),
+        hasUnpushedDraftChanges: false,
+        sceneCount: chapter.scenesCount ?? 0,
+        pageCount: pages.length || chapter.pagesCount || 0,
+        panelCount: 0,
+        lineCount: 0,
+        unresolvedCommentsCount: 0,
+        openFindingsCount: 0,
+        lastUpdatedAt: chapter.updatedAt || chapter.createdAt,
+      },
+      bible: {
+        requiredTotal: required.length,
+        readyCount: ready.length,
+        missingDefinitionCount: required.filter((e) => e.bibleStatus === 'WaitingForDefinition').length,
+        missingArtCount: required.filter((e) => e.bibleStatus === 'WaitingForArtist').length,
+        pendingApprovalCount: required.filter((e) => e.bibleStatus === 'WaitingForConfirmation').length,
+        reworkCount: required.filter((e) => e.bibleStatus === 'ReworkRequired').length,
+        crowdOptionalCount: entities.filter((e) => e.isCrowd).length,
+        nonVisualReadyCount: 0,
+        byCategory: [],
+      },
+      production: {
+        totalTasks: 0,
+        approvedTasks: 0,
+        submittedTasks: 0,
+        inProgressTasks: 0,
+        reworkTasks: 0,
+        unassignedTasks: 0,
+        overdueTasks: 0,
+        taskProgressPercent: 0,
+        totalPages: pages.length || chapter.pagesCount || 0,
+        completedPages: 0,
+        pageProgressPercent: 0,
+        totalPanels: 0,
+        approvedPanels: 0,
+        panelProgressPercent: 0,
+        stages: [],
+      },
+      evaluatedAt: new Date().toISOString(),
+    };
+  }, [serverReadiness, chapter, cast, pages]);
+
+  const chapterStatus = String(readiness?.chapterStatus || chapter?.status || 'PreProduction');
+  const isPreProduction = chapterStatus === 'PreProduction';
+  const isInProduction = chapterStatus === 'InProduction';
+  const isApproved = chapterStatus === 'ChapterApproved' || chapterStatus === 'Approved';
+  const isDelivered = chapterStatus === 'HandedOffAndPublished' || chapterStatus === 'Published' || Boolean(readiness?.isHandedOff);
+  const canStartProduction = Boolean(readiness?.canStartProduction);
+
+  const { steps: lifecycleSteps } = useMemo(
+    () => computeChapterLifecycleSteps(chapter, readiness),
+    [chapter, readiness],
+  );
+
+  // Missing chapter-scoped Bible entities for quick deep-link resolution
+  const missingBibleEntities = useMemo(() => {
+    return (cast?.entities ?? []).filter(
+      (e) =>
+        !e.isCrowd &&
+        !(e.isCanonLocked || e.boundRevision?.isCanonLocked || e.bibleStatus === 'CanonLocked'),
+    );
+  }, [cast]);
+
+  // ── Chapter CRUD & Lifecycle Handlers ──
+  const openCreateModal = () => {
+    const nextNum =
+      chapters.length > 0 ? Math.max(...chapters.map((c) => c.chapterNumber)) + 1 : 1;
     setFormChapterNumber(nextNum);
     setFormTitle('');
     setFormTargetReleaseDate('');
@@ -265,54 +416,43 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
     setCreateChapterOpen(true);
   };
 
-  const handleCreateChapterSubmit = async (e: React.FormEvent) => {
+  const openEditModal = () => {
+    if (!chapter) return;
+    setFormChapterNumber(chapter.chapterNumber);
+    setFormTitle(chapter.title || '');
+    setFormTargetReleaseDate(chapter.targetReleaseDate || '');
+    setFormOutline(chapter.outline || '');
+    setEditChapterOpen(true);
+  };
+
+  const handleCreateChapter = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!seriesId) return;
-    setActionBusy(true);
+    if (!seriesId || actionBusy) return;
     try {
+      setActionBusy(true);
       const payload: CreateChapterRequest = {
-        chapterNumber: Number(formChapterNumber),
+        chapterNumber: formChapterNumber,
         title: formTitle.trim() || undefined,
         targetReleaseDate: formTargetReleaseDate || undefined,
         outline: formOutline.trim() || undefined,
       };
       const created = await chapterService.createChapter(seriesId, payload);
-      onShowToast?.(
-        t('producer.chapterManagement.chapterCreatedTitle'),
-        t('producer.chapterManagement.chapterCreatedDesc', {
-          number: created.chapterNumber,
-          title: created.title || '',
-        }),
-      );
       setCreateChapterOpen(false);
+      onShowToast?.('Đã tạo chương mới', `Chương ${created.chapterNumber} đã sẵn sàng.`);
       await loadSeriesAndChapters();
-      setSelectedChapterId(created.id);
-      setSearchParams({ chapterId: created.id });
+      handleSelectChapter(created.id);
     } catch (err: any) {
-      onShowToast?.(
-        t('producer.chapterManagement.createChapterErrorTitle'),
-        err?.message || t('producer.chapterManagement.createChapterErrorDesc'),
-      );
+      onShowToast?.('Lỗi tạo chương', err?.message || 'Không thể tạo chương.');
     } finally {
       setActionBusy(false);
     }
   };
 
-  const handleOpenEditChapter = () => {
-    if (!chapter) return;
-    setFormTitle(chapter.title || '');
-    setFormTargetReleaseDate(
-      chapter.targetReleaseDate ? chapter.targetReleaseDate.slice(0, 10) : '',
-    );
-    setFormOutline(chapter.outline || '');
-    setEditChapterOpen(true);
-  };
-
-  const handleEditChapterSubmit = async (e: React.FormEvent) => {
+  const handleUpdateChapter = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chapter) return;
-    setActionBusy(true);
+    if (!chapter || actionBusy) return;
     try {
+      setActionBusy(true);
       const payload: UpdateChapterRequest = {
         title: formTitle.trim() || undefined,
         targetReleaseDate: formTargetReleaseDate || undefined,
@@ -320,1488 +460,1336 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         expectedChapterVersion: chapter.versionVector,
       };
       await chapterService.updateChapter(chapter.id, payload);
-      onShowToast?.(
-        t('producer.chapterManagement.savedChangesTitle'),
-        t('producer.chapterManagement.chapterLabel', { number: chapter.chapterNumber }),
-      );
       setEditChapterOpen(false);
-      await loadChapterDetails(chapter.id);
-      await loadSeriesAndChapters();
+      onShowToast?.('Đã cập nhật chương', 'Thông tin chương đã được lưu.');
+      await refreshAll();
     } catch (err: any) {
-      onShowToast?.(
-        t('producer.chapterManagement.saveChapterErrorTitle'),
-        err?.message || t('producer.chapterManagement.saveChapterErrorDesc'),
-      );
+      onShowToast?.('Lỗi cập nhật', err?.message || 'Không thể cập nhật chương.');
     } finally {
       setActionBusy(false);
     }
   };
 
-  const handleUnfreezeScript = async (reason: string) => {
-    if (!chapter) return;
-    setUnfreezeBusy(true);
+  const handleDeleteChapter = async () => {
+    if (!deleteTargetChapter || isDeleting) return;
     try {
-      await chapterService.unfreezeScript(chapter.id, reason);
-      onShowToast?.(
-        t('producer.chapterManagement.reopenedScriptTitle'),
-        t('producer.chapterManagement.reopenedScriptDesc', { number: chapter.chapterNumber }),
-      );
-      setShowUnfreezeDialog(false);
-      await loadChapterDetails(chapter.id);
-      await loadSeriesAndChapters();
-    } catch (err: any) {
-      onShowToast?.(
-        t('producer.chapterManagement.reopenScriptErrorTitle'),
-        err?.message || t('producer.chapterManagement.reopenScriptErrorDesc'),
-      );
-    } finally {
-      setUnfreezeBusy(false);
-    }
-  };
-
-  const handleDeleteOrArchiveChapter = async () => {
-    if (!deleteTargetChapter) return;
-    setIsDeleting(true);
-    try {
+      setIsDeleting(true);
       await chapterService.deleteChapter(deleteTargetChapter.id);
-      onShowToast?.(
-        deleteTargetChapter.status === 'PreProduction' &&
-          (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
-          ? t('producer.chapterManagement.deletedPermanently')
-          : t('producer.chapterManagement.archivedChapter'),
-        t('producer.chapterManagement.chapterLabel', {
-          number: deleteTargetChapter.chapterNumber,
-        }),
-      );
       setDeleteTargetChapter(null);
+      onShowToast?.('Đã xóa chương', `Chương ${deleteTargetChapter.chapterNumber} đã được xóa.`);
       await loadSeriesAndChapters();
     } catch (err: any) {
-      onShowToast?.(
-        t('producer.chapterManagement.actionFailedTitle'),
-        err?.message || t('producer.chapterManagement.actionFailedDesc'),
-      );
+      onShowToast?.('Lỗi xóa chương', err?.message || 'Không thể xóa chương.');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // ── Derived Properties & Fast Metrics ──
-  const scriptStatus: ScriptStatus =
-    chapter?.scriptStatus ?? (chapter?.isScriptFrozen ? 'Frozen' : 'Draft');
-  const isScriptFrozen = chapter?.isScriptFrozen === true || scriptStatus === 'Frozen';
-  // Gate 3 đã qua khi chương đã được Producer nghiệm thu (hoặc đã bàn giao / phát hành)
-  const isGate3Passed = [
-    'ChapterApproved',
-    'Approved',
-    'HandedOffAndPublished',
-    'Published',
-  ].includes(String(chapter?.status ?? ''));
-  const isInReview = scriptStatus === 'InReview';
-  const isGatePassed = cast?.gate?.canStart ?? false;
-  const blockers: ChapterCastBlockerDto[] = cast?.gate?.blockers ?? [];
-  const openCommentsCount = comments.filter((c) => !c.resolvedAt).length;
-
-  const totalEntities = cast?.entities?.length ?? 0;
-  const canonLockedEntities = (cast?.entities ?? []).filter(
-    (e) => e.isCanonLocked || e.boundRevision?.isCanonLocked,
-  ).length;
-
-  // Filtered rows in Script
-  const filteredScriptRows = useMemo(() => {
-    const rows = pushedScript?.rows ?? [];
-    if (!scriptSearch.trim() && !selectedEntityName) return rows;
-    return rows.filter((r) => {
-      const txt = (r.text ?? '').toLowerCase();
-      const lbl = (r.label ?? '').toLowerCase();
-      if (selectedEntityName) {
-        const entName = selectedEntityName.toLowerCase();
-        const matchesEntity = lbl.includes(entName) || txt.includes(entName);
-        if (!matchesEntity) return false;
-      }
-      if (scriptSearch.trim()) {
-        const q = scriptSearch.toLowerCase().trim();
-        return txt.includes(q) || lbl.includes(q);
-      }
-      return true;
-    });
-  }, [pushedScript, scriptSearch, selectedEntityName]);
-
-  // Filtered Cast Entities
-  const filteredCastEntities = useMemo(() => {
-    const list = cast?.entities ?? [];
-    return list.filter((e) => {
-      if (bibleCategory !== 'all') {
-        const catStr = String(e.category).toLowerCase();
-        if (!catStr.includes(bibleCategory.toLowerCase())) return false;
-      }
-      if (bibleSearch.trim()) {
-        const q = bibleSearch.toLowerCase().trim();
-        return e.name.toLowerCase().includes(q) || e.code.toLowerCase().includes(q);
-      }
-      return true;
-    });
-  }, [cast, bibleCategory, bibleSearch]);
-
-  const formatDate = (iso?: string | null) => {
-    if (!iso) return '–';
+  const handleUnfreezeScript = async (reason: string) => {
+    if (!chapter || unfreezeBusy) return;
     try {
-      return new Date(iso).toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-GB');
-    } catch {
-      return iso;
+      setUnfreezeBusy(true);
+      await chapterService.unfreezeScript(chapter.id, reason);
+      setShowUnfreezeDialog(false);
+      onShowToast?.('Đã mở khóa kịch bản', 'Writer có thể chỉnh sửa kịch bản; cần Refreeze sau khi xong.');
+      await refreshAll();
+    } catch (err: any) {
+      onShowToast?.('Lỗi mở khóa kịch bản', err?.message || 'Không thể mở khóa kịch bản.');
+    } finally {
+      setUnfreezeBusy(false);
     }
   };
 
-  // ── Loading & Error Fallbacks ──
+  // Single lifecycle-driven Primary CTA for the Shared Chapter Header
+  const headerPrimaryAction = useMemo(() => {
+    if (!chapter || !workspaceId || !seriesId) return null;
+
+    if (isDelivered) {
+      return (
+        <button
+          type='button'
+          data-testid='hub-primary-action'
+          onClick={() => navigate(buildSeriesExportUrl(workspaceId, seriesId, chapter.id))}
+          className='px-4 py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold transition-colors shadow-xs inline-flex items-center gap-1.5 cursor-pointer'
+        >
+          <Globe className='w-3.5 h-3.5' />
+          <span>Xem bàn giao & Xuất bản</span>
+        </button>
+      );
+    }
+
+    if (isApproved) {
+      return (
+        <button
+          type='button'
+          data-testid='hub-primary-action'
+          onClick={() => navigate(buildSeriesExportUrl(workspaceId, seriesId, chapter.id))}
+          className='px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-xs inline-flex items-center gap-1.5 cursor-pointer'
+        >
+          <Share2 className='w-3.5 h-3.5' />
+          <span>Bàn giao chương</span>
+        </button>
+      );
+    }
+
+    if (isInProduction) {
+      if (!readiness?.script?.isScriptFrozen && isProducer) {
+        return (
+          <button
+            type='button'
+            data-testid='hub-primary-action'
+            onClick={() => setStartProductionOpen(true)}
+            className='px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-colors shadow-xs inline-flex items-center gap-1.5 cursor-pointer'
+          >
+            <Lock className='w-3.5 h-3.5' />
+            <span>Khóa lại kịch bản (Refreeze)</span>
+          </button>
+        );
+      }
+      return (
+        <button
+          type='button'
+          data-testid='hub-primary-action'
+          onClick={() =>
+            navigate(
+              buildProductionWorkspaceUrl(workspaceId, seriesId, {
+                chapterId: chapter.id,
+                tab: 'progress',
+              }),
+            )
+          }
+          className='px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold transition-colors shadow-xs inline-flex items-center gap-1.5 cursor-pointer'
+        >
+          <LayoutGrid className='w-3.5 h-3.5' />
+          <span>Mở Bảng sản xuất</span>
+        </button>
+      );
+    }
+
+    // PreProduction
+    if (canStartProduction && isProducer) {
+      return (
+        <button
+          type='button'
+          data-testid='hub-primary-action'
+          onClick={() => setStartProductionOpen(true)}
+          className='px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold transition-colors shadow-xs inline-flex items-center gap-1.5 cursor-pointer'
+        >
+          <Rocket className='w-3.5 h-3.5' />
+          <span>Bắt đầu sản xuất</span>
+        </button>
+      );
+    }
+
+    const firstBlocker = readiness?.blockers?.[0];
+    return (
+      <button
+        type='button'
+        data-testid='hub-primary-action'
+        onClick={() =>
+          navigate(
+            buildReadinessResolutionUrl(
+              workspaceId,
+              seriesId,
+              chapter.id,
+              firstBlocker?.resolutionTarget,
+            ),
+          )
+        }
+        className='px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold transition-colors shadow-xs inline-flex items-center gap-1.5 cursor-pointer'
+      >
+        <AlertCircle className='w-3.5 h-3.5' />
+        <span>
+          {firstBlocker ? `Xử lý ${readiness?.blockers.length} điểm chặn` : 'Tiếp tục Tiền sản xuất'}
+        </span>
+      </button>
+    );
+  }, [chapter, workspaceId, seriesId, isDelivered, isApproved, isInProduction, canStartProduction, isProducer, readiness, navigate]);
+
   if (loading && chapters.length === 0) {
     return (
-      <div className='flex flex-1 items-center justify-center bg-[#FAF9F5] p-12 font-sans'>
-        <RotateCcw className='h-6 w-6 animate-spin text-[#EA580C]' aria-hidden='true' />
-        <span className='ml-2.5 text-xs font-semibold text-stone-600'>
-          {t('producer.chapterManagement.loadingChapters')}
-        </span>
-      </div>
-    );
-  }
-
-  if (error && chapters.length === 0) {
-    return (
-      <div className='flex flex-1 items-center justify-center bg-[#FAF9F5] p-6 font-sans'>
-        <div className='max-w-md rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-xs'>
-          <AlertCircle className='mx-auto h-8 w-8 text-rose-600' />
-          <h2 className='mt-2 font-serif text-base font-bold text-stone-900'>
-            {t('producer.chapterManagement.loadErrorHeading')}
-          </h2>
-          <p className='mt-1 text-xs text-stone-600'>{error}</p>
-          <div className='mt-4 flex justify-center gap-2'>
-            <button
-              type='button'
-              onClick={loadSeriesAndChapters}
-              className='rounded-xl bg-[#EA580C] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C]'
-            >
-              {t('producer.chapterManagement.retryBtn')}
-            </button>
-            <button
-              type='button'
-              onClick={() => navigate(buildSeriesPath(workspaceId, seriesId, 'chapters'))}
-              className='rounded-xl border border-stone-200 bg-white px-4 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50'
-            >
-              Dashboard
-            </button>
+      <div className='p-8 max-w-[1640px] mx-auto'>
+        <div className='animate-pulse space-y-4'>
+          <div className='h-14 bg-stone-200/70 rounded-xl' />
+          <div className='h-20 bg-stone-200/50 rounded-xl' />
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+            <div className='h-48 bg-stone-200/50 rounded-xl' />
+            <div className='h-48 bg-stone-200/50 rounded-xl' />
           </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className='flex min-h-screen flex-col bg-[#FAF9F5] font-sans text-stone-900'>
-      {/* ── TOP COMPACT COCKPIT BAR ── */}
-      <header className='sticky top-0 z-20 border-b border-stone-200 bg-white/95 backdrop-blur-md px-4 py-2.5 sm:px-6'>
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          {/* Chapter Breadcrumb & Selector */}
-          <div className='flex items-center gap-2.5 min-w-0'>
+  if (error) {
+    return (
+      <div className='p-8 max-w-3xl mx-auto'>
+        <div className='rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-800 space-y-3'>
+          <div className='flex items-center gap-2 font-semibold'>
+            <AlertCircle className='w-5 h-5' />
+            <span>{error}</span>
+          </div>
+          <button
+            type='button'
+            onClick={() => void loadSeriesAndChapters()}
+            className='px-3 py-1.5 rounded-lg bg-white border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-100 cursor-pointer'
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (chapters.length === 0) {
+    return (
+      <div className='p-8 max-w-3xl mx-auto text-center space-y-4'>
+        <div className='rounded-2xl border border-stone-200 bg-white p-10 shadow-xs space-y-3'>
+          <BookOpen className='w-10 h-10 text-orange-600 mx-auto' />
+          <h2 className='text-lg font-bold text-stone-900'>Chưa có chương nào trong bộ truyện</h2>
+          <p className='text-sm text-stone-500'>
+            Tạo chương đầu tiên để bắt đầu quy trình Tiền sản xuất, Kịch bản và Series Bible.
+          </p>
+          {isProducer && (
             <button
               type='button'
-              onClick={() => navigate(buildSeriesPath(workspaceId, seriesId, 'chapters'))}
-              className='flex h-7 w-7 items-center justify-center rounded-lg border border-stone-200 bg-stone-50 text-stone-600 hover:bg-stone-100'
-              title='Dashboard'
+              onClick={openCreateModal}
+              data-testid='create-first-chapter-btn'
+              className='px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer'
             >
-              <ArrowLeft className='h-3.5 w-3.5' />
+              <Plus className='w-4 h-4' />
+              <span>Tạo chương đầu tiên</span>
             </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
-            <span className='font-serif text-xs font-bold text-stone-500 uppercase tracking-wide truncate max-w-32 hidden sm:inline'>
-              {series?.title || 'Series'}
-            </span>
-            <span className='text-xs text-stone-300 hidden sm:inline'>/</span>
+  const readinessPercent =
+    readiness && readiness.summary.required > 0
+      ? Math.round((readiness.summary.passed / readiness.summary.required) * 100)
+      : 0;
 
-            {/* Chapter Selector Dropdown */}
-            <div className='relative'>
-              <select
-                value={selectedChapterId}
-                onChange={(e) => handleSelectChapter(e.target.value)}
-                aria-label={t('producer.chapterManagement.selectChapterAria')}
-                className='h-8 rounded-lg border border-stone-200 bg-stone-50 pl-2.5 pr-7 text-xs font-bold text-stone-900 focus:border-orange-500 focus:bg-white focus:outline-none cursor-pointer'
-              >
-                {chapters.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {t('producer.chapterManagement.chapterOption', {
-                      number: c.chapterNumber,
-                      title: c.title || t('producer.chapterManagement.untitled'),
-                    })}
-                  </option>
-                ))}
-              </select>
+  // Reusable Production Progress Section (placed high when InProduction, lower when PreProduction)
+  const productionProgressSection = (
+    <section
+      data-testid='overview-production-progress'
+      className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-4'
+    >
+      <div className='flex flex-wrap items-center justify-between gap-2'>
+        <div>
+          <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
+            <LayoutGrid className='w-4 h-4 text-orange-600' />
+            <span>{isPreProduction ? 'Phạm vi sản xuất dự kiến' : 'Tiến độ sản xuất'}</span>
+          </h3>
+          <p className='text-xs text-stone-500 mt-0.5'>
+            {isPreProduction
+              ? 'Khối lượng trang, khung và quy trình công đoạn sẽ khởi tạo khi Bắt đầu sản xuất.'
+              : 'Tách biệt rõ Tiến độ Ô công việc (Task), Trang hoàn tất (Page) và Khung tranh (Panel).'}
+          </p>
+        </div>
+        {chapter && (
+          <button
+            type='button'
+            onClick={() =>
+              navigate(
+                buildProductionWorkspaceUrl(workspaceId, seriesId, {
+                  chapterId: chapter.id,
+                  tab: 'progress',
+                }),
+              )
+            }
+            className='text-xs font-semibold text-orange-700 hover:text-orange-800 inline-flex items-center gap-1 cursor-pointer'
+          >
+            <span>Mở Bảng sản xuất</span>
+            <ArrowRight className='w-3.5 h-3.5' />
+          </button>
+        )}
+      </div>
+
+      {isPreProduction ? (
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+          <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5'>
+            <div className='text-xs text-stone-500'>Số trang dự kiến</div>
+            <div className='text-xl font-bold text-stone-900 mt-1'>
+              {readiness?.script.pageCount ?? 0}
             </div>
-
-            {/* Badges */}
-            {chapter && (
-              <div className='flex items-center gap-1.5'>
-                <span
-                  data-testid='chapter-status-badge'
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold border ${
-                    chapter.status === 'InProduction'
-                      ? 'border-blue-300 bg-blue-50 text-blue-800'
-                      : chapter.status === 'ChapterApproved'
-                        ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                        : chapter.status === 'HandedOffAndPublished'
-                          ? 'border-stone-300 bg-stone-100 text-stone-600'
-                          : 'border-amber-300 bg-amber-50 text-amber-800'
-                  }`}
-                >
-                  <span className='h-1.5 w-1.5 rounded-full bg-current' />
-                  {chapter.status === 'InProduction'
-                    ? t('producer.chapterManagement.statusInProduction')
-                    : chapter.status === 'ChapterApproved'
-                      ? t('producer.chapterManagement.statusApproved')
-                      : chapter.status === 'HandedOffAndPublished'
-                        ? t('producer.chapterManagement.statusPublished')
-                        : t('producer.chapterManagement.statusPreProduction')}
-                </span>
-
-                <span
-                  data-testid='script-frozen-badge'
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold border ${
-                    isScriptFrozen
-                      ? 'border-violet-300 bg-violet-50 text-violet-800'
-                      : isInReview
-                        ? 'border-orange-300 bg-orange-50 text-orange-800'
-                        : 'border-stone-200 bg-stone-100 text-stone-600'
-                  }`}
-                >
-                  {isScriptFrozen ? (
-                    <Lock className='h-2.5 w-2.5 text-violet-700' />
-                  ) : (
-                    <FileText className='h-2.5 w-2.5 text-stone-500' />
-                  )}
-                  {isScriptFrozen
-                    ? t('producer.chapterManagement.scriptFrozen')
-                    : isInReview
-                      ? t('producer.chapterManagement.scriptInReview')
-                      : t('producer.chapterManagement.scriptDraft')}
+          </div>
+          <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5'>
+            <div className='text-xs text-stone-500'>Số khung (Panel)</div>
+            <div className='text-xl font-bold text-stone-900 mt-1'>
+              {readiness?.script.panelCount ?? 0}
+            </div>
+          </div>
+          <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5'>
+            <div className='text-xs text-stone-500'>Quy trình Pipeline</div>
+            <div className='text-sm font-semibold text-stone-900 mt-1.5 truncate'>
+              {readiness?.production.stages.map((s) => s.stageName).join(' → ') ||
+                stages
+                  .filter((s) => s.isEnabled !== false)
+                  .map((s) => s.name)
+                  .join(' → ') ||
+                'Chưa cấu hình'}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className='space-y-4'>
+          {/* 3 Strictly Separated Progress Metrics */}
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-3'>
+            <div
+              data-testid='metric-task-progress'
+              className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 space-y-2'
+            >
+              <div className='flex items-center justify-between text-xs'>
+                <span className='font-semibold text-stone-700'>Ô công việc đã duyệt (Task)</span>
+                <span className='font-mono font-bold text-stone-900'>
+                  {readiness?.production.approvedTasks ?? 0}/{readiness?.production.totalTasks ?? 0} (
+                  {readiness?.production.taskProgressPercent ?? 0}%)
                 </span>
               </div>
-            )}
+              <div className='h-2 rounded-full bg-stone-200 overflow-hidden'>
+                <div
+                  className='h-full bg-orange-600 rounded-full transition-all'
+                  style={{ width: `${readiness?.production.taskProgressPercent ?? 0}%` }}
+                />
+              </div>
+              <div className='flex flex-wrap gap-2 text-[11px] text-stone-500'>
+                <span>Chờ duyệt: {readiness?.production.submittedTasks ?? 0}</span>
+                <span>•</span>
+                <span>Đang làm: {readiness?.production.inProgressTasks ?? 0}</span>
+                {(readiness?.production.reworkTasks ?? 0) > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className='text-rose-600 font-semibold'>
+                      Sửa lại: {readiness?.production.reworkTasks}
+                    </span>
+                  </>
+                )}
+                {(readiness?.production.overdueTasks ?? 0) > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className='text-rose-600 font-semibold'>
+                      Trễ hạn: {readiness?.production.overdueTasks}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div
+              data-testid='metric-page-progress'
+              className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 space-y-2'
+            >
+              <div className='flex items-center justify-between text-xs'>
+                <span className='font-semibold text-stone-700'>Trang hoàn tất (Page)</span>
+                <span className='font-mono font-bold text-stone-900'>
+                  {readiness?.production.completedPages ?? 0}/{readiness?.production.totalPages ?? 0}{' '}
+                  ({readiness?.production.pageProgressPercent ?? 0}%)
+                </span>
+              </div>
+              <div className='h-2 rounded-full bg-stone-200 overflow-hidden'>
+                <div
+                  className='h-full bg-emerald-600 rounded-full transition-all'
+                  style={{ width: `${readiness?.production.pageProgressPercent ?? 0}%` }}
+                />
+              </div>
+              <div className='text-[11px] text-stone-500'>
+                Tính trang khi tất cả công đoạn của trang đều đã được duyệt.
+              </div>
+            </div>
+
+            <div
+              data-testid='metric-panel-progress'
+              className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 space-y-2'
+            >
+              <div className='flex items-center justify-between text-xs'>
+                <span className='font-semibold text-stone-700'>Khung tranh công đoạn cuối (Panel)</span>
+                <span className='font-mono font-bold text-stone-900'>
+                  {readiness?.production.approvedPanels ?? 0}/{readiness?.production.totalPanels ?? 0}{' '}
+                  ({readiness?.production.panelProgressPercent ?? 0}%)
+                </span>
+              </div>
+              <div className='h-2 rounded-full bg-stone-200 overflow-hidden'>
+                <div
+                  className='h-full bg-indigo-600 rounded-full transition-all'
+                  style={{ width: `${readiness?.production.panelProgressPercent ?? 0}%` }}
+                />
+              </div>
+              <div className='text-[11px] text-stone-500'>
+                Số panel đã đạt duyệt tại công đoạn cuối cùng của pipeline.
+              </div>
+            </div>
           </div>
 
-          {/* Quick Action CTAs */}
+          {/* Per-stage breakdown */}
+          {(readiness?.production.stages?.length ?? 0) > 0 && (
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1'>
+              {readiness!.production.stages.map((st) => {
+                const pct = st.totalTasks > 0 ? Math.round((st.approvedTasks / st.totalTasks) * 100) : 0;
+                return (
+                  <div
+                    key={st.stageId}
+                    className='rounded-lg border border-stone-200/80 bg-white px-3 py-2.5 text-xs space-y-1.5'
+                  >
+                    <div className='flex items-center justify-between font-semibold text-stone-800'>
+                      <span className='truncate'>{st.stageName}</span>
+                      <span className='font-mono text-[11px] text-stone-600'>
+                        {st.approvedTasks}/{st.totalTasks}
+                      </span>
+                    </div>
+                    <div className='h-1.5 rounded-full bg-stone-100 overflow-hidden'>
+                      <div
+                        className='h-full bg-orange-500 rounded-full'
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    {st.submittedTasks > 0 && (
+                      <div className='text-[11px] text-amber-700 font-medium'>
+                        {st.submittedTasks} chờ duyệt
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+
+  // Reusable Pre-production Readiness Center
+  const readinessCenterSection = (
+    <section
+      data-testid='overview-readiness-center'
+      className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-4'
+    >
+      <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-stone-100'>
+        <div className='space-y-1'>
           <div className='flex items-center gap-2'>
-            {/* Gate 1 Start Production Primary Decision CTA */}
-            {!isScriptFrozen && chapter && (
+            <ShieldAlert
+              className={`w-4 h-4 ${canStartProduction ? 'text-emerald-600' : 'text-orange-600'}`}
+            />
+            <h3 className='text-sm font-bold text-stone-900'>
+              Trung tâm Sẵn sàng Tiền sản xuất (Production Gate)
+            </h3>
+            <span
+              data-testid='readiness-status-badge'
+              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+                isPreProduction
+                  ? canStartProduction
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                  : 'bg-stone-100 text-stone-700 border-stone-200'
+              }`}
+            >
+              {!isPreProduction
+                ? 'Đã bắt đầu sản xuất'
+                : canStartProduction
+                  ? 'Sẵn sàng sản xuất'
+                  : `Còn ${readiness?.summary.remaining ?? 0} điều kiện bắt buộc`}
+            </span>
+          </div>
+          <p className='text-xs text-stone-500'>
+            Đánh giá tự động từ dữ liệu thật của Kịch bản, Series Bible phạm vi chương và Pipeline.
+          </p>
+        </div>
+
+        {/* Authoritative Start Production Action + Explicit Disabled Reason */}
+        {isPreProduction && isProducer && (
+          <div className='flex flex-col sm:flex-row sm:items-center gap-2.5 shrink-0'>
+            {!canStartProduction && (
+              <span
+                data-testid='start-production-disabled-reason'
+                className='text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5'
+              >
+                {readiness?.blockers?.[0]?.message || 'Chưa đủ điều kiện bắt buộc để bắt đầu sản xuất.'}
+              </span>
+            )}
+            <button
+              type='button'
+              data-testid='overview-start-production-btn'
+              disabled={!canStartProduction}
+              onClick={() => setStartProductionOpen(true)}
+              className='px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 disabled:bg-stone-200 disabled:text-stone-500 disabled:cursor-not-allowed text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer whitespace-nowrap'
+            >
+              <Rocket className='w-3.5 h-3.5' />
+              <span>Bắt đầu sản xuất</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Overall Readiness Progress Bar */}
+      <div className='space-y-1.5'>
+        <div className='flex items-center justify-between text-xs'>
+          <span className='font-semibold text-stone-700'>
+            Điều kiện bắt buộc đã đạt: {readiness?.summary.passed ?? 0}/{readiness?.summary.required ?? 0}
+          </span>
+          <span className='font-mono font-bold text-stone-800'>{readinessPercent}%</span>
+        </div>
+        <div className='h-2 rounded-full bg-stone-100 overflow-hidden'>
+          <div
+            className={`h-full rounded-full transition-all ${
+              canStartProduction || !isPreProduction ? 'bg-emerald-600' : 'bg-orange-500'
+            }`}
+            style={{ width: `${readinessPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Mandatory Checks List */}
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-2.5'>
+        {(readiness?.checks ?? []).map((chk) => (
+          <div
+            key={chk.code}
+            data-testid={`readiness-check-${chk.code}`}
+            className={`rounded-lg border px-3.5 py-2.5 flex items-start justify-between gap-3 ${
+              chk.passed
+                ? 'border-emerald-200/70 bg-emerald-50/30'
+                : 'border-amber-200/80 bg-amber-50/30'
+            }`}
+          >
+            <div className='flex items-start gap-2.5 min-w-0'>
+              {chk.passed ? (
+                <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0 mt-0.5' />
+              ) : (
+                <AlertCircle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
+              )}
+              <div className='min-w-0'>
+                <div className='text-xs font-semibold text-stone-900'>{chk.label}</div>
+                <div className='text-[11px] text-stone-600 mt-0.5'>
+                  {chk.statusText}
+                  {chk.reason ? ` — ${chk.reason}` : ''}
+                </div>
+              </div>
+            </div>
+            {!chk.passed && chapter && (
               <button
                 type='button'
-                onClick={() => setStartProductionOpen(true)}
-                className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3.5 text-xs font-bold shadow-2xs transition-all cursor-pointer ${
-                  isGatePassed
-                    ? 'bg-[#EA580C] text-white hover:bg-[#C2410C]'
-                    : 'border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
-                }`}
-                title={t('producer.chapterManagement.gate1CtaTitle')}
+                onClick={() =>
+                  navigate(
+                    buildReadinessResolutionUrl(
+                      workspaceId,
+                      seriesId,
+                      chapter.id,
+                      chk.resolutionTarget,
+                    ),
+                  )
+                }
+                className='text-[11px] font-semibold text-orange-700 hover:text-orange-800 whitespace-nowrap shrink-0 cursor-pointer'
               >
-                <Play className='h-3 w-3 fill-current' />
-                <span>
-                  {chapter.status === 'InProduction'
-                    ? t('producer.chapterManagement.refreezeCta', 'Khóa lại kịch bản')
-                    : t('producer.chapterManagement.gate1Cta')}
-                </span>
-                {blockers.length > 0 && (
-                  <span className='ml-1 rounded-full bg-rose-600 px-1.5 py-0.2 text-xs text-white font-mono'>
-                    {t('producer.chapterManagement.blockersCount', { count: blockers.length })}
-                  </span>
-                )}
+                Xử lý →
               </button>
             )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 
-            {/* In-Production Shortcuts */}
-            {isScriptFrozen && chapter && (
-              <>
+  // Action Center (Blockers + Warnings, deduplicated)
+  const actionCenterSection = (
+    <section
+      data-testid='overview-action-center'
+      className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-3'
+    >
+      <div className='flex items-center justify-between gap-2'>
+        <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
+          <AlertTriangle className='w-4 h-4 text-orange-600' />
+          <span>Điểm chặn & Việc cần xử lý (Action Center)</span>
+        </h3>
+        <div className='flex items-center gap-2 text-xs'>
+          <span className='px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-semibold'>
+            {readiness?.blockers.length ?? 0} điểm chặn
+          </span>
+          <span className='px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-semibold'>
+            {readiness?.warnings.length ?? 0} cảnh báo
+          </span>
+        </div>
+      </div>
+
+      {(readiness?.blockers.length ?? 0) === 0 && (readiness?.warnings.length ?? 0) === 0 ? (
+        <div className='rounded-lg border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-xs text-emerald-800 flex items-center gap-2'>
+          <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' />
+          <span>
+            {isPreProduction
+              ? 'Không còn điểm chặn nào. Chương đã sẵn sàng để Bắt đầu sản xuất.'
+              : 'Không có cảnh báo hoặc điểm chặn cần Producer can thiệp ngay.'}
+          </span>
+        </div>
+      ) : (
+        <div className='space-y-2'>
+          {(readiness?.blockers ?? []).map((issue, idx) => (
+            <div
+              key={`${issue.code}-${issue.resourceId || idx}`}
+              data-testid={`action-blocker-${issue.code}`}
+              className='rounded-lg border border-rose-200/80 bg-rose-50/40 px-3.5 py-2.5 flex items-center justify-between gap-3'
+            >
+              <div className='flex items-start gap-2.5 min-w-0'>
+                <span className='px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold uppercase shrink-0 mt-0.5'>
+                  Chặn
+                </span>
+                <p className='text-xs text-stone-800'>{issue.message}</p>
+              </div>
+              {chapter && (
                 <button
                   type='button'
                   onClick={() =>
                     navigate(
-                      `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${chapter.id}`,
+                      buildReadinessResolutionUrl(
+                        workspaceId,
+                        seriesId,
+                        chapter.id,
+                        issue.resolutionTarget,
+                      ),
                     )
                   }
-                  className='inline-flex h-8 items-center gap-1.5 rounded-lg bg-stone-900 px-3 text-xs font-bold text-white hover:bg-stone-800'
+                  className='px-2.5 py-1 rounded-md bg-white border border-rose-200 hover:bg-rose-50 text-xs font-semibold text-rose-700 whitespace-nowrap shrink-0 cursor-pointer'
                 >
-                  <Layers className='h-3 w-3 text-orange-400' />
-                  <span>{t('producer.chapterManagement.productionBoardBtn')}</span>
+                  Mở xử lý →
                 </button>
+              )}
+            </div>
+          ))}
 
+          {(readiness?.warnings ?? []).map((issue, idx) => (
+            <div
+              key={`${issue.code}-${issue.resourceId || idx}`}
+              data-testid={`action-warning-${issue.code}`}
+              className='rounded-lg border border-amber-200/80 bg-amber-50/40 px-3.5 py-2.5 flex items-center justify-between gap-3'
+            >
+              <div className='flex items-start gap-2.5 min-w-0'>
+                <span className='px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold uppercase shrink-0 mt-0.5'>
+                  Cảnh báo
+                </span>
+                <p className='text-xs text-stone-800'>{issue.message}</p>
+              </div>
+              {chapter && (
                 <button
                   type='button'
-                  onClick={() => setShowUnfreezeDialog(true)}
-                  className='inline-flex h-8 items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-2.5 text-xs font-semibold text-violet-900 hover:bg-violet-100'
-                  title={t('producer.chapterManagement.reopenBtnTitle')}
+                  onClick={() =>
+                    navigate(
+                      buildReadinessResolutionUrl(
+                        workspaceId,
+                        seriesId,
+                        chapter.id,
+                        issue.resolutionTarget,
+                      ),
+                    )
+                  }
+                  className='px-2.5 py-1 rounded-md bg-white border border-amber-200 hover:bg-amber-50 text-xs font-semibold text-amber-800 whitespace-nowrap shrink-0 cursor-pointer'
                 >
-                  <Unlock className='h-3 w-3 text-violet-700' />
-                  <span>{t('producer.chapterManagement.reopenBtn')}</span>
+                  Xem chi tiết →
                 </button>
-              </>
-            )}
-
-            {/* Sửa thông tin */}
-            <button
-              type='button'
-              onClick={handleOpenEditChapter}
-              className='inline-flex h-8 items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 text-xs font-medium text-stone-700 hover:bg-stone-50'
-              title={t('producer.chapterManagement.editBtnTitle')}
-            >
-              <Edit2 className='h-3 w-3 text-stone-500' />
-              <span>{t('producer.chapterManagement.editBtn')}</span>
-            </button>
-
-            {/* Tạo chương mới */}
-            <button
-              type='button'
-              onClick={handleOpenCreateChapter}
-              className='inline-flex h-8 items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 text-xs font-semibold text-stone-700 hover:bg-stone-50'
-            >
-              <Plus className='h-3 w-3 text-orange-600' />
-              <span className='hidden sm:inline'>
-                {t('producer.chapterManagement.addChapterBtn')}
-              </span>
-            </button>
-
-            {/* Menu công cụ bổ sung */}
-            <div className='relative'>
-              <button
-                type='button'
-                onClick={() => setToolsMenuOpen(!toolsMenuOpen)}
-                className='flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
-                title={t('producer.chapterManagement.toolsMenuTitle')}
-              >
-                <MoreHorizontal className='h-4 w-4' />
-              </button>
-
-              {toolsMenuOpen && chapter && (
-                <div
-                  className='absolute right-0 top-9 z-30 w-48 rounded-xl border border-stone-200 bg-white p-1.5 shadow-lg text-xs font-medium'
-                  onMouseLeave={() => setToolsMenuOpen(false)}
-                >
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setAssignmentsOpen(true);
-                      setToolsMenuOpen(false);
-                    }}
-                    className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-stone-100'
-                  >
-                    <UserCheck className='h-3.5 w-3.5 text-orange-600' />
-                    <span>{t('producer.chapterManagement.toolTaskGrid')}</span>
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setEditionsOpen(true);
-                      setToolsMenuOpen(false);
-                    }}
-                    className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-stone-100'
-                  >
-                    <Globe className='h-3.5 w-3.5 text-violet-600' />
-                    <span>{t('producer.chapterManagement.toolEditions')}</span>
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setProvenanceOpen(true);
-                      setToolsMenuOpen(false);
-                    }}
-                    className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-stone-100'
-                  >
-                    <History className='h-3.5 w-3.5 text-blue-600' />
-                    <span>{t('producer.chapterManagement.toolProvenance')}</span>
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setPreviewLinksOpen(true);
-                      setToolsMenuOpen(false);
-                    }}
-                    className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-stone-100'
-                  >
-                    <Share2 className='h-3.5 w-3.5 text-emerald-600' />
-                    <span>{t('producer.chapterManagement.toolPreviewLinks')}</span>
-                  </button>
-                  <div className='my-1 border-t border-stone-100' />
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setDeleteTargetChapter(chapter);
-                      setToolsMenuOpen(false);
-                    }}
-                    className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-rose-700 hover:bg-rose-50'
-                  >
-                    <Archive className='h-3.5 w-3.5' />
-                    <span>{t('producer.chapterManagement.toolArchiveDelete')}</span>
-                  </button>
-                </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* ── 1-LINE GLANCE STRIP (Dải đối chiếu nhanh) ── */}
-        {chapter && (
-          <div className='mt-2.5 flex items-center justify-between gap-4 border-t border-stone-100 pt-2 text-xs text-stone-600 overflow-x-auto whitespace-nowrap'>
-            <div className='flex items-center gap-4'>
-              <span className='flex items-center gap-1 font-medium'>
-                <FileText className='h-3 w-3 text-stone-400' />
-                {t('producer.chapterManagement.glanceScript')}{' '}
-                <strong>
-                  {pushedScript
-                    ? `v${pushedScript.version.versionNumber}`
-                    : t('producer.chapterManagement.glanceDraft')}
-                </strong>
-                {pushedScript &&
-                  t('producer.chapterManagement.glanceRows', {
-                    count: pushedScript.rows.length,
-                  })}
-              </span>
-
-              <span className='flex items-center gap-1 font-medium'>
-                <Palette className='h-3 w-3 text-stone-400' />
-                Art Bible:{' '}
-                <strong className={isGatePassed ? 'text-emerald-700' : 'text-rose-700'}>
-                  {canonLockedEntities}/{totalEntities} locked
-                </strong>
-                {blockers.length > 0 && (
-                  <span className='text-rose-600 font-bold'>
-                    {t('producer.chapterManagement.glanceBlockers', { count: blockers.length })}
-                  </span>
-                )}
-              </span>
-
-              <span className='flex items-center gap-1 font-medium'>
-                <MessageSquare className='h-3 w-3 text-stone-400' />
-                {t('producer.chapterManagement.glanceComments')}{' '}
-                <strong className={openCommentsCount > 0 ? 'text-amber-700' : 'text-emerald-700'}>
-                  {t('producer.chapterManagement.glanceCommentsOpen', {
-                    count: openCommentsCount,
-                  })}
-                </strong>
-              </span>
-
-              {chapter.targetReleaseDate && (
-                <span className='flex items-center gap-1 text-stone-500'>
-                  <Calendar className='h-3 w-3 text-stone-400' />
-                  {t('producer.chapterManagement.glanceDue', {
-                    date: formatDate(chapter.targetReleaseDate),
-                  })}
-                </span>
-              )}
-            </div>
-
-            <div className='flex items-center gap-2 font-mono text-xs text-stone-400 shrink-0'>
-              {pushedScript?.version.contentHash && (
-                <span>#{shortHash(pushedScript.version.contentHash)}</span>
-              )}
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* ── UNFREEZE SCRIPT DIALOG ── */}
-      {showUnfreezeDialog && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 p-4 backdrop-blur-xs'>
-          <div className='w-full max-w-md rounded-2xl border border-stone-200 bg-white p-5 shadow-xl'>
-            <div className='flex items-center gap-2 text-violet-800 font-bold text-sm'>
-              <Unlock className='h-4 w-4' />
-              <span>{t('producer.chapterManagement.unfreezeTitle')}</span>
-            </div>
-            <p className='mt-1 text-xs text-stone-600'>
-              {t('producer.chapterManagement.unfreezeDesc')}
-            </p>
-            <ReasonForm
-              label=''
-              confirmLabel={t('producer.chapterManagement.reopenBtn')}
-              busy={unfreezeBusy}
-              tone='neutral'
-              onConfirm={handleUnfreezeScript}
-              onCancel={() => setShowUnfreezeDialog(false)}
-            />
-          </div>
+          ))}
         </div>
       )}
+    </section>
+  );
 
-      {/* ── DUAL-PANE COCKPIT WORKBENCH (SCRIPT + ART BIBLE REFERENCE) ── */}
-      <main className='flex-1 max-w-7xl mx-auto w-full p-3 sm:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start'>
-        {/* LEFT COLUMN (COL 7/12): SCRIPT VIEWER */}
-        <section
-          aria-label={t('producer.chapterManagement.scriptSectionAria')}
-          className='lg:col-span-7 flex flex-col rounded-2xl border border-stone-200 bg-white shadow-2xs overflow-hidden'
-        >
-          {/* Script Pane Header */}
-          <div className='flex items-center justify-between border-b border-stone-100 bg-[#FCFBF8] px-4 py-2.5'>
-            <div className='flex items-center gap-2'>
-              <FileText className='h-4 w-4 text-orange-600' />
-              <h3 className='font-serif text-xs font-bold text-stone-900'>
-                {t('producer.chapterManagement.scriptSectionTitle', {
-                  count: filteredScriptRows.length,
-                })}
-              </h3>
-              {selectedEntityName && (
-                <span className='inline-flex items-center gap-1 rounded-md bg-orange-100 px-1.5 py-0.5 text-xs font-bold text-orange-800'>
-                  {t('producer.chapterManagement.filterTag', { name: selectedEntityName })}
-                  <button
-                    type='button'
-                    onClick={() => setSelectedEntityName(null)}
-                    className='text-orange-600 hover:text-orange-900'
+  return (
+    <div
+      data-testid='producer-chapter-overview-hub'
+      className='min-h-full bg-[#FAF9F5] text-stone-900 pb-10'
+    >
+      {/* 1. SHARED CHAPTER HEADER */}
+      <ProducerSharedHeader
+        workspaceId={workspaceId}
+        seriesId={seriesId}
+        currentChapterId={selectedChapterId}
+        chapters={chapters}
+        seriesTitle={series?.title}
+        currentChapter={chapter}
+        readiness={readiness}
+        onChapterChange={handleSelectChapter}
+        actionCta={
+          <div className='flex items-center gap-2'>
+            {headerPrimaryAction}
+            {isProducer && (
+              <div className='relative'>
+                <button
+                  type='button'
+                  data-testid='chapter-tools-menu-btn'
+                  onClick={() => setToolsMenuOpen((v) => !v)}
+                  aria-label='Tác vụ chương'
+                  className='p-2 rounded-lg bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 cursor-pointer'
+                >
+                  <MoreHorizontal className='w-4 h-4' />
+                </button>
+                {toolsMenuOpen && (
+                  <div
+                    data-testid='chapter-tools-menu'
+                    className='absolute right-0 mt-1.5 w-56 rounded-xl border border-stone-200 bg-white shadow-lg py-1.5 z-40 text-xs'
                   >
-                    ×
-                  </button>
-                </span>
-              )}
-            </div>
-
-            <div className='relative w-44'>
-              <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400' />
-              <input
-                type='text'
-                value={scriptSearch}
-                onChange={(e) => setScriptSearch(e.target.value)}
-                placeholder={t('producer.chapterManagement.searchScriptPlaceholder')}
-                className='h-7 w-full rounded-lg border border-stone-200 bg-white pl-7 pr-2 text-xs text-stone-900 placeholder-stone-400 focus:border-orange-500 focus:outline-none'
-              />
-            </div>
-          </div>
-
-          {/* Script Content List */}
-          <div className='p-4 max-h-[calc(100vh-160px)] overflow-y-auto space-y-2 font-mono text-xs leading-relaxed'>
-            {filteredScriptRows.length === 0 ? (
-              <div className='py-12 text-center text-stone-400 text-xs'>
-                <FileText className='mx-auto h-8 w-8 opacity-40 mb-2' />
-                <span>{t('producer.chapterManagement.noScriptLines')}</span>
-              </div>
-            ) : (
-              filteredScriptRows.map((row, idx) => {
-                if (row.type === 'page') {
-                  return (
-                    <div
-                      key={row.key || `p-${idx}`}
-                      className='mt-3 mb-1 border-b border-stone-800 pb-0.5 font-sans text-xs font-bold text-stone-900 uppercase tracking-widest'
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setToolsMenuOpen(false);
+                        openCreateModal();
+                      }}
+                      className='w-full px-3.5 py-2 text-left hover:bg-stone-50 flex items-center gap-2 text-stone-700 cursor-pointer'
                     >
-                      {renderRow(row, DEFAULT_ROW_LABELS)}
-                    </div>
-                  );
-                }
-
-                if (row.type === 'panel') {
-                  return (
-                    <div
-                      key={row.key || `pan-${idx}`}
-                      className='mt-2 rounded bg-stone-100 px-2 py-0.5 font-sans text-xs font-bold text-stone-700'
+                      <Plus className='w-3.5 h-3.5 text-orange-600' />
+                      <span>Tạo chương mới</span>
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setToolsMenuOpen(false);
+                        openEditModal();
+                      }}
+                      className='w-full px-3.5 py-2 text-left hover:bg-stone-50 flex items-center gap-2 text-stone-700 cursor-pointer'
                     >
-                      {renderRow(row, DEFAULT_ROW_LABELS)}
-                    </div>
-                  );
-                }
-
-                if (row.type === 'Dialogue' || row.type === 'Thought') {
-                  const isThought = row.type === 'Thought';
-                  const isSpeakerSelected =
-                    selectedEntityName &&
-                    (row.label || '').toLowerCase().includes(selectedEntityName.toLowerCase());
-
-                  return (
-                    <div
-                      key={row.key || `d-${idx}`}
-                      className={`pl-5 pr-2 py-0.5 flex items-start gap-1.5 rounded transition-colors ${
-                        isSpeakerSelected
-                          ? 'bg-orange-50/80 ring-1 ring-orange-200'
-                          : 'hover:bg-stone-50'
-                      }`}
-                    >
+                      <Edit2 className='w-3.5 h-3.5 text-stone-500' />
+                      <span>Sửa thông tin chương</span>
+                    </button>
+                    {isInProduction && readiness?.script?.isScriptFrozen && (
                       <button
                         type='button'
-                        onClick={() => setSelectedEntityName(row.label || null)}
-                        className='font-sans text-xs font-bold text-orange-800 shrink-0 uppercase tracking-wide hover:underline cursor-pointer'
-                        title={t('producer.chapterManagement.filterCharacterTitle')}
+                        onClick={() => {
+                          setToolsMenuOpen(false);
+                          setShowUnfreezeDialog(true);
+                        }}
+                        className='w-full px-3.5 py-2 text-left hover:bg-amber-50 flex items-center gap-2 text-amber-800 cursor-pointer'
                       >
-                        [{row.label || t('producer.chapterManagement.defaultCharacter')}
-                        {isThought ? t('producer.chapterManagement.thoughtSuffix') : ''}]:
+                        <Unlock className='w-3.5 h-3.5' />
+                        <span>Mở khóa kịch bản (Unfreeze)</span>
                       </button>
-                      <span
-                        className={`text-stone-900 ${isThought ? 'italic text-stone-700' : ''}`}
-                      >
-                        {row.text}
-                      </span>
-                    </div>
-                  );
-                }
-
-                if (row.type === 'Narration') {
-                  return (
-                    <div
-                      key={row.key || `n-${idx}`}
-                      className='my-1 border-l-2 border-amber-400 bg-amber-50/40 px-2.5 py-1 text-xs font-sans text-amber-950 italic'
+                    )}
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setToolsMenuOpen(false);
+                        setEditionsOpen(true);
+                      }}
+                      className='w-full px-3.5 py-2 text-left hover:bg-stone-50 flex items-center gap-2 text-stone-700 cursor-pointer'
                     >
-                      <span className='font-bold not-italic mr-1.5 uppercase'>
-                        {t('producer.chapterManagement.narrationTag')}
-                      </span>
-                      {row.text}
-                    </div>
-                  );
-                }
-
-                if (row.type === 'Sfx') {
-                  return (
-                    <div
-                      key={row.key || `sfx-${idx}`}
-                      className='pl-4 py-0.5 text-xs font-sans font-bold text-rose-700'
+                      <Globe className='w-3.5 h-3.5 text-stone-500' />
+                      <span>Ấn bản ngôn ngữ</span>
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setToolsMenuOpen(false);
+                        setProvenanceOpen(true);
+                      }}
+                      className='w-full px-3.5 py-2 text-left hover:bg-stone-50 flex items-center gap-2 text-stone-700 cursor-pointer'
                     >
-                      ⚡ SFX: {row.text}
-                    </div>
-                  );
-                }
-
-                return (
-                  <div
-                    key={row.key || `a-${idx}`}
-                    className='pl-3 text-xs font-sans text-stone-600'
-                  >
-                    {row.text}
+                      <History className='w-3.5 h-3.5 text-stone-500' />
+                      <span>Lịch sử bản chụp & Provenance</span>
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setToolsMenuOpen(false);
+                        setPreviewLinksOpen(true);
+                      }}
+                      className='w-full px-3.5 py-2 text-left hover:bg-stone-50 flex items-center gap-2 text-stone-700 cursor-pointer'
+                    >
+                      <Share2 className='w-3.5 h-3.5 text-stone-500' />
+                      <span>Link xem thử (Preview)</span>
+                    </button>
+                    <div className='my-1 border-t border-stone-100' />
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setToolsMenuOpen(false);
+                        if (chapter) setDeleteTargetChapter(chapter);
+                      }}
+                      className='w-full px-3.5 py-2 text-left hover:bg-rose-50 flex items-center gap-2 text-rose-700 cursor-pointer'
+                    >
+                      <Trash2 className='w-3.5 h-3.5' />
+                      <span>Xóa chương</span>
+                    </button>
                   </div>
-                );
-              })
+                )}
+              </div>
             )}
           </div>
-        </section>
+        }
+      />
 
-        {/* RIGHT COLUMN (COL 5/12): INSPECTOR & REFERENCE (ART BIBLE / CHECKLIST / COMMENTS) */}
+      {/* MAIN FULL-WIDTH DESKTOP OVERVIEW BODY */}
+      <div className='max-w-[1640px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-5'>
+        {/* 2. LIFECYCLE TRACKER */}
         <section
-          aria-label={t('producer.chapterManagement.inspectorAria')}
-          className='lg:col-span-5 flex flex-col rounded-2xl border border-stone-200 bg-white shadow-2xs overflow-hidden sticky top-28'
+          data-testid='overview-lifecycle-tracker'
+          className='rounded-xl border border-stone-200 bg-white px-5 py-3.5 shadow-xs'
         >
-          {/* Inspector Tabs */}
-          <div className='flex border-b border-stone-200 bg-[#FCFBF8] px-2'>
+          <div className='flex items-center justify-between gap-2 mb-2.5'>
+            <span className='text-xs font-bold uppercase tracking-wider text-stone-500'>
+              Vòng đời chương (Chapter Lifecycle)
+            </span>
             <button
               type='button'
-              onClick={() => setInspectorTab('bible')}
-              className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition-colors cursor-pointer ${
-                inspectorTab === 'bible'
-                  ? 'border-[#EA580C] text-[#EA580C]'
-                  : 'border-transparent text-stone-500 hover:text-stone-900'
-              }`}
+              onClick={() => void refreshAll()}
+              disabled={loadingReadiness}
+              className='inline-flex items-center gap-1 text-xs text-stone-500 hover:text-stone-800 cursor-pointer'
             >
-              <Palette className='h-3.5 w-3.5' />
-              <span>{t('producer.chapterManagement.tabBible', { count: totalEntities })}</span>
-            </button>
-
-            <button
-              type='button'
-              onClick={() => setInspectorTab('checklist')}
-              className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition-colors cursor-pointer ${
-                inspectorTab === 'checklist'
-                  ? 'border-[#EA580C] text-[#EA580C]'
-                  : 'border-transparent text-stone-500 hover:text-stone-900'
-              }`}
-            >
-              <CheckCircle2 className='h-3.5 w-3.5' />
-              <span>{t('producer.chapterManagement.tabChecklist')}</span>
-            </button>
-
-            <button
-              type='button'
-              onClick={() => setInspectorTab('comments')}
-              className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition-colors cursor-pointer ${
-                inspectorTab === 'comments'
-                  ? 'border-[#EA580C] text-[#EA580C]'
-                  : 'border-transparent text-stone-500 hover:text-stone-900'
-              }`}
-            >
-              <MessageSquare className='h-3.5 w-3.5' />
-              <span>
-                {t('producer.chapterManagement.tabComments', { count: openCommentsCount })}
-              </span>
-            </button>
-
-            <button
-              type='button'
-              onClick={() => setInspectorTab('tools')}
-              className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition-colors cursor-pointer ${
-                inspectorTab === 'tools'
-                  ? 'border-[#EA580C] text-[#EA580C]'
-                  : 'border-transparent text-stone-500 hover:text-stone-900'
-              }`}
-            >
-              <Layers className='h-3.5 w-3.5' />
-              <span>{t('producer.chapterManagement.tabTools')}</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingReadiness ? 'animate-spin' : ''}`} />
+              <span>Làm mới</span>
             </button>
           </div>
+          <ol className='flex items-center gap-1.5 overflow-x-auto pb-0.5'>
+            {lifecycleSteps.map((step, idx) => (
+              <React.Fragment key={step.id}>
+                {idx > 0 && (
+                  <ChevronRight className='w-3.5 h-3.5 text-stone-300 shrink-0' aria-hidden='true' />
+                )}
+                <li
+                  data-testid={`lifecycle-step-${step.id}`}
+                  data-step-state={step.state}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                    step.state === 'current'
+                      ? 'bg-orange-600 text-white shadow-2xs'
+                      : step.state === 'completed'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-stone-100 text-stone-400'
+                  }`}
+                >
+                  {step.state === 'completed' && <CheckCircle2 className='w-3.5 h-3.5 shrink-0' />}
+                  <span>{step.label}</span>
+                </li>
+              </React.Fragment>
+            ))}
+          </ol>
+        </section>
 
-          {/* INSPECTOR TAB 1: ART SERIES BIBLE CARDS */}
-          {inspectorTab === 'bible' && (
-            <div className='p-3 space-y-3 max-h-[calc(100vh-170px)] overflow-y-auto'>
-              {/* Blocker alert if any */}
-              {blockers.length > 0 && (
-                <div className='rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-900 space-y-1.5'>
-                  <div className='flex items-center gap-1.5 font-bold text-rose-800'>
-                    <AlertTriangle className='h-4 w-4 shrink-0' />
-                    <span>
-                      {t('producer.chapterManagement.blockersWarning', { count: blockers.length })}
-                    </span>
+        {/* 3. ADAPTIVE PRIMARY ZONE: Pre-production prioritizes Readiness; InProduction prioritizes Progress */}
+        {isPreProduction ? (
+          <>
+            {readinessCenterSection}
+            {actionCenterSection}
+          </>
+        ) : (
+          <>
+            {productionProgressSection}
+            {actionCenterSection}
+          </>
+        )}
+
+        {/* 4. TWO-COLUMN SUMMARY: SCRIPT SUMMARY + CHAPTER SERIES BIBLE SUMMARY */}
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-5'>
+          {/* SCRIPT SUMMARY CARD (NO FULL SCRIPT CONTENT!) */}
+          <section
+            data-testid='overview-script-summary'
+            className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs flex flex-col justify-between space-y-4'
+          >
+            <div className='space-y-3'>
+              <div className='flex items-center justify-between gap-2'>
+                <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
+                  <FileText className='w-4 h-4 text-orange-600' />
+                  <span>Tóm tắt Kịch bản (Script Summary)</span>
+                </h3>
+                <span className='text-[11px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200'>
+                  {readiness?.script.scriptStatus || chapter?.scriptStatus || 'Draft'}
+                </span>
+              </div>
+
+              {/* Version Context: Latest vs Approved vs Production */}
+              <div className='grid grid-cols-3 gap-2.5'>
+                <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
+                  <div className='text-[11px] text-stone-500'>Bản mới nhất</div>
+                  <div className='text-sm font-bold font-mono text-stone-900 mt-0.5'>
+                    {readiness?.script.latestVersionNumber
+                      ? `v${readiness.script.latestVersionNumber}`
+                      : 'Chưa lưu'}
                   </div>
-                  <ul className='space-y-1 text-xs pl-5 list-disc'>
-                    {blockers.map((b) => (
-                      <li key={b.bibleEntryId}>
-                        <strong>{b.entryName}</strong>:{' '}
-                        {b.reason || t('producer.chapterManagement.blockerDefaultReason')}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              )}
+                <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
+                  <div className='text-[11px] text-stone-500'>Bản gửi duyệt</div>
+                  <div className='text-sm font-bold font-mono text-stone-900 mt-0.5'>
+                    {readiness?.script.approvedVersionNumber
+                      ? `v${readiness.script.approvedVersionNumber}`
+                      : '—'}
+                  </div>
+                </div>
+                <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
+                  <div className='text-[11px] text-stone-500'>Bản đang sản xuất</div>
+                  <div className='text-sm font-bold font-mono text-orange-700 mt-0.5'>
+                    {readiness?.script.productionVersionNumber
+                      ? `v${readiness.script.productionVersionNumber}`
+                      : 'Chưa khóa'}
+                  </div>
+                </div>
+              </div>
 
-              {/* Bible Search & Filter */}
-              <div className='flex items-center gap-2'>
-                <div className='flex items-center gap-1 text-xs font-bold'>
-                  {['all', 'character', 'location'].map((c) => (
-                    <button
-                      key={c}
-                      type='button'
-                      onClick={() => setBibleCategory(c)}
-                      className={`px-2 py-1 rounded-md transition-colors cursor-pointer ${
-                        bibleCategory === c
-                          ? 'bg-stone-900 text-white'
-                          : 'text-stone-500 hover:bg-stone-100'
-                      }`}
+              {/* Structural & Review Counters */}
+              <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs'>
+                <div className='rounded-lg bg-stone-50 px-3 py-2 border border-stone-100'>
+                  <div className='text-stone-500 text-[11px]'>Cảnh</div>
+                  <div className='font-bold text-stone-900'>{readiness?.script.sceneCount ?? 0}</div>
+                </div>
+                <div className='rounded-lg bg-stone-50 px-3 py-2 border border-stone-100'>
+                  <div className='text-stone-500 text-[11px]'>Trang / Khung</div>
+                  <div className='font-bold text-stone-900'>
+                    {readiness?.script.pageCount ?? 0} / {readiness?.script.panelCount ?? 0}
+                  </div>
+                </div>
+                <div className='rounded-lg bg-stone-50 px-3 py-2 border border-stone-100'>
+                  <div className='text-stone-500 text-[11px]'>Góp ý mở</div>
+                  <div className='font-bold text-stone-900 flex items-center gap-1'>
+                    <MessageSquare className='w-3 h-3 text-stone-400' />
+                    {readiness?.script.unresolvedCommentsCount ?? 0}
+                  </div>
+                </div>
+                <div className='rounded-lg bg-stone-50 px-3 py-2 border border-stone-100'>
+                  <div className='text-stone-500 text-[11px]'>Cảnh báo nhất quán</div>
+                  <div className='font-bold text-stone-900'>
+                    {readiness?.script.openFindingsCount ?? 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className='pt-3 border-t border-stone-100 flex items-center justify-between gap-2'>
+              <span className='text-[11px] text-stone-500'>
+                {readiness?.script.lastUpdatedAt
+                  ? `Cập nhật: ${new Date(readiness.script.lastUpdatedAt).toLocaleString()}`
+                  : ''}
+              </span>
+              {chapter && (
+                <button
+                  type='button'
+                  data-testid='open-script-workspace-btn'
+                  onClick={() => navigate(buildScriptReviewUrl(workspaceId, seriesId, chapter.id))}
+                  className='px-3.5 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer'
+                >
+                  <span>Mở Không gian Kịch bản</span>
+                  <ArrowRight className='w-3.5 h-3.5' />
+                </button>
+              )}
+            </div>
+          </section>
+
+          {/* CHAPTER-SCOPED SERIES BIBLE SUMMARY CARD */}
+          <section
+            data-testid='overview-bible-summary'
+            className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs flex flex-col justify-between space-y-4'
+          >
+            <div className='space-y-3'>
+              <div className='flex items-center justify-between gap-2'>
+                <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
+                  <Palette className='w-4 h-4 text-orange-600' />
+                  <span>Tài liệu tham khảo chương (Chapter Bible)</span>
+                </h3>
+                <span className='text-xs font-mono font-bold text-stone-800'>
+                  {readiness?.bible.readyCount ?? 0}/{readiness?.bible.requiredTotal ?? 0} bắt buộc
+                </span>
+              </div>
+
+              <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs'>
+                <div className='rounded-lg bg-emerald-50/60 px-3 py-2 border border-emerald-100'>
+                  <div className='text-emerald-700 text-[11px]'>Đã khóa chuẩn</div>
+                  <div className='font-bold text-emerald-900'>{readiness?.bible.readyCount ?? 0}</div>
+                </div>
+                <div className='rounded-lg bg-amber-50/60 px-3 py-2 border border-amber-100'>
+                  <div className='text-amber-800 text-[11px]'>Thiếu bản vẽ / ĐN</div>
+                  <div className='font-bold text-amber-900'>
+                    {(readiness?.bible.missingArtCount ?? 0) +
+                      (readiness?.bible.missingDefinitionCount ?? 0)}
+                  </div>
+                </div>
+                <div className='rounded-lg bg-sky-50/60 px-3 py-2 border border-sky-100'>
+                  <div className='text-sky-800 text-[11px]'>Chờ duyệt</div>
+                  <div className='font-bold text-sky-900'>
+                    {readiness?.bible.pendingApprovalCount ?? 0}
+                  </div>
+                </div>
+                <div className='rounded-lg bg-stone-50 px-3 py-2 border border-stone-200/70'>
+                  <div className='text-stone-600 text-[11px]'>Quần chúng (tùy chọn)</div>
+                  <div className='font-bold text-stone-800'>
+                    {readiness?.bible.crowdOptionalCount ?? 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* Category breakdown pills */}
+              {(readiness?.bible.byCategory?.length ?? 0) > 0 && (
+                <div className='flex flex-wrap gap-1.5'>
+                  {readiness!.bible.byCategory.map((cat) => (
+                    <span
+                      key={cat.category}
+                      className='text-[11px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200/80'
                     >
-                      {c === 'all'
-                        ? t('producer.chapterManagement.catAll')
-                        : c === 'character'
-                          ? t('producer.chapterManagement.catCharacter')
-                          : t('producer.chapterManagement.catLocation')}
-                    </button>
+                      {CATEGORY_LABELS[cat.category] || cat.category}: {cat.ready}/{cat.required}
+                    </span>
                   ))}
                 </div>
-
-                <div className='relative flex-1'>
-                  <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400' />
-                  <input
-                    type='text'
-                    value={bibleSearch}
-                    onChange={(e) => setBibleSearch(e.target.value)}
-                    placeholder={t('producer.chapterManagement.searchBiblePlaceholder')}
-                    className='h-7 w-full rounded-lg border border-stone-200 bg-stone-50 pl-7 pr-2 text-xs focus:bg-white focus:outline-none'
-                  />
-                </div>
-              </div>
-
-              {/* Entity Cards */}
-              {filteredCastEntities.length === 0 ? (
-                <div className='py-8 text-center text-xs text-stone-400'>
-                  {t('producer.chapterManagement.noBibleMatch')}
-                </div>
-              ) : (
-                <div className='space-y-2'>
-                  {filteredCastEntities.map((ent) => {
-                    const isLocked = ent.isCanonLocked || ent.boundRevision?.isCanonLocked;
-                    const isCrowd = Boolean(ent.isCrowd);
-                    const isBlocker = blockers.some((b) => b.bibleEntryId === ent.bibleEntryId);
-                    const isSelected = selectedEntityName === ent.name;
-
-                    return (
-                      <div
-                        key={ent.bibleEntryId}
-                        onClick={() => setSelectedEntityName(isSelected ? null : ent.name)}
-                        className={`p-2.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer ${
-                          isSelected
-                            ? 'border-orange-400 bg-orange-50/50 shadow-xs ring-1 ring-orange-300'
-                            : isBlocker
-                              ? 'border-rose-300 bg-rose-50/30 hover:bg-rose-50/60'
-                              : isLocked
-                                ? 'border-stone-200 bg-white hover:bg-stone-50'
-                                : 'border-amber-200 bg-amber-50/20 hover:bg-amber-50/40'
-                        }`}
-                      >
-                        {/* Thumbnail */}
-                        <div className='h-12 w-12 rounded-lg bg-stone-100 overflow-hidden shrink-0 border border-stone-100'>
-                          {ent.boundRevision?.referenceImageUrl ? (
-                            <AuthenticatedImage
-                              src={ent.boundRevision.referenceImageUrl}
-                              alt={ent.name}
-                              className='h-full w-full object-cover'
-                            />
-                          ) : (
-                            <div className='h-full w-full flex items-center justify-center text-stone-400'>
-                              <Palette className='h-5 w-5 opacity-40' />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Details */}
-                        <div className='min-w-0 flex-1'>
-                          <div className='flex items-center justify-between gap-1'>
-                            <span className='font-bold text-xs text-stone-900 truncate'>
-                              <span>{ent.name}</span>
-                              <span className='font-normal text-stone-500 font-sans'>
-                                {' '}
-                                —{' '}
-                                {ent.boundRevision?.variantLabel ||
-                                  t('producer.chapterManagement.defaultVariantLabel')}{' '}
-                                (v{ent.boundRevision?.versionNumber ?? 1})
-                              </span>
-                            </span>
-                            <span className='font-mono text-xs text-stone-400'>{ent.code}</span>
-                          </div>
-
-                          <div className='flex items-center gap-1.5 mt-0.5 text-xs text-stone-500'>
-                            <span>
-                              {ent.boundRevision?.variantLabel ||
-                                t('producer.chapterManagement.defaultVariantLabel')}
-                            </span>
-                            <span>
-                              {t('producer.chapterManagement.mentionsCount', {
-                                count: ent.mentions?.length || 0,
-                              })}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Status Tag */}
-                        <div className='shrink-0'>
-                          {isLocked ? (
-                            <span className='inline-flex items-center gap-0.5 rounded-md bg-emerald-50 px-1.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200'>
-                              <CheckCircle2 className='h-2.5 w-2.5' /> Locked
-                            </span>
-                          ) : isCrowd ? (
-                            <span className='rounded-md bg-stone-100 px-1.5 py-0.5 text-xs font-medium text-stone-600'>
-                              {t('producer.chapterManagement.crowdTag')}
-                            </span>
-                          ) : (
-                            <span className='inline-flex items-center gap-0.5 rounded-md bg-rose-50 px-1.5 py-0.5 text-xs font-bold text-rose-800 border border-rose-200'>
-                              {t('producer.chapterManagement.unlockedTag')}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
               )}
-            </div>
-          )}
 
-          {/* INSPECTOR TAB 2: GATE 1 & GATE 3 CHECKLIST */}
-          {inspectorTab === 'checklist' && (
-            <div className='p-3 space-y-4 max-h-[calc(100vh-170px)] overflow-y-auto text-xs'>
-              {/* Gate 1 Card */}
-              <div className='rounded-xl border border-stone-200 bg-white p-3 space-y-2.5 shadow-2xs'>
-                <div className='flex items-center justify-between'>
-                  <span className='font-bold text-stone-900 flex items-center gap-1.5'>
-                    <Play className='h-3.5 w-3.5 text-orange-600' />{' '}
-                    {t('producer.chapterManagement.gate1CardTitle')}
-                  </span>
-                  <span
-                    className={`rounded-md px-1.5 py-0.2 text-xs font-bold ${
-                      isScriptFrozen
-                        ? 'bg-violet-100 text-violet-800'
-                        : isGatePassed
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-rose-100 text-rose-800'
-                    }`}
-                  >
-                    {isScriptFrozen
-                      ? t('producer.chapterManagement.gatePassed')
-                      : isGatePassed
-                        ? t('producer.chapterManagement.gateReady')
-                        : t('producer.chapterManagement.gateNotReady')}
-                  </span>
-                </div>
-
-                <div className='space-y-1.5 text-xs divide-y divide-stone-100'>
-                  <div className='pt-1 flex items-center justify-between'>
-                    <span>{t('producer.chapterManagement.gate1Step1')}</span>
-                    <span
-                      className={
-                        isInReview || isScriptFrozen
-                          ? 'text-emerald-700 font-bold'
-                          : 'text-stone-400'
-                      }
-                    >
-                      {isInReview || isScriptFrozen
-                        ? t('producer.chapterManagement.submitted')
-                        : t('producer.chapterManagement.notSubmitted')}
-                    </span>
+              {/* Quick contextual links for missing required references */}
+              {missingBibleEntities.length > 0 && chapter && (
+                <div className='space-y-1.5 pt-1'>
+                  <div className='text-[11px] font-semibold text-stone-500 uppercase tracking-wide'>
+                    Cần bổ sung / khóa chuẩn
                   </div>
-                  <div className='pt-1 flex items-center justify-between'>
-                    <span>{t('producer.chapterManagement.gate1Step2')}</span>
-                    <span
-                      className={
-                        isGatePassed ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'
-                      }
-                    >
-                      {isGatePassed
-                        ? t('producer.chapterManagement.itemsPassed', { count: totalEntities })
-                        : t('producer.chapterManagement.blockedCount', {
-                            count: blockers.length,
-                          })}
-                    </span>
-                  </div>
-                  <div className='pt-1 flex items-center justify-between'>
-                    <span>{t('producer.chapterManagement.gate1Step3')}</span>
-                    <span
-                      className={
-                        openCommentsCount === 0
-                          ? 'text-emerald-700 font-bold'
-                          : 'text-amber-700 font-bold'
-                      }
-                    >
-                      {openCommentsCount === 0
-                        ? t('producer.chapterManagement.cleanComments')
-                        : t('producer.chapterManagement.remainingCount', {
-                            count: openCommentsCount,
-                          })}
-                    </span>
-                  </div>
-                </div>
-
-                {!isScriptFrozen && (
-                  <button
-                    type='button'
-                    onClick={() => setStartProductionOpen(true)}
-                    className='w-full rounded-lg bg-[#EA580C] py-2 text-xs font-bold text-white hover:bg-[#C2410C]'
-                  >
-                    {chapter?.status === 'InProduction'
-                      ? t('producer.chapterManagement.refreezeCta', 'Khóa lại kịch bản')
-                      : t('producer.chapterManagement.approveAndStartBtn')}
-                  </button>
-                )}
-              </div>
-
-              {/* Gate 3 Card */}
-              <div className='rounded-xl border border-stone-200 bg-white p-3 space-y-2.5 shadow-2xs'>
-                <div className='flex items-center justify-between'>
-                  <span className='font-bold text-stone-900 flex items-center gap-1.5'>
-                    <Lock className='h-3.5 w-3.5 text-emerald-600' />{' '}
-                    {t('producer.chapterManagement.gate3CardTitle')}
-                  </span>
-                  <span
-                    data-testid='gate3-status-badge'
-                    className={`rounded-md px-1.5 py-0.2 text-xs font-bold ${
-                      isGate3Passed
-                        ? 'bg-violet-100 text-violet-800'
-                        : lockGate?.canApprove
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-stone-100 text-stone-600'
-                    }`}
-                  >
-                    {isGate3Passed
-                      ? t('producer.chapterManagement.gatePassed')
-                      : lockGate?.canApprove
-                        ? t('producer.chapterManagement.gate3Eligible')
-                        : t('producer.chapterManagement.gateNotReady')}
-                  </span>
-                </div>
-
-                {isGate3Passed ? (
-                  <p className='text-emerald-700 font-semibold text-center py-2'>
-                    {t('producer.chapterManagement.gate3ApprovedTitle')}
-                  </p>
-                ) : !lockGate ? (
-                  <p className='text-stone-400 text-center py-2'>
-                    {t('producer.chapterManagement.loadingLockGate')}
-                  </p>
-                ) : (
-                  <div className='space-y-1.5 text-xs divide-y divide-stone-100'>
-                    {lockGate.items.map((it, idx) => (
-                      <div key={idx} className='pt-1 flex items-center justify-between gap-2'>
-                        <span className='truncate'>{it.message}</span>
-                        {it.blocking ? (
-                          <span className='text-rose-700 font-bold shrink-0'>
-                            {t('producer.chapterManagement.blockedCount', { count: it.count })}
-                          </span>
-                        ) : (
-                          <span className='text-emerald-700 font-bold shrink-0'>
-                            {t('producer.chapterManagement.itemPassed')}
-                          </span>
-                        )}
-                      </div>
+                  <div className='flex flex-wrap gap-1.5'>
+                    {missingBibleEntities.slice(0, 6).map((ent) => (
+                      <button
+                        key={ent.bibleEntryId}
+                        type='button'
+                        onClick={() =>
+                          navigate(
+                            `${buildScriptReviewUrl(workspaceId, seriesId, chapter.id)}?tab=entities&entityId=${encodeURIComponent(ent.bibleEntryId)}`,
+                          )
+                        }
+                        className='inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-50 border border-rose-200 text-xs font-medium text-rose-800 hover:bg-rose-100 cursor-pointer'
+                      >
+                        <span>{ent.name}</span>
+                        <ArrowRight className='w-3 h-3' />
+                      </button>
                     ))}
                   </div>
-                )}
-
-                {lockGate?.canApprove && chapter?.status === 'InProduction' && (
-                  <button
-                    type='button'
-                    onClick={async () => {
-                      try {
-                        await chapterService.approveChapter(chapter.id);
-                        onShowToast?.(
-                          t('producer.chapterManagement.gate3ApprovedTitle'),
-                          t('producer.chapterManagement.chapterLabel', {
-                            number: chapter.chapterNumber,
-                          }),
-                        );
-                        await loadChapterDetails(chapter.id);
-                        await loadSeriesAndChapters();
-                      } catch (err: any) {
-                        onShowToast?.(
-                          t('producer.chapterManagement.approveErrorTitle'),
-                          err?.message || t('producer.chapterManagement.approveErrorDesc'),
-                        );
-                      }
-                    }}
-                    className='w-full rounded-lg bg-emerald-600 py-2 text-xs font-bold text-white hover:bg-emerald-700'
-                  >
-                    {t('producer.chapterManagement.approveChapterCompleteBtn')}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* INSPECTOR TAB 3: COMMENTS */}
-          {inspectorTab === 'comments' && (
-            <div className='p-3 space-y-2.5 max-h-[calc(100vh-170px)] overflow-y-auto text-xs'>
-              {comments.length === 0 ? (
-                <div className='py-8 text-center text-stone-400 text-xs'>
-                  {t('producer.chapterManagement.noComments')}
                 </div>
-              ) : (
-                comments.map((c) => (
-                  <div
-                    key={c.id}
-                    className={`rounded-xl border p-2.5 space-y-1 ${
-                      c.resolvedAt
-                        ? 'border-stone-200 bg-stone-50 opacity-70'
-                        : 'border-orange-200 bg-orange-50/30'
-                    }`}
-                  >
-                    <div className='flex items-center justify-between text-xs text-stone-500'>
-                      <span className='font-bold text-stone-700'>
-                        {c.authorName || t('producer.chapterManagement.defaultEditorName')}
-                      </span>
-                      <span>{formatDate(c.createdAt)}</span>
-                    </div>
-                    {c.quotedText && (
-                      <blockquote className='border-l-2 border-stone-300 pl-2 text-xs italic text-stone-600 line-clamp-2'>
-                        &quot;{c.quotedText}&quot;
-                      </blockquote>
-                    )}
-                    <p className='text-stone-800 leading-snug'>{c.body}</p>
-                    <div className='flex items-center justify-between pt-1 text-xs'>
-                      <span
-                        className={
-                          c.resolvedAt ? 'text-emerald-700 font-bold' : 'text-orange-700 font-bold'
-                        }
-                      >
-                        {c.resolvedAt
-                          ? t('producer.chapterManagement.commentResolved')
-                          : t('producer.chapterManagement.commentPending')}
-                      </span>
-                      {!c.resolvedAt && (
-                        <button
-                          type='button'
-                          onClick={async () => {
-                            try {
-                              await chapterService.resolveScriptComment(chapter?.id || '', c.id);
-                              setComments((prev) =>
-                                prev.map((x) =>
-                                  x.id === c.id
-                                    ? { ...x, resolvedAt: new Date().toISOString() }
-                                    : x,
-                                ),
-                              );
-                              onShowToast?.(
-                                t('producer.chapterManagement.commentToastTitle'),
-                                t('producer.chapterManagement.commentResolvedDesc'),
-                              );
-                            } catch (err: any) {
-                              onShowToast?.(
-                                t('producer.chapterManagement.genericErrorTitle'),
-                                err?.message || t('producer.chapterManagement.updateErrorDesc'),
-                              );
-                            }
-                          }}
-                          className='font-bold text-orange-700 hover:underline'
-                        >
-                          {t('producer.chapterManagement.resolveBtn')}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
               )}
             </div>
-          )}
 
-          {/* INSPECTOR TAB 4: TOOLS & EXTENSIONS */}
-          {inspectorTab === 'tools' && (
-            <div className='p-3 space-y-2 max-h-[calc(100vh-170px)] overflow-y-auto text-xs'>
+            <div className='pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2'>
               <button
                 type='button'
-                onClick={() => setAssignmentsOpen(true)}
-                className='flex w-full items-center justify-between rounded-xl border border-stone-200 bg-white p-3 hover:bg-stone-50 text-left'
+                onClick={() => navigate(buildBibleUrl(workspaceId, seriesId))}
+                className='text-xs font-semibold text-stone-600 hover:text-stone-900 cursor-pointer'
               >
-                <div className='flex items-center gap-2'>
-                  <UserCheck className='h-4 w-4 text-orange-600' />
-                  <span className='font-bold text-stone-800'>
-                    {t('producer.chapterManagement.toolGridV3')}
-                  </span>
-                </div>
-                <span className='text-stone-400'>↗</span>
+                Mở Thư viện Series Bible →
               </button>
-
-              <button
-                type='button'
-                onClick={() => setEditionsOpen(true)}
-                className='flex w-full items-center justify-between rounded-xl border border-stone-200 bg-white p-3 hover:bg-stone-50 text-left'
-              >
-                <div className='flex items-center gap-2'>
-                  <Globe className='h-4 w-4 text-violet-600' />
-                  <span className='font-bold text-stone-800'>
-                    {t('producer.chapterManagement.toolEditionsFull')}
-                  </span>
-                </div>
-                <span className='text-stone-400'>↗</span>
-              </button>
-
-              <button
-                type='button'
-                onClick={() => setProvenanceOpen(true)}
-                className='flex w-full items-center justify-between rounded-xl border border-stone-200 bg-white p-3 hover:bg-stone-50 text-left'
-              >
-                <div className='flex items-center gap-2'>
-                  <History className='h-4 w-4 text-blue-600' />
-                  <span className='font-bold text-stone-800'>
-                    {t('producer.chapterManagement.toolProvenanceFull')}
-                  </span>
-                </div>
-                <span className='text-stone-400'>↗</span>
-              </button>
-
-              <button
-                type='button'
-                onClick={() => setPreviewLinksOpen(true)}
-                className='flex w-full items-center justify-between rounded-xl border border-stone-200 bg-white p-3 hover:bg-stone-50 text-left'
-              >
-                <div className='flex items-center gap-2'>
-                  <Share2 className='h-4 w-4 text-emerald-600' />
-                  <span className='font-bold text-stone-800'>
-                    {t('producer.chapterManagement.toolPreviewFull')}
-                  </span>
-                </div>
-                <span className='text-stone-400'>↗</span>
-              </button>
-
-              {/* Upload cover */}
-              <div className='rounded-xl border border-stone-200 bg-white p-3 space-y-2'>
-                <div className='flex items-center justify-between'>
-                  <span className='font-bold text-stone-800'>
-                    {t('producer.chapterManagement.coverTitle')}
-                  </span>
-                  {chapter?.coverUrl && (
-                    <span className='text-xs text-emerald-700 font-bold'>
-                      {t('producer.chapterManagement.hasCoverBadge')}
-                    </span>
-                  )}
-                </div>
-                <label className='block w-full cursor-pointer rounded-lg border border-stone-200 bg-stone-50 py-1.5 text-center text-xs font-bold text-stone-700 hover:bg-stone-100'>
-                  <span>{t('producer.chapterManagement.changeCoverBtn')}</span>
-                  <input
-                    type='file'
-                    accept='image/png,image/jpeg,image/webp'
-                    className='hidden'
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file || !chapter) return;
-                      try {
-                        const newUrl = await chapterService.uploadChapterCover(chapter.id, file);
-                        setChapter((prev) => (prev ? { ...prev, coverUrl: newUrl } : null));
-                        onShowToast?.(
-                          t('producer.chapterManagement.coverUpdatedTitle'),
-                          t('producer.chapterManagement.coverUpdatedDesc'),
-                        );
-                      } catch (err: any) {
-                        onShowToast?.(
-                          t('producer.chapterManagement.coverUploadErrorTitle'),
-                          err?.message || t('producer.chapterManagement.coverUploadErrorDesc'),
-                        );
-                      }
-                    }}
-                  />
-                </label>
-              </div>
+              {chapter && (
+                <button
+                  type='button'
+                  data-testid='open-chapter-references-btn'
+                  onClick={() =>
+                    navigate(`${buildScriptReviewUrl(workspaceId, seriesId, chapter.id)}?tab=entities`)
+                  }
+                  className='px-3.5 py-1.5 rounded-lg bg-white border border-stone-300 hover:bg-stone-50 text-stone-800 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer'
+                >
+                  <span>Kiểm tra tài liệu chương</span>
+                  <ArrowRight className='w-3.5 h-3.5' />
+                </button>
+              )}
             </div>
-          )}
-        </section>
-      </main>
+          </section>
+        </div>
 
-      {/* ── CREATE CHAPTER MODAL ── */}
+        {/* 5. SECONDARY ZONE: Production Scope (when PreProduction) or Gate Summary (when InProduction) */}
+        {isPreProduction ? productionProgressSection : readinessCenterSection}
+
+        {/* 6. QUICK SHORTCUTS & RECENT ACTIVITY */}
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-5'>
+          <section className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-3'>
+            <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
+              <Layers className='w-4 h-4 text-orange-600' />
+              <span>Lối tắt điều hành</span>
+            </h3>
+            <div className='grid grid-cols-1 gap-2 text-xs'>
+              {chapter && (
+                <>
+                  <button
+                    type='button'
+                    onClick={() =>
+                      navigate(
+                        buildProductionWorkspaceUrl(workspaceId, seriesId, {
+                          chapterId: chapter.id,
+                          tab: 'crew',
+                        }),
+                      )
+                    }
+                    className='w-full px-3 py-2 rounded-lg border border-stone-200 hover:bg-stone-50 flex items-center justify-between text-stone-800 font-medium cursor-pointer'
+                  >
+                    <span className='inline-flex items-center gap-2'>
+                      <Users className='w-3.5 h-3.5 text-stone-500' />
+                      Quản lý Ê-kíp & Tải công việc
+                    </span>
+                    <ArrowRight className='w-3.5 h-3.5 text-stone-400' />
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => navigate(buildChapterReaderUrl(workspaceId, seriesId, chapter.id))}
+                    className='w-full px-3 py-2 rounded-lg border border-stone-200 hover:bg-stone-50 flex items-center justify-between text-stone-800 font-medium cursor-pointer'
+                  >
+                    <span className='inline-flex items-center gap-2'>
+                      <Play className='w-3.5 h-3.5 text-stone-500' />
+                      Đọc thử & Soát trang (Reader)
+                    </span>
+                    <ArrowRight className='w-3.5 h-3.5 text-stone-400' />
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => navigate(buildSeriesExportUrl(workspaceId, seriesId, chapter.id))}
+                    className='w-full px-3 py-2 rounded-lg border border-stone-200 hover:bg-stone-50 flex items-center justify-between text-stone-800 font-medium cursor-pointer'
+                  >
+                    <span className='inline-flex items-center gap-2'>
+                      <Share2 className='w-3.5 h-3.5 text-stone-500' />
+                      Xuất file & Bàn giao xuất bản
+                    </span>
+                    <ArrowRight className='w-3.5 h-3.5 text-stone-400' />
+                  </button>
+                </>
+              )}
+            </div>
+          </section>
+
+          <section
+            data-testid='overview-recent-activity'
+            className='lg:col-span-2 rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-3'
+          >
+            <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
+              <Clock className='w-4 h-4 text-orange-600' />
+              <span>Hoạt động & Kiểm duyệt gần đây</span>
+            </h3>
+            {reviews.length === 0 ? (
+              <p className='text-xs text-stone-500'>
+                Chưa có bản ghi kiểm duyệt hoặc bàn giao cấp chương nào cho chương này.
+              </p>
+            ) : (
+              <ul className='divide-y divide-stone-100 text-xs'>
+                {reviews.slice(0, 6).map((rev) => (
+                  <li key={rev.id} className='py-2.5 flex items-start justify-between gap-3'>
+                    <div className='min-w-0'>
+                      <span className='font-semibold text-stone-900'>
+                        {rev.action}
+                      </span>
+                      {rev.comment && (
+                        <p className='text-stone-600 mt-0.5 truncate'>{rev.comment}</p>
+                      )}
+                    </div>
+                    <span className='text-[11px] text-stone-400 whitespace-nowrap shrink-0'>
+                      {rev.createdAt ? new Date(rev.createdAt).toLocaleString() : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      </div>
+
+      {/* ── MODALS ── */}
+      {startProductionOpen &&
+        chapter &&
+        (isPreProduction ? (
+          <StartProductionModal
+            isOpen
+            workspaceId={workspaceId}
+            seriesId={seriesId}
+            chapterId={chapter.id}
+            chapterNumber={chapter.chapterNumber}
+            chapterTitle={chapter.title || undefined}
+            onClose={() => setStartProductionOpen(false)}
+            onSuccess={() => {
+              setStartProductionOpen(false);
+              onShowToast?.(
+                'Đã bắt đầu sản xuất',
+                'Kịch bản đã khóa và bảng công việc đã khởi tạo.',
+              );
+              void refreshAll();
+            }}
+            onShowToast={onShowToast}
+          />
+        ) : (
+          <RefreezeScriptModal
+            isOpen
+            workspaceId={workspaceId}
+            seriesId={seriesId}
+            chapterId={chapter.id}
+            chapterNumber={chapter.chapterNumber}
+            chapterTitle={chapter.title || undefined}
+            onClose={() => setStartProductionOpen(false)}
+            onSuccess={() => {
+              setStartProductionOpen(false);
+              onShowToast?.(
+                'Đã khóa lại kịch bản',
+                'Bản kịch bản mới đã được đồng bộ vào sản xuất.',
+              );
+              void refreshAll();
+            }}
+            onShowToast={onShowToast}
+          />
+        ))}
+
+      {showUnfreezeDialog && (
+        <Modal
+          isOpen={showUnfreezeDialog}
+          onClose={() => setShowUnfreezeDialog(false)}
+          title='Mở khóa kịch bản (Unfreeze)'
+          closeLabel='Đóng'
+        >
+          <ReasonForm
+            label='Lý do mở khóa kịch bản'
+            confirmLabel='Xác nhận mở khóa'
+            busy={unfreezeBusy}
+            onConfirm={(reason) => void handleUnfreezeScript(reason)}
+            onCancel={() => setShowUnfreezeDialog(false)}
+          />
+        </Modal>
+      )}
+
       {createChapterOpen && (
         <Modal
-          isOpen
-          title={t('producer.chapterManagement.createModalTitle')}
-          closeLabel={t('producer.chapterManagement.closeBtn')}
+          isOpen={createChapterOpen}
           onClose={() => setCreateChapterOpen(false)}
+          title={t('chapterManagement.createTitle', 'Tạo chương mới')}
+          closeLabel='Đóng'
         >
-          <form onSubmit={handleCreateChapterSubmit} className='space-y-3 text-xs'>
+          <form onSubmit={handleCreateChapter} className='space-y-3 text-xs'>
             <div>
-              <label className='block font-bold text-stone-700'>
-                {t('producer.chapterManagement.chapterNumberLabel')}
-              </label>
+              <label className='block font-semibold text-stone-700 mb-1'>Số chương</label>
               <input
                 type='number'
-                step='0.1'
+                min={1}
                 required
                 value={formChapterNumber}
-                onChange={(e) => setFormChapterNumber(parseFloat(e.target.value) || 1)}
-                className='mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 font-bold text-stone-900 focus:outline-none'
+                onChange={(e) => setFormChapterNumber(Number(e.target.value))}
+                className='w-full px-3 py-2 rounded-lg border border-stone-200'
               />
             </div>
-
             <div>
-              <label className='block font-bold text-stone-700'>
-                {t('producer.chapterManagement.titleOptionalLabel')}
-              </label>
+              <label className='block font-semibold text-stone-700 mb-1'>Tên chương</label>
               <input
                 type='text'
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
-                placeholder={t('producer.chapterManagement.titlePlaceholder')}
-                className='mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-stone-900 focus:outline-none'
+                placeholder='VD: Khởi đầu mới'
+                className='w-full px-3 py-2 rounded-lg border border-stone-200'
               />
             </div>
-
             <div>
-              <label className='block font-bold text-stone-700'>
-                {t('producer.chapterManagement.targetDateLabel')}
-              </label>
+              <label className='block font-semibold text-stone-700 mb-1'>Hạn phát hành dự kiến</label>
               <input
                 type='date'
                 value={formTargetReleaseDate}
                 onChange={(e) => setFormTargetReleaseDate(e.target.value)}
-                className='mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-stone-900 focus:outline-none'
+                className='w-full px-3 py-2 rounded-lg border border-stone-200'
               />
             </div>
-
-            <div>
-              <label className='block font-bold text-stone-700'>
-                {t('producer.chapterManagement.outlineLabel')}
-              </label>
-              <textarea
-                value={formOutline}
-                onChange={(e) => setFormOutline(e.target.value)}
-                rows={3}
-                placeholder={t('producer.chapterManagement.outlinePlaceholder')}
-                className='mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-stone-900 focus:outline-none'
-              />
-            </div>
-
             <div className='flex justify-end gap-2 pt-2'>
               <button
                 type='button'
                 onClick={() => setCreateChapterOpen(false)}
-                className='rounded-lg border border-stone-200 px-3 py-1.5 font-bold text-stone-600 hover:bg-stone-50'
+                className='px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 cursor-pointer'
               >
-                {t('producer.chapterManagement.cancelBtn')}
+                Hủy
               </button>
               <button
                 type='submit'
                 disabled={actionBusy}
-                className='rounded-lg bg-[#EA580C] px-4 py-1.5 font-bold text-white hover:bg-[#C2410C] disabled:opacity-50'
+                className='px-4 py-1.5 rounded-lg bg-orange-600 text-white font-semibold cursor-pointer disabled:opacity-50'
               >
-                {actionBusy
-                  ? t('producer.chapterManagement.creatingBtn')
-                  : t('producer.chapterManagement.createChapterBtn')}
+                {actionBusy ? 'Đang tạo...' : 'Tạo chương'}
               </button>
             </div>
           </form>
         </Modal>
       )}
 
-      {/* ── EDIT CHAPTER MODAL ── */}
       {editChapterOpen && chapter && (
         <Modal
-          isOpen
-          title={t('producer.chapterManagement.editModalTitle', {
-            number: chapter.chapterNumber,
-          })}
-          closeLabel={t('producer.chapterManagement.closeBtn')}
+          isOpen={editChapterOpen}
           onClose={() => setEditChapterOpen(false)}
+          title='Cập nhật thông tin chương'
+          closeLabel='Đóng'
         >
-          <form onSubmit={handleEditChapterSubmit} className='space-y-3 text-xs'>
+          <form onSubmit={handleUpdateChapter} className='space-y-3 text-xs'>
             <div>
-              <label className='block font-bold text-stone-700'>
-                {t('producer.chapterManagement.titleLabel')}
-              </label>
+              <label className='block font-semibold text-stone-700 mb-1'>Tên chương</label>
               <input
                 type='text'
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
-                className='mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-stone-900 focus:outline-none'
+                className='w-full px-3 py-2 rounded-lg border border-stone-200'
               />
             </div>
-
             <div>
-              <label className='block font-bold text-stone-700'>
-                {t('producer.chapterManagement.targetDateLabel')}
-              </label>
+              <label className='block font-semibold text-stone-700 mb-1'>Hạn phát hành dự kiến</label>
               <input
                 type='date'
                 value={formTargetReleaseDate}
                 onChange={(e) => setFormTargetReleaseDate(e.target.value)}
-                className='mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-stone-900 focus:outline-none'
+                className='w-full px-3 py-2 rounded-lg border border-stone-200'
               />
             </div>
-
-            <div>
-              <label className='block font-bold text-stone-700'>
-                {t('producer.chapterManagement.outlineLabel')}
-              </label>
-              <textarea
-                value={formOutline}
-                onChange={(e) => setFormOutline(e.target.value)}
-                rows={3}
-                className='mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-stone-900 focus:outline-none'
-              />
-            </div>
-
             <div className='flex justify-end gap-2 pt-2'>
               <button
                 type='button'
                 onClick={() => setEditChapterOpen(false)}
-                className='rounded-lg border border-stone-200 px-3 py-1.5 font-bold text-stone-600 hover:bg-stone-50'
+                className='px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 cursor-pointer'
               >
-                {t('producer.chapterManagement.cancelBtn')}
+                Hủy
               </button>
               <button
                 type='submit'
                 disabled={actionBusy}
-                className='rounded-lg bg-[#EA580C] px-4 py-1.5 font-bold text-white hover:bg-[#C2410C] disabled:opacity-50'
+                className='px-4 py-1.5 rounded-lg bg-orange-600 text-white font-semibold cursor-pointer disabled:opacity-50'
               >
-                {actionBusy
-                  ? t('producer.chapterManagement.savingBtn')
-                  : t('producer.chapterManagement.saveBtn')}
+                {actionBusy ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
             </div>
           </form>
         </Modal>
       )}
 
-      {/* ── GATE 1 START PRODUCTION / REFREEZE MODAL ── */}
-      {startProductionOpen && chapter && chapter.status === 'InProduction' && (
-        <RefreezeScriptModal
-          isOpen
-          workspaceId={workspaceId}
-          seriesId={seriesId}
-          chapterId={chapter.id}
-          chapterNumber={chapter.chapterNumber}
-          chapterTitle={chapter.title || undefined}
-          onClose={() => setStartProductionOpen(false)}
-          onSuccess={() => {
-            setStartProductionOpen(false);
-            void loadChapterDetails(chapter.id);
-            void loadSeriesAndChapters();
-          }}
-          onShowToast={onShowToast}
-        />
-      )}
-      {startProductionOpen && chapter && chapter.status !== 'InProduction' && (
-        <StartProductionModal
-          isOpen
-          workspaceId={workspaceId}
-          seriesId={seriesId}
-          chapterId={chapter.id}
-          chapterNumber={chapter.chapterNumber}
-          chapterTitle={chapter.title || undefined}
-          onClose={() => setStartProductionOpen(false)}
-          onSuccess={() => {
-            setStartProductionOpen(false);
-            onShowToast?.(
-              t('producer.chapterManagement.gate1SuccessTitle'),
-              t('producer.chapterManagement.gate1SuccessDesc', {
-                number: chapter.chapterNumber,
-              }),
-            );
-            void loadChapterDetails(chapter.id);
-            void loadSeriesAndChapters();
-          }}
-          onShowToast={onShowToast}
-        />
-      )}
-
-      {/* ── SATELLITE MODALS ── */}
-      {assignmentsOpen && chapter && (
-        <ChapterAssignmentsModal
-          isOpen
-          workspaceId={workspaceId}
-          seriesId={seriesId}
-          chapterId={chapter.id}
-          chapterNumber={chapter.chapterNumber}
-          chapterTitle={chapter.title || undefined}
-          onClose={() => setAssignmentsOpen(false)}
-          onShowToast={onShowToast}
-        />
+      {chapter && (
+        <>
+          {assignmentsOpen && (
+            <ChapterAssignmentsModal
+              isOpen
+              chapterId={chapter.id}
+              chapterNumber={chapter.chapterNumber}
+              chapterTitle={chapter.title || undefined}
+              seriesId={seriesId}
+              workspaceId={workspaceId}
+              onClose={() => setAssignmentsOpen(false)}
+              onShowToast={onShowToast}
+            />
+          )}
+          {editionsOpen && (
+            <ChapterEditionsModal
+              isOpen
+              chapter={chapter}
+              onClose={() => setEditionsOpen(false)}
+              onShowToast={onShowToast}
+            />
+          )}
+          {previewLinksOpen && (
+            <PreviewLinksModal
+              isOpen
+              chapterId={chapter.id}
+              chapterNumber={chapter.chapterNumber}
+              chapterTitle={chapter.title}
+              chapterStatus={chapter.status}
+              workspaceRole={workspaceRole as any}
+              onClose={() => setPreviewLinksOpen(false)}
+            />
+          )}
+          {provenanceOpen && (
+            <ChapterProvenanceModal
+              seriesId={seriesId}
+              chapterId={chapter.id}
+              chapterNumber={chapter.chapterNumber}
+              chapterTitle={chapter.title}
+              viewerRole={workspaceRole}
+              onClose={() => setProvenanceOpen(false)}
+            />
+          )}
+        </>
       )}
 
-      {editionsOpen && chapter && (
-        <ChapterEditionsModal
-          isOpen
-          chapter={chapter}
-          onClose={() => setEditionsOpen(false)}
-          onShowToast={onShowToast}
-        />
-      )}
-
-      {provenanceOpen && chapter && (
-        <ChapterProvenanceModal
-          seriesId={seriesId}
-          chapterId={chapter.id}
-          chapterNumber={chapter.chapterNumber}
-          chapterTitle={chapter.title}
-          viewerRole={workspaceRole}
-          onClose={() => setProvenanceOpen(false)}
-        />
-      )}
-
-      {previewLinksOpen && chapter && (
-        <PreviewLinksModal
-          isOpen
-          chapterId={chapter.id}
-          chapterNumber={chapter.chapterNumber}
-          chapterTitle={chapter.title}
-          chapterStatus={chapter.status}
-          workspaceRole={workspaceRole as any}
-          onClose={() => setPreviewLinksOpen(false)}
-        />
-      )}
-
-      {/* Delete / Archive Confirmation Modal (V2.6 D3) */}
       {deleteTargetChapter && (
         <TypeToConfirmModal
           isOpen
-          title={
-            deleteTargetChapter.status === 'PreProduction' &&
-            (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
-              ? t('producer.chapterManagement.deleteChapterTitle', {
-                  number: deleteTargetChapter.chapterNumber,
-                })
-              : t('producer.chapterManagement.archiveChapterTitle', {
-                  number: deleteTargetChapter.chapterNumber,
-                })
-          }
-          description={
-            deleteTargetChapter.status === 'PreProduction' &&
-            (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
-              ? t('producer.chapterManagement.deleteChapterDesc')
-              : t('producer.chapterManagement.archiveChapterDesc')
-          }
-          targetName='DELETE'
-          confirmButtonText={
-            deleteTargetChapter.status === 'PreProduction' &&
-            (!deleteTargetChapter.pagesCount || deleteTargetChapter.pagesCount === 0)
-              ? t('producer.chapterManagement.deleteBtn')
-              : t('producer.chapterManagement.archiveBtn')
-          }
-          onConfirm={handleDeleteOrArchiveChapter}
           onCancel={() => setDeleteTargetChapter(null)}
+          onConfirm={handleDeleteChapter}
+          title='Xóa chương'
+          description={`Nhập "DELETE" để xác nhận xóa Chương ${deleteTargetChapter.chapterNumber}.`}
+          targetName='DELETE'
+          confirmButtonText='Xác nhận xóa'
           isDeleting={isDeleting}
         />
       )}
     </div>
   );
 };
-
-export default ProducerChapterManagementView;

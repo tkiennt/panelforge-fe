@@ -382,7 +382,7 @@ export const PublicPreviewView: React.FC = () => {
           </div>
 
           <span
-            className='hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-950/60 border border-emerald-800 text-[11px] font-bold text-emerald-300'
+            className='hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-950/60 border border-emerald-800 text-xs font-bold text-emerald-300'
             data-testid='watermark-badge'
           >
             <ShieldCheck className='w-3.5 h-3.5' />

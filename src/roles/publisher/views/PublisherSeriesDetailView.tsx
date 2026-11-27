@@ -30,6 +30,21 @@ import {
   PublisherManagedChapterDto,
 } from '@/services/publisher.service';
 import { bibleService, SeriesBibleDto, BibleEntryDto } from '@/services/bible.service';
+import { seriesService } from '@/services/series.service';
+import {
+  CONTENT_LANGUAGES,
+  monetizationService,
+  type ChapterManageDto,
+  type ContentLanguage,
+} from '@/services/payment.service';
+import {
+  MultilingualPublishingMatrix,
+  type SeriesPublishingTab,
+} from '../components/MultilingualPublishingMatrix';
+import {
+  formatContentLanguageName,
+  orderReleaseLanguages,
+} from '../components/multilingual';
 import { PublishScheduleModal } from '../modals/PublishScheduleModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
@@ -54,7 +69,15 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
 
   const [detail, setDetail] = useState<PublisherSeriesDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [workspaceTab, setWorkspaceTab] = useState<SeriesPublishingTab>('matrix');
   const [activeTab, setActiveTab] = useState<ChapterTab>('all');
+  const [originalLanguage, setOriginalLanguage] = useState<ContentLanguage>('vi');
+  const [releaseLanguages, setReleaseLanguages] = useState<ContentLanguage[]>([
+    ...CONTENT_LANGUAGES,
+  ]);
+  const [languageFilter, setLanguageFilter] = useState<string>('all');
+  const [manageByChapterId, setManageByChapterId] = useState<Record<string, ChapterManageDto>>({});
+  const [loadingEditions, setLoadingEditions] = useState(false);
 
   // Modals state for chapters
   const [publishingChapter, setPublishingChapter] = useState<PublisherManagedChapterDto | null>(
@@ -70,13 +93,51 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
   const [bibleLoading, setBibleLoading] = useState(false);
   const [bibleCategoryFilter, setBibleCategoryFilter] = useState<string>('all');
 
-  // Fetch Series Details
+  // Fetch Series Details + Series Language Configuration + Per-Chapter Editions
   const fetchDetail = useCallback(async () => {
     if (!seriesId) return;
     setLoading(true);
     try {
-      const data = await publisherService.getSeriesDetail(seriesId);
+      const [data, seriesMeta] = await Promise.all([
+        publisherService.getSeriesDetail(seriesId),
+        seriesService.getSeriesById(seriesId).catch(() => null),
+      ]);
       setDetail(data);
+      const orig = ((seriesMeta?.originalLanguage || 'vi').toLowerCase() as ContentLanguage);
+      setOriginalLanguage(orig);
+      const rel = orderReleaseLanguages(
+        seriesMeta?.releaseLanguages?.length ? seriesMeta.releaseLanguages : [...CONTENT_LANGUAGES],
+        orig,
+      );
+      setReleaseLanguages(rel.length > 0 ? rel : [...CONTENT_LANGUAGES]);
+
+      // Load real per-edition status & pricing for handed-off chapters
+      const relevant = (data?.chapters || []).filter(
+        (c) =>
+          c.status === 'ChapterApproved' ||
+          (c.status as any) === 'Approved' ||
+          c.status === 'HandedOffAndPublished' ||
+          (c.status as any) === 'Published',
+      );
+      if (relevant.length > 0) {
+        setLoadingEditions(true);
+        const results = await Promise.all(
+          relevant.map((c) =>
+            monetizationService
+              .getChapterManage(c.chapterId)
+              .then((m) => [c.chapterId, m] as const)
+              .catch(() => null),
+          ),
+        );
+        const map: Record<string, ChapterManageDto> = {};
+        results.forEach((entry) => {
+          if (entry) map[entry[0]] = entry[1];
+        });
+        setManageByChapterId(map);
+        setLoadingEditions(false);
+      } else {
+        setManageByChapterId({});
+      }
     } catch (err: any) {
       onShowToast?.(t('shared.errorTitle'), err.message || t('detail.loadError'));
     } finally {
@@ -274,15 +335,31 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
               {detail.title}
             </h1>
 
-            {/* Hàng nút công cụ dành cho Publisher */}
-            <div className='flex items-center gap-3 flex-wrap pt-1'>
+            {/* Hàng nút công cụ dành cho Publisher + Thông tin đa ngôn ngữ */}
+            <div className='flex items-center gap-2.5 flex-wrap pt-1'>
+              <span className='px-3 py-1.5 rounded-xl bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-semibold'>
+                {lang === 'en' ? 'Source language' : 'Ngôn ngữ gốc'}:{' '}
+                <strong>{formatContentLanguageName(originalLanguage, lang)}</strong>
+              </span>
+              <span className='px-3 py-1.5 rounded-xl bg-stone-100 text-stone-700 border border-stone-200 text-xs font-semibold'>
+                {handedOffChapters.length} {lang === 'en' ? 'source chapters' : 'chương gốc'} ·{' '}
+                {releaseLanguages.length} {lang === 'en' ? 'language editions' : 'ấn bản ngôn ngữ'}
+              </span>
               <button
                 type='button'
                 onClick={handleOpenBible}
-                className='px-4 py-2 rounded-xl bg-[#FCFBF8] hover:bg-[#FFF2E6] text-stone-800 hover:text-[#C2410C] border border-[#D8D2C5] hover:border-[#FDBA74] text-xs font-bold flex items-center gap-2 shadow-2xs cursor-pointer transition-all'
+                className='px-4 py-1.5 rounded-xl bg-[#FCFBF8] hover:bg-[#FFF2E6] text-stone-800 hover:text-[#C2410C] border border-[#D8D2C5] hover:border-[#FDBA74] text-xs font-bold flex items-center gap-2 shadow-2xs cursor-pointer transition-all'
               >
                 <BookMarked className='w-4 h-4 text-[#C2410C]' />
                 <span>{t('publisher.detail.viewBible', 'Xem Series Bible')}</span>
+              </button>
+              <button
+                type='button'
+                onClick={() => navigate(`/publisher/revenue/series/${seriesId}`)}
+                className='px-4 py-1.5 rounded-xl bg-[#FCFBF8] hover:bg-stone-100 text-stone-800 border border-[#D8D2C5] text-xs font-bold flex items-center gap-2 shadow-2xs cursor-pointer transition-all'
+              >
+                <Layers className='w-4 h-4 text-stone-600' />
+                <span>{lang === 'en' ? 'Performance & Analytics' : 'Hiệu quả phát hành'}</span>
               </button>
             </div>
 
@@ -329,82 +406,140 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
         </div>
       </div>
 
-      {/* 2. Phần Dưới: Danh Sách Chương Của Bộ Truyện (Chapter Queue & Actions) */}
+      {/* 2. Phần Dưới: Multilingual Publishing Workspace (Matrix / Language Editions / Pricing / Chapter Queue) */}
       <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4'>
-        {/* Header & Tabs */}
-        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E7E2D7] pb-4'>
-          <div className='flex items-center gap-2'>
-            <FileText className='w-5 h-5 text-[#C2410C]' />
-            <h2 className='text-base font-serif font-bold text-[#1C1917]'>
-              {t('publisher.detail.chapterQueue', 'Danh Sách Chương Cần Quản Lý')}
-            </h2>
-            <span className='text-xs font-mono font-bold text-stone-500 bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-full'>
-              {detail.chapters.length}
-            </span>
+        {/* Primary Series Publishing Workspace Tabs */}
+        <div className='flex flex-wrap items-center justify-between gap-3 border-b border-[#E7E2D7] pb-3.5'>
+          <div className='flex flex-wrap items-center gap-1.5 bg-[#F3F0E9] p-1 rounded-xl'>
+            {[
+              {
+                id: 'matrix' as const,
+                label: lang === 'en' ? 'Publishing Matrix' : 'Ma trận xuất bản',
+              },
+              {
+                id: 'editions' as const,
+                label: lang === 'en' ? 'Language Editions' : 'Ấn bản ngôn ngữ',
+              },
+              {
+                id: 'pricing' as const,
+                label: lang === 'en' ? 'Pricing Matrix' : 'Ma trận giá bán',
+              },
+              {
+                id: 'chapters' as const,
+                label: `${lang === 'en' ? 'Chapter List' : 'Danh sách chương'} (${handedOffChapters.length})`,
+              },
+            ].map((tabItem) => (
+              <button
+                key={tabItem.id}
+                type='button'
+                data-testid={`series-pub-tab-${tabItem.id}`}
+                onClick={() => setWorkspaceTab(tabItem.id)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  workspaceTab === tabItem.id
+                    ? 'bg-white text-[#C2410C] shadow-2xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                {tabItem.label}
+              </button>
+            ))}
           </div>
 
-          {/* Filter Tabs */}
-          <div className='flex items-center gap-1.5 bg-[#F3F0E9] p-1 rounded-xl'>
-            <button
-              type='button'
-              onClick={() => setActiveTab('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'all'
-                  ? 'bg-white text-stone-900 shadow-2xs'
-                  : 'text-stone-600 hover:text-stone-900'
-              }`}
-            >
-              {t('publisher.detail.allChapters', 'Tất cả')} ({detail.chapters.length})
-            </button>
-            <button
-              type='button'
-              onClick={() => setActiveTab('approved')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'approved'
-                  ? 'bg-[#EA580C] text-white shadow-2xs'
-                  : 'text-[#C2410C] hover:bg-orange-100'
-              }`}
-            >
-              <Clock className='w-3 h-3' />
-              <span>{t('publisher.detail.waitingApproval', 'Chờ duyệt')}</span>
-              {approvedCount > 0 && (
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                    activeTab === 'approved' ? 'bg-white text-[#EA580C]' : 'bg-[#EA580C] text-white'
-                  }`}
-                >
-                  {approvedCount}
-                </span>
-              )}
-            </button>
-            <button
-              type='button'
-              onClick={() => setActiveTab('published')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'published'
-                  ? 'bg-emerald-700 text-white shadow-2xs'
-                  : 'text-emerald-800 hover:bg-emerald-100'
-              }`}
-            >
-              <CheckCircle2 className='w-3 h-3' />
-              <span>{t('publisher.detail.publishedAndScheduled', 'Đã phát hành')}</span>
-              {publishedCount > 0 && (
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                    activeTab === 'published'
-                      ? 'bg-white text-emerald-800'
-                      : 'bg-emerald-700 text-white'
-                  }`}
-                >
-                  {publishedCount}
-                </span>
-              )}
-            </button>
-          </div>
+          {workspaceTab === 'chapters' && (
+            <div className='flex items-center gap-1.5 bg-[#F3F0E9] p-1 rounded-xl'>
+              <button
+                type='button'
+                onClick={() => setActiveTab('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'all'
+                    ? 'bg-white text-stone-900 shadow-2xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                {t('publisher.detail.allChapters', 'Tất cả')} ({handedOffChapters.length})
+              </button>
+              <button
+                type='button'
+                onClick={() => setActiveTab('approved')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === 'approved'
+                    ? 'bg-[#EA580C] text-white shadow-2xs'
+                    : 'text-[#C2410C] hover:bg-orange-100'
+                }`}
+              >
+                <Clock className='w-3 h-3' />
+                <span>{t('publisher.detail.waitingApproval', 'Chờ duyệt')}</span>
+                {approvedCount > 0 && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      activeTab === 'approved' ? 'bg-white text-[#EA580C]' : 'bg-[#EA580C] text-white'
+                    }`}
+                  >
+                    {approvedCount}
+                  </span>
+                )}
+              </button>
+              <button
+                type='button'
+                onClick={() => setActiveTab('published')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === 'published'
+                    ? 'bg-emerald-700 text-white shadow-2xs'
+                    : 'text-emerald-800 hover:bg-emerald-100'
+                }`}
+              >
+                <CheckCircle2 className='w-3 h-3' />
+                <span>{t('publisher.detail.publishedAndScheduled', 'Đã phát hành')}</span>
+                {publishedCount > 0 && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      activeTab === 'published'
+                        ? 'bg-white text-emerald-800'
+                        : 'bg-emerald-700 text-white'
+                    }`}
+                  >
+                    {publishedCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Danh Sách Từng Chương */}
-        {filteredChapters.length === 0 ? (
+        {/* Multilingual Matrix / Language Editions / Pricing Matrix */}
+        {workspaceTab !== 'chapters' ? (
+          <MultilingualPublishingMatrix
+            seriesId={seriesId || ''}
+            chapters={handedOffChapters}
+            originalLanguage={originalLanguage}
+            releaseLanguages={releaseLanguages}
+            manageByChapterId={manageByChapterId}
+            loadingEditions={loadingEditions}
+            uiLang={lang}
+            mode={workspaceTab}
+            selectedLanguageFilter={languageFilter}
+            onSelectLanguageFilter={setLanguageFilter}
+            onOpenEditionDetail={(chapId, targetLang) =>
+              navigate(
+                `/publisher/revenue/series/${seriesId}/chapters/${chapId}?section=editions&lang=${targetLang}`,
+              )
+            }
+            onOpenSeriesInsights={(targetLang) =>
+              navigate(
+                targetLang
+                  ? `/publisher/revenue/series/${seriesId}?lang=${targetLang}`
+                  : `/publisher/revenue/series/${seriesId}`,
+              )
+            }
+            onOpenPublishModal={(chap) => setPublishingChapter(chap)}
+            onSwitchToMatrix={(targetLang) => {
+              setLanguageFilter(targetLang);
+              setWorkspaceTab('matrix');
+            }}
+          />
+        ) : (
+        /* Danh Sách Từng Chương */
+        filteredChapters.length === 0 ? (
           <div className='py-12 text-center text-stone-500 space-y-2'>
             <BookOpen className='w-8 h-8 text-stone-300 mx-auto' />
             <p className='text-xs'>
@@ -600,7 +735,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
               );
             })}
           </div>
-        )}
+        ))}
       </div>
 
       {/* MODAL 2: Series Bible Modal */}

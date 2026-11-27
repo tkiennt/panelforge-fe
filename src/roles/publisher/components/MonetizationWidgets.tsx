@@ -82,7 +82,7 @@ export const StatCards: React.FC<{ stats: InsightStatsDto; showRating?: boolean 
             {c.label}
           </div>
           <div className='text-2xl font-bold text-[#171717] mt-1 tabular-nums'>{c.value}</div>
-          <div className='text-[11px] text-[#737373] mt-0.5'>{c.sub}</div>
+          <div className='text-xs text-[#737373] mt-0.5'>{c.sub}</div>
         </div>
       ))}
     </div>

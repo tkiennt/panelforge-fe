@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   mergeSpecAttributes,
-  specCompleteness,
   toSpecCategory,
   specFields,
   parseBibleDetails,
+  parseArtistNoteSpecs,
+  sanitizeArtistNotes,
 } from './bibleSpec';
 
 describe('bibleSpec', () => {
@@ -18,9 +19,9 @@ describe('bibleSpec', () => {
     expect(toSpecCategory('StyleRule')).toBe('style');
   });
 
-  it('provides simplified 2-field schema for character and 1-field for location/prop', () => {
+  it('provides one unified notes field for every category', () => {
     const charKeys = specFields('character').map((f) => f.key);
-    expect(charKeys).toEqual(['age', 'artistNotes']);
+    expect(charKeys).toEqual(['artistNotes']);
 
     const locKeys = specFields('location').map((f) => f.key);
     expect(locKeys).toEqual(['artistNotes']);
@@ -33,19 +34,23 @@ describe('bibleSpec', () => {
     const merged = mergeSpecAttributes(
       'character',
       { age: '17', artistNotes: 'Ghi chú cũ', legacyNote: 'giữ nguyên' },
-      { age: ' 18 ', artistNotes: 'Ghi chú mới' },
+      { artistNotes: 'Ghi chú mới' },
     );
-    expect(merged).toEqual({ age: '18', artistNotes: 'Ghi chú mới', legacyNote: 'giữ nguyên' });
+    expect(merged).toEqual({ age: '17', artistNotes: 'Ghi chú mới', legacyNote: 'giữ nguyên' });
   });
 
-  it('counts filled spec fields', () => {
-    const { filled, total } = specCompleteness('prop', { artistNotes: 'Thanh kiếm gia truyền' });
-    expect(filled).toBe(1);
-    expect(total).toBe(1);
-
-    const empty = specCompleteness('character', {});
-    expect(empty.filled).toBe(0);
-    expect(empty.total).toBe(2);
+  it('parses legacy bullet notes into scannable specs without losing freeform notes', () => {
+    expect(
+      parseArtistNoteSpecs(
+        '- Chiều cao: 170 cm\n- Vóc dáng / Thể chất: Cao\nLuôn giữ tỷ lệ đầu nhỏ.',
+      ),
+    ).toEqual({
+      items: [
+        { label: 'Chiều cao', value: '170 cm' },
+        { label: 'Vóc dáng / Thể chất', value: 'Cao' },
+      ],
+      note: 'Luôn giữ tỷ lệ đầu nhỏ.',
+    });
   });
 
   describe('parseBibleDetails backward compatibility', () => {
@@ -55,6 +60,15 @@ describe('bibleSpec', () => {
       expect(parseBibleDetails('')).toEqual({ age: '', artistNotes: '' });
       expect(parseBibleDetails('{}')).toEqual({ age: '', artistNotes: '' });
       expect(parseBibleDetails('Ghi chú tự do')).toEqual({ age: '', artistNotes: 'Ghi chú tự do' });
+    });
+
+    it('removes leaked DTO metadata from legacy Artist Notes', () => {
+      const dumped =
+        '- artistNotes: - Id: f1c462f8-3e0b-4cd0-8043-d968359b66a1 - Name: KRILLIN - Description: Áo cam - DetailsJson: {}';
+
+      expect(sanitizeArtistNotes(dumped)).toBe('Áo cam');
+      expect(parseBibleDetails(JSON.stringify({ artistNotes: dumped })).artistNotes).toBe('Áo cam');
+      expect(sanitizeArtistNotes('Tóc đen, áo cam')).toBe('Tóc đen, áo cam');
     });
 
     it('parses simplified format with age and artistNotes', () => {
@@ -96,6 +110,16 @@ describe('bibleSpec', () => {
       expect(parsed.artistNotes).toContain('- Chiều cao: 180cm');
       expect(parsed.artistNotes).toContain('- Kiểu tóc / Màu tóc: Tóc vàng');
       expect(parsed.artistNotes).toContain('- Lưu ý cấm kỵ / Tránh vẽ sai: Không mang kính');
+    });
+
+    it('deduplicates legacy fields repeated in attributes and DetailsJson', () => {
+      const parsed = parseBibleDetails(JSON.stringify({ height: '170cm', build: 'Cao' }), {
+        height: '170cm',
+        build: 'Cao',
+      });
+
+      expect(parsed.artistNotes.match(/Chiều cao/g)).toHaveLength(1);
+      expect(parsed.artistNotes.match(/Vóc dáng \/ Thể chất/g)).toHaveLength(1);
     });
   });
 });

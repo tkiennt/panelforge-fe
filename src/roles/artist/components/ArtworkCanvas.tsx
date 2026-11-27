@@ -69,7 +69,7 @@ export const ArtworkCanvas: React.FC<ArtworkCanvasProps> = ({ isReadOnly, initia
           </h3>
           <div className='flex items-center gap-3'>
             {isReadOnly && (
-              <span className='px-2 py-1 bg-[#F3F3F3] text-[#737373] text-[10px] font-bold rounded uppercase'>
+              <span className='px-2 py-1 bg-[#F3F3F3] text-[#737373] text-xs font-bold rounded uppercase'>
                 Read-Only
               </span>
             )}
@@ -118,7 +118,7 @@ export const ArtworkCanvas: React.FC<ArtworkCanvasProps> = ({ isReadOnly, initia
                 {isReadOnly ? t('artworkCanvas.emptyReadOnly') : t('artworkCanvas.dropHere')}
               </p>
               {!isReadOnly && <p className='text-sm'>{t('artworkCanvas.orClickToSelect')}</p>}
-              <p className='text-[10px] font-mono mt-4 border border-[#E7E7E7] px-2 py-1 rounded bg-white'>
+              <p className='text-xs font-mono mt-4 border border-[#E7E7E7] px-2 py-1 rounded bg-white'>
                 {t('artworkCanvas.fileFormatsLimit')}
               </p>
             </div>
@@ -158,7 +158,7 @@ export const ArtworkCanvas: React.FC<ArtworkCanvasProps> = ({ isReadOnly, initia
         {fileInfo ? (
           <div className='p-4 space-y-6'>
             <div>
-              <h5 className='text-[10px] font-bold text-[#A3A3A3] uppercase mb-2'>
+              <h5 className='text-xs font-bold text-[#A3A3A3] uppercase mb-2'>
                 {t('artworkCanvas.fileDetails')}
               </h5>
               <div className='bg-[#F8F6F0] rounded-lg p-3 space-y-2 text-xs font-mono text-[#555555]'>

@@ -140,10 +140,10 @@ const ArtworkPreviewCard: React.FC<ArtworkPreviewCardProps> = ({
     >
       <div className='flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-stone-200/80 text-xs'>
         <div className='flex items-center gap-1.5 min-w-0'>
-          <span className='font-mono font-bold text-stone-900 bg-stone-200/90 px-1.5 py-0.5 rounded text-[11px]'>
+          <span className='font-mono font-bold text-stone-900 bg-stone-200/90 px-1.5 py-0.5 rounded text-xs'>
             v{art.versionNumber}
           </span>
-          <span className='text-stone-500 font-medium text-[11px] truncate' title={contextTitle}>
+          <span className='text-stone-500 font-medium text-xs truncate' title={contextTitle}>
             {contextTitle}
           </span>
         </div>
@@ -333,7 +333,7 @@ const ArtworkLightboxModal: React.FC<ArtworkLightboxModalProps> = ({
             >
               {zoomed.friendlyTitle}
             </span>
-            <span className='text-[11px] text-stone-400 hidden sm:inline-block px-1.5 py-0.5 rounded bg-stone-800 border border-stone-700 truncate'>
+            <span className='text-xs text-stone-400 hidden sm:inline-block px-1.5 py-0.5 rounded bg-stone-800 border border-stone-700 truncate'>
               {zoomed.contextTitle}
             </span>
           </div>
@@ -351,7 +351,7 @@ const ArtworkLightboxModal: React.FC<ArtworkLightboxModalProps> = ({
             >
               <ZoomOut className='w-3.5 h-3.5' />
             </button>
-            <span className='px-2 font-mono text-[11px] text-stone-300 min-w-[54px] text-center'>
+            <span className='px-2 font-mono text-xs text-stone-300 min-w-[54px] text-center'>
               {zoomMode === 'fit' ? t('artworkPanel.fitFrame') : `${Math.round(scale * 100)}%`}
             </span>
             <button
@@ -1225,7 +1225,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                   {t('artworkPanel.detailSealed')}
                                 </span>
                               </div>
-                              <div className='truncate text-[11px] text-stone-500'>
+                              <div className='truncate text-xs text-stone-500'>
                                 {t('artworkPanel.detailIntegrityHash')} {art.sha256}
                               </div>
                               <div>
@@ -1377,7 +1377,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           {t('artworkPanel.detailSealed')}
                         </span>
                       </div>
-                      <div className='truncate text-[11px] text-stone-500'>
+                      <div className='truncate text-xs text-stone-500'>
                         {t('artworkPanel.detailIntegrityHash')} {art.sha256}
                       </div>
                       <div>
@@ -1639,7 +1639,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         })}
                       </span>
                     </span>
-                    <span className='font-mono text-[11px] text-stone-400'>
+                    <span className='font-mono text-xs text-stone-400'>
                       ID: {group.panelId.slice(0, 8)}…
                     </span>
                   </div>
@@ -1661,7 +1661,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                 v{art.versionNumber}
                               </span>
                               <span
-                                className={`px-1.5 py-0.5 rounded text-[11px] font-semibold ${
+                                className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
                                   isLatestInGroup
                                     ? 'bg-stone-200 text-stone-800'
                                     : 'bg-stone-100 text-stone-600'
@@ -1678,7 +1678,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               >
                                 {friendlyTitle}
                               </span>
-                              <span className='font-mono text-stone-500 text-[11px]'>
+                              <span className='font-mono text-stone-500 text-xs'>
                                 {formatSize(art.sizeBytes)} ·{' '}
                                 {new Date(art.createdAt).toLocaleString(dateLocale)}
                               </span>
