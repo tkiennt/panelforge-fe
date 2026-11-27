@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   MoreVertical,
   Sliders,
@@ -9,11 +9,18 @@ import {
   Trash2,
   Users,
   ArrowRight,
-  PenTool,
-  Lock,
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  Layers,
 } from 'lucide-react';
 import { SeriesDto } from '@/services/series.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
+import {
+  SeriesAvatarFallback,
+  SeriesBannerFallback,
+} from '@/shared/features/series-identity/SeriesImageFallbacks';
+import { Card, CardBody, CardHeader } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
 import { StatusBadge } from '@/shared/ui';
 import { formatGenre, formatReadingDirection } from './formatters';
@@ -21,8 +28,8 @@ import { formatGenre, formatReadingDirection } from './formatters';
 export interface SeriesCardItemProps {
   series: SeriesDto;
   isProducerOrAdmin: boolean;
-  isOpenMenu: boolean;
-  onToggleMenu: (e: React.MouseEvent) => void;
+  isOpenMenu?: boolean;
+  onToggleMenu?: (e: React.MouseEvent) => void;
   onOpenSeries: (seriesId: string) => void;
   onOpenPipeline: (series: { id: string; title: string }) => void;
   onOpenPresets: (series: { id: string; title: string }) => void;
@@ -31,16 +38,73 @@ export interface SeriesCardItemProps {
   onClearCover: (seriesId: string) => void;
   onEditSeries: (series: SeriesDto) => void;
   onDeleteSeries: (series: SeriesDto) => void;
-  /** Nhãn mở theo vai trò (DESIGN_RULES 5.1); mặc định "Mở không gian truyện". */
+  /** Nhãn mở theo vai trò (DESIGN_RULES 5.1); mặc định "Mở bộ truyện". */
   openLabel?: string;
 }
 
-/** Thẻ bộ truyện Stitch phong cách Manga Studio Editorial */
+const hasNativeInvoker = () =>
+  typeof HTMLButtonElement !== 'undefined' && 'commandForElement' in HTMLButtonElement.prototype;
+
+const supportsAnchorPos = () =>
+  typeof CSS !== 'undefined' &&
+  typeof CSS.supports === 'function' &&
+  CSS.supports('position-area', 'block-end');
+
+const invokerAttrs = (targetId: string) =>
+  ({ commandfor: targetId, command: 'toggle-popover' }) as Record<string, string>;
+
+const positionPopoverFallback = (trigger: HTMLElement | null, menu: HTMLElement | null) => {
+  if (!trigger || !menu || supportsAnchorPos()) return;
+  const r = trigger.getBoundingClientRect();
+  const margin = 8;
+  const width = menu.offsetWidth || 208;
+  const height = menu.offsetHeight || 260;
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+  const left = Math.max(margin, Math.min(r.right - width, vw - width - margin));
+  const top = Math.max(margin, Math.min(r.bottom + 6, vh - height - margin));
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+};
+
+const safeShowPopover = (menu: HTMLElement | null, source?: HTMLElement | null) => {
+  if (!menu) return;
+  try {
+    const fn = (menu as HTMLElement & { showPopover?: (opts?: { source?: HTMLElement }) => void })
+      .showPopover;
+    if (typeof fn === 'function') {
+      fn.call(menu, source ? { source } : undefined);
+    }
+  } catch {
+    // ignore if unsupported in JSDOM
+  }
+};
+
+const safeHidePopover = (menu: HTMLElement | null) => {
+  if (!menu) return;
+  try {
+    if (typeof menu.hidePopover === 'function') {
+      menu.hidePopover();
+    }
+  } catch {
+    // ignore if unsupported in JSDOM
+  }
+};
+
+const SeriesCoverFallback: React.FC<{ title: string }> = ({ title }) => (
+  <div className='relative w-full h-full flex items-center justify-center'>
+    <SeriesBannerFallback />
+    <div className='relative z-10 w-20 h-28 shadow-xs transition-studio-transform group-hover/cover:scale-[1.03]'>
+      <SeriesAvatarFallback title={title} />
+    </div>
+  </div>
+);
+
+/** Thẻ bộ truyện thống nhất với MemberSeriesPortal (DESIGN_RULES §4.8 Surface primitives). */
 export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
   series: s,
   isProducerOrAdmin,
-  isOpenMenu,
-  onToggleMenu,
   onOpenSeries,
   onOpenPipeline,
   onOpenPresets,
@@ -51,300 +115,265 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
   onDeleteSeries,
   openLabel,
 }) => {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const resolvedOpenLabel = openLabel ?? t('workspace.library.open.default');
   const displayCoverUrl = s.coverUrl || s.avatarUrl;
-  const initial = (
-    <span className='font-serif text-5xl font-bold text-stone-400 select-none'>
-      {s.title.trim().charAt(0).toUpperCase()}
-    </span>
-  );
 
-  const isCompleted = s.isCompleted;
+  const menuId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const menu = menuRef.current;
+    if (!menu) return;
+    const onToggle = (e: Event) => {
+      const open = (e as ToggleEvent).newState === 'open';
+      setMenuOpen(open);
+      if (open) {
+        positionPopoverFallback(triggerRef.current, menu);
+      }
+    };
+    menu.addEventListener('toggle', onToggle);
+    return () => menu.removeEventListener('toggle', onToggle);
+  }, []);
+
+  const isCompleted = Boolean(s.isCompleted);
   const isPreProd = !isCompleted && (s.chaptersCount ?? 0) === 0;
+  const readingDir = formatReadingDirection(s.readingDirection);
 
-  const pct = isCompleted
-    ? 100
+  const seriesStatus = isCompleted
+    ? {
+        label: t('workspace.studioHub.series.statusCompleted'),
+        badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+        icon: <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' aria-hidden='true' />,
+      }
     : isPreProd
-      ? 15
-      : Math.min(95, Math.max(30, (s.chaptersCount ?? 1) * 16));
+      ? {
+          label: t('workspace.studioHub.series.statusPreProd'),
+          badgeClass: 'bg-stone-100 text-stone-700 border-stone-200',
+          icon: <Clock className='w-3.5 h-3.5 text-stone-500' aria-hidden='true' />,
+        }
+      : {
+          label: t('workspace.studioHub.series.statusInProd'),
+          badgeClass: 'bg-blue-50 text-blue-800 border-blue-200',
+          icon: <Layers className='w-3.5 h-3.5 text-blue-600' aria-hidden='true' />,
+        };
 
-  const progressColor = isCompleted ? 'bg-emerald-600' : 'bg-orange-600';
+  const formattedUpdated = useMemo(() => {
+    const raw = s.updatedAt || s.createdAt;
+    if (!raw) return null;
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return null;
+    return new Intl.DateTimeFormat(lang, { day: '2-digit', month: '2-digit' }).format(date);
+  }, [s.updatedAt, s.createdAt, lang]);
 
-  const statusText = isCompleted
-    ? t('workspace.studioHub.series.statusCompleted')
-    : isPreProd
-      ? t('workspace.studioHub.series.statusPreProd')
-      : t('workspace.studioHub.series.statusInProd');
+  const handleToggleMenuClick = () => {
+    if (hasNativeInvoker()) return;
+    const menu = menuRef.current;
+    const nextOpen = !menuOpen;
+    if (nextOpen) {
+      positionPopoverFallback(triggerRef.current, menu);
+      safeShowPopover(menu, triggerRef.current);
+      setMenuOpen(true);
+    } else {
+      safeHidePopover(menu);
+      setMenuOpen(false);
+    }
+  };
 
-  const seriesCode = (s as any).code || s.id.substring(0, 6).toUpperCase();
-  const buttonLabel = openLabel;
+  const runMenuAction = (action: () => void) => {
+    safeHidePopover(menuRef.current);
+    setMenuOpen(false);
+    action();
+  };
 
   return (
-    <article
-      className='series-card group relative bg-white border border-stone-200 rounded-xl shadow-xs overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow min-w-0'
+    <Card
+      as='article'
+      className='series-card group flex flex-col h-full transition-shadow hover:shadow-md min-w-0'
       data-status={isCompleted ? 'completed' : isPreProd ? 'pre-prod' : 'in-prod'}
       data-title={s.title.toLowerCase()}
     >
-      <div>
-        {/* Cover Header Banner */}
-        <div className='relative w-full h-48 bg-stone-100 overflow-hidden'>
-          <button
-            type='button'
-            onClick={() => onOpenSeries(s.id)}
-            aria-label={`${buttonLabel}: ${s.title}`}
-            title={`${buttonLabel}: ${s.title}`}
-            className='focus-ring block w-full h-full relative cursor-pointer text-left'
-          >
-            {displayCoverUrl ? (
-              <AuthenticatedImage
-                src={displayCoverUrl}
-                alt=''
-                loading='lazy'
-                className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300'
-                fallback={
-                  <div className='w-full h-full bg-gradient-to-br from-stone-200 via-stone-100 to-orange-50 flex items-center justify-center'>
-                    {initial}
-                  </div>
-                }
-              />
-            ) : (
-              <div className='w-full h-full bg-gradient-to-br from-stone-200 via-stone-100 to-orange-50 flex items-center justify-center'>
-                {initial}
-              </div>
-            )}
-            <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none' />
-
-            {/* Bottom Title & Subtitle Over Cover */}
-            <div className='absolute bottom-3 left-3 right-3 pointer-events-none'>
-              <h3 className='text-xl text-white font-bold drop-shadow-sm line-clamp-1'>
-                {s.title}
-              </h3>
-              <span className='text-xs text-stone-200 line-clamp-1 mt-0.5'>
-                {s.synopsis || t('workspace.studioHub.series.defaultSynopsis')} •{' '}
-                {t('workspace.studioHub.series.codeLabel')}: {seriesCode}
-              </span>
-            </div>
-          </button>
-
-          {/* Top Left Badges */}
-          <div className='absolute top-3 left-3 flex flex-wrap gap-1.5 z-10 pointer-events-none'>
-            <span className='px-2 py-0.5 rounded-md bg-white/95 backdrop-blur text-xs font-semibold text-stone-800 shadow-xs'>
-              {formatGenre(s.genre || s.format)}
+      <CardHeader
+        icon={<BookOpen className='w-4 h-4' aria-hidden='true' />}
+        titleAs='h3'
+        title={s.title}
+        subtitle={`${formatGenre(s.genre || s.format)} · ${readingDir.label}`}
+        actions={
+          <div className='flex items-center gap-1.5'>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${seriesStatus.badgeClass}`}
+            >
+              {seriesStatus.icon}
+              <span>{seriesStatus.label}</span>
             </span>
-            <span className='px-2 py-0.5 rounded-md bg-white/95 backdrop-blur text-xs font-medium text-stone-600 shadow-xs'>
-              {s.format === 'WEBTOON'
-                ? t('workspace.studioHub.series.verticalOption')
-                : formatReadingDirection(s.readingDirection).label}
-            </span>
-          </div>
 
-          {/* Top Right Status Badge & Menu */}
-          <div className='absolute top-3 right-3 flex items-center gap-1.5 z-10'>
-            <StatusBadge
-              kind='series'
-              status={isCompleted ? 'Completed' : isPreProd ? 'PreProduction' : 'InProduction'}
-              label={statusText}
-            />
-
-            {/* Accessible 3-dots Menu for Producer / Admin */}
             {isProducerOrAdmin && (
-              <div className='relative shrink-0' data-series-options-menu>
+              <div className='shrink-0' data-series-options-menu>
                 <button
+                  ref={triggerRef}
                   type='button'
-                  onClick={onToggleMenu}
-                  className='p-1.5 rounded-lg bg-white/90 hover:bg-white text-stone-700 hover:text-stone-900 shadow-xs transition-colors cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center'
+                  data-testid={`series-options-btn-${s.id}`}
                   aria-label={t('workspace.seriesCard.optionsForSeries', { title: s.title })}
-                  aria-haspopup='menu'
-                  aria-expanded={isOpenMenu}
+                  aria-expanded={menuOpen}
+                  aria-controls={menuId}
+                  {...invokerAttrs(menuId)}
+                  onClick={handleToggleMenuClick}
+                  className='focus-ring p-1.5 rounded-lg text-stone-600 hover:text-stone-900 hover:bg-white/80 transition-studio cursor-pointer min-w-8 min-h-8 flex items-center justify-center'
                 >
-                  <MoreVertical className='w-4 h-4' />
+                  <MoreVertical className='w-4 h-4' aria-hidden='true' />
                 </button>
 
-                {isOpenMenu && (
-                  <div
-                    role='menu'
-                    aria-label={t('workspace.seriesCard.optionsMenuAria', { title: s.title })}
-                    className='absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-stone-200 z-30 py-1 overflow-hidden animate-in fade-in-50 zoom-in-95'
+                <div
+                  ref={menuRef}
+                  id={menuId}
+                  popover='auto'
+                  data-placement='bottom-end'
+                  data-testid={`series-options-menu-${s.id}`}
+                  aria-label={t('workspace.seriesCard.optionsMenuAria', { title: s.title })}
+                  className={`pf-sb-popover-menu w-52 bg-white rounded-xl shadow-xl border border-stone-200 p-1.5 text-stone-900 ${
+                    !hasNativeInvoker() && !menuOpen ? 'hidden' : ''
+                  }`}
+                >
+                  <button
+                    type='button'
+                    onClick={() =>
+                      runMenuAction(() => onOpenPipeline({ id: s.id, title: s.title }))
+                    }
+                    className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-stone-700 hover:bg-head-wash hover:text-stone-900 flex items-center gap-2 transition-studio cursor-pointer'
                   >
+                    <Sliders className='w-3.5 h-3.5 text-blue-600 shrink-0' aria-hidden='true' />
+                    <span>{t('workspace.studioHub.series.menuPipeline')}</span>
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => runMenuAction(() => onOpenPresets({ id: s.id, title: s.title }))}
+                    className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-stone-700 hover:bg-head-wash hover:text-stone-900 flex items-center gap-2 transition-studio cursor-pointer'
+                  >
+                    <ListOrdered
+                      className='w-3.5 h-3.5 text-stone-600 shrink-0'
+                      aria-hidden='true'
+                    />
+                    <span>{t('workspace.studioHub.series.menuTypography')}</span>
+                  </button>
+                  {onOpenMembers && (
                     <button
                       type='button'
-                      role='menuitem'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenPipeline({ id: s.id, title: s.title });
-                      }}
-                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                      onClick={() =>
+                        runMenuAction(() => onOpenMembers({ id: s.id, title: s.title }))
+                      }
+                      className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-stone-700 hover:bg-head-wash hover:text-stone-900 flex items-center gap-2 transition-studio cursor-pointer'
                     >
-                      <Sliders className='w-3.5 h-3.5 text-blue-500' />
-                      <span>{t('workspace.studioHub.series.menuPipeline')}</span>
+                      <Users className='w-3.5 h-3.5 text-emerald-600 shrink-0' aria-hidden='true' />
+                      <span>{t('workspace.studioHub.series.menuCrew')}</span>
                     </button>
+                  )}
+                  <hr className='border-stone-100 my-1' />
+                  <button
+                    type='button'
+                    onClick={() => runMenuAction(() => onPickCover({ id: s.id, title: s.title }))}
+                    className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-stone-700 hover:bg-head-wash hover:text-stone-900 flex items-center gap-2 transition-studio cursor-pointer'
+                  >
+                    <ImagePlus
+                      className='w-3.5 h-3.5 text-accent-dark shrink-0'
+                      aria-hidden='true'
+                    />
+                    <span>
+                      {s.coverUrl
+                        ? t('workspace.studioHub.series.menuChangeCover')
+                        : t('workspace.studioHub.series.menuAddCover')}
+                    </span>
+                  </button>
+                  {s.coverUrl && (
                     <button
                       type='button'
-                      role='menuitem'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenPresets({ id: s.id, title: s.title });
-                      }}
-                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                      onClick={() => runMenuAction(() => onClearCover(s.id))}
+                      className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-stone-700 hover:bg-head-wash hover:text-stone-900 flex items-center gap-2 transition-studio cursor-pointer'
                     >
-                      <ListOrdered className='w-3.5 h-3.5 text-purple-500' />
-                      <span>{t('workspace.studioHub.series.menuTypography')}</span>
+                      <ImageOff
+                        className='w-3.5 h-3.5 text-stone-500 shrink-0'
+                        aria-hidden='true'
+                      />
+                      <span>{t('workspace.studioHub.series.menuClearCover')}</span>
                     </button>
-                    {onOpenMembers && (
-                      <button
-                        type='button'
-                        role='menuitem'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenMembers({ id: s.id, title: s.title });
-                        }}
-                        className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
-                      >
-                        <Users className='w-3.5 h-3.5 text-emerald-600' />
-                        <span>{t('workspace.studioHub.series.menuCrew')}</span>
-                      </button>
-                    )}
-                    <div className='border-t border-stone-100 my-1' />
-                    <button
-                      type='button'
-                      role='menuitem'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPickCover({ id: s.id, title: s.title });
-                      }}
-                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
-                    >
-                      <ImagePlus className='w-3.5 h-3.5 text-orange-500' />
-                      <span>
-                        {s.coverUrl
-                          ? t('workspace.studioHub.series.menuChangeCover')
-                          : t('workspace.studioHub.series.menuAddCover')}
-                      </span>
-                    </button>
-                    {s.coverUrl && (
-                      <button
-                        type='button'
-                        role='menuitem'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onClearCover(s.id);
-                        }}
-                        className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
-                      >
-                        <ImageOff className='w-3.5 h-3.5 text-stone-500' />
-                        <span>{t('workspace.studioHub.series.menuClearCover')}</span>
-                      </button>
-                    )}
-                    <button
-                      type='button'
-                      role='menuitem'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditSeries(s);
-                      }}
-                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
-                    >
-                      <Edit2 className='w-3.5 h-3.5 text-stone-600' />
-                      <span>{t('workspace.studioHub.series.menuEdit')}</span>
-                    </button>
-                    <button
-                      type='button'
-                      role='menuitem'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteSeries(s);
-                      }}
-                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer'
-                    >
-                      <Trash2 className='w-3.5 h-3.5' />
-                      <span>{t('workspace.studioHub.series.menuDelete')}</span>
-                    </button>
-                  </div>
-                )}
+                  )}
+                  <button
+                    type='button'
+                    onClick={() => runMenuAction(() => onEditSeries(s))}
+                    className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-stone-700 hover:bg-head-wash hover:text-stone-900 flex items-center gap-2 transition-studio cursor-pointer'
+                  >
+                    <Edit2 className='w-3.5 h-3.5 text-stone-600 shrink-0' aria-hidden='true' />
+                    <span>{t('workspace.studioHub.series.menuEdit')}</span>
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => runMenuAction(() => onDeleteSeries(s))}
+                    className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-rose-700 hover:bg-rose-50 flex items-center gap-2 transition-studio cursor-pointer'
+                  >
+                    <Trash2 className='w-3.5 h-3.5 shrink-0' aria-hidden='true' />
+                    <span>{t('workspace.studioHub.series.menuDelete')}</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
-        </div>
+        }
+      />
 
-        {/* Card Body */}
-        <div className='p-4 flex flex-col gap-3.5'>
-          {/* Progress Block */}
-          <div className='flex flex-col gap-1.5'>
-            <div className='flex items-center justify-between text-xs'>
-              <span className='font-semibold text-stone-800 flex items-center gap-1'>
-                <PenTool className='w-3.5 h-3.5 text-orange-600' />
-                {t('workspace.studioHub.series.progress', { pct })}
-              </span>
-              <span className='text-stone-500'>
-                {s.chaptersCount
-                  ? t('workspace.studioHub.series.chapterCount', { count: s.chaptersCount })
-                  : t('workspace.studioHub.series.draftName')}
-              </span>
-            </div>
-            <div className='w-full bg-stone-100 h-2 rounded-full overflow-hidden'>
-              <div
-                className={`${progressColor} h-full rounded-full transition-all duration-500`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <div className='flex items-center justify-between text-xs text-stone-500'>
-              <span className='text-stone-700 font-medium truncate'>
-                {isCompleted
-                  ? t('workspace.studioHub.series.completedDesc')
-                  : isPreProd
-                    ? t('workspace.studioHub.series.preProdDesc')
-                    : t('workspace.studioHub.series.inProdDesc', { count: s.chaptersCount ?? 1 })}
-              </span>
-            </div>
-          </div>
-
-          {/* Metadata Box */}
-          <div className='flex items-center justify-between bg-[#FAF9F5] px-3 py-2 rounded-lg border border-stone-200 text-xs'>
-            <div className='flex items-center gap-1.5 text-stone-700 font-medium truncate'>
-              <Lock className='w-3.5 h-3.5 text-sky-600 shrink-0' />
-              <span className='truncate'>
-                {s.format || t('workspace.studioHub.series.standardFormat')} •{' '}
-                {formatGenre(s.genre)}
-              </span>
-            </div>
-            <span className='text-xs text-stone-600 font-medium shrink-0'>
-              {s.chaptersCount ?? 0} {t('workspace.studioHub.series.chapterUnit')} ·{' '}
-              {formatReadingDirection(s.readingDirection).label}
-            </span>
-          </div>
-
-          {/* Team / Ê-kíp row */}
-          <div className='flex items-center justify-between text-xs'>
-            <span className='text-stone-500'>{t('workspace.studioHub.series.team')}</span>
-            <div className='flex items-center -space-x-1.5'>
-              <div className='w-6 h-6 rounded-full bg-stone-200 text-stone-700 font-bold text-xs flex items-center justify-center border-2 border-white select-none'>
-                {s.title.charAt(0).toUpperCase()}
-              </div>
-              <div className='w-6 h-6 rounded-full bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center border-2 border-white select-none'>
-                PD
-              </div>
-              <div className='w-6 h-6 rounded-full bg-sky-100 text-sky-700 font-bold text-xs flex items-center justify-center border-2 border-white select-none'>
-                ED
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Card Bottom CTA */}
-      <div className='p-4 pt-0'>
+      <CardBody className='flex-1 flex flex-col gap-4'>
         <button
           type='button'
           onClick={() => onOpenSeries(s.id)}
-          aria-label={`${buttonLabel}: ${s.title}`}
-          className='w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer'
-          data-testid={`open-series-btn-${s.id}`}
+          aria-label={`${resolvedOpenLabel}: ${s.title}`}
+          title={`${resolvedOpenLabel}: ${s.title}`}
+          className='focus-ring group/cover relative overflow-hidden rounded-xl border border-head-line bg-head-wash text-left cursor-pointer w-full h-44 shrink-0'
         >
-          <span>{buttonLabel}</span>
-          <ArrowRight className='w-4 h-4' />
+          {displayCoverUrl ? (
+            <AuthenticatedImage
+              src={displayCoverUrl}
+              alt=''
+              width={640}
+              height={320}
+              loading='lazy'
+              className='w-full h-full object-cover transition-studio-transform group-hover/cover:scale-[1.03]'
+              fallback={<SeriesCoverFallback title={s.title} />}
+            />
+          ) : (
+            <SeriesCoverFallback title={s.title} />
+          )}
         </button>
-      </div>
-    </article>
+
+        <p className='text-sm text-stone-600 line-clamp-2 leading-relaxed text-pretty'>
+          {s.synopsis?.trim() || t('workspace.studioHub.series.defaultSynopsis')}
+        </p>
+
+        <div className='mt-auto pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3'>
+          <div className='flex items-center gap-2 text-xs text-stone-500 min-w-0'>
+            <span className='rounded-full bg-kraft px-2.5 py-0.5 font-semibold text-kraft-ink tabular-nums whitespace-nowrap'>
+              {s.chaptersCount
+                ? t('workspace.portal.chapterCount', { count: s.chaptersCount })
+                : t('workspace.studioHub.series.draftName')}
+            </span>
+            {formattedUpdated && (
+              <span className='truncate tabular-nums text-stone-500'>
+                {t('workspace.shelf.updated', { days: formattedUpdated })}
+              </span>
+            )}
+          </div>
+
+          <button
+            type='button'
+            onClick={() => onOpenSeries(s.id)}
+            aria-label={`${resolvedOpenLabel}: ${s.title}`}
+            className='focus-ring inline-flex items-center gap-1.5 rounded-lg bg-white hover:bg-orange-50 text-stone-800 hover:text-orange-800 border border-stone-200 hover:border-orange-300 px-3.5 py-2 text-xs font-semibold shadow-2xs transition-studio cursor-pointer shrink-0'
+            data-testid={`open-series-btn-${s.id}`}
+          >
+            <span>{resolvedOpenLabel}</span>
+            <ArrowRight className='w-4 h-4' aria-hidden='true' />
+          </button>
+        </div>
+      </CardBody>
+    </Card>
   );
 };

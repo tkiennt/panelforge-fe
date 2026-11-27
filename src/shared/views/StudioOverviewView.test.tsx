@@ -134,6 +134,27 @@ describe('StudioOverviewView Library UX/UI', () => {
     // Check studio metrics strip
     expect(screen.getByLabelText('Chỉ số vận hành Studio')).toBeInTheDocument();
     expect(screen.getByText('Dung lượng lưu trữ')).toBeInTheDocument();
+
+    // Check PageHeader primary CTA + clean unified SeriesCardItem (TASK-369)
+    const createBtn = screen.getByTestId('studio-hub-create-series');
+    expect(createBtn).toHaveTextContent('Tạo Series mới');
+    // Bỏ thông tin lặp & avatar PD/ED giả
+    expect(screen.queryByText('PD')).not.toBeInTheDocument();
+    expect(screen.queryByText('ED')).not.toBeInTheDocument();
+
+    // Menu 3 chấm trên thẻ bộ truyện dùng Popover API cho Producer
+    const optionsBtn = screen.getByTestId('series-options-btn-series-1');
+    const optionsMenu = screen.getByTestId('series-options-menu-series-1');
+    expect(optionsMenu).toHaveAttribute('popover', 'auto');
+    fireEvent.click(optionsBtn);
+    expect(optionsMenu).toHaveTextContent('Cấu hình Pipeline');
+    expect(optionsMenu).toHaveTextContent('Đội ngũ Series');
+    expect(optionsMenu).toHaveTextContent('Chỉnh sửa thông tin');
+    expect(optionsMenu).toHaveTextContent('Xóa bộ truyện');
+
+    // Bấm nút Tạo Series mới trong PageHeader mở modal tạo series
+    fireEvent.click(createBtn);
+    expect(await screen.findByText('Khởi tạo Dự án Series mới')).toBeInTheDocument();
   });
 
   it('filters series by title search keyword', async () => {
@@ -762,10 +783,10 @@ describe('StudioOverviewView Library UX/UI', () => {
       expect(screen.getByTestId('automation-stat-escalated')).toHaveTextContent('1');
 
       expect(activityBlock).toHaveTextContent(
-        /✅.*Chương 1.*Ink.*Trang 3.*Artist A.*Giữ người đã làm trang này/,
+        /Chương 1.*Ink.*Trang 3.*Artist A.*Giữ người đã làm trang này/,
       );
-      expect(activityBlock).toHaveTextContent(/⚠️.*Không có Inker\./);
-      expect(activityBlock).toHaveTextContent(/⏰.*Gia hạn, chia lại hoặc nhắc người làm\./);
+      expect(activityBlock).toHaveTextContent(/Không có Inker\./);
+      expect(activityBlock).toHaveTextContent(/Gia hạn, chia lại hoặc nhắc người làm\./);
 
       const links = screen.getAllByTestId('automation-activity-item');
       expect(links).toHaveLength(3);
