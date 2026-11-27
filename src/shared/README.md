@@ -1,7 +1,7 @@
 # Thư mục Shared (`src/shared/`)
 
 ## 1. Mô tả
-Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng phức hợp (features), thành phần giao diện cơ bản (components/ui), và các hộp thoại (modals) được sử dụng chung bởi nhiều role hoặc thuộc phạm vi toàn bộ người dùng đã đăng nhập trong PanelForge.
+Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng phức hợp (features), thành phần giao diện cơ bản (`src/shared/ui/`), và các hộp thoại (modals) được sử dụng chung bởi nhiều role hoặc thuộc phạm vi toàn bộ người dùng đã đăng nhập trong PanelForge.
 
 ## 2. Cấu trúc thư mục
 
@@ -17,10 +17,35 @@ Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng 
 - **`account/`**: Quản lý tài khoản cá nhân, xác thực hai lớp và đổi mật khẩu (`ChangePasswordModal.tsx`, `TwoFactorSetupModal.tsx`).
 - **`provenance/`** (CF4): Lịch sử & nguồn gốc chương: bản duyệt (snapshot), Provenance Report (Producer/Editor), lịch sử AI và lịch sử canvas từng trang có so sánh / khôi phục cho Producer, Artist (`ChapterProvenanceModal.tsx`, `PageHistoryPanel.tsx`, `provenanceRules.ts`).
 
-### 2.3 UI Components (`src/shared/components/ui/`)
-Các khối giao diện nguyên tử có kiểm soát quyền truy cập:
-- `Badge.tsx`, `Button.tsx`, `Card.tsx`, `Input.tsx`
-- `PermissionButton.tsx`, `PermissionField.tsx`, `PermissionGuard.tsx`
+### 2.3 UI Primitives (`src/shared/ui/`)
+Một mẫu giao diện = một primitive chuẩn dùng chung cho toàn hệ thống:
+- `PageHeader`: Header trang với thanh mực cam và ô icon; biến thể toolbar cho thanh công cụ dính.
+- `SectionHeader`: Header mục trên nền giấy với nhãn sienna, tiêu đề H2, chip đếm và hành động.
+- `Card`: Khung bề mặt cấp 1 với tone ngữ nghĩa và vạch viền nổi bật tuỳ chọn.
+- `CardHeader`: Dải đầu thẻ với ô icon theo tone, tiêu đề và nút phụ.
+- `CardBody`: Thân thẻ trắng chuẩn chứa nội dung chính.
+- `Button`: Nút bấm đa biến thể (primary, secondary, ai, success, warning, danger, ghost), hỗ trợ loading và active scale.
+- `IconButton`: Nút bấm chỉ icon bắt buộc có aria-label, kích cỡ sm/md.
+- `Badge`: Thẻ trạng thái bo tròn với 7 tone màu ngữ nghĩa và icon tuỳ chọn.
+- `StatusBadge`: Thẻ trạng thái tự động ánh xạ enum nghiệp vụ qua statusTone.ts thành tone và nhãn i18n.
+- `Field`: Khung bao trường nhập liệu tự động liên kết id, hint, error và cờ aria-describedby/aria-invalid.
+- `Input`: Ô nhập liệu một dòng chuẩn kiểu studio với trạng thái focus/invalid.
+- `Textarea`: Vùng nhập văn bản nhiều dòng chuẩn kiểu studio.
+- `Select`: Menu chọn lựa native chuẩn kiểu studio.
+- `SearchInput`: Ô tìm kiếm có icon Search và nút xóa nhanh nội dung.
+- `Tabs`: Thanh chuyển tab hỗ trợ role tablist/tab, roving tabindex và điều hướng phím mũi tên.
+- `EmptyState`: Khung trạng thái trống viền nét đứt, ô icon cam, tiêu đề serif và một nút hành động.
+- `Skeleton`: Khung tải xung nhịp với kích thước tuỳ biến.
+- `ProgressBar`: Thanh tiến độ chống chia cho 0 với tone ngữ nghĩa và role progressbar.
+- `Metric`: Thẻ chỉ số hiển thị nhãn và giá trị font-mono đậm.
+- `Avatar`: Ảnh đại diện người dùng hỗ trợ lazy load và tự động chuyển về chữ cái đầu.
+- `CountChip`: Chip đếm số lượng phong cách giấy kraft cho header và tab.
+- `Modal`: Hộp thoại modal căn giữa với bẫy tiêu điểm và khoá cuộn trang.
+- `Drawer`: Bảng trượt cạnh bên hỗ trợ điều hướng và kiểm duyệt.
+- `ConfirmDialog`: Hộp thoại xác nhận hỗ trợ biến thể type-to-confirm.
+- `Alert`: Thanh thông báo nội dòng theo 5 tone ngữ nghĩa.
+- `Toast`: Thông báo nổi góc màn hình tự động đóng và giới hạn ngăn xếp.
+- `SidebarSection` / `SidebarItem`: Thành phần thanh điều hướng bên có hỗ trợ chế độ thu gọn.
 
 ### 2.4 Modals dùng chung (`src/shared/modals/`)
 - `AuditLogModal.tsx`: Xem nhật ký kiểm toán hành động trong hệ thống.
@@ -30,4 +55,3 @@ Các khối giao diện nguyên tử có kiểm soát quyền truy cập:
 - `PreviewLinksModal.tsx`: Producer tạo / thu hồi link xem thử; link sao chép dạng `{origin}/review/invite/{token}`.
 - `ReviewHandoffModal.tsx`: Cầu nối Web → Mobile cho trang review công khai: QR chứa `/review/invite/{token}` (app Mobile tự bóc token ở cuối URL), mã token kèm nút Copy và hướng dẫn.
 - `SpreadWorkbenchModal.tsx`: Bàn làm việc trang đôi đa năng chuyển đổi giữa Writer, Editor và Artist.
-

@@ -1,19 +1,35 @@
 import React, { useState } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Home } from 'lucide-react';
+import { Home, Sparkles } from 'lucide-react';
 import {
   Alert,
+  Avatar,
+  Badge,
+  Button,
   Card,
   CardBody,
   CardHeader,
   ConfirmDialog,
+  CountChip,
   Drawer,
+  EmptyState,
+  Field,
+  IconButton,
+  Input,
+  Metric,
   Modal,
   PageHeader,
+  ProgressBar,
+  SearchInput,
   SectionHeader,
+  Select,
   SidebarItem,
   SidebarSection,
+  Skeleton,
+  StatusBadge,
+  Tabs,
+  Textarea,
   Toast,
   ToastStack,
 } from './index';
@@ -375,5 +391,241 @@ describe('Surface primitives', () => {
     expect(cardHeader).toHaveClass('bg-violet-50/60');
     expect(screen.getByTestId('icon').parentElement).toHaveClass('bg-violet-100');
     expect(screen.getByTestId('icon').parentElement).toHaveClass('text-violet-700');
+  });
+});
+
+describe('Button and IconButton', () => {
+  it('renders variants, sizes, and active scale only on primary', () => {
+    const { rerender } = render(
+      <Button variant='primary' size='md'>
+        Primary
+      </Button>,
+    );
+    const primary = screen.getByRole('button', { name: 'Primary' });
+    expect(primary).toHaveClass('bg-[#EA580C]');
+    expect(primary).toHaveClass('active:scale-[0.98]');
+    expect(primary).toHaveClass('min-h-[36px]');
+
+    rerender(
+      <Button variant='secondary' size='sm'>
+        Secondary
+      </Button>,
+    );
+    const secondary = screen.getByRole('button', { name: 'Secondary' });
+    expect(secondary).toHaveClass('bg-white');
+    expect(secondary).not.toHaveClass('active:scale-[0.98]');
+    expect(secondary).toHaveClass('min-h-[32px]');
+
+    rerender(<Button variant='ai'>AI</Button>);
+    expect(screen.getByRole('button', { name: 'AI' })).toHaveClass('bg-violet-600');
+
+    rerender(<Button variant='success'>Success</Button>);
+    expect(screen.getByRole('button', { name: 'Success' })).toHaveClass('bg-emerald-600');
+
+    rerender(<Button variant='warning'>Warning</Button>);
+    expect(screen.getByRole('button', { name: 'Warning' })).toHaveClass('bg-amber-50');
+
+    rerender(<Button variant='danger'>Danger</Button>);
+    expect(screen.getByRole('button', { name: 'Danger' })).toHaveClass('text-rose-700');
+
+    rerender(<Button variant='ghost'>Ghost</Button>);
+    expect(screen.getByRole('button', { name: 'Ghost' })).toHaveClass('bg-transparent');
+  });
+
+  it('handles loading state with spinner and disables button', () => {
+    const onClick = vi.fn();
+    render(
+      <Button loading onClick={onClick} leadingIcon={<Sparkles data-testid='leading-icon' />}>
+        Loading
+      </Button>,
+    );
+    const btn = screen.getByRole('button', { name: 'Loading' });
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByTestId('leading-icon')).toBeNull();
+    fireEvent.click(btn);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('renders IconButton with required aria-label and size', () => {
+    render(<IconButton aria-label='Settings' size='sm' icon={<span>⚙</span>} />);
+    const iconBtn = screen.getByRole('button', { name: 'Settings' });
+    expect(iconBtn).toHaveAttribute('aria-label', 'Settings');
+    expect(iconBtn).toHaveClass('size-8');
+  });
+});
+
+describe('Badge and StatusBadge', () => {
+  it('renders tones and custom icons', () => {
+    const { rerender } = render(
+      <Badge tone='brand' icon={<span data-testid='badge-icon'>★</span>}>
+        Brand
+      </Badge>,
+    );
+    expect(screen.getByText('Brand')).toHaveClass('bg-orange-50');
+    expect(screen.getByTestId('badge-icon')).toBeInTheDocument();
+
+    rerender(<Badge tone='success'>Done</Badge>);
+    expect(screen.getByText('Done')).toHaveClass('bg-emerald-50');
+  });
+
+  it('renders StatusBadge mapping domain enums to tones and i18n keys', () => {
+    const { rerender } = render(<StatusBadge kind='assignment' status='Approved' />);
+    expect(screen.getByText(/Approved|Đã duyệt/i)).toBeInTheDocument();
+
+    rerender(<StatusBadge kind='changeRequest' status='Open' />);
+    expect(screen.getByText(/Open|Cần sửa/i)).toHaveClass('bg-rose-50');
+
+    rerender(<StatusBadge kind='consistencyFinding' status='Blocking' />);
+    expect(screen.getByText(/Blocking|Lỗi chặn/i)).toHaveClass('bg-rose-50');
+  });
+});
+
+describe('Field, Input, Textarea, Select, SearchInput', () => {
+  it('wires field id, aria-describedby for hint and error, and aria-invalid', () => {
+    const { rerender } = render(
+      <Field label='Username' hint='Your unique handle'>
+        <Input placeholder='Enter handle' />
+      </Field>,
+    );
+    const input = screen.getByPlaceholderText('Enter handle');
+    const hint = screen.getByText('Your unique handle');
+    expect(input).toHaveAttribute('id');
+    expect(input).toHaveAttribute('aria-describedby', hint.id);
+    expect(input).not.toHaveAttribute('aria-invalid');
+
+    rerender(
+      <Field label='Username' error='Username is already taken'>
+        <Input placeholder='Enter handle' />
+      </Field>,
+    );
+    const error = screen.getByRole('alert');
+    expect(error).toHaveTextContent('Username is already taken');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute('aria-describedby', error.id);
+  });
+
+  it('renders Textarea and Select with field context', () => {
+    render(
+      <Field label='Description'>
+        <Textarea placeholder='Write bio' />
+        <Select data-testid='role-select'>
+          <option value='writer'>Writer</option>
+        </Select>
+      </Field>,
+    );
+    expect(screen.getByPlaceholderText('Write bio')).toHaveAttribute('id');
+    expect(screen.getByTestId('role-select')).toHaveAttribute('id');
+  });
+
+  it('renders SearchInput with clear button and clear aria label', () => {
+    const onClear = vi.fn();
+    const { rerender } = render(
+      <SearchInput value='manga' onClear={onClear} clearAriaLabel='Clear filter' readOnly />,
+    );
+    const clearBtn = screen.getByRole('button', { name: 'Clear filter' });
+    fireEvent.click(clearBtn);
+    expect(onClear).toHaveBeenCalledOnce();
+
+    rerender(<SearchInput value='' onClear={onClear} />);
+    expect(screen.queryByRole('button', { name: 'Clear filter' })).toBeNull();
+  });
+});
+
+describe('Tabs', () => {
+  it('renders tablist and tabs with roving tabindex and Arrow key navigation', () => {
+    const onChange = vi.fn();
+    const items = [
+      { id: 'tab1', label: 'First' },
+      { id: 'tab2', label: 'Second' },
+      { id: 'tab3', label: 'Third' },
+    ];
+    render(<Tabs items={items} value='tab1' onChange={onChange} ariaLabel='Sections' />);
+
+    expect(screen.getByRole('tablist', { name: 'Sections' })).toBeInTheDocument();
+    const tab1 = screen.getByRole('tab', { name: 'First' });
+    const tab2 = screen.getByRole('tab', { name: 'Second' });
+    const tab3 = screen.getByRole('tab', { name: 'Third' });
+
+    expect(tab1).toHaveAttribute('aria-selected', 'true');
+    expect(tab1).toHaveAttribute('tabIndex', '0');
+    expect(tab1).toHaveClass('border-accent');
+    expect(tab2).toHaveAttribute('aria-selected', 'false');
+    expect(tab2).toHaveAttribute('tabIndex', '-1');
+
+    tab1.focus();
+    fireEvent.keyDown(tab1, { key: 'ArrowRight' });
+    expect(onChange).toHaveBeenCalledWith('tab2');
+
+    fireEvent.keyDown(tab1, { key: 'End' });
+    expect(onChange).toHaveBeenCalledWith('tab3');
+
+    fireEvent.keyDown(tab3, { key: 'Home' });
+    expect(onChange).toHaveBeenCalledWith('tab1');
+  });
+});
+
+describe('EmptyState and Skeleton', () => {
+  it('renders EmptyState with dashed border, serif title, and action', () => {
+    render(
+      <EmptyState
+        title='No Items Found'
+        description='Create your first item to get started'
+        action={<button>Create Item</button>}
+      />,
+    );
+    expect(screen.getByTestId('empty-state')).toHaveClass('border-dashed');
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('No Items Found');
+    expect(screen.getByText('Create your first item to get started')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Item' })).toBeInTheDocument();
+  });
+
+  it('renders Skeleton with pulse animation and dimensions', () => {
+    render(<Skeleton data-testid='skel' width={120} height={24} />);
+    const skel = screen.getByTestId('skel');
+    expect(skel).toHaveClass('animate-pulse');
+    expect(skel).toHaveStyle({ width: '120px', height: '24px' });
+  });
+});
+
+describe('ProgressBar, Metric, Avatar, CountChip', () => {
+  it('guards against zero-division in ProgressBar (0/0 => 0%) and reflects progress', () => {
+    const { rerender } = render(
+      <ProgressBar data-testid='prog' value={0} max={0} label='Storage' />,
+    );
+    const prog = screen.getByTestId('prog');
+    expect(prog).toHaveAttribute('role', 'progressbar');
+    expect(prog).toHaveAttribute('aria-valuenow', '0');
+    expect(prog.firstElementChild).toHaveStyle({ width: '0%' });
+
+    rerender(<ProgressBar data-testid='prog' value={50} max={100} tone='success' />);
+    expect(screen.getByTestId('prog')).toHaveAttribute('aria-valuenow', '50');
+    expect(screen.getByTestId('prog').firstElementChild).toHaveStyle({ width: '50%' });
+    expect(screen.getByTestId('prog').firstElementChild).toHaveClass('bg-emerald-600');
+  });
+
+  it('renders Metric with font-mono value and hint', () => {
+    render(<Metric label='Active Users' value='1,240' hint='Updated 5m ago' />);
+    expect(screen.getByText('Active Users')).toBeInTheDocument();
+    expect(screen.getByText('1,240')).toHaveClass('font-mono');
+    expect(screen.getByText('Updated 5m ago')).toBeInTheDocument();
+  });
+
+  it('renders Avatar with initials fallback and lazy image', () => {
+    const { rerender } = render(<Avatar name='Monkey D. Luffy' size='md' />);
+    expect(screen.getByText('ML')).toBeInTheDocument();
+
+    rerender(<Avatar name='Zoro' src='https://example.com/zoro.jpg' size='sm' />);
+    const img = screen.getByRole('img');
+    expect(img).toHaveAttribute('loading', 'lazy');
+    expect(img).toHaveAttribute('src', 'https://example.com/zoro.jpg');
+  });
+
+  it('renders CountChip with kraft colors', () => {
+    render(<CountChip count={42} data-testid='count-chip' />);
+    const chip = screen.getByTestId('count-chip');
+    expect(chip).toHaveClass('bg-kraft');
+    expect(chip).toHaveClass('text-kraft-ink');
+    expect(chip).toHaveTextContent('42');
   });
 });

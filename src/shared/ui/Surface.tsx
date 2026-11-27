@@ -1,5 +1,6 @@
 import React, { forwardRef, useContext } from 'react';
 import { cn } from '@/lib/utils';
+import { CountChip } from './CountChip';
 
 export type SurfaceTone = 'brand' | 'ai' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
@@ -179,11 +180,7 @@ export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(func
         )}
         <div className='flex items-center gap-2'>
           <HeadingTag className='text-lg font-bold text-stone-900'>{title}</HeadingTag>
-          {count !== undefined && count !== null && (
-            <span className='rounded-full bg-kraft px-2 py-0.5 text-xs font-semibold text-kraft-ink'>
-              {count}
-            </span>
-          )}
+          {count !== undefined && count !== null && <CountChip count={count} />}
         </div>
       </div>
       {actions && <div className='flex shrink-0 items-center gap-2'>{actions}</div>}
