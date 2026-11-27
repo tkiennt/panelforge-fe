@@ -24,7 +24,7 @@ import { ProducerSharedHeader } from '@/shared/features/production-workspace/Pro
 import { useChapterReadiness } from '@/shared/features/production-workspace/useChapterProductionHub';
 import {
   buildChapterManagementUrl,
-  buildChapterReaderUrl,
+  buildSeriesReaderUrl,
   buildProductionWorkspaceUrl,
 } from '@/app/routePaths';
 import { Alert, Badge, Button, Card, CardBody, CardHeader, StatusBadge, Tabs } from '@/shared/ui';
@@ -333,7 +333,11 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                 size='sm'
                 leadingIcon={<BookOpen aria-hidden='true' />}
                 onClick={() =>
-                  navigate(buildChapterReaderUrl(workspaceId, seriesId, selectedChapter.id))
+                  navigate(
+                    buildSeriesReaderUrl(workspaceId, seriesId, {
+                      chapterId: selectedChapter.id,
+                    }),
+                  )
                 }
               >
                 {t('producer.exportView.previewChapterBtn')}
@@ -400,7 +404,9 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                                     leadingIcon={<BookOpen aria-hidden='true' />}
                                     onClick={() =>
                                       navigate(
-                                        buildChapterReaderUrl(workspaceId, seriesId, chap.id),
+                                        buildSeriesReaderUrl(workspaceId, seriesId, {
+                                          chapterId: chap.id,
+                                        }),
                                       )
                                     }
                                   >

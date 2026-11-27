@@ -15,6 +15,8 @@ export interface ConfirmDialogProps {
   confirmationText?: string;
   confirmationInputLabel?: string;
   dismissible?: boolean;
+  confirmDisabled?: boolean;
+  children?: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -30,6 +32,8 @@ export function ConfirmDialog({
   confirmationText,
   confirmationInputLabel,
   dismissible = true,
+  confirmDisabled = false,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -73,7 +77,7 @@ export function ConfirmDialog({
           </button>
           <button
             type='button'
-            disabled={!matched}
+            disabled={!matched || confirmDisabled}
             onClick={() => settle(true)}
             className='pf-delete-btn-confirm'
             data-testid={requiresText ? 'confirm-delete-submit-btn' : 'confirm-accept-btn'}
@@ -88,6 +92,7 @@ export function ConfirmDialog({
           <AlertTriangle className='size-5' aria-hidden='true' />
         </div>
       )}
+      {children}
       {requiresText && confirmationText && (
         <div className='space-y-3'>
           <code className='pf-delete-target-preview' data-testid='target-name-preview'>

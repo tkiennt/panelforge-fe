@@ -87,6 +87,11 @@ const ScriptReviewView = lazy(() =>
 const ChapterReaderView = lazy(() =>
   import('@/roles/editor/views/ChapterReaderView').then((m) => ({ default: m.ChapterReaderView })),
 );
+const SeriesReaderView = lazy(() =>
+  import('@/shared/features/series-reader/SeriesReaderView').then((m) => ({
+    default: m.SeriesReaderView,
+  })),
+);
 const SeriesRevenueView = lazy(() =>
   import('@/roles/producer/views/SeriesRevenueView').then((m) => ({
     default: m.SeriesRevenueView,
@@ -683,6 +688,22 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     >
                       <ScriptReviewView
                         currentUserId={currentUserInfo?.id}
+                        workspaceRole={currentWorkspaceRole}
+                        onShowToast={showToast}
+                      />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
+                  path='read'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER', 'EDITOR', 'ADMINISTRATOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <SeriesReaderView
                         workspaceRole={currentWorkspaceRole}
                         onShowToast={showToast}
                       />

@@ -90,6 +90,21 @@ export const buildChapterReaderUrl = (
 ): string =>
   buildSeriesPath(workspaceId, seriesId, `chapters/${encodeURIComponent(chapterId)}/reader`);
 
+export const buildSeriesReaderUrl = (
+  workspaceId: string,
+  seriesId: string,
+  params?: {
+    chapterId?: string;
+    pageId?: string;
+  },
+): string => {
+  const query = new URLSearchParams();
+  if (params?.chapterId) query.set('chapterId', params.chapterId);
+  if (params?.pageId) query.set('pageId', params.pageId);
+  const qStr = query.toString();
+  return buildSeriesPath(workspaceId, seriesId, `read${qStr ? `?${qStr}` : ''}`);
+};
+
 export const buildSeriesExportUrl = (
   workspaceId: string,
   seriesId: string,
