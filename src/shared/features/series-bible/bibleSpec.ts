@@ -126,6 +126,36 @@ export const sanitizeArtistNotes = (value: unknown): string => {
   return description?.trim() || '';
 };
 
+export interface ArtistNoteSpecItem {
+  label: string;
+  value: string;
+}
+
+/**
+ * Tách các dòng đặc tả kiểu "- Nhãn: Giá trị" để trình bày như spec sheet.
+ * Phần văn bản tự do vẫn được giữ nguyên làm ghi chú, không thay đổi payload API.
+ */
+export const parseArtistNoteSpecs = (
+  value: unknown,
+): { items: ArtistNoteSpecItem[]; note: string } => {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) return { items: [], note: '' };
+
+  const items: ArtistNoteSpecItem[] = [];
+  const noteLines: string[] = [];
+
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.trim().match(/^[-•]\s*([^:]+):\s*(.+)$/);
+    if (match) {
+      items.push({ label: match[1].trim(), value: match[2].trim() });
+    } else if (line.trim()) {
+      noteLines.push(line.trim());
+    }
+  }
+
+  return { items, note: noteLines.join('\n') };
+};
+
 /**
  * Trích xuất an toàn từ dữ liệu cũ (4 nhóm hoặc attributes phẳng) sang 2 trường mới gọn nhẹ.
  */
