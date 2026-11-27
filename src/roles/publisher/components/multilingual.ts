@@ -87,7 +87,7 @@ export const getEditionStatusDisplay = (
     };
   }
 
-  const rawStatus = 'editionStatus' in ed ? ed.editionStatus : ed.status;
+  const rawStatus = 'editionStatus' in ed ? ed.editionStatus : 'status' in ed ? ed.status : undefined;
   const isAvailable = 'isAvailable' in ed ? Boolean(ed.isAvailable) : rawStatus === 'Published';
 
   if (isAvailable || rawStatus === 'Published') {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, X, ChevronDown } from 'lucide-react';
+import { Card, CardBody } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
 import { formatGenre } from './formatters';
 
@@ -46,172 +47,180 @@ export const SeriesFilterBar: React.FC<SeriesFilterBarProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  return (
-    <div className='space-y-3 font-sans'>
-      {/* Stitch Top Bar: Heading + Status Filter Pills & Search */}
-      <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4'>
-        {/* Left: Heading & Status Pills */}
-        <div className='flex items-center gap-4 flex-wrap'>
-          <h2 className='text-xl font-bold text-stone-900'>
-            {t('workspace.studioHub.series.title')}{' '}
-            <span className='text-stone-400 font-normal text-base' id='series-count-heading'>
-              ({totalCount})
-            </span>
-          </h2>
+  const statusTabs: Array<{ id: SeriesStatusFilter; label: string }> = [
+    {
+      id: 'ALL',
+      label: t('workspace.studioHub.series.filterAll', {
+        count: statusCounts?.all ?? totalCount,
+      }),
+    },
+    {
+      id: 'IN_PROD',
+      label: t('workspace.studioHub.series.filterInProd', {
+        count: statusCounts?.inProd ?? 0,
+      }),
+    },
+    {
+      id: 'PRE_PROD',
+      label: t('workspace.studioHub.series.filterPreProd', {
+        count: statusCounts?.preProd ?? 0,
+      }),
+    },
+    {
+      id: 'COMPLETED',
+      label: t('workspace.studioHub.series.filterCompleted', {
+        count: statusCounts?.completed ?? 0,
+      }),
+    },
+  ];
 
-          {onStatusFilterChange && (
+  return (
+    <Card className='font-sans'>
+      <CardBody className='p-3.5 space-y-3'>
+        {/* Row 1: Status filter tabs + kraft count chip + clear filters */}
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          {onStatusFilterChange ? (
             <div
-              className='flex items-center bg-white p-1 rounded-lg border border-stone-200 shadow-2xs text-xs font-medium'
+              className='inline-flex flex-wrap items-center gap-1 rounded-lg bg-head-wash border border-head-line p-1 text-xs font-medium'
               id='series-filters-wrapper'
             >
-              <button
-                type='button'
-                onClick={() => onStatusFilterChange('ALL')}
-                className={`series-filter-pill px-3 py-1 rounded-md transition-colors cursor-pointer ${
-                  statusFilter === 'ALL'
-                    ? 'bg-stone-100 text-stone-900 font-semibold'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                {t('workspace.studioHub.series.filterAll', {
-                  count: statusCounts?.all ?? totalCount,
-                })}
-              </button>
-              <button
-                type='button'
-                onClick={() => onStatusFilterChange('IN_PROD')}
-                className={`series-filter-pill px-3 py-1 rounded-md transition-colors cursor-pointer ${
-                  statusFilter === 'IN_PROD'
-                    ? 'bg-stone-100 text-stone-900 font-semibold'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                {t('workspace.studioHub.series.filterInProd', {
-                  count: statusCounts?.inProd ?? 0,
-                })}
-              </button>
-              <button
-                type='button'
-                onClick={() => onStatusFilterChange('PRE_PROD')}
-                className={`series-filter-pill px-3 py-1 rounded-md transition-colors cursor-pointer ${
-                  statusFilter === 'PRE_PROD'
-                    ? 'bg-stone-100 text-stone-900 font-semibold'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                {t('workspace.studioHub.series.filterPreProd', {
-                  count: statusCounts?.preProd ?? 0,
-                })}
-              </button>
-              <button
-                type='button'
-                onClick={() => onStatusFilterChange('COMPLETED')}
-                className={`series-filter-pill px-3 py-1 rounded-md transition-colors cursor-pointer ${
-                  statusFilter === 'COMPLETED'
-                    ? 'bg-stone-100 text-stone-900 font-semibold'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                {t('workspace.studioHub.series.filterCompleted', {
-                  count: statusCounts?.completed ?? 0,
-                })}
-              </button>
+              {statusTabs.map((tab) => {
+                const isSelected = statusFilter === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type='button'
+                    aria-pressed={isSelected}
+                    onClick={() => onStatusFilterChange(tab.id)}
+                    className={`series-filter-pill focus-ring px-3 py-1.5 rounded-md transition-studio cursor-pointer tabular-nums whitespace-nowrap ${
+                      isSelected
+                        ? 'bg-white text-stone-900 font-semibold border border-head-line shadow-2xs'
+                        : 'border border-transparent text-kraft-ink hover:text-stone-900 hover:bg-white/60'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
+          ) : (
+            <div />
           )}
+
+          <div className='flex items-center gap-2'>
+            <span
+              id='series-count-heading'
+              className='rounded-full bg-kraft px-2.5 py-1 text-xs font-semibold text-kraft-ink tabular-nums whitespace-nowrap'
+            >
+              {t('workspace.portal.showing', {
+                shown: displayedCount,
+                total: totalCount,
+              })}
+            </span>
+
+            {isFiltering && (
+              <button
+                type='button'
+                onClick={onClearFilters}
+                aria-label={t('workspace.studioHub.series.clearFilters')}
+                className='focus-ring inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-accent-dark bg-accent-soft border border-head-line hover:bg-orange-100 transition-studio cursor-pointer shrink-0'
+              >
+                <X className='w-3.5 h-3.5' aria-hidden='true' />
+                <span>{t('workspace.studioHub.series.clearFilters')}</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Right: Search, Filter Dropdowns & Sort */}
-        <div className='flex items-center gap-2.5 flex-wrap sm:flex-nowrap'>
-          {/* Search Input */}
-          <div className='relative w-full sm:w-64'>
-            <Search className='w-4 h-4 text-stone-400 absolute left-2.5 top-2.5 pointer-events-none' />
+        {/* Row 2: Search + Genre + Reading direction + Sort */}
+        <div className='flex flex-col md:flex-row md:items-center gap-2.5'>
+          <div className='relative flex-1 min-w-[200px]'>
+            <Search
+              className='w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none'
+              aria-hidden='true'
+            />
             <input
               type='text'
               id='series-search'
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={t('workspace.studioHub.series.searchPlaceholder')}
-              className='w-full bg-white pl-8 pr-7 py-1.5 rounded-lg border border-stone-200 text-stone-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-600 shadow-2xs font-sans'
+              className='focus-ring w-full min-h-9 bg-[#FAF9F5]/70 focus:bg-white pl-9 pr-8 py-1.5 rounded-lg border border-stone-200 focus:border-accent text-stone-900 placeholder:text-stone-400 text-xs font-medium shadow-2xs transition-studio font-sans'
             />
             {searchQuery && (
               <button
                 type='button'
                 onClick={onClearSearch}
-                className='absolute right-2 top-2 text-stone-400 hover:text-stone-700 cursor-pointer'
+                className='focus-ring absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-stone-400 hover:text-stone-700 cursor-pointer'
                 aria-label={t('workspace.portal.clearSearch')}
               >
-                <X className='w-3.5 h-3.5' />
+                <X className='w-3.5 h-3.5' aria-hidden='true' />
               </button>
             )}
           </div>
 
-          {/* Genre Filter */}
-          {availableGenres && availableGenres.length > 0 && (
-            <div className='relative shrink-0'>
+          <div className='flex flex-wrap items-center gap-2 shrink-0'>
+            {availableGenres && availableGenres.length > 0 && (
+              <div className='relative'>
+                <select
+                  value={genreFilter}
+                  onChange={(e) => onGenreFilterChange(e.target.value)}
+                  aria-label={t('workspace.studioHub.series.allGenres')}
+                  className='focus-ring min-h-9 bg-white hover:border-head-line border border-stone-200 text-stone-700 pl-3 pr-8 py-1.5 rounded-lg text-xs font-medium shadow-2xs cursor-pointer appearance-none transition-studio font-sans'
+                >
+                  <option value='ALL'>{t('workspace.studioHub.series.allGenres')}</option>
+                  {availableGenres.map((g) => (
+                    <option key={g} value={g}>
+                      {formatGenre(g)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  className='w-3.5 h-3.5 text-stone-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none'
+                  aria-hidden='true'
+                />
+              </div>
+            )}
+
+            <div className='relative'>
               <select
-                value={genreFilter}
-                onChange={(e) => onGenreFilterChange(e.target.value)}
-                aria-label={t('workspace.studioHub.series.allGenres')}
-                className='bg-white border border-stone-200 text-stone-700 px-3 py-1.5 rounded-lg text-xs shadow-2xs focus:outline-none focus:ring-1 focus:ring-orange-600 cursor-pointer pr-7 appearance-none font-sans'
+                value={directionFilter}
+                onChange={(e) => onDirectionFilterChange(e.target.value)}
+                aria-label={t('workspace.studioHub.series.allDirections')}
+                className='focus-ring min-h-9 bg-white hover:border-head-line border border-stone-200 text-stone-700 pl-3 pr-8 py-1.5 rounded-lg text-xs font-medium shadow-2xs cursor-pointer appearance-none transition-studio font-sans'
               >
-                <option value='ALL'>{t('workspace.studioHub.series.allGenres')}</option>
-                {availableGenres.map((g) => (
-                  <option key={g} value={g}>
-                    {formatGenre(g)}
-                  </option>
-                ))}
+                <option value='ALL'>{t('workspace.studioHub.series.allDirections')}</option>
+                <option value='RTL'>{t('workspace.studioHub.series.rtlOption')}</option>
+                <option value='LTR'>{t('workspace.studioHub.series.ltrOption')}</option>
+                <option value='VERTICAL'>{t('workspace.studioHub.series.verticalOption')}</option>
               </select>
-              <ChevronDown className='w-3.5 h-3.5 text-stone-400 absolute right-2 top-2.5 pointer-events-none' />
+              <ChevronDown
+                className='w-3.5 h-3.5 text-stone-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none'
+                aria-hidden='true'
+              />
             </div>
-          )}
 
-          {/* Reading Direction Filter */}
-          <div className='relative shrink-0'>
-            <select
-              value={directionFilter}
-              onChange={(e) => onDirectionFilterChange(e.target.value)}
-              aria-label={t('workspace.studioHub.series.allDirections')}
-              className='bg-white border border-stone-200 text-stone-700 px-3 py-1.5 rounded-lg text-xs shadow-2xs focus:outline-none focus:ring-1 focus:ring-orange-600 cursor-pointer pr-7 appearance-none font-sans'
-            >
-              <option value='ALL'>{t('workspace.studioHub.series.allDirections')}</option>
-              <option value='RTL'>{t('workspace.studioHub.series.rtlOption')}</option>
-              <option value='LTR'>{t('workspace.studioHub.series.ltrOption')}</option>
-              <option value='VERTICAL'>{t('workspace.studioHub.series.verticalOption')}</option>
-            </select>
-            <ChevronDown className='w-3.5 h-3.5 text-stone-400 absolute right-2 top-2.5 pointer-events-none' />
+            <div className='relative'>
+              <select
+                id='series-sort-select'
+                value={sortBy}
+                onChange={(e) => onSortByChange(e.target.value as any)}
+                aria-label={t('workspace.shelf.search.sort')}
+                className='focus-ring min-h-9 bg-white hover:border-head-line border border-stone-200 text-stone-700 pl-3 pr-8 py-1.5 rounded-lg text-xs font-medium shadow-2xs cursor-pointer appearance-none transition-studio font-sans'
+              >
+                <option value='recent'>{t('workspace.studioHub.series.sortRecent')}</option>
+                <option value='az'>{t('workspace.studioHub.series.sortAz')}</option>
+                <option value='za'>{t('workspace.studioHub.series.sortZa')}</option>
+                <option value='chapters'>{t('workspace.studioHub.series.sortChapters')}</option>
+              </select>
+              <ChevronDown
+                className='w-3.5 h-3.5 text-stone-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none'
+                aria-hidden='true'
+              />
+            </div>
           </div>
-
-          {/* Sort By Select */}
-          <div className='relative shrink-0'>
-            <select
-              id='series-sort-select'
-              value={sortBy}
-              onChange={(e) => onSortByChange(e.target.value as any)}
-              aria-label={t('workspace.shelf.search.sort')}
-              className='bg-white border border-stone-200 text-stone-700 px-3 py-1.5 rounded-lg text-xs shadow-2xs focus:outline-none focus:ring-1 focus:ring-orange-600 cursor-pointer pr-7 appearance-none font-sans'
-            >
-              <option value='recent'>{t('workspace.studioHub.series.sortRecent')}</option>
-              <option value='az'>{t('workspace.studioHub.series.sortAz')}</option>
-              <option value='za'>{t('workspace.studioHub.series.sortZa')}</option>
-              <option value='chapters'>{t('workspace.studioHub.series.sortChapters')}</option>
-            </select>
-            <ChevronDown className='w-3.5 h-3.5 text-stone-400 absolute right-2 top-2.5 pointer-events-none' />
-          </div>
-
-          {/* Clear Filters Button */}
-          {isFiltering && (
-            <button
-              type='button'
-              onClick={onClearFilters}
-              aria-label={t('workspace.studioHub.series.clearFilters')}
-              className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors cursor-pointer shrink-0'
-            >
-              <X className='w-3.5 h-3.5' />
-              <span>{t('workspace.studioHub.series.clearFilters')}</span>
-            </button>
-          )}
         </div>
-      </div>
-    </div>
+      </CardBody>
+    </Card>
   );
 };
