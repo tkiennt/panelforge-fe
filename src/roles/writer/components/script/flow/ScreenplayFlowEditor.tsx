@@ -16,6 +16,7 @@ import {
   FileText,
   Loader2,
   MessageSquare,
+  Save,
   Sparkles,
   X,
   Zap,
@@ -778,6 +779,33 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                     {t('collaboration.writerStudio.unsavedBadge', 'Chưa lưu')}
                   </span>
                 )}
+                {!isReadOnly && (
+                  <button
+                    type='button'
+                    id='flow-sheet-save-btn'
+                    data-testid='flow-sheet-save-btn'
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => void handleSave(true)}
+                    disabled={isSaving}
+                    title={t('scriptStudio.gn.saveTooltip', 'Lưu kịch bản (Ctrl+S)')}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      isDirty
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
+                        : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200'
+                    } disabled:opacity-60`}
+                  >
+                    {isSaving ? (
+                      <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                    ) : (
+                      <Save className='w-3.5 h-3.5' />
+                    )}
+                    <span>
+                      {isSaving
+                        ? t('scriptStudio.gn.saving', 'Đang lưu...')
+                        : t('scriptStudio.gn.save', 'Lưu')}
+                    </span>
+                  </button>
+                )}
                 {!isReadOnly && onRewriteLineId && effectiveRewriteLineId && (
                   <button
                     type='button'
@@ -861,7 +889,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                     <span className='text-xs font-bold uppercase tracking-wider text-stone-500'>
                       {t('collaboration.writerStudio.quickTemplatesTitle', 'Mẫu nhanh')}
                     </span>
-                    <span className='text-[11px] text-stone-400'>
+                    <span className='text-xs text-stone-400'>
                       {t(
                         'collaboration.writerStudio.quickTemplatesHint',
                         'Chèn khung định dạng trống vào kịch bản',

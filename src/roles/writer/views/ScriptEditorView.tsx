@@ -1091,29 +1091,30 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       setScenes([]);
       setSelectedScene(null);
       setChapterScenesDetail([]);
+      setChapterPages([]);
+      setChapterPanels([]);
       return;
     }
     setLoadingScenes(true);
     try {
-      const list = await scriptLineService.getScenesByChapter(currentChapter.id);
-      list.sort((a, b) => a.sceneNumber - b.sceneNumber);
-      setScenes(list);
+      const [freshPagesAndPanels, freshScenesAndDetails] = await Promise.all([
+        fetchPagesAndPanels(currentChapter.id),
+        fetchScenesAndDetails(currentChapter.id),
+      ]);
+      setChapterPages(freshPagesAndPanels.pages);
+      setChapterPanels(freshPagesAndPanels.panels);
+      setScenes(freshScenesAndDetails.scenes);
+      setChapterScenesDetail(freshScenesAndDetails.details);
 
-      if (list.length > 0) {
-        // Tải chi tiết tất cả các phân cảnh để dựng không gian kịch bản liền mạch
-        const allDetails = await Promise.all(
-          list.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-        );
-        const validDetails = allDetails.filter((d): d is SceneDetailDto => d !== null);
-        validDetails.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setChapterScenesDetail(validDetails);
-
+      if (freshScenesAndDetails.details.length > 0) {
         setSelectedScene((prev) => {
-          if (prev && validDetails.some((s) => s.id === prev.id)) {
-            return validDetails.find((s) => s.id === prev.id) || prev;
+          if (prev && freshScenesAndDetails.details.some((s) => s.id === prev.id)) {
+            return freshScenesAndDetails.details.find((s) => s.id === prev.id) || prev;
           }
-          const matched = sceneIdFromUrl ? validDetails.find((s) => s.id === sceneIdFromUrl) : null;
-          return matched || validDetails[0] || null;
+          const matched = sceneIdFromUrl
+            ? freshScenesAndDetails.details.find((s) => s.id === sceneIdFromUrl)
+            : null;
+          return matched || freshScenesAndDetails.details[0] || null;
         });
       } else if (canEditScript && !isChapterLocked && !userDeletedSceneRef.current) {
         // Tự động khởi tạo phân cảnh đầu tiên để Writer vào thẳng trình soạn thảo
@@ -1140,15 +1141,24 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         setChapterScenesDetail([]);
       }
     } catch (err: any) {
-      console.error('Lỗi tải danh sách phân cảnh:', err);
+      console.error('Lỗi tải kịch bản và cấu trúc khung:', err);
       notify(
         t('writer.scriptEditor.loadScriptErrorTitle'),
-        err.message || t('writer.scriptEditor.loadScenesErrorFallback'),
+        err?.message || t('writer.scriptEditor.loadScenesErrorFallback'),
       );
     } finally {
       setLoadingScenes(false);
     }
-  }, [currentChapter?.id, sceneIdFromUrl, notify, canEditScript, isChapterLocked]);
+  }, [
+    currentChapter?.id,
+    sceneIdFromUrl,
+    notify,
+    canEditScript,
+    isChapterLocked,
+    fetchPagesAndPanels,
+    fetchScenesAndDetails,
+    t,
+  ]);
 
   useEffect(() => {
     loadScenes();
@@ -2265,7 +2275,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <span className='font-bold'>{t('writer.statusDrawer.frozenBadge')}</span>
             {currentChapter?.scriptContentHash && (
               <span
-                className='ml-2 font-mono text-[11px] text-stone-600'
+                className='ml-2 font-mono text-xs text-stone-600'
                 title={`SHA-256: ${currentChapter.scriptContentHash}`}
               >
                 #{currentChapter.scriptContentHash.slice(0, 8)}
