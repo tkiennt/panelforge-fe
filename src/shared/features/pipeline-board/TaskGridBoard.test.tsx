@@ -248,6 +248,7 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     expect(screen.getByText('Nhánh A')).toBeInTheDocument();
     expect(screen.getByText('Trang 1')).toBeInTheDocument();
     expect(screen.getByText('Trang 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
     expect(screen.getByText('Đầu vào lỗi thời')).toBeInTheDocument();
   });
 
@@ -343,12 +344,14 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     );
 
     await screen.findByText('1. Pencil');
+    fireEvent.click(screen.getByTestId('task-cell-stg-pencil-page-2'));
     fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu' }));
     await waitFor(() => {
       expect(assignmentService.startStageTask).toHaveBeenCalledWith('chap-1', 'task-p2-pencil');
     });
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Nộp' })[0]);
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
+    fireEvent.click(screen.getByRole('button', { name: 'Nộp' }));
     await waitFor(() => {
       expect(assignmentService.submitStageTasks).toHaveBeenCalledWith('chap-1', ['task-p1-ink']);
     });
@@ -364,7 +367,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       />,
     );
 
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Duyệt' }))[1]);
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-2'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Duyệt' }));
     await waitFor(() => {
       expect(assignmentService.approveStageTask).toHaveBeenCalledWith('chap-1', 'task-p2-ink');
     });
@@ -386,6 +390,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       />,
     );
 
+    await screen.findByText('1. Pencil');
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-2'));
     const btn = await screen.findByRole('button', { name: /Yêu cầu sửa/i });
     fireEvent.click(btn);
 
@@ -439,9 +445,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     );
 
     await screen.findByText('1. Pencil');
-    const historyButtons = screen.getAllByRole('button', { name: /Lịch sử nộp/i });
-    // Ô cuối có Lịch sử nộp là task-p2-ink (Submitted)
-    fireEvent.click(historyButtons[historyButtons.length - 1]);
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-2'));
+    fireEvent.click(screen.getByRole('button', { name: /Lịch sử nộp/i }));
 
     await waitFor(() => {
       expect(assignmentService.getStageTaskSubmissions).toHaveBeenCalledWith(
@@ -478,6 +483,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       />,
     );
 
+    await screen.findByText('1. Pencil');
+    fireEvent.click(screen.getByTestId('task-cell-stg-pencil-page-1'));
     const reopenBtn = await screen.findByRole('button', { name: /^Mở lại$/i });
     fireEvent.click(reopenBtn);
 
@@ -505,6 +512,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       />,
     );
 
+    await screen.findByText('1. Pencil');
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
     const submitBtn = await screen.findByRole('button', { name: 'Nộp' });
     expect(submitBtn).toBeDisabled();
 
@@ -560,9 +569,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     );
 
     await screen.findByText('1. Pencil');
-    const unassignButtons = screen.getAllByRole('button', { name: /^Bỏ gán$/i });
-    // Ô đầu tiên có nút Bỏ gán theo thứ tự hàng Trang 1 -> Trang 2 là task-p1-ink (InProgress)
-    fireEvent.click(unassignButtons[0]);
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
+    fireEvent.click(screen.getByRole('button', { name: /^Bỏ gán$/i }));
 
     await waitFor(() => {
       expect(assignmentService.unassignStageTasks).toHaveBeenCalledWith('chap-1', ['task-p1-ink']);
@@ -695,8 +703,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     );
 
     await screen.findByText('1. Pencil');
-    const historyButtons = screen.getAllByRole('button', { name: /Lịch sử nộp/i });
-    fireEvent.click(historyButtons[historyButtons.length - 1]);
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-2'));
+    fireEvent.click(screen.getByRole('button', { name: /Lịch sử nộp/i }));
 
     expect(await screen.findByText('Kịch bản: v3')).toBeInTheDocument();
     expect(screen.getByText('Số panel lúc nộp: 2')).toBeInTheDocument();
@@ -787,6 +795,10 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       screen.queryByRole('button', { name: /Sinh \/ Đồng bộ ô việc/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Chọn cột/i })).not.toBeInTheDocument();
+
+    // Chỉ thấy Bắt đầu / Nộp trên đúng ô của mình khi mở chi tiết ô
+    fireEvent.click(screen.getByTestId('task-cell-stg-pencil-page-2'));
+    expect(screen.getByRole('button', { name: 'Bắt đầu' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Bỏ gán$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Mở lại$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Giữ kết quả/i })).not.toBeInTheDocument();
@@ -794,8 +806,7 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     expect(screen.queryByRole('button', { name: 'Duyệt' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Yêu cầu sửa/i })).not.toBeInTheDocument();
 
-    // Chỉ thấy Bắt đầu / Nộp trên đúng ô của mình
-    expect(screen.getByRole('button', { name: 'Bắt đầu' })).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
     expect(screen.getByRole('button', { name: 'Nộp' })).toBeInTheDocument();
   });
 
@@ -852,10 +863,11 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     );
 
     const chapterCell = await screen.findByTestId('task-cell-stg-review-chapter');
+    fireEvent.click(chapterCell);
     fireEvent.click(screen.getByRole('button', { name: /Yêu cầu sửa/i }));
 
     const formBox = screen.getByTestId('request-changes-form-task-chap-review');
-    expect(chapterCell).toContainElement(formBox);
+    expect(screen.getByTestId('task-detail-drawer')).toContainElement(formBox);
     expect(formBox.className).toContain('w-full');
 
     const textarea = screen.getByLabelText('Nhận xét yêu cầu sửa');
@@ -919,12 +931,15 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
 
     await screen.findByText('1. Pencil');
     expect(screen.getByTestId('cancelled-task-cell-task-p1-pencil')).toHaveTextContent('Đã huỷ');
+    await waitFor(() => {
+      expect(screen.getByTestId('task-cell-stg-pencil-page-2')).toHaveAttribute(
+        'title',
+        expect.stringContaining('Bố cục khung 3 bị lệch đường chân trời'),
+      );
+    });
+    fireEvent.click(screen.getByTestId('task-cell-stg-pencil-page-2'));
     const commentEl = await screen.findByTestId('rework-decision-comment-task-p2-pencil');
     expect(commentEl).toHaveTextContent('Bố cục khung 3 bị lệch đường chân trời');
-    expect(screen.getByTestId('task-cell-stg-pencil-page-2')).toHaveAttribute(
-      'title',
-      expect.stringContaining('Bố cục khung 3 bị lệch đường chân trời'),
-    );
   });
 
   it('Hiện "Lần nộp #N", cho người giữ ô Rút bài, và khoá nút khi UnderReview của người khác kèm nút Gỡ khoá duyệt cho Producer', async () => {
@@ -958,6 +973,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       />,
     );
 
+    await screen.findByText('1. Pencil');
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-2'));
     expect(await screen.findByTestId('task-attempt-count-task-p2-ink')).toHaveTextContent(
       'Lần nộp #3',
     );
@@ -1000,6 +1017,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       />,
     );
 
+    await screen.findByText('1. Pencil');
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-2'));
     expect(await screen.findByTestId('under-review-by-task-p2-ink')).toHaveTextContent(
       'Đang được duyệt bởi',
     );
@@ -1071,9 +1090,11 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     await screen.findByText('1. Pencil');
 
     // Ô đang isInputOutdated (task-p1-ink) khoá nút Đổi người
+    fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
     expect(screen.getByTestId('reassign-task-btn-task-p1-ink')).toBeDisabled();
 
     // Đổi người cho task-p2-pencil (Assigned, cùng vai trò Artist, loại bỏ Writer)
+    fireEvent.click(screen.getByTestId('task-cell-stg-pencil-page-2'));
     fireEvent.click(screen.getByTestId('reassign-task-btn-task-p2-pencil'));
     const select = screen.getByLabelText('Người nhận mới') as HTMLSelectElement;
     expect(select.value).toBe('user-artist-2');
@@ -1098,6 +1119,7 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
     });
 
     // Sửa brief & hạn lô lot-1 (PATCH)
+    fireEvent.click(screen.getByTestId('toggle-assigned-lots-btn'));
     fireEvent.click(screen.getByTestId('edit-lot-btn-lot-1'));
     fireEvent.change(screen.getByLabelText('Brief của lô'), {
       target: { value: 'Brief đã cập nhật' },
@@ -1190,6 +1212,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
         />,
       );
 
+      await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
       const suggestBtn = await screen.findByRole('button', { name: /Gợi ý xử lý/i });
       fireEvent.click(suggestBtn);
 
@@ -1243,6 +1267,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
         />,
       );
 
+      await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
       fireEvent.click(await screen.findByRole('button', { name: /Gợi ý xử lý/i }));
       expect(await screen.findByText('Giữ nguyên')).toBeInTheDocument();
 
@@ -1272,6 +1298,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
           isProducer={true}
         />,
       );
+      await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
       await screen.findByText('Đầu vào lỗi thời');
       expect(screen.queryByRole('button', { name: /Gợi ý xử lý/i })).not.toBeInTheDocument();
       first.unmount();
@@ -1301,6 +1329,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
           isProducer={true}
         />,
       );
+      await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
       await screen.findByText('Pencil được mở lại: sửa theo kịch bản');
       expect(screen.queryByRole('button', { name: /Gợi ý xử lý/i })).not.toBeInTheDocument();
       reopenWithScriptWord.unmount();
@@ -1317,6 +1347,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
           isEditor={true}
         />,
       );
+      await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
       await screen.findByText('Đầu vào lỗi thời');
       expect(screen.queryByRole('button', { name: /Gợi ý xử lý/i })).not.toBeInTheDocument();
       second.unmount();
@@ -1345,6 +1377,8 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
         />,
       );
 
+      await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
       const suggestBtn = await screen.findByRole('button', { name: /Gợi ý xử lý/i });
       fireEvent.click(suggestBtn);
       expect(
@@ -1940,7 +1974,9 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       expect(screen.getByRole('button', { name: /Giao tự động/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Chọn cột/i })).toBeInTheDocument();
       expect(screen.getByLabelText('Chọn ô Pencil')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('toggle-assigned-lots-btn'));
       expect(screen.getByTestId('edit-lot-btn-lot-1')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-2'));
       expect(screen.getByRole('button', { name: 'Duyệt' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Yêu cầu sửa/i })).toBeInTheDocument();
 
@@ -1973,16 +2009,19 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       );
 
       await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
       fireEvent.click(screen.getByTestId('reassign-task-btn-task-p1-ink'));
       fireEvent.click(screen.getByTestId('confirm-reassign-task-task-p1-ink'));
 
       // Hiện hộp thoại xác nhận gỡ người cũ
-      expect(await screen.findByRole('dialog')).toHaveTextContent(/sẽ bị gỡ khỏi ô/i);
+      expect(await screen.findByTestId('lucian-confirm-modal')).toHaveTextContent(
+        /sẽ bị gỡ khỏi ô/i,
+      );
 
       // Bấm Huỷ -> không gửi API
       fireEvent.click(screen.getByTestId('confirm-cancel-btn'));
       await waitFor(() => {
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('lucian-confirm-modal')).not.toBeInTheDocument();
       });
       expect(assignmentService.assignTaskGridLots).not.toHaveBeenCalled();
 
@@ -2151,15 +2190,18 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
 
       await screen.findByText('1. Pencil');
 
+      fireEvent.click(screen.getByTestId('toggle-assigned-lots-btn'));
       const lotBadge = screen.getByTestId('lot-auto-badge-lot-1');
       expect(lotBadge).toHaveTextContent('Tự động');
       expect(lotBadge).toHaveAttribute('title', reason);
+      expect(screen.queryByTestId('lot-auto-badge-lot-2')).not.toBeInTheDocument();
 
+      fireEvent.click(screen.getByTestId('task-cell-stg-pencil-page-2'));
       const cellBadge = screen.getByTestId('task-auto-badge-task-p2-pencil');
       expect(cellBadge).toHaveTextContent('Tự động');
       expect(cellBadge).toHaveAttribute('title', reason);
 
-      expect(screen.queryByTestId('lot-auto-badge-lot-2')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
       expect(screen.queryByTestId('task-auto-badge-task-p1-ink')).not.toBeInTheDocument();
     });
 
@@ -2405,6 +2447,7 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       );
 
       await screen.findByText('1. Pencil');
+      fireEvent.click(screen.getByTestId('task-cell-stg-pencil-page-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Nộp' }));
 
       await waitFor(() => {
@@ -2414,9 +2457,11 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
         expect(assignmentService.getTaskGrid).toHaveBeenCalledTimes(2);
       });
 
+      fireEvent.click(screen.getByTestId('toggle-assigned-lots-btn'));
       const autoLotBadge = await screen.findByTestId('lot-auto-badge-lot-auto-ink');
       expect(autoLotBadge).toHaveTextContent('Tự động');
       expect(autoLotBadge).toHaveAttribute('title', reasonKeep);
+      fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
       expect(screen.getByTestId('task-auto-badge-task-p1-ink')).toHaveAttribute(
         'title',
         reasonKeep,
@@ -2505,6 +2550,7 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
         />,
       );
 
+      fireEvent.click(screen.getByTestId('task-cell-stg-pencil-page-1'));
       const keepBtn = await screen.findByRole('button', { name: /Giữ kết quả/i });
       fireEvent.click(keepBtn);
 
@@ -2520,6 +2566,7 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
       const balanceLotBadge = await screen.findByTestId('lot-auto-badge-lot-auto-balance');
       expect(balanceLotBadge).toHaveTextContent('Tự động');
       expect(balanceLotBadge).toHaveAttribute('title', reasonBalance);
+      fireEvent.click(screen.getByTestId('task-cell-stg-ink-page-1'));
       expect(screen.getByTestId('task-auto-badge-task-p1-ink')).toHaveAttribute(
         'title',
         reasonBalance,
@@ -2584,8 +2631,9 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
         />,
       );
 
-      const singleApproveBtns = await screen.findAllByRole('button', { name: 'Duyệt' });
-      fireEvent.click(singleApproveBtns[0]);
+      fireEvent.click(screen.getByTestId('task-cell-stg-pencil-page-1'));
+      const singleApproveBtn = await screen.findByRole('button', { name: 'Duyệt' });
+      fireEvent.click(singleApproveBtn);
 
       await waitFor(() => {
         expect(assignmentService.approveStageTask).toHaveBeenCalledWith('chap-1', 'task-p1-pencil');
@@ -2607,7 +2655,11 @@ describe('TaskGridBoard (Lưới giao việc V3 – Lát cắt 1)', () => {
         />,
       );
 
-      await screen.findAllByRole('button', { name: 'Duyệt' });
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('task-cell-stg-pencil-page-1').querySelector('input[type="checkbox"]'),
+        ).not.toBeNull();
+      });
       fireEvent.click(
         screen
           .getByTestId('task-cell-stg-pencil-page-1')

@@ -487,6 +487,8 @@
     "drawerAssigneeLabel": "Người phụ trách",
     "drawerDueDateLabel": "Hạn hoàn thành",
     "drawerLotBriefLabel": "Ghi chú lô",
+    "drawerActionsLabel": "Thao tác",
+    "openCellDetailAria": "Xem chi tiết {stage} ({status})",
     "sendingBtn": "Đang gửi...",
     "confirmReturnBtn": "Xác nhận trả về",
     "historyTitle": "Lịch sử nộp bài",
