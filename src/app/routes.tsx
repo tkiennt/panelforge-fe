@@ -488,7 +488,23 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
           />
 
           {/* UIQ-11q: việc của tôi xuyên mọi Studio */}
-          <Route path='my-work' element={<MyWorkHubView />} />
+          <Route
+            path='my-work'
+            element={
+              <MyWorkHubView
+                currentUser={{
+                  name:
+                    currentUserInfo?.name ||
+                    firebaseUser?.displayName ||
+                    firebaseUser?.email?.split('@')[0] ||
+                    'User',
+                  role: currentRole,
+                  avatarUrl: resolveUserAvatar(currentUserInfo, firebaseUser),
+                }}
+                onLogout={handleLogout}
+              />
+            }
+          />
 
           <Route
             element={

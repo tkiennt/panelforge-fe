@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Check, ListTodo, Mail, X, AlertCircle } from 'lucide-react';
+import { ArrowRight, Check, ListTodo, Mail, X } from 'lucide-react';
 import type { WorkspaceDto, WorkspaceSeriesPreviewDto } from '@/types';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { dueTone, type TodayTask } from './workspaceShelfTasks';
@@ -27,12 +27,7 @@ export const PendingInvitations: React.FC<{
   onAccept: (inv: PendingInvitation) => void;
   onReject: (inv: PendingInvitation) => void;
 }> = ({ invitations, busyId, error, t, roleLabel, timeAgo, onAccept, onReject }) => (
-  <Card
-    as='section'
-    className='mb-5 space-y-3'
-    aria-labelledby='ws-invitations-title'
-    data-testid='ws-invitations'
-  >
+  <Card as='section' featured aria-labelledby='ws-invitations-title' data-testid='ws-invitations'>
     <CardHeader
       icon={<Mail className='w-4 h-4' aria-hidden='true' />}
       title={
@@ -40,14 +35,14 @@ export const PendingInvitations: React.FC<{
           <h2 id='ws-invitations-title' className='text-sm font-bold text-stone-900'>
             {t('workspace.shelf.invitations.title')}
           </h2>
-          <span className='rounded-full bg-kraft px-2 py-0.5 text-xs font-semibold text-kraft-ink font-mono'>
+          <span className='rounded-full bg-kraft px-2 py-0.5 font-mono text-xs font-semibold text-kraft-ink tabular-nums'>
             {invitations.length}
           </span>
         </div>
       }
       subtitle={t('workspace.shelf.invitations.subtitle')}
     />
-    <CardBody className='pt-0'>
+    <CardBody className='pt-2'>
       {error && (
         <Alert tone='danger' className='text-sm mb-3'>
           {error}
@@ -78,7 +73,7 @@ export const PendingInvitations: React.FC<{
                   type='button'
                   disabled={busy}
                   onClick={() => onReject(inv)}
-                  className='ws-btn-secondary ws-focus inline-flex items-center gap-1.5 h-9 px-3.5 text-sm font-semibold disabled:opacity-50'
+                  className='ws-btn-secondary ws-focus inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold disabled:opacity-50 cursor-pointer'
                   aria-label={`${t('workspace.shelf.invitations.reject')}: ${inv.workspaceName}`}
                 >
                   <X className='w-4 h-4' aria-hidden='true' />
@@ -88,7 +83,7 @@ export const PendingInvitations: React.FC<{
                   type='button'
                   disabled={busy}
                   onClick={() => onAccept(inv)}
-                  className='ws-btn-primary ws-focus inline-flex items-center gap-1.5 h-9 px-4 text-sm font-semibold disabled:opacity-50'
+                  className='ws-btn-primary ws-focus inline-flex items-center gap-1.5 h-9 px-4 text-xs font-semibold disabled:opacity-50 cursor-pointer'
                   aria-label={`${t('workspace.shelf.invitations.accept')}: ${inv.workspaceName}`}
                 >
                   <Check className='w-4 h-4' aria-hidden='true' />
@@ -112,14 +107,7 @@ export const TodayTasks: React.FC<{
   t: T;
   onOpen: (ws: WorkspaceDto) => void;
 }> = ({ tasks, total, error, now, t, onOpen }) => (
-  <Card
-    as='section'
-    tone='info'
-    featured
-    className='mb-5 space-y-3'
-    aria-labelledby='ws-today-title'
-    data-testid='ws-today'
-  >
+  <Card as='section' tone='info' aria-labelledby='ws-today-title' data-testid='ws-today'>
     <CardHeader
       icon={<ListTodo className='w-4 h-4' aria-hidden='true' />}
       title={
@@ -127,16 +115,16 @@ export const TodayTasks: React.FC<{
           <h2 id='ws-today-title' className='text-sm font-bold text-stone-900'>
             {t('workspace.shelf.today.title')}
           </h2>
-          <span className='rounded-full bg-kraft px-2 py-0.5 text-xs font-semibold text-kraft-ink font-mono'>
+          <span className='rounded-full bg-kraft px-2 py-0.5 font-mono text-xs font-semibold text-kraft-ink tabular-nums'>
             {total}
           </span>
         </div>
       }
       subtitle={t('workspace.shelf.today.subtitle')}
     />
-    <CardBody className='pt-0'>
+    <CardBody className='pt-2'>
       {error ? (
-        <p className='text-sm text-rose-700'>{t('workspace.shelf.today.error')}</p>
+        <p className='text-sm text-rose-700 pt-1'>{t('workspace.shelf.today.error')}</p>
       ) : (
         <ul className='divide-y divide-stone-100' role='list'>
           {tasks.map(({ workspace, assignment: a }) => {
@@ -176,7 +164,7 @@ export const TodayTasks: React.FC<{
                 <button
                   type='button'
                   onClick={() => onOpen(workspace)}
-                  className='ws-focus inline-flex items-center gap-1 text-sm font-semibold text-orange-700 hover:text-orange-800 rounded'
+                  className='ws-focus inline-flex items-center gap-1 text-xs font-semibold text-orange-700 hover:text-orange-800 rounded cursor-pointer'
                   aria-label={`${t('workspace.shelf.today.open')}: ${workspace.name}`}
                 >
                   {t('workspace.shelf.today.open')}

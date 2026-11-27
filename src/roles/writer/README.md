@@ -1,9 +1,11 @@
 # Role: Writer (WorkspaceRole / TaskRole)
 
 ## 1. Mô tả
+
 Biên kịch (Writer) chịu trách nhiệm sáng tác kịch bản truyện tranh (Graphic Novel Full Script), phân đoạn phân cảnh (scenes), gõ liền mạch trên bàn viết Screenplay Flow Editor, liên kết thực thể Series Bible, tiếp nhận góp ý từ Editor, và quản lý các phiên bản kịch bản (Script Versions).
 
 ## 2. Route & Màn hình
+
 - **Route mặc định**: `/workspaces/:workspaceId/series/:seriesId/script`
 - **Màn hình chính**:
   - `ScriptEditorView.tsx`: Bàn viết kịch bản chuẩn Stitch `writer.html`:
@@ -25,6 +27,7 @@ Biên kịch (Writer) chịu trách nhiệm sáng tác kịch bản truyện tra
   - `WriterWorkspace.tsx`: Bàn làm việc của biên kịch trong cửa sổ phân cảnh / Spread Workbench.
 
 ## 3. Thành phần (Components)
+
 - `src/roles/writer/components/script/`:
   - `ScriptScenesDrawer.tsx`: Ngăn kéo danh sách phân cảnh chuẩn Stitch.
   - `ScriptRightBiblePanel.tsx`: Bảng Series Bible bên phải chuẩn Stitch `writer.html` (tab "Trong chương" & "Toàn bộ", liên kết Series Bible).

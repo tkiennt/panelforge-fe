@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AddRevisionModal } from './AddRevisionModal';
-import { groupRevisionsIntoVariants } from './BibleEntityDetailModal';
+import { groupRevisionsIntoVariants } from './revisionVariants';
 
 const entity = {
   id: 'entry-1',

@@ -10,10 +10,7 @@ import type { BibleEntryDto } from '@/services/bible.service';
 import type { ChapterCastDto, ChapterCastItemDto } from '@/services/chapterCast.service';
 
 export type BibleArtworkStatus =
-  | 'approved_artwork'
-  | 'defined_no_artwork'
-  | 'undefined_no_artwork'
-  | 'crowd';
+  'approved_artwork' | 'defined_no_artwork' | 'undefined_no_artwork' | 'crowd';
 
 export interface BibleEntityLike {
   id?: string;

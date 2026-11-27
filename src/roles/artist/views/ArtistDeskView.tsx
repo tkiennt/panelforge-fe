@@ -32,19 +32,18 @@ import {
 import { getRoleDefaultPath } from '@/roles/roles';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
 import { getArtistStageKind } from '../utils/artistStage';
-import {
-  FocusStageItem,
-  FocusStudioHeaderBar,
-  useFocusHeaderContext,
-} from '@/app/FocusWorkspaceLayout';
+import { FocusStudioHeaderBar } from '@/app/FocusWorkspaceLayout';
+import { type FocusStageItem, useFocusHeaderContext } from '@/app/focusHeaderContext';
 import {
   ArtistCanvaSidebar,
   CanvaSidebarTab,
   ScriptLineItem,
   BibleEntityItem,
+} from '../components/desk/ArtistCanvaSidebar';
+import {
   DEFAULT_FRAME_TEMPLATES,
   DEFAULT_SCRIPT_LINES,
-} from '../components/desk/ArtistCanvaSidebar';
+} from '../components/desk/artistSidebarDefaults';
 import { getCharacterStatusTone, BIBLE_STATUS_STYLES } from '@/shared/lib/bibleColoring';
 import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip';
 import { PageStage } from '../components/desk/ArtistPageSidebar';
@@ -686,63 +685,68 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   );
 
   // Tải dữ liệu kịch bản thực tế của chương qua danh sách phân cảnh (sắp xếp theo thứ tự cảnh & dòng)
-  const loadScriptLines = useCallback(async (chapId: string) => {
-    if (!scriptLineService?.getScenesByChapter) return;
-    setIsLoadingScript(true);
-    try {
-      const scenes = await scriptLineService.getScenesByChapter(chapId);
-      if (Array.isArray(scenes)) {
-        const sortedScenes = [...scenes].sort((a, b) => a.sceneNumber - b.sceneNumber);
-        const sceneDetails = await Promise.all(
-          sortedScenes.map((s) =>
-            scriptLineService.getSceneById
-              ? scriptLineService.getSceneById(s.id).catch(() => null)
-              : Promise.resolve(null),
-          ),
-        );
-        const combined: ScriptLineItem[] = [];
-        sceneDetails.forEach((detail, idx) => {
-          const sc = sortedScenes[idx];
-          const rawLines = detail?.scriptLines || [];
-          const sortedLines = [...rawLines].sort((a, b) => (a.lineOrder ?? 0) - (b.lineOrder ?? 0));
-          sortedLines.forEach((l: any) => {
-            combined.push({
-              id: l.id,
-              pageId: l.pageId ?? undefined,
-              panelNumber: l.panelNumber ?? undefined,
-              pageNumber: l.pageNumber ?? undefined,
-              sceneId: sc.id,
-              sceneNumber: sc.sceneNumber,
-              sceneTitle:
-                detail?.heading ||
-                detail?.sceneName ||
-                sc.heading ||
-                sc.sceneName ||
-                t('artist.deskView.sceneTitleFallback', { number: sc.sceneNumber }),
-              sceneSlugline: detail?.slugline || sc.slugline || undefined,
-              speakerCharacterId: l.speakerCharacterId,
-              speakerLabel: l.speakerLabel ?? null,
-              characterName: l.characterName || (l as any).speakerLabel,
-              characterColor: l.characterColor,
-              dialogueText: l.dialogueText ?? l.content ?? undefined,
-              stageDirection: l.stageDirection ?? l.actionDescription ?? undefined,
-              narrationMode: l.narrationMode || l.type,
-              kind: l.kind ?? l.type ?? null,
-              text: l.text ?? null,
-              panelId: l.panelId || undefined,
-              lineOrder: l.lineOrder,
+  const loadScriptLines = useCallback(
+    async (chapId: string) => {
+      if (!scriptLineService?.getScenesByChapter) return;
+      setIsLoadingScript(true);
+      try {
+        const scenes = await scriptLineService.getScenesByChapter(chapId);
+        if (Array.isArray(scenes)) {
+          const sortedScenes = [...scenes].sort((a, b) => a.sceneNumber - b.sceneNumber);
+          const sceneDetails = await Promise.all(
+            sortedScenes.map((s) =>
+              scriptLineService.getSceneById
+                ? scriptLineService.getSceneById(s.id).catch(() => null)
+                : Promise.resolve(null),
+            ),
+          );
+          const combined: ScriptLineItem[] = [];
+          sceneDetails.forEach((detail, idx) => {
+            const sc = sortedScenes[idx];
+            const rawLines = detail?.scriptLines || [];
+            const sortedLines = [...rawLines].sort(
+              (a, b) => (a.lineOrder ?? 0) - (b.lineOrder ?? 0),
+            );
+            sortedLines.forEach((l: any) => {
+              combined.push({
+                id: l.id,
+                pageId: l.pageId ?? undefined,
+                panelNumber: l.panelNumber ?? undefined,
+                pageNumber: l.pageNumber ?? undefined,
+                sceneId: sc.id,
+                sceneNumber: sc.sceneNumber,
+                sceneTitle:
+                  detail?.heading ||
+                  detail?.sceneName ||
+                  sc.heading ||
+                  sc.sceneName ||
+                  t('artist.deskView.sceneTitleFallback', { number: sc.sceneNumber }),
+                sceneSlugline: detail?.slugline || sc.slugline || undefined,
+                speakerCharacterId: l.speakerCharacterId,
+                speakerLabel: l.speakerLabel ?? null,
+                characterName: l.characterName || (l as any).speakerLabel,
+                characterColor: l.characterColor,
+                dialogueText: l.dialogueText ?? l.content ?? undefined,
+                stageDirection: l.stageDirection ?? l.actionDescription ?? undefined,
+                narrationMode: l.narrationMode || l.type,
+                kind: l.kind ?? l.type ?? null,
+                text: l.text ?? null,
+                panelId: l.panelId || undefined,
+                lineOrder: l.lineOrder,
+              });
             });
           });
-        });
-        setRawScriptLines(combined);
-        setHasLoadedRealScript(true);
+          setRawScriptLines(combined);
+          setHasLoadedRealScript(true);
+        }
+      } catch {
+        // Giữ fallback mặc định trong ArtistCanvaSidebar nếu offline/chưa kết nối backend
+      } finally {
+        setIsLoadingScript(false);
       }
-    } catch {
-      // Giữ fallback mặc định trong ArtistCanvaSidebar nếu offline/chưa kết nối backend
-    } finally {
-      setIsLoadingScript(false);
-    }
-  }, []);
+    },
+    [t],
+  );
 
   // Tải dữ liệu Hồ sơ truyện thực tế của bộ truyện
   const loadBibleEntities = useCallback(async (sId: string) => {
@@ -1442,7 +1446,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     } finally {
       setIsWithdrawingStage(false);
     }
-  }, [isWithdrawingStage, currentChapterId, withdrawableCell, artistStages, toast]);
+  }, [isWithdrawingStage, currentChapterId, withdrawableCell, artistStages, toast, t]);
 
   // Đồng bộ thông tin Header lên FocusWorkspaceLayout (đường dẫn Series/Chương + công đoạn + nút Nộp / Rút bài)
   useEffect(() => {
@@ -1472,6 +1476,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           : undefined,
     });
   }, [
+    t,
     focusHeader,
     seriesTitle,
     seriesPath,
@@ -1656,11 +1661,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         ? speaker || undefined
         : speaker || t('artist.deskView.narratorFallback');
       const resolvedCharColor = resolvedCharName
-        ? (rawBibleEntries.length > 0
-            ? BIBLE_STATUS_STYLES[getCharacterStatusTone(resolvedCharName, rawBibleEntries, null)].textColor
-            : line.characterColor ||
-              (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.color) ||
-              getDeterministicColor(resolvedCharName))
+        ? rawBibleEntries.length > 0
+          ? BIBLE_STATUS_STYLES[getCharacterStatusTone(resolvedCharName, rawBibleEntries, null)]
+              .textColor
+          : line.characterColor ||
+            (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.color) ||
+            getDeterministicColor(resolvedCharName)
         : undefined;
 
       const resolvedStageDirection =
@@ -1693,6 +1699,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       };
     });
   }, [
+    rawBibleEntries,
+    t,
     hasLoadedRealScript,
     rawScriptLines,
     initialScriptLines,
@@ -2185,6 +2193,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       }),
     );
   }, [
+    t,
     activeTemplateByPageId,
     artistStages,
     currentPageArtworks,

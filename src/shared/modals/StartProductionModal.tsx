@@ -171,6 +171,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t chỉ dùng cho thông báo lỗi; thêm vào sẽ tải lại và xoá phân công đang nhập khi đổi ngôn ngữ
   }, [isOpen, chapterId, workspaceId, seriesId, resetForm]);
 
   // Client validation for ranges

@@ -282,7 +282,8 @@
       "sendChangePasswordOtpFailed": "Failed to send OTP code",
       "forgotPasswordFailed": "Password reset request failed",
       "resetPasswordFailed": "Failed to reset password",
-      "getLandingContextFailed": "Failed to load landing navigation context."
+      "getLandingContextFailed": "Failed to load landing navigation context.",
+      "regenerateRecoveryCodesFailed": "Failed to create new recovery codes"
     },
     "panel": {
       "forbidden": "This item belongs to another user or is pending review",

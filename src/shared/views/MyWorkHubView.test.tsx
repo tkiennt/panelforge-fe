@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { MyWorkHubView, flattenMyWork, lotHref } from './MyWorkHubView';
+import { MyWorkHubView } from './MyWorkHubView';
+import { flattenMyWork, lotHref } from './myWorkItems';
 import { assignmentService } from '@/services/assignment.service';
 
 vi.mock('@/services/assignment.service', () => ({ assignmentService: { getMyWork: vi.fn() } }));
@@ -37,7 +38,12 @@ const studios = [
       },
     ],
   },
-  { workspaceId: 'w2', workspaceName: 'Moonlight', lots: [lot('c', 'WRITER', ['Assigned'])], reviewQueue: [] },
+  {
+    workspaceId: 'w2',
+    workspaceName: 'Moonlight',
+    lots: [lot('c', 'WRITER', ['Assigned'])],
+    reviewQueue: [],
+  },
 ] as any;
 
 describe('MyWorkHubView helpers', () => {
@@ -52,12 +58,33 @@ describe('MyWorkHubView helpers', () => {
   });
 
   it('opens the desk that matches the role', () => {
-    expect(lotHref('w1', lot('a', 'ARTIST', ['InProgress']))).toContain('/workspaces/w1/series/s1/artist/desk');
-    expect(lotHref('w2', lot('c', 'WRITER', ['Assigned']))).toContain('/workspaces/w2/series/s1/script/editor');
+    expect(lotHref('w1', lot('a', 'ARTIST', ['InProgress']))).toContain(
+      '/workspaces/w1/series/s1/artist/desk',
+    );
+    expect(lotHref('w2', lot('c', 'WRITER', ['Assigned']))).toContain(
+      '/workspaces/w2/series/s1/script/editor',
+    );
   });
 });
 
 describe('MyWorkHubView', () => {
+  it('shows the studio directory header with a way back to the studio list and logout', async () => {
+    vi.mocked(assignmentService.getMyWork).mockResolvedValue([]);
+    const onLogout = vi.fn();
+    render(
+      <MemoryRouter>
+        <MyWorkHubView currentUser={{ name: 'Alex Producer', role: 'USER' }} onLogout={onLogout} />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('link', { name: /Workspaces/ })).toHaveAttribute(
+      'href',
+      '/workspaces',
+    );
+    expect(screen.getByText('Alex Producer')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Đăng xuất|Log out|Logout/i }));
+    expect(onLogout).toHaveBeenCalled();
+  });
+
   it('lists work across studios and filters by studio', async () => {
     vi.mocked(assignmentService.getMyWork).mockResolvedValue(studios);
     render(

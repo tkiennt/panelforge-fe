@@ -29,7 +29,7 @@ import {
   formatContentLanguageName,
   formatEditionPricingLabel,
   getEditionStatusDisplay,
-} from '../components/multilingual';
+} from '@/shared/lib/multilingual';
 
 type Section = 'general' | 'editions';
 
@@ -57,20 +57,26 @@ export const PublisherChapterManageView: React.FC = () => {
 
   const setSection = (next: Section) => {
     setSectionState(next);
-    setSearchParams((prev) => {
-      const p = new URLSearchParams(prev);
-      p.set('section', next);
-      return p;
-    }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('section', next);
+        return p;
+      },
+      { replace: true },
+    );
   };
 
   const setSelectedLang = (next: ContentLanguage) => {
     setSelectedLangState(next);
-    setSearchParams((prev) => {
-      const p = new URLSearchParams(prev);
-      p.set('lang', next);
-      return p;
-    }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('lang', next);
+        return p;
+      },
+      { replace: true },
+    );
   };
 
   const reload = useCallback(async () => {
@@ -188,7 +194,9 @@ export const PublisherChapterManageView: React.FC = () => {
                   <GeneralSection
                     seriesId={seriesId}
                     chapterId={chapterId}
-                    initialLanguage={urlLangParam === 'vi' || urlLangParam === 'en' ? urlLangParam : ''}
+                    initialLanguage={
+                      urlLangParam === 'vi' || urlLangParam === 'en' ? urlLangParam : ''
+                    }
                   />
                 )}
                 {section === 'editions' && (
@@ -431,7 +439,9 @@ const EditionsSection: React.FC<{
                 {t('insights.chapterLabel', { number: manage.chapterNumber })} —{' '}
                 {formatContentLanguageName(language, uiLang)}
               </span>
-              <span className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${statusInfo.badgeClass}`}>
+              <span
+                className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${statusInfo.badgeClass}`}
+              >
                 {statusInfo.label}
               </span>
             </div>
@@ -458,7 +468,9 @@ const EditionsSection: React.FC<{
           <span className='font-semibold text-[#171717]'>
             {formatContentLanguageName(language, uiLang)}
           </span>
-          <span className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${getEditionStatusDisplay(edition, uiLang).badgeClass}`}>
+          <span
+            className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${getEditionStatusDisplay(edition, uiLang).badgeClass}`}
+          >
             {getEditionStatusDisplay(edition, uiLang).label}
           </span>
           {edition?.isAvailable && (

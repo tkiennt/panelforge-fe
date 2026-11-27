@@ -81,7 +81,7 @@ import {
   type LeftDrawer,
   type RightDrawer,
 } from '../components/script/useScriptDrawers';
-import { useFocusHeaderContext } from '@/app/FocusWorkspaceLayout';
+import { useFocusHeaderContext } from '@/app/focusHeaderContext';
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
@@ -453,6 +453,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (hasOpenComments) {
       setActiveRightDrawer((prev) => prev ?? 'comments');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setActiveRightDrawer là setter useState (ổn định) và khai báo phía dưới; đưa vào deps sẽ lỗi TDZ
   }, [currentChapter?.id, hasOpenComments]);
   const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
   const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
@@ -532,7 +533,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     return () => {
       window.removeEventListener('panelforge:offline_conflict', handleOfflineConflict);
     };
-  }, []);
+  }, [t]);
 
   // Side Drawers (Left & Right Drawers Hook)
   // Scene outline column is open by default on desktop (≥1280px) per Stitch design
@@ -661,6 +662,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t chỉ dùng cho thông báo lỗi; thêm vào sẽ tải lại chương và reset chương đang mở khi đổi ngôn ngữ
   }, [seriesId, chapterIdFromUrl]);
 
   // Đảm bảo lấy đúng chương khi URL query chapterId thay đổi
@@ -680,7 +682,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         setCurrentChapter(null);
       }
     }
-  }, [chapterIdFromUrl, chapters, currentChapter?.id]);
+  }, [chapterIdFromUrl, chapters, currentChapter]);
 
   // 2. Nạp chi tiết Chapter (cập nhật versionVector)
   const refreshChapterDetail = useCallback(async (chapId: string) => {
@@ -718,7 +720,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         setLoadingDetail(false);
       }
     },
-    [notify],
+    [notify, t],
   );
 
   // 4. Tải danh sách Scenes khi currentChapter thay đổi
@@ -941,9 +943,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       }
     },
     [
+      chapterPages,
+      fetchPagesAndPanels,
+      fetchScenesAndDetails,
       currentChapter,
       buildFallbackScriptTree,
-      loadPagesAndPanels,
       selectedScene,
       seriesId,
       loadChapterCast,
@@ -1678,6 +1682,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       return run;
     },
     [
+      currentChapter?.status,
       currentChapter?.lastSubmittedVersionId,
       refreshChapterDetail,
       selectedScene?.id,
@@ -2035,7 +2040,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           ? `${c.title} ${t('navigation.breadcrumbs.scriptSuffix')}`
           : t('navigation.breadcrumbs.scriptSuffix'),
       })),
-    [chapters],
+    [chapters, t],
   );
 
   useEffect(() => {

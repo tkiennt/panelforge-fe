@@ -1,6 +1,8 @@
 import React, { forwardRef } from 'react';
 import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+// Style u072-* của Alert; trước đây chỉ LucianInlineAlert import nên trang nào không tải nó thì Alert mất style
+import '@/styles/modules/lucian/lucian-072.css';
 
 export type AlertTone = 'info' | 'success' | 'warning' | 'danger' | 'neutral';
 

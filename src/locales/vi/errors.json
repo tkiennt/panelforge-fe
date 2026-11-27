@@ -282,7 +282,8 @@
       "sendChangePasswordOtpFailed": "Gửi mã xác thực OTP thất bại",
       "forgotPasswordFailed": "Yêu cầu đặt lại mật khẩu thất bại",
       "resetPasswordFailed": "Đặt lại mật khẩu thất bại",
-      "getLandingContextFailed": "Không thể lấy ngữ cảnh điều hướng landing."
+      "getLandingContextFailed": "Không thể lấy ngữ cảnh điều hướng landing.",
+      "regenerateRecoveryCodesFailed": "Không thể tạo mã khôi phục mới"
     },
     "panel": {
       "forbidden": "Phần này thuộc việc của người khác / đang chờ duyệt",

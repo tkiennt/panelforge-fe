@@ -450,7 +450,16 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [chapterId, seriesId, assignment.id, effectiveWsId, visualThreshold, toast, t]);
+  }, [
+    chapterId,
+    seriesId,
+    assignment.id,
+    assignment.pipelineStageId,
+    effectiveWsId,
+    visualThreshold,
+    toast,
+    t,
+  ]);
 
   useEffect(() => {
     // Clear in-memory composite cache on initial review mount to ensure fresh render

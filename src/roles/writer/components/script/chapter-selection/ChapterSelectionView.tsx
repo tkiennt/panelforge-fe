@@ -142,7 +142,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
     });
 
     return list;
-  }, [chapters, searchQuery, statusFilter, sortBy]);
+  }, [chapters, searchQuery, statusFilter, sortBy, t]);
 
   const handleOpenCreateModal = () => {
     if (!canCreateChapter) {
@@ -267,59 +267,63 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
         }
         actions={
           isReferenceMode ? undefined : (
-          <div className='flex items-center gap-3 flex-wrap shrink-0'>
-            {/* Tổng số chương */}
-            <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white border border-[#E5E0D8] shadow-2xs'>
-              <div className='w-8 h-8 rounded-lg bg-accent-soft text-accent-dark flex items-center justify-center'>
-                <BookOpen className='w-4 h-4' />
-              </div>
-              <div>
-                <div className='text-xs font-semibold uppercase text-stone-500 tracking-wide'>
-                  {t('chapterSelectionView.statTotal')}
+            <div className='flex items-center gap-3 flex-wrap shrink-0'>
+              {/* Tổng số chương */}
+              <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white border border-[#E5E0D8] shadow-2xs'>
+                <div className='w-8 h-8 rounded-lg bg-accent-soft text-accent-dark flex items-center justify-center'>
+                  <BookOpen className='w-4 h-4' />
                 </div>
-                <div className='text-sm font-bold font-mono text-stone-900'>{stats.total}</div>
+                <div>
+                  <div className='text-xs font-semibold uppercase text-stone-500 tracking-wide'>
+                    {t('chapterSelectionView.statTotal')}
+                  </div>
+                  <div className='text-sm font-bold font-mono text-stone-900'>{stats.total}</div>
+                </div>
               </div>
-            </div>
 
-            {/* Đang viết / In Production */}
-            <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-amber-50/70 border border-amber-200/80 shadow-2xs'>
-              <div className='w-8 h-8 rounded-lg bg-amber-100/80 flex items-center justify-center text-amber-800'>
-                <Clock className='w-4 h-4' />
-              </div>
-              <div>
-                <div className='text-xs font-semibold uppercase text-amber-800 tracking-wide'>
-                  {t('chapterSelectionView.statInProgress')}
+              {/* Đang viết / In Production */}
+              <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-amber-50/70 border border-amber-200/80 shadow-2xs'>
+                <div className='w-8 h-8 rounded-lg bg-amber-100/80 flex items-center justify-center text-amber-800'>
+                  <Clock className='w-4 h-4' />
                 </div>
-                <div className='text-sm font-bold font-mono text-amber-900'>{stats.inProgress}</div>
+                <div>
+                  <div className='text-xs font-semibold uppercase text-amber-800 tracking-wide'>
+                    {t('chapterSelectionView.statInProgress')}
+                  </div>
+                  <div className='text-sm font-bold font-mono text-amber-900'>
+                    {stats.inProgress}
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Đã khóa / Frozen */}
-            <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-indigo-50/70 border border-indigo-200/80 shadow-2xs'>
-              <div className='w-8 h-8 rounded-lg bg-indigo-100/80 flex items-center justify-center text-indigo-800'>
-                <Lock className='w-4 h-4' />
-              </div>
-              <div>
-                <div className='text-xs font-semibold uppercase text-indigo-800 tracking-wide'>
-                  {t('chapterSelectionView.statFrozen')}
+              {/* Đã khóa / Frozen */}
+              <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-indigo-50/70 border border-indigo-200/80 shadow-2xs'>
+                <div className='w-8 h-8 rounded-lg bg-indigo-100/80 flex items-center justify-center text-indigo-800'>
+                  <Lock className='w-4 h-4' />
                 </div>
-                <div className='text-sm font-bold font-mono text-indigo-900'>{stats.frozen}</div>
+                <div>
+                  <div className='text-xs font-semibold uppercase text-indigo-800 tracking-wide'>
+                    {t('chapterSelectionView.statFrozen')}
+                  </div>
+                  <div className='text-sm font-bold font-mono text-indigo-900'>{stats.frozen}</div>
+                </div>
               </div>
-            </div>
 
-            {/* Đã duyệt */}
-            <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-emerald-50/70 border border-emerald-200/80 shadow-2xs'>
-              <div className='w-8 h-8 rounded-lg bg-emerald-100/80 flex items-center justify-center text-emerald-800'>
-                <CheckCircle2 className='w-4 h-4' />
-              </div>
-              <div>
-                <div className='text-xs font-semibold uppercase text-emerald-800 tracking-wide'>
-                  {t('chapterSelectionView.statApproved')}
+              {/* Đã duyệt */}
+              <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-emerald-50/70 border border-emerald-200/80 shadow-2xs'>
+                <div className='w-8 h-8 rounded-lg bg-emerald-100/80 flex items-center justify-center text-emerald-800'>
+                  <CheckCircle2 className='w-4 h-4' />
                 </div>
-                <div className='text-sm font-bold font-mono text-emerald-900'>{stats.approved}</div>
+                <div>
+                  <div className='text-xs font-semibold uppercase text-emerald-800 tracking-wide'>
+                    {t('chapterSelectionView.statApproved')}
+                  </div>
+                  <div className='text-sm font-bold font-mono text-emerald-900'>
+                    {stats.approved}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
           )
         }
       />
@@ -616,33 +620,37 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                   {/* Body card: Đoạn tóm tắt/ghi chú */}
                   {!isReferenceMode && (
                     <div className='text-xs text-stone-600 line-clamp-3 leading-relaxed italic bg-[#FAF9F5] p-3 rounded-xl border border-stone-200/80 min-h-[4.75rem]'>
-                      {chapter.outline ? `“${chapter.outline}”` : t('chapterSelectionView.noOutline')}
+                      {chapter.outline
+                        ? `“${chapter.outline}”`
+                        : t('chapterSelectionView.noOutline')}
                     </div>
                   )}
 
                   {/* Tiến độ trang */}
-                  {!isReferenceMode && <div className='space-y-1.5 pt-1'>
-                    <div className='flex justify-between text-xs font-medium'>
-                      <span className='text-stone-500'>
-                        {t('chapterSelectionView.scriptProgress')}
-                      </span>
-                      <span className='font-mono font-bold text-stone-900'>
-                        {t('chapterSelectionView.pagesCount', { count: chapter.pagesCount ?? 0 })}
-                      </span>
+                  {!isReferenceMode && (
+                    <div className='space-y-1.5 pt-1'>
+                      <div className='flex justify-between text-xs font-medium'>
+                        <span className='text-stone-500'>
+                          {t('chapterSelectionView.scriptProgress')}
+                        </span>
+                        <span className='font-mono font-bold text-stone-900'>
+                          {t('chapterSelectionView.pagesCount', { count: chapter.pagesCount ?? 0 })}
+                        </span>
+                      </div>
+                      <div className='w-full h-1.5 rounded-full bg-stone-100 overflow-hidden'>
+                        <div
+                          className='h-full bg-[#EA580C] rounded-full transition-all duration-500'
+                          style={{
+                            width: chapter.isScriptFrozen
+                              ? '100%'
+                              : (chapter.pagesCount ?? 0) > 0
+                                ? '60%'
+                                : '10%',
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className='w-full h-1.5 rounded-full bg-stone-100 overflow-hidden'>
-                      <div
-                        className='h-full bg-[#EA580C] rounded-full transition-all duration-500'
-                        style={{
-                          width: chapter.isScriptFrozen
-                            ? '100%'
-                            : (chapter.pagesCount ?? 0) > 0
-                              ? '60%'
-                              : '10%',
-                        }}
-                      />
-                    </div>
-                  </div>}
+                  )}
 
                   {/* Thống kê quy mô phân cảnh & trang */}
                   <div className='flex items-center gap-3 text-xs text-stone-500'>
