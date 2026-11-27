@@ -7,6 +7,10 @@
   "kpi": {
     "totalRevenue": "Total Revenue",
     "totalRevenueSub": "Approved and reconciled revenue",
+    "unlockRevenue": "Unlock Revenue",
+    "unlockRevenueSub": "Total revenue from chapter edition unlocks",
+    "totalTopups": "Wallet Top-ups",
+    "totalTopupsSub": "Reader wallet deposits (excluded from edition revenue)",
     "pendingCount": "Pending Approval",
     "pendingCountSub": "Readers scanned VietQR, awaiting review",
     "pendingNone": "No transactions are waiting",

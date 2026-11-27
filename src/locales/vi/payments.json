@@ -7,6 +7,10 @@
   "kpi": {
     "totalRevenue": "Tổng Doanh Thu",
     "totalRevenueSub": "Doanh thu đã nhận và đối soát thành công",
+    "unlockRevenue": "Doanh Thu Mở Khóa",
+    "unlockRevenueSub": "Tổng doanh thu từ giao dịch mở khóa ấn bản",
+    "totalTopups": "Tổng Tiền Nạp Ví",
+    "totalTopupsSub": "Tiền độc giả nạp vào ví (không tính vào doanh thu ấn bản)",
     "pendingCount": "Chờ Xác Nhận",
     "pendingCountSub": "Độc giả đã quét VietQR, đang đợi duyệt",
     "pendingNone": "Hiện không có giao dịch nào đang chờ",
