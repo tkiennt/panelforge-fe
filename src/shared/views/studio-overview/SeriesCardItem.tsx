@@ -22,6 +22,7 @@ import {
 } from '@/shared/features/series-identity/SeriesImageFallbacks';
 import { Card, CardBody, CardHeader } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
+import { StatusBadge } from '@/shared/ui';
 import { formatGenre, formatReadingDirection } from './formatters';
 
 export interface SeriesCardItemProps {

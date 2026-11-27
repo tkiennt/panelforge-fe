@@ -40,11 +40,16 @@ export const SplitPanelStrip: React.FC<SplitPanelStripProps> = ({
     <section
       data-testid='split-panel-strip'
       aria-label={t('splitStrip.title')}
-      className='shrink-0 border-t border-stone-200 bg-white/90 px-3 py-2'
+      className='shrink-0 border-t border-stone-200 bg-white px-3 py-2.5'
     >
-      <h2 className='mb-1.5 text-[11px] font-semibold text-stone-600'>
-        {t('splitStrip.heading', { filled, total: ordered.length })}
-      </h2>
+      <div className='mb-2 flex items-center justify-between gap-3'>
+        <h2 className='text-xs font-bold text-stone-900'>{t('splitStrip.title')}</h2>
+        <div className='flex items-center gap-2 text-xs text-stone-600'>
+          <span>{t('splitStrip.regionsCount', { count: ordered.length })}</span>
+          <span aria-hidden='true'>·</span>
+          <span>{t('splitStrip.imagesCount', { count: filled })}</span>
+        </div>
+      </div>
       <ul className='flex gap-2 overflow-x-auto pb-1'>
         {ordered.map((panel, idx) => {
           const panelNum = panel.panelNumber || idx + 1;
@@ -54,7 +59,7 @@ export const SplitPanelStrip: React.FC<SplitPanelStripProps> = ({
             <li
               key={panel.id}
               data-testid={`split-strip-item-${panelNum}`}
-              className={`relative shrink-0 w-28 rounded-lg border bg-stone-50 p-1 ${
+              className={`relative shrink-0 w-36 rounded-lg border bg-stone-50 p-1 ${
                 isSelected ? 'border-[#EA580C] ring-1 ring-[#EA580C]' : 'border-stone-200'
               }`}
             >
@@ -63,7 +68,7 @@ export const SplitPanelStrip: React.FC<SplitPanelStripProps> = ({
                 onClick={() => onSelectPanel(isSelected ? null : panel.id)}
                 aria-pressed={isSelected}
                 aria-label={t('splitStrip.selectAria', { panelNum })}
-                className='focus-ring block w-full h-16 overflow-hidden rounded-md bg-white cursor-pointer'
+                className='focus-ring block w-full h-20 overflow-hidden rounded-md bg-white cursor-pointer'
               >
                 {artwork ? (
                   <img
@@ -75,13 +80,13 @@ export const SplitPanelStrip: React.FC<SplitPanelStripProps> = ({
                     className='w-full h-full object-contain select-none'
                   />
                 ) : (
-                  <span className='flex h-full w-full flex-col items-center justify-center gap-0.5 border border-dashed border-stone-300 rounded-md text-[10px] text-stone-400'>
+                  <span className='flex h-full w-full flex-col items-center justify-center gap-0.5 border border-dashed border-stone-300 rounded-md text-xs text-stone-400'>
                     <ImageOff className='w-4 h-4' aria-hidden='true' />
                     {t('splitStrip.empty')}
                   </span>
                 )}
               </button>
-              <span className='absolute top-1.5 left-1.5 min-w-5 h-5 px-1 rounded-full bg-stone-900/80 text-white text-[10px] font-bold flex items-center justify-center pointer-events-none'>
+              <span className='absolute top-1.5 left-1.5 min-w-5 h-5 px-1 rounded-full bg-stone-900/80 text-white text-xs font-bold flex items-center justify-center pointer-events-none'>
                 {panelNum}
               </span>
               {artwork && (

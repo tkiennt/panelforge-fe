@@ -538,7 +538,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       popover='auto'
       data-placement={showFullContent ? 'bottom' : 'right-start'}
       data-testid='sidebar-series-menu'
-      className='pf-sb-popover-menu w-[260px] rounded-xl border border-stone-200 bg-white text-stone-900 shadow-xl py-1 max-h-64 overflow-y-auto'
+      className='pf-sb-popover pf-sb-popover-menu w-[260px] rounded-xl shadow-xl py-1 max-h-64 overflow-y-auto'
     >
       {seriesMenuOpen && (
         <div
@@ -546,7 +546,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
           aria-labelledby={seriesTriggerId}
           onKeyDown={(e) => handleMenuKeyDown(e, closeSeriesMenu)}
         >
-          <div className='px-3 py-1.5 border-b border-stone-100 flex items-center justify-between text-xs font-semibold text-stone-500'>
+          <div className='pf-sb-muted px-3 py-1.5 border-b border-[var(--sb-border)] flex items-center justify-between text-xs font-semibold'>
             <span>{t('navigation.sidebar.seriesInStudio', 'Bộ truyện trong Studio')}</span>
             <button
               type='button'
@@ -590,13 +590,13 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                   aria-current={isSelected ? 'page' : undefined}
                   className={`w-full px-3 py-2 text-xs flex items-center justify-between cursor-pointer text-left transition-colors ${
                     isSelected
-                      ? 'bg-orange-50 text-orange-700 font-semibold'
-                      : 'hover:bg-stone-50 text-stone-700'
+                      ? 'bg-orange-500/15 text-[var(--sb-accent)] font-semibold'
+                      : 'hover:bg-[var(--sb-hover)] pf-sb-text'
                   }`}
                 >
                   <div className='truncate pr-2 min-w-0'>
                     <p className='truncate'>{s.title}</p>
-                    <p className='text-xs font-mono text-stone-400 tabular-nums'>
+                    <p className='text-xs font-mono pf-sb-muted tabular-nums'>
                       {s.genre || 'Manga'} • {s.chaptersCount || 0}{' '}
                       {t('navigation.sidebar.chaptersCount', 'chương')}
                     </p>
@@ -617,7 +617,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       popover='auto'
       data-placement={showFullContent ? 'top' : 'right-end'}
       data-testid='sidebar-user-menu'
-      className='pf-sb-popover-menu w-[228px] rounded-xl border border-stone-200 bg-white text-stone-900 shadow-2xl p-1.5'
+      className='pf-sb-popover pf-sb-popover-menu w-[228px] rounded-xl shadow-2xl p-1.5'
     >
       {userMenuOpen && (
         <div
@@ -625,9 +625,9 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
           aria-labelledby={userMenuTriggerId}
           onKeyDown={(e) => handleMenuKeyDown(e, closeUserMenu)}
         >
-          <div className='px-2.5 py-2 border-b border-stone-100 mb-1'>
-            <p className='text-xs font-semibold text-stone-900 truncate'>{currentUser.name}</p>
-            <p className='text-[11px] text-stone-500 truncate'>{userRoleDisplay}</p>
+          <div className='px-2.5 py-2 border-b border-[var(--sb-border)] mb-1'>
+            <p className='pf-sb-text text-xs font-semibold truncate'>{currentUser.name}</p>
+            <p className='pf-sb-muted text-[11px] truncate'>{userRoleDisplay}</p>
           </div>
 
           <button
@@ -638,17 +638,17 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
               closeUserMenu();
               handleNavClick(e, '/profile');
             }}
-            className='w-full min-h-9 px-2.5 py-1.5 flex items-center gap-2.5 rounded-lg text-xs font-medium text-stone-700 hover:bg-stone-100 hover:text-stone-900 cursor-pointer text-left transition-colors'
+            className='pf-sb-action w-full min-h-9 px-2.5 py-1.5 flex items-center gap-2.5 rounded-lg text-xs font-medium cursor-pointer text-left transition-colors'
           >
-            <UserCircle className='w-4 h-4 text-stone-500 shrink-0' aria-hidden='true' />
+            <UserCircle className='w-4 h-4 shrink-0' aria-hidden='true' />
             <span className='truncate'>{profileSettingsLabel}</span>
           </button>
 
           {onChangeTheme && (
             <>
-              <hr className='my-1.5 border-stone-100' />
+              <hr className='my-1.5 border-[var(--sb-border)]' />
               <div role='group' aria-label={themeLabel}>
-                <div className='px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-stone-400'>
+                <div className='pf-sb-muted px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider'>
                   {themeLabel}
                 </div>
                 {SIDEBAR_THEMES.map((opt) => {
@@ -664,11 +664,10 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                         onChangeTheme(opt.id);
                         closeUserMenu();
                       }}
-                      className={`w-full min-h-9 px-2.5 py-1.5 flex items-center gap-2.5 rounded-lg text-xs cursor-pointer text-left transition-colors ${
-                        selected
-                          ? 'bg-orange-50/70 text-stone-900 font-semibold'
-                          : 'text-stone-700 hover:bg-stone-100'
+                      className={`pf-sb-action w-full min-h-9 px-2.5 py-1.5 flex items-center gap-2.5 rounded-lg text-xs cursor-pointer text-left transition-colors ${
+                        selected ? 'font-semibold' : ''
                       }`}
+                      style={selected ? { fontWeight: 600 } : undefined}
                     >
                       <span
                         className='w-4 h-4 rounded-full shrink-0 border flex items-center justify-center'
@@ -693,7 +692,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
           {onLogout && (
             <>
-              <hr className='my-1.5 border-stone-100' />
+              <hr className='my-1.5 border-[var(--sb-border)]' />
               <button
                 type='button'
                 role='menuitem'
@@ -702,7 +701,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                   closeUserMenu();
                   onLogout();
                 }}
-                className='w-full min-h-9 px-2.5 py-1.5 flex items-center gap-2.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 cursor-pointer text-left transition-colors'
+                className='w-full min-h-9 px-2.5 py-1.5 flex items-center gap-2.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-500/10 cursor-pointer text-left transition-colors'
               >
                 <LogOut className='w-4 h-4 text-rose-500 shrink-0' aria-hidden='true' />
                 <span className='truncate'>{logoutLabel}</span>
@@ -721,8 +720,8 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       style={{ width: isMobileDrawer ? '100%' : showFullContent ? '256px' : '64px' }}
       className={
         isMobileDrawer
-          ? `pf-sidebar w-full flex flex-col select-none h-full overflow-hidden bg-white ${surfaceClassName || ''}`
-          : `pf-sidebar hidden md:flex flex-col shrink-0 select-none z-20 h-full bg-white border-r border-[#E7E5E4] overflow-hidden relative transition-[width] duration-200 ${
+          ? `pf-sidebar w-full flex flex-col select-none h-full overflow-hidden ${surfaceClassName || ''}`
+          : `pf-sidebar hidden md:flex flex-col shrink-0 select-none z-20 h-full border-r overflow-hidden relative transition-[width] duration-200 ${
               showFullContent ? 'w-64' : 'w-16'
             } ${surfaceClassName || ''}`
       }
@@ -732,16 +731,16 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
     >
       <div className='flex flex-col h-full min-h-0'>
         {/* Header: "← Về Sảnh Studio" + toggle */}
-        <div className='h-16 px-4 flex items-center justify-between border-b border-stone-200 bg-white shrink-0'>
+        <div className='pf-sb-chrome h-16 px-4 flex items-center justify-between border-b shrink-0'>
           {showFullContent ? (
             <div className='flex items-center justify-between w-full min-w-0'>
               <button
                 type='button'
                 data-testid='sidebar-workspace-switcher'
                 onClick={(e) => handleNavClick(e, backToStudioHref)}
-                className='flex items-center gap-2 text-xs font-semibold text-stone-700 hover:text-stone-900 transition-colors py-1.5 px-2 rounded-lg hover:bg-stone-100 cursor-pointer min-w-0'
+                className='pf-sb-action flex items-center gap-2 text-xs font-semibold transition-colors py-1.5 px-2 rounded-lg cursor-pointer min-w-0'
               >
-                <ArrowLeft className='w-4 h-4 text-stone-500 shrink-0' />
+                <ArrowLeft className='w-4 h-4 shrink-0' />
                 <span className='truncate'>
                   {t('navigation.sidebar.backToStudio', 'Về Sảnh Studio')}
                 </span>
@@ -756,7 +755,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                     aria-expanded={!isCollapsed}
                     aria-controls={SIDEBAR_ID}
                     data-testid='sidebar-rail-toggle-btn'
-                    className='w-8 h-8 rounded-lg flex items-center justify-center text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer'
+                    className='pf-sb-action p-1 rounded-md transition-colors cursor-pointer'
                   >
                     <PanelLeftClose className='w-4 h-4' />
                   </button>
@@ -769,11 +768,11 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 type='button'
                 data-testid='sidebar-workspace-switcher'
                 onClick={(e) => handleNavClick(e, backToStudioHref)}
-                className='w-10 h-10 rounded-lg flex items-center justify-center text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition-colors cursor-pointer'
+                className='pf-sb-action w-10 h-10 rounded-lg flex items-center justify-center transition-colors cursor-pointer'
                 title={t('navigation.sidebar.backToStudio', 'Về Sảnh Studio')}
                 {...railTip(t('navigation.sidebar.backToStudio', 'Về Sảnh Studio'))}
               >
-                <ArrowLeft className='w-4 h-4 text-stone-500' />
+                <ArrowLeft className='w-4 h-4' />
               </button>
               {handleToggle && !isMobileDrawer && (
                 <button
@@ -784,7 +783,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                   aria-expanded={!isCollapsed}
                   aria-controls={SIDEBAR_ID}
                   data-testid='sidebar-rail-toggle-btn'
-                  className='w-8 h-7 rounded-md flex items-center justify-center text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer'
+                  className='pf-sb-action w-8 h-7 rounded-md flex items-center justify-center transition-colors cursor-pointer'
                 >
                   <PanelLeftOpen className='w-4 h-4' />
                 </button>
@@ -796,13 +795,13 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         {/* Card: BỘ TRUYỆN ĐANG MỞ */}
         <div className={`shrink-0 ${showFullContent ? 'px-4 py-3' : 'p-2'}`}>
           {showFullContent ? (
-            <div className='p-3 rounded-lg bg-[#FAF9F5] border border-[#E7E5E4]'>
-              <div className='flex items-center justify-between gap-2 mb-1'>
-                <span className='text-[10px] uppercase tracking-wider text-stone-500 font-semibold'>
+            <div className='pf-sb-surface p-3.5 rounded-lg'>
+              <div className='flex items-center justify-between gap-2 mb-1.5'>
+                <span className='pf-sb-muted text-xs uppercase tracking-wider font-semibold truncate'>
                   {t('navigation.sidebar.activeSeriesLabel', 'BỘ TRUYỆN ĐANG MỞ')}
                 </span>
                 {displayChapterNum && (
-                  <span className='px-1.5 py-0.5 rounded text-[11px] font-medium bg-[#EA580C] text-white shrink-0 whitespace-nowrap tabular-nums'>
+                  <span className='px-2 py-0.5 rounded text-xs font-medium bg-[#EA580C] text-white shrink-0 tabular-nums'>
                     {`${t('navigation.breadcrumbs.chapters')} ${displayChapterNum}`}
                   </span>
                 )}
@@ -820,14 +819,14 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 title={seriesLabel}
                 aria-label={seriesLabel}
               >
-                <span className='text-[15px] font-bold text-stone-900 truncate group-hover:text-[#EA580C] transition-colors'>
+                <span className='pf-sb-text text-[15px] font-bold truncate group-hover:text-[var(--sb-accent)] transition-colors'>
                   {seriesId
                     ? activeSeries?.title ||
                       t('navigation.sidebar.activeSeriesFallback', 'Bộ truyện')
                     : activeWorkspace?.name ||
                       t('navigation.sidebar.chooseSeries', 'Chọn Series...')}
                 </span>
-                <ChevronsUpDown className='w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 transition-colors shrink-0' />
+                <ChevronsUpDown className='pf-sb-muted w-3.5 h-3.5 group-hover:text-[var(--sb-text)] transition-colors shrink-0' />
               </button>
               {!displayChapterNum && (
                 <div className='mt-1.5 flex items-center'>
@@ -858,12 +857,12 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 aria-expanded={seriesMenuOpen}
                 onClick={handleSeriesTriggerClick}
                 {...invokerAttrs(seriesMenuId)}
-                className='w-10 h-10 mx-auto rounded-lg flex items-center justify-center bg-[#FAF9F5] border border-stone-200 text-orange-700 hover:bg-orange-50 transition-colors cursor-pointer'
+                className='pf-sb-surface w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-[var(--sb-accent)] cursor-pointer'
                 title={seriesLabel}
                 aria-label={seriesLabel}
                 {...railTip(seriesLabel)}
               >
-                <BookOpen className='w-4 h-4 text-orange-700' />
+                <BookOpen className='w-4 h-4' />
               </button>
               {seriesPopoverEl}
             </>
@@ -887,11 +886,11 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
             return (
               <div
                 key={idx}
-                className={`space-y-1 ${idx > 0 ? 'pt-2 border-t border-stone-200/60' : ''}`}
+                className={`space-y-1 ${idx > 0 ? 'pt-2 border-t border-[var(--sb-border)]' : ''}`}
               >
                 {showFullContent && sectionLabel.length > 0 ? (
                   <div className='px-2 py-1 flex items-center justify-between'>
-                    <span className='text-xs uppercase tracking-wider text-stone-400 font-bold truncate'>
+                    <span className='pf-sb-muted text-xs uppercase tracking-wider font-bold truncate'>
                       {sectionLabel}
                     </span>
                     {isChapterSection && cleanChapterNum && (
@@ -908,7 +907,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                       renderBadge(item.badge)
                     ) : item.readOnly ? (
                       <Lock
-                        className='w-3.5 h-3.5 text-stone-400 shrink-0'
+                        className='w-3.5 h-3.5 pf-sb-muted shrink-0'
                         aria-hidden='true'
                         data-testid='sidebar-item-readonly-icon'
                       />
@@ -947,23 +946,23 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         </nav>
 
         {/* Footer: User Card + Unified Popover Settings Menu */}
-        <div className='p-3 border-t border-[#E7E5E4] bg-white shrink-0'>
+        <div className='pf-sb-chrome p-3 border-t shrink-0'>
           {showFullContent ? (
-            <div className='flex items-center justify-between gap-1 p-1.5 rounded-xl bg-[#FAF9F5] border border-[#E7E5E4]'>
+            <div className='pf-sb-surface flex items-center justify-between gap-1 p-1.5 rounded-xl'>
               <button
                 type='button'
                 data-testid='sidebar-user-profile-btn'
                 onClick={(e) => handleNavClick(e, '/profile')}
                 title={profileSettingsLabel}
                 aria-label={`${currentUser.name} — ${profileSettingsLabel}`}
-                className='flex-1 flex items-center gap-2.5 p-1 rounded-lg text-left min-w-0 hover:bg-stone-200/50 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-orange-500'
+                className='flex-1 flex items-center gap-2.5 p-1 rounded-lg text-left min-w-0 pf-sb-action cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-orange-500'
               >
                 <SidebarUserAvatar user={currentUser} className='bg-[#EA580C] font-semibold' />
                 <div className='flex flex-col min-w-0'>
-                  <span className='text-xs font-semibold text-stone-900 truncate leading-tight'>
+                  <span className='pf-sb-text text-xs font-semibold truncate leading-tight'>
                     {currentUser.name}
                   </span>
-                  <span className='text-[11px] text-stone-500 truncate leading-tight'>
+                  <span className='pf-sb-muted text-[11px] truncate leading-tight'>
                     {userRoleDisplay}
                   </span>
                 </div>
@@ -980,10 +979,8 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 onClick={handleUserMenuTriggerClick}
                 onKeyDown={handleUserMenuTriggerKeyDown}
                 {...invokerAttrs(userMenuId)}
-                className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-orange-500 ${
-                  userMenuOpen
-                    ? 'bg-orange-50 text-orange-700'
-                    : 'text-stone-500 hover:text-stone-900 hover:bg-stone-200/60'
+                className={`pf-sb-action w-9 h-9 rounded-lg flex items-center justify-center shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-orange-500 ${
+                  userMenuOpen ? 'ring-2 ring-orange-500' : ''
                 }`}
               >
                 <Settings className='w-4 h-4' aria-hidden='true' />
@@ -1004,7 +1001,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 onClick={handleUserMenuTriggerClick}
                 onKeyDown={handleUserMenuTriggerKeyDown}
                 {...invokerAttrs(userMenuId)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500 ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500 ${
                   userMenuOpen ? 'ring-2 ring-orange-500' : 'hover:ring-2 hover:ring-orange-400/60'
                 }`}
                 {...railTip(`${currentUser.name} · ${userRoleDisplay}`)}

@@ -34,7 +34,8 @@ export const formatReadingDirection = (direction: number | string | undefined) =
       type: 'vertical' as const,
     };
   }
-  if (direction === 'LeftToRight' || direction === 0 || direction === '0') {
+  // Enum BE: 0 RightToLeft, 1 LeftToRight, 2 Vertical
+  if (direction === 'LeftToRight' || direction === 1 || direction === '1') {
     return {
       label: translate('workspace.formatters.directionLtr'),
       shortLabel: 'LTR',

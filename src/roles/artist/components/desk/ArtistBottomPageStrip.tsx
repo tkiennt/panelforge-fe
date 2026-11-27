@@ -87,7 +87,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                         onSelectPage(page);
                       }
                     }}
-                    className={`relative w-7 h-8 rounded-sm cursor-pointer transition-colors flex items-center justify-center text-[10px] ${
+                    className={`relative w-7 h-8 rounded-sm cursor-pointer transition-colors flex items-center justify-center text-xs ${
                       isSelected
                         ? 'bg-orange-50 border-2 border-[#EA580C] font-bold text-[#EA580C]'
                         : 'bg-[#FAF9F5] border border-[#E7E5E4] text-stone-400 group-hover:border-stone-400 group-hover:text-stone-700'
@@ -130,7 +130,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                   </div>
 
                   <span
-                    className={`text-[10px] leading-tight whitespace-nowrap transition-colors ${
+                    className={`text-xs leading-tight whitespace-nowrap transition-colors ${
                       isSelected
                         ? 'font-semibold text-[#EA580C]'
                         : 'text-stone-600 group-hover:text-stone-900'
@@ -154,7 +154,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                 <div className='w-7 h-8 rounded-sm border border-dashed border-stone-300 group-hover:border-[#EA580C] group-hover:bg-orange-50/50 text-stone-400 group-hover:text-[#EA580C] flex items-center justify-center transition-colors'>
                   <Plus className='w-3.5 h-3.5' />
                 </div>
-                <span className='text-[10px] leading-tight text-stone-500 group-hover:text-[#EA580C] whitespace-nowrap'>
+                <span className='text-xs leading-tight text-stone-500 group-hover:text-[#EA580C] whitespace-nowrap'>
                   {t('bottomPageStrip.addPageShort')}
                 </span>
               </button>
@@ -198,7 +198,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
           −
         </button>
 
-        <span className='font-mono text-[11px] font-semibold text-stone-800 px-1 min-w-[36px] text-center'>
+        <span className='font-mono text-xs font-semibold text-stone-800 px-1 min-w-[36px] text-center'>
           {Math.round(zoomScale * 100)}%
         </span>
 

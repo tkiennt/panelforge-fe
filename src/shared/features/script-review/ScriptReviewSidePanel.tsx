@@ -137,7 +137,7 @@ export const ScriptReviewSidePanel: React.FC<ScriptReviewSidePanelProps> = ({
                     <div className='flex items-center justify-between px-1 text-xs text-stone-500'>
                       <span className='font-semibold text-stone-700'>{location}</span>
                       {stale && (
-                        <span className='rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800'>
+                        <span className='rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800'>
                           {stale === 'removed'
                             ? t('scriptReview.lineRemoved')
                             : t('scriptReview.contentChanged')}

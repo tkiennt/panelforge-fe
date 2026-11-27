@@ -166,6 +166,13 @@ export function textStyleCss(style: TextStyleDto): CSSProperties {
   };
 }
 
+/**
+ * Đổi kích thước theo px của trang sang đơn vị co giãn theo bề rộng trang đang hiển thị
+ * (phần tử cha là container `inline-size` rộng bằng trang), để chữ thu phóng cùng tỉ lệ với bóng.
+ */
+export const pageUnit = (px: number, pageWidth: number): string =>
+  `calc(100cqw * ${(px / Math.max(1, pageWidth)).toFixed(5)})`;
+
 /** Chuỗi `font` cho canvas 2D (màn duyệt Letter vẽ lại chữ). */
 export function canvasFont(style: TextStyleDto, sizePx = style.fontSize): string {
   return `${style.italic ? 'italic ' : ''}${style.bold ? '700 ' : '400 '}${sizePx}px '${style.fontFamily}', sans-serif`;

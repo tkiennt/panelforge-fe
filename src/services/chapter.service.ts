@@ -116,6 +116,128 @@ export interface ChapterDto {
   previousFrozenScriptVersionId?: string | null;
 }
 
+export interface ReadinessResolutionTargetDto {
+  workspace: string;
+  section?: string | null;
+  resourceId?: string | null;
+}
+
+export interface ReadinessIssueDto {
+  code: string;
+  severity: 'BLOCKING' | 'WARNING' | 'INFO';
+  message: string;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  versionId?: string | null;
+  resolutionTarget?: ReadinessResolutionTargetDto | null;
+}
+
+export interface ReadinessCheckDto {
+  code: string;
+  group: 'SCRIPT' | 'BIBLE' | 'SETUP' | string;
+  label: string;
+  passed: boolean;
+  mandatory: boolean;
+  statusText: string;
+  reason?: string | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  resolutionTarget?: ReadinessResolutionTargetDto | null;
+}
+
+export interface ChapterScriptSummaryDto {
+  latestVersionId?: string | null;
+  latestVersionNumber?: number | null;
+  approvedVersionId?: string | null;
+  approvedVersionNumber?: number | null;
+  productionVersionId?: string | null;
+  productionVersionNumber?: number | null;
+  scriptStatus: ScriptStatus | string;
+  isScriptFrozen: boolean;
+  hasUnpushedDraftChanges: boolean;
+  sceneCount: number;
+  pageCount: number;
+  panelCount: number;
+  lineCount: number;
+  unresolvedCommentsCount: number;
+  openFindingsCount: number;
+  lastUpdatedAt?: string | null;
+}
+
+export interface BibleCategoryCountDto {
+  category: string;
+  required: number;
+  ready: number;
+  missing: number;
+}
+
+export interface ChapterBibleSummaryDto {
+  requiredTotal: number;
+  readyCount: number;
+  missingDefinitionCount: number;
+  missingArtCount: number;
+  pendingApprovalCount: number;
+  reworkCount: number;
+  crowdOptionalCount: number;
+  nonVisualReadyCount: number;
+  byCategory: BibleCategoryCountDto[];
+}
+
+export interface StageProgressBreakdownDto {
+  stageId: string;
+  stageName: string;
+  stageOrder: number;
+  totalTasks: number;
+  approvedTasks: number;
+  submittedTasks: number;
+  inProgressTasks: number;
+  reworkTasks: number;
+  unassignedTasks: number;
+}
+
+export interface ChapterProductionProgressDto {
+  totalTasks: number;
+  approvedTasks: number;
+  submittedTasks: number;
+  inProgressTasks: number;
+  reworkTasks: number;
+  unassignedTasks: number;
+  overdueTasks: number;
+  taskProgressPercent: number;
+  totalPages: number;
+  completedPages: number;
+  pageProgressPercent: number;
+  totalPanels: number;
+  approvedPanels: number;
+  panelProgressPercent: number;
+  stages: StageProgressBreakdownDto[];
+}
+
+export interface ChapterReadinessDto {
+  chapterId: string;
+  seriesId: string;
+  chapterNumber: number;
+  chapterTitle: string;
+  chapterStatus: ChapterStatus | string;
+  targetReleaseDate?: string | null;
+  isHandedOff: boolean;
+  evaluatedScriptVersionId?: string | null;
+  status: 'NOT_READY' | 'READY' | 'STARTED';
+  canStartProduction: boolean;
+  checks: ReadinessCheckDto[];
+  blockers: ReadinessIssueDto[];
+  warnings: ReadinessIssueDto[];
+  summary: {
+    required: number;
+    passed: number;
+    remaining: number;
+  };
+  script: ChapterScriptSummaryDto;
+  bible: ChapterBibleSummaryDto;
+  production: ChapterProductionProgressDto;
+  evaluatedAt: string;
+}
+
 export interface RefreezeHashParityDto {
   isMatched: boolean;
   currentDraftHash: string;
@@ -850,6 +972,21 @@ export const chapterService = {
       err.details = error.response?.data?.details;
       err.response = error.response;
       throw err;
+    }
+  },
+
+  /**
+   * GET /api/chapters/{chapterId}/readiness — Đánh giá tập trung Pre-production Readiness,
+   * phiên bản kịch bản (Latest/Approved/Production), Series Bible phạm vi chương và tiến độ sản xuất.
+   */
+  getChapterReadiness: async (chapterId: string): Promise<ChapterReadinessDto> => {
+    try {
+      const response = await axiosClient.get<ChapterReadinessDto>(
+        `/chapters/${chapterId}/readiness`,
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải trạng thái sẵn sàng của chương.'));
     }
   },
 

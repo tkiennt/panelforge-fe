@@ -93,7 +93,7 @@ export const LayoutGuidesOverlay: React.FC<{ guides: Guide[]; gaps: GapLabel[] }
             : { top: `${g.at}%`, left: `${g.from}%`, width: `${g.to - g.from}%`, height: 0 }
         }
       >
-        <span className='bg-orange-600 text-white text-[10px] font-mono px-1.5 py-0.5 rounded shadow-2xs whitespace-nowrap'>
+        <span className='bg-orange-600 text-white text-xs font-mono px-1.5 py-0.5 rounded shadow-2xs whitespace-nowrap'>
           {g.value}%
         </span>
       </div>
@@ -400,7 +400,7 @@ export const PanelReadout: React.FC<{
                 {t('panelLayout.panelNumberBadge', { number: selectedPanel.panelNumber })}
               </span>
               {selectedPanel.sceneId && (
-                <span className='text-[11px] text-stone-500 font-medium'>
+                <span className='text-xs text-stone-500 font-medium'>
                   {t('panelLayout.sceneAssigned')}
                 </span>
               )}
@@ -434,11 +434,11 @@ export const PanelReadout: React.FC<{
                 {t('panelLayout.marginLeftRight', { left, right: rightM })}
               </span>
               {symmetric ? (
-                <span className='inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium'>
+                <span className='inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium'>
                   <Check className='w-3 h-3 text-emerald-600' /> {t('panelLayout.centered')}
                 </span>
               ) : (
-                <span className='inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-medium'>
+                <span className='inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 text-xs font-medium'>
                   {t('panelLayout.offset', { diff: diffM })}
                 </span>
               )}

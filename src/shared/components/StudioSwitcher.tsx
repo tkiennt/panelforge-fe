@@ -230,6 +230,18 @@ export const StudioSwitcher: React.FC<StudioSwitcherProps> = ({
               <Grid className='w-4 h-4 text-stone-400' />
               <span>{t('workspace.studioHub.switcher.viewAll')}</span>
             </button>
+            <button
+              type='button'
+              data-testid='studio-switcher-my-work-btn'
+              onClick={() => {
+                setIsOpen(false);
+                navigate('/my-work');
+              }}
+              className='w-full px-2.5 py-2 text-left flex items-center gap-2 text-stone-600 hover:bg-stone-50 hover:text-stone-900 font-medium rounded-lg cursor-pointer transition-colors'
+            >
+              <Briefcase className='w-4 h-4 text-stone-400' />
+              <span>{t('workspace.myWorkHub.openMyWork')}</span>
+            </button>
           </div>
         </div>
       )}

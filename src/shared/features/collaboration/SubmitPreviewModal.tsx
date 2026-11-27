@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, Send, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, Send } from 'lucide-react';
 import type { AssetReferenceDto, PanelDto } from '@/types';
 import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
 import { elementService, type ElementSnapshotDto } from '@/services/element.service';
@@ -97,25 +97,32 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
       closeLabel={t('submitPreview.close')}
       size='lg'
       title={t('submitPreview.title')}
+      description={stageName}
       data-testid='submit-preview-modal'
-    >
-      <div className='bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden'>
-        <div className='flex items-center justify-between px-5 py-3 border-b border-[#E7E7E7]'>
-          <div>
-            <h2 className='font-bold text-sm text-[#171717]'>{t('submitPreview.title')}</h2>
-            <p className='text-[11px] text-[#737373]'>{stageName}</p>
-          </div>
+      footer={
+        <>
           <button
             type='button'
             onClick={onClose}
-            aria-label={t('submitPreview.close')}
-            className='p-1.5 rounded-lg hover:bg-stone-100 cursor-pointer'
+            className='inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer'
           >
-            <X className='w-4 h-4' />
+            <ArrowLeft className='size-3.5' /> {t('submitPreview.backToEdit')}
           </button>
-        </div>
-
-        <div className='flex-1 overflow-y-auto overflow-x-hidden bg-stone-100 p-4 flex justify-center'>
+          <button
+            type='button'
+            data-testid='submit-preview-confirm'
+            disabled={busy || !canSubmit}
+            onClick={onConfirm}
+            className='inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer'
+          >
+            {busy ? <Loader2 className='size-3.5 animate-spin' /> : <Send className='size-3.5' />}
+            {t('submitPreview.confirmSubmit')}
+          </button>
+        </>
+      }
+    >
+      <div className='space-y-3'>
+        <div className='flex min-h-72 justify-center overflow-hidden rounded-xl border border-stone-200 bg-stone-100 p-4'>
           {loading ? (
             <div className='flex items-center gap-2 text-xs text-stone-500 py-20'>
               <Loader2 className='w-4 h-4 animate-spin' /> {t('submitPreview.building')}
@@ -135,10 +142,10 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
           )}
         </div>
 
-        <div className='px-5 py-3 border-t border-[#E7E7E7] space-y-2'>
+        <div className='space-y-2 rounded-xl border border-stone-200/90 bg-[#FAF8F5] p-3'>
           <div
             data-testid='submit-preview-checklist'
-            className={`text-[11px] flex items-center gap-1.5 font-semibold ${
+            className={`text-xs flex items-center gap-1.5 font-semibold ${
               coverage.complete ? 'text-emerald-700' : 'text-amber-700'
             }`}
           >
@@ -155,37 +162,18 @@ export const SubmitPreviewModal: React.FC<SubmitPreviewModalProps> = ({
                 })}
           </div>
           {mode === 'page' && (
-            <p className='text-[10px] text-stone-500'>
+            <p className='text-xs text-stone-500'>
               {t('collaboration.submitPreview.fullPageModeHint')}
             </p>
           )}
           {failedImages > 0 && (
-            <p className='text-[10px] text-amber-700' data-testid='submit-preview-failed'>
+            <p className='text-xs text-amber-700' data-testid='submit-preview-failed'>
               {t('submitPreview.failedImages', { count: failedImages })}
             </p>
           )}
           {!canSubmit && submitBlockedReason && (
-            <p className='text-[11px] text-amber-700'>{submitBlockedReason}</p>
+            <p className='text-xs text-amber-700'>{submitBlockedReason}</p>
           )}
-          <div className='flex justify-end gap-2 pt-1'>
-            <button
-              type='button'
-              onClick={onClose}
-              className='px-3 py-1.5 rounded-lg border border-[#E7E7E7] text-xs font-semibold flex items-center gap-1.5 hover:bg-stone-50 cursor-pointer'
-            >
-              <ArrowLeft className='w-3 h-3' /> {t('submitPreview.backToEdit')}
-            </button>
-            <button
-              type='button'
-              data-testid='submit-preview-confirm'
-              disabled={busy || !canSubmit}
-              onClick={onConfirm}
-              className='px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
-            >
-              {busy ? <Loader2 className='w-3 h-3 animate-spin' /> : <Send className='w-3 h-3' />}
-              {t('submitPreview.confirmSubmit')}
-            </button>
-          </div>
         </div>
       </div>
     </Modal>

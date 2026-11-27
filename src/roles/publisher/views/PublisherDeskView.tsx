@@ -18,6 +18,7 @@ import {
   Search,
   Briefcase,
   BookMarked,
+  Languages,
   X,
 } from 'lucide-react';
 import {
@@ -26,6 +27,15 @@ import {
   PublisherSeriesDto,
   PublisherWorkspaceDto,
 } from '@/services/publisher.service';
+import {
+  chapterEditionService,
+  type ChapterEditionDto,
+} from '@/services/chapter-edition.service';
+import { CONTENT_LANGUAGES } from '@/services/payment.service';
+import {
+  formatContentLanguageName,
+  getEditionStatusDisplay,
+} from '../components/multilingual';
 import { PublishScheduleModal } from '../modals/PublishScheduleModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
@@ -52,9 +62,13 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
   const [seriesList, setSeriesList] = useState<PublisherSeriesDto[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>(paramWorkspaceId);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(paramSeriesId);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const [chapters, setChapters] = useState<PublisherChapterDto[]>([]);
+  const [editionsByChapterId, setEditionsByChapterId] = useState<
+    Record<string, ChapterEditionDto[]>
+  >({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'approved' | 'published' | 'all'>('approved');
 
@@ -92,7 +106,36 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
         pageIndex: 1,
         pageSize: 100,
       });
-      setChapters(res.items || []);
+      const items = res.items || [];
+      setChapters(items);
+
+      // Load real per-language ChapterEditions for handed-off chapters (best-effort, non-blocking)
+      const relevant = items
+        .filter(
+          (c) =>
+            c.status === 'ChapterApproved' ||
+            (c.status as any) === 'Approved' ||
+            c.status === 'HandedOffAndPublished' ||
+            (c.status as any) === 'Published',
+        )
+        .slice(0, 30);
+      if (relevant.length > 0) {
+        const results = await Promise.all(
+          relevant.map((c) =>
+            chapterEditionService
+              .getChapterEditions(c.id)
+              .then((eds) => [c.id, eds] as const)
+              .catch(() => null),
+          ),
+        );
+        const map: Record<string, ChapterEditionDto[]> = {};
+        results.forEach((r) => {
+          if (r) map[r[0]] = r[1];
+        });
+        setEditionsByChapterId(map);
+      } else {
+        setEditionsByChapterId({});
+      }
     } catch (err: any) {
       onShowToast?.(t('desk.loadErrorTitle'), err.message || t('shared.serverConnectionError'));
     } finally {
@@ -118,12 +161,26 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
     (c) => c.status === 'HandedOffAndPublished' || (c.status as any) === 'Published',
   );
 
-  const filteredChapters =
+  const baseFilteredChapters =
     activeTab === 'approved'
       ? approvedChapters
       : activeTab === 'published'
         ? publishedChapters
         : handedOffChapters;
+
+  const filteredChapters =
+    selectedLanguage === 'all'
+      ? baseFilteredChapters
+      : baseFilteredChapters.filter((c) => {
+          const eds = editionsByChapterId[c.id];
+          if (!eds || eds.length === 0) return selectedLanguage === 'vi';
+          return eds.some((e) => e.languageCode.toLowerCase() === selectedLanguage);
+        });
+
+  const totalLoadedEditions = Object.values(editionsByChapterId).reduce(
+    (sum, list) => sum + list.length,
+    0,
+  );
 
   const formatDate = (isoString?: string | null) => {
     if (!isoString) return t('desk.dateUnknown');
@@ -137,6 +194,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
   const clearFilters = () => {
     setSelectedWorkspaceId('');
     setSelectedSeriesId('');
+    setSelectedLanguage('all');
     setSearchQuery('');
     setSearchParams({});
   };
@@ -224,6 +282,26 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
             </select>
           </div>
 
+          {/* Content Language Filter */}
+          <div className='flex items-center gap-1.5'>
+            <Languages className='w-4 h-4 text-[#C2410C] shrink-0' />
+            <select
+              aria-label={lang === 'en' ? 'Filter by content language' : 'Lọc theo ngôn ngữ nội dung'}
+              value={selectedLanguage}
+              onChange={(e) => setSelectedLanguage(e.target.value)}
+              className='text-xs font-medium bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl px-3 py-2 text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#F97316]/30 cursor-pointer min-w-[160px]'
+            >
+              <option value='all'>
+                {lang === 'en' ? 'All content languages' : 'Tất cả ngôn ngữ'}
+              </option>
+              {CONTENT_LANGUAGES.map((code) => (
+                <option key={code} value={code}>
+                  {formatContentLanguageName(code, lang)}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Keyword Search */}
           <div className='relative flex-1 min-w-[200px]'>
             <Search className='w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2' />
@@ -236,7 +314,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
             />
           </div>
 
-          {(selectedWorkspaceId || selectedSeriesId || searchQuery) && (
+          {(selectedWorkspaceId || selectedSeriesId || selectedLanguage !== 'all' || searchQuery) && (
             <button
               type='button'
               onClick={clearFilters}
@@ -305,7 +383,13 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           <div className='text-2xl font-bold font-mono tabular-nums text-[#1C1917] mt-1.5'>
             {handedOffChapters.length}
           </div>
-          <p className='text-xs text-[#57534E] mt-1 font-medium'>{t('desk.totalHandedOffDesc')}</p>
+          <p className='text-xs text-[#57534E] mt-1 font-medium'>
+            {totalLoadedEditions > 0
+              ? lang === 'en'
+                ? `${handedOffChapters.length} source chapters · ${totalLoadedEditions} language editions`
+                : `${handedOffChapters.length} chương gốc · ${totalLoadedEditions} ấn bản theo ngôn ngữ`
+              : t('desk.totalHandedOffDesc')}
+          </p>
         </div>
       </div>
 
@@ -414,13 +498,13 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                     <div className='space-y-1.5 min-w-0'>
                       <div className='flex items-center gap-2.5 flex-wrap'>
                         {/* Studio Badge */}
-                        <span className='px-2 py-0.5 rounded bg-stone-200 text-stone-800 font-sans font-semibold text-[11px] flex items-center gap-1 border border-stone-300'>
+                        <span className='px-2 py-0.5 rounded bg-stone-200 text-stone-800 font-sans font-semibold text-xs flex items-center gap-1 border border-stone-300'>
                           <Briefcase className='w-3 h-3 text-[#C2410C]' />
                           <span>{chap.workspaceName}</span>
                         </span>
 
                         {/* Series Title */}
-                        <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-sans font-bold text-[11px] border border-amber-300'>
+                        <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-sans font-bold text-xs border border-amber-300'>
                           {chap.seriesTitle}
                         </span>
 
@@ -437,6 +521,33 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                           priceVnd={chap.priceVnd}
                           isMonetizationConfigured={chap.isMonetizationConfigured}
                         />
+
+                        {/* Independent per-language edition pills (click -> exact Localized Chapter Detail) */}
+                        {(editionsByChapterId[chap.id] || []).length > 0 && (
+                          <div className='flex items-center gap-1.5 flex-wrap'>
+                            {editionsByChapterId[chap.id].map((ed) => {
+                              const st = getEditionStatusDisplay(ed, lang);
+                              return (
+                                <button
+                                  key={ed.id}
+                                  type='button'
+                                  onClick={() =>
+                                    navigate(
+                                      `/publisher/revenue/series/${chap.seriesId}/chapters/${chap.id}?section=editions&lang=${ed.languageCode.toLowerCase()}`,
+                                    )
+                                  }
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-semibold cursor-pointer hover:opacity-85 ${st.badgeClass}`}
+                                  title={`${formatContentLanguageName(ed.languageCode, lang)} — ${st.label}`}
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${st.dotClass}`} />
+                                  <span>
+                                    {formatContentLanguageName(ed.languageCode, lang)}: {st.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
 
                         {chap.status === 'ChapterApproved' && (
                           <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1'>

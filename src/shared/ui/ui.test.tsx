@@ -4,16 +4,32 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Home } from 'lucide-react';
 import {
   Alert,
+  Avatar,
+  Badge,
+  Button,
   Card,
   CardBody,
   CardHeader,
   ConfirmDialog,
+  CountChip,
   Drawer,
+  EmptyState,
+  Field,
+  IconButton,
+  Input,
+  Metric,
   Modal,
   PageHeader,
+  ProgressBar,
+  SearchInput,
   SectionHeader,
   SidebarItem,
   SidebarSection,
+  Skeleton,
+  StatusBadge,
+  Tabs,
+  Textarea,
+  Select,
   Toast,
   ToastStack,
 } from './index';
@@ -375,5 +391,121 @@ describe('Surface primitives', () => {
     expect(cardHeader).toHaveClass('bg-violet-50/60');
     expect(screen.getByTestId('icon').parentElement).toHaveClass('bg-violet-100');
     expect(screen.getByTestId('icon').parentElement).toHaveClass('text-violet-700');
+  });
+});
+
+describe('UIQ-10 shared primitives', () => {
+  it('renders button variants, loading state, and an accessible icon button', () => {
+    render(
+      <>
+        <Button variant='primary'>Save</Button>
+        <Button loading>Saving</Button>
+        <IconButton aria-label='Home' icon={<Home />} />
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('bg-[#EA580C]');
+    expect(screen.getByRole('button', { name: 'Saving' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Saving' })).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument();
+  });
+
+  it('renders badge tones and resolves a domain status through the shared map', () => {
+    render(
+      <>
+        <Badge tone='ai'>AI</Badge>
+        <StatusBadge kind='assignment' status='Approved' data-testid='approved-status' />
+      </>,
+    );
+    expect(screen.getByText('AI')).toHaveClass('bg-violet-50');
+    expect(screen.getByTestId('approved-status')).toHaveClass('bg-emerald-50');
+  });
+
+  it('wires field labels, hints, errors, and native controls', () => {
+    render(
+      <>
+        <Field label='Name' hint='Public name' error='Required' required>
+          <Input />
+        </Field>
+        <Textarea aria-label='Notes' />
+        <Select aria-label='Role'>
+          <option>Writer</option>
+        </Select>
+      </>,
+    );
+    const input = screen.getByLabelText('Name*');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input.getAttribute('aria-describedby')).toContain('hint');
+    expect(input.getAttribute('aria-describedby')).toContain('error');
+    expect(screen.getByLabelText('Notes')).toBeInTheDocument();
+    expect(screen.getByLabelText('Role')).toBeInTheDocument();
+  });
+
+  it('supports a labelled search clear action', () => {
+    const onClear = vi.fn();
+    render(
+      <SearchInput
+        aria-label='Search'
+        value='draft'
+        readOnly
+        clearLabel='Clear search'
+        onClear={onClear}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(onClear).toHaveBeenCalledOnce();
+  });
+
+  it('moves tab focus and selection with Arrow, Home, and End keys', () => {
+    function Harness() {
+      const [value, setValue] = useState('one');
+      return (
+        <Tabs
+          aria-label='Sections'
+          items={[
+            { id: 'one', label: 'One' },
+            { id: 'two', label: 'Two', count: 2 },
+            { id: 'three', label: 'Three' },
+          ]}
+          value={value}
+          onChange={setValue}
+        />
+      );
+    }
+    render(<Harness />);
+    const first = screen.getByRole('tab', { name: 'One' });
+    first.focus();
+    fireEvent.keyDown(first, { key: 'ArrowRight' });
+    const second = screen.getByRole('tab', { name: 'Two2' });
+    expect(second).toHaveFocus();
+    expect(second).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(second, { key: 'End' });
+    expect(screen.getByRole('tab', { name: 'Three' })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Three' }), { key: 'Home' });
+    expect(first).toHaveFocus();
+  });
+
+  it('renders empty, loading, metric, avatar, count, and progress states accessibly', () => {
+    render(
+      <>
+        <EmptyState
+          title='No chapters'
+          description='Create the first chapter'
+          action={<Button>Create</Button>}
+        />
+        <Skeleton data-testid='skeleton' width={120} height={16} />
+        <Metric label='Pages' value={24} hint='Approved' />
+        <Avatar name='Mai Anh' />
+        <CountChip>7</CountChip>
+        <ProgressBar value={0} max={0} label='Completion' data-testid='progress' />
+      </>,
+    );
+    expect(screen.getByRole('heading', { name: 'No chapters' })).toBeInTheDocument();
+    expect(screen.getByTestId('skeleton')).toHaveStyle({ width: '120px', height: '16px' });
+    expect(screen.getByText('24')).toHaveClass('font-mono');
+    expect(screen.getByLabelText('Mai Anh')).toHaveTextContent('MA');
+    expect(screen.getByText('7')).toHaveClass('bg-kraft');
+    const progress = screen.getByTestId('progress');
+    expect(progress).toHaveAttribute('aria-valuemax', '0');
+    expect(progress.firstElementChild).toHaveStyle({ width: '0%' });
   });
 });

@@ -199,11 +199,11 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
                             {config.icon}
                             {config.label}
                           </span>
-                          <span className='text-[10px] text-[#888888] font-mono'>
+                          <span className='text-xs text-[#888888] font-mono'>
                             v.{rev.chapterVersion}
                           </span>
                         </div>
-                        <span className='text-[11px] text-[#737373] font-mono'>
+                        <span className='text-xs text-[#737373] font-mono'>
                           {formatDate(rev.createdAt)}
                         </span>
                       </div>
@@ -212,7 +212,7 @@ export const ChapterReviewsModal: React.FC<ChapterReviewsModalProps> = ({
 
                       {rev.comment && (
                         <div className='p-2.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] mt-1 space-y-0.5'>
-                          <div className='text-[10px] font-bold text-[#888888] uppercase tracking-wider'>
+                          <div className='text-xs font-bold text-[#888888] uppercase tracking-wider'>
                             {t('common.modals.chapterReviews.commentLabel')}
                           </div>
                           <p className='whitespace-pre-wrap leading-relaxed'>{rev.comment}</p>

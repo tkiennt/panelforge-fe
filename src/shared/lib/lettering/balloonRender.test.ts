@@ -3,6 +3,12 @@ import {
   defaultAppearance,
   fitBoxHeight,
   fitFontSize,
+  fitBalloonSize,
+  layoutBalloonText,
+  letteringCase,
+  tailToward,
+  wrapDiamond,
+  defaultTail,
   layoutText,
   resolveAppearance,
   textSafeArea,
@@ -67,7 +73,7 @@ describe('balloonRender', () => {
     expect(layoutText(text, style, 'oval', 300, 200, measure, size).overflow).toBe(false);
     expect(layoutText(text, style, 'oval', 300, 200, measure, size + 1).overflow).toBe(true);
 
-    const h = fitBoxHeight(text, style, 'oval', 300, 40, measure);
+    const h = fitBoxHeight(text, style, 'oval', 300, measure);
     expect(layoutText(text, style, 'oval', 300, h, measure).overflow).toBe(false);
     expect(layoutText(text, style, 'oval', 300, h, measure).fontSize).toBe(20);
   });
@@ -136,6 +142,95 @@ describe('balloonRender', () => {
       y: 100,
       w: 80,
       h: 60,
+    });
+  });
+
+  describe('nhóm 1: bóng giống truyện thật', () => {
+    const m = (s: string) => Array.from(s).length * 10;
+
+    it('ngắt dòng hình thoi: dòng giữa dài nhất, dòng đầu/cuối ngắn hơn', () => {
+      const lines = wrapDiamond(
+        'Ngươi thật là cứng đầu, ta sẽ cho ngươi thấy sức mạnh thật sự của thanh kiếm này',
+        26,
+        150,
+        100,
+        m,
+      )!;
+      expect(lines.length).toBeGreaterThanOrEqual(3);
+      const widths = lines.map(m);
+      const mid = Math.max(...widths);
+      expect(widths[0]).toBeLessThan(mid);
+      expect(widths.at(-1)!).toBeLessThan(mid);
+      expect(lines.join(' ')).toBe(
+        'Ngươi thật là cứng đầu, ta sẽ cho ngươi thấy sức mạnh thật sự của thanh kiếm này',
+      );
+    });
+
+    it('mỗi dòng nằm trọn trong lòng elip', () => {
+      const text = 'Tôi sẽ không để cho các ngươi phá hủy ngôi làng này đâu, nhớ lấy!';
+      const l = layoutText(text, style, 'oval', 320, 220, measure);
+      expect(l.overflow).toBe(false);
+      const cy = 110;
+      const top = cy - l.textHeight / 2;
+      l.lines.forEach((line, i) => {
+        const half = measure(line, l.font) / 2;
+        for (const y of [top + i * l.lineHeightPx, top + (i + 1) * l.lineHeightPx]) {
+          expect((half / 160) ** 2 + ((y - cy) / 110) ** 2).toBeLessThanOrEqual(1);
+        }
+      });
+    });
+
+    it('câu tràn (vd. bản dịch dài hơn) tự thu nhỏ cỡ chữ, không bao giờ phóng to', () => {
+      const long =
+        'You are not worthy of this sword, and you never will be, no matter how hard you try';
+      const l = layoutBalloonText(long, style, 'oval', 220, 140, measure);
+      expect(l.overflow).toBe(false);
+      expect(l.fontSize).toBeLessThan(20);
+      expect(layoutBalloonText('Hi!', style, 'oval', 220, 140, measure).fontSize).toBe(20);
+    });
+
+    it('bóng mới vừa câu: câu dài cho bóng lớn hơn câu ngắn, không vượt giới hạn', () => {
+      const bounds = { minW: 160, minH: 90, maxW: 500, maxH: 400 };
+      const short = fitBalloonSize('Dừng tay!', style, 'oval', bounds, measure);
+      const long = fitBalloonSize(
+        'Thanh kiếm phát sáng xanh là bảo vật của tộc ta, các ngươi không được chạm vào nó',
+        style,
+        'oval',
+        bounds,
+        measure,
+      );
+      expect(short).toEqual({ w: 160, h: 90 });
+      expect(long.w * long.h).toBeGreaterThan(short.w * short.h);
+      expect(long.w).toBeLessThanOrEqual(500);
+      expect(long.h).toBeLessThanOrEqual(long.w * 0.8);
+      expect(
+        layoutText(
+          'Thanh kiếm phát sáng xanh là bảo vật của tộc ta, các ngươi không được chạm vào nó',
+          style,
+          'oval',
+          long.w,
+          long.h,
+          measure,
+        ).overflow,
+      ).toBe(false);
+    });
+
+    it('đuôi hướng về tâm khung; tâm khung nằm trong bóng thì giữ đuôi mặc định', () => {
+      const box = { x: 100, y: 100, w: 200, h: 100 };
+      const down = tailToward(box, { x: 200, y: 600 });
+      expect(down.x).toBe(100);
+      expect(down.y).toBeGreaterThan(100);
+      const left = tailToward(box, { x: -400, y: 150 });
+      expect(left.x).toBeLessThan(0);
+      expect(left.y).toBe(50);
+      expect(tailToward(box, { x: 210, y: 160 })).toEqual(defaultTail(200, 100));
+    });
+
+    it('bản EN in hoa, ngôn ngữ khác giữ nguyên', () => {
+      expect(letteringCase('You fool!', 'en')).toBe('YOU FOOL!');
+      expect(letteringCase('You fool!', 'en-US')).toBe('YOU FOOL!');
+      expect(letteringCase('Đồ ngốc!', 'vi')).toBe('Đồ ngốc!');
+      expect(letteringCase('Đồ ngốc!', undefined)).toBe('Đồ ngốc!');
     });
   });
 });

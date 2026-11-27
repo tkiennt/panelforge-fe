@@ -145,7 +145,7 @@ export const StudioOverviewView: React.FC = () => {
   const [editSeriesSynopsis, setEditSeriesSynopsis] = useState('');
   const [editSeriesStoryArc, setEditSeriesStoryArc] = useState('');
   const [editSeriesGenre, setEditSeriesGenre] = useState('Action / Sci-Fi');
-  const [editSeriesFormat, setEditSeriesFormat] = useState('Manga (Standard)');
+  const [editSeriesFormat, setEditSeriesFormat] = useState('MANGA');
   const [editSeriesDirection, setEditSeriesDirection] = useState(1);
   const [editSeriesSchedule, setEditSeriesSchedule] = useState('');
   const [editSeriesCompleted, setEditSeriesCompleted] = useState(false);
@@ -496,13 +496,16 @@ export const StudioOverviewView: React.FC = () => {
     setEditSeriesSynopsis(s.synopsis || '');
     setEditSeriesStoryArc(s.storyArc || '');
     setEditSeriesGenre(s.genre || 'Action / Sci-Fi');
-    setEditSeriesFormat(s.format || 'Manga (Standard)');
+    setEditSeriesFormat(s.format || 'MANGA');
+    // Khớp enum BE ReadingDirection (0 RightToLeft, 1 LeftToRight, 2 Vertical); BE trả chuỗi tên enum.
     setEditSeriesDirection(
       typeof s.readingDirection === 'number'
         ? s.readingDirection
-        : s.readingDirection === 'RightToLeft'
-          ? 1
-          : 0,
+        : s.readingDirection === 'Vertical'
+          ? 2
+          : s.readingDirection === 'LeftToRight'
+            ? 1
+            : 0,
     );
     setEditSeriesSchedule(s.releaseScheduleJson || '');
     setEditSeriesCompleted(Boolean(s.isCompleted));

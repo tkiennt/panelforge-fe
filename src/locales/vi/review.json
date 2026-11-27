@@ -545,6 +545,18 @@
     "visualReport": "Hình ảnh"
   },
   "chapterReview": {
+    "gate2Badge": "Cổng 2",
+    "gate2Subtitle": "Cổng chất lượng & ghép trang",
+    "status": {
+      "unassigned": "Chưa giao",
+      "assigned": "Đã giao",
+      "inProgress": "Đang làm",
+      "submitted": "Đã nộp",
+      "underReview": "Đang duyệt",
+      "approved": "Đã duyệt",
+      "reworkRequired": "Cần sửa",
+      "blocked": "Bị khóa"
+    },
     "stepper": {
       "editor": "Editor duyệt",
       "producer": "Producer duyệt",
@@ -733,6 +745,14 @@
   "readerView": {
     "title": "Chương {number}: {title} — Duyệt tranh",
     "pageIndicator": "Trang {current} / {total}",
+    "readingModeBtn": "Đọc liền mạch",
+    "readingModeTitle": "Đọc chương như truyện",
+    "readingModeClose": "Thoát chế độ đọc",
+    "readingModePrev": "Trang trước",
+    "readingModeNext": "Trang sau",
+    "readingModeLoading": "Đang ghép trang",
+    "readingModeEmptyPage": "Trang {page} chưa có bản vẽ",
+    "readingModeOpenReview": "Mở trang này ở chế độ duyệt",
     "reworkCount": "Yêu cầu vẽ lại ({count})",
     "approvePage": "Duyệt đạt trang này",
     "scriptRefTitle": "Kịch bản đối chiếu",

@@ -116,7 +116,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
         {/* =========================================================================
           REFERENCE TOOLS: STORYBOARD OVERLAY
          ========================================================================= */}
-        <div className='flex items-center gap-1 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8] text-[11px] h-7'>
+        <div className='flex items-center gap-1 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8] text-xs h-7'>
           <button
             type='button'
             data-testid='btn-toggle-storyboard-overlay'
@@ -149,7 +149,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
             disabled={!hasStoryboard || !showStoryboardOverlay}
             className='w-14 accent-orange-600 h-1 bg-stone-300 rounded cursor-pointer disabled:opacity-40'
           />
-          <span className='font-mono text-[10px] text-stone-600 w-6 text-right'>
+          <span className='font-mono text-xs text-stone-600 w-6 text-right'>
             {showStoryboardOverlay && hasStoryboard ? `${storyboardOpacity}%` : '0%'}
           </span>
         </div>
@@ -162,7 +162,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
             type='button'
             data-testid='btn-model-sheet-picker'
             onClick={() => setModelSheetOpen(!modelSheetOpen)}
-            className={`h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
+            className={`h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
               selectedBibleEntryId || modelSheetOpen
                 ? 'bg-purple-50 text-purple-900 border-purple-300 font-bold'
                 : 'bg-[#F3EFE6] text-stone-700 border-[#DDD6C8] hover:bg-stone-100'
@@ -177,13 +177,13 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
               data-testid='model-sheet-dropdown'
               className='absolute top-full left-0 mt-1 w-64 bg-white border border-stone-200 rounded-xl shadow-lg p-2.5 z-50 space-y-1.5'
             >
-              <div className='text-[10px] font-bold text-stone-400 uppercase px-1 pb-1 border-b border-stone-100 flex items-center justify-between'>
+              <div className='text-xs font-bold text-stone-400 uppercase px-1 pb-1 border-b border-stone-100 flex items-center justify-between'>
                 <span>{t('pencilBar.characterDesignRef')}</span>
                 {selectedBibleEntryId && (
                   <button
                     type='button'
                     onClick={() => onSelectBibleEntry(null)}
-                    className='text-orange-600 hover:underline text-[10px] cursor-pointer'
+                    className='text-orange-600 hover:underline text-xs cursor-pointer'
                   >
                     {t('pencilBar.unpin')}
                   </button>

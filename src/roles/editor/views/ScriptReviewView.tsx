@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Lock, Play, MapPin, Users } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -11,8 +11,13 @@ import {
   type ScriptVersionRow,
 } from '@/services/chapter.service';
 import { seriesService, type SeriesDetailDto } from '@/services/series.service';
+import { bibleService, type BibleEntryDto } from '@/services/bible.service';
 import { chapterCastService, type ChapterCastDto } from '@/services/chapterCast.service';
 import { assignmentService } from '@/services/assignment.service';
+import {
+  getBibleArtworkStatus,
+  BIBLE_STATUS_STYLES,
+} from '@/shared/lib/bibleColoring';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { ProducerSharedHeader } from '@/shared/features/production-workspace/ProducerSharedHeader';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
@@ -74,8 +79,19 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   }>();
   const chapterId = chapterIdProp || routeChapterId || '';
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t, lang } = useTranslation('review');
   const { t: tp } = useTranslation('production');
+
+  const initialTabParam = searchParams.get('tab');
+  const highlightedEntityId = searchParams.get('entityId') || '';
+  const initialTab: Tab =
+    initialTabParam === 'comments' ||
+    initialTabParam === 'changes' ||
+    initialTabParam === 'checks' ||
+    initialTabParam === 'entities'
+      ? initialTabParam
+      : 'entities';
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -88,10 +104,23 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
 
   const [composer, setComposer] = useState<ComposerTarget | null>(null);
   const [activeLineId, setActiveLineId] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('entities');
+  const [tab, setTab] = useState<Tab>(initialTab);
+
+  useEffect(() => {
+    const nextTab = searchParams.get('tab');
+    if (
+      nextTab === 'comments' ||
+      nextTab === 'changes' ||
+      nextTab === 'checks' ||
+      nextTab === 'entities'
+    ) {
+      setTab(nextTab);
+    }
+  }, [searchParams]);
   const [busy, setBusy] = useState<string | null>(null);
   const [startOpen, setStartOpen] = useState(false);
   const [series, setSeries] = useState<SeriesDetailDto | null>(null);
+  const [seriesBibleEntries, setSeriesBibleEntries] = useState<BibleEntryDto[]>([]);
   const [fetchedChapters, setFetchedChapters] = useState<ChapterDto[]>([]);
   const [entityFilter, setEntityFilter] = useState<'main' | 'crowd'>('main');
 
@@ -104,12 +133,16 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     setLoading(true);
     setLoadError(null);
     try {
-      const [chapterData, castData, findingList, commentList] = await Promise.all([
+      const [chapterData, castData, findingList, commentList, bibleData] = await Promise.all([
         chapterService.getChapterById(chapterId),
         chapterCastService.getChapterCast(chapterId).catch(() => null),
         assignmentService.getConsistencyFindings(chapterId).catch(() => []),
         chapterService.getScriptComments(chapterId).catch(() => []),
+        seriesId ? bibleService.getSeriesBible(seriesId).catch(() => null) : Promise.resolve(null),
       ]);
+      if (bibleData?.entries) {
+        setSeriesBibleEntries(bibleData.entries);
+      }
       let pushedVersion = chapterData.lastSubmittedVersionId
         ? await chapterService
             .getScriptVersion(chapterId, chapterData.lastSubmittedVersionId)
@@ -476,6 +509,13 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               onStartComment={setComposer}
               onSaveComment={handleSaveComment}
               onCancelComment={() => setComposer(null)}
+              writerName={
+                pushed?.version?.authorName ||
+                chapter?.createdBy ||
+                t('scriptReview.manuscript.defaultWriter', 'Writer')
+              }
+              cast={cast}
+              bibleEntries={seriesBibleEntries}
             />
           ) : (
             <p className='mx-auto mt-6 max-w-3xl px-4 text-sm text-stone-500'>
@@ -554,10 +594,24 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                     </p>
                   ) : (
                     filteredEntities.map((item) => {
-                      const isLocked = item.isCanonLocked;
-                      const isApproved = item.boundRevision?.status === 'Approved';
-                      const isInRev = item.boundRevision?.status === 'InReview';
                       const isCrowd = item.isCrowd;
+                      const isLocked =
+                        !isCrowd &&
+                        (Boolean(item.isCanonLocked) ||
+                          Boolean(item.boundRevision?.isCanonLocked) ||
+                          item.boundRevision?.status === 'CanonLocked' ||
+                          item.bibleStatus === 'CanonLocked');
+                      const isPendingConfirm =
+                        !isCrowd &&
+                        !isLocked &&
+                        (item.boundRevision?.status === 'ConceptSubmitted' ||
+                          item.bibleStatus === 'WaitingForConfirmation');
+                      const isRework =
+                        !isCrowd &&
+                        !isLocked &&
+                        (item.boundRevision?.status === 'ReworkRequired' ||
+                          item.bibleStatus === 'ReworkRequired');
+                      const isHighlighted = highlightedEntityId === item.bibleEntryId;
 
                       const initials =
                         item.name
@@ -570,10 +624,13 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                       return (
                         <div
                           key={item.bibleEntryId}
+                          data-testid={`script-entity-card-${item.bibleEntryId}`}
                           className={`p-3 rounded-xl border flex items-center justify-between gap-2 transition-colors ${
-                            !isLocked && !isCrowd && !isApproved
-                              ? 'bg-amber-50/50 border-amber-200'
-                              : 'bg-stone-50/70 border-stone-200 hover:bg-stone-50'
+                            isHighlighted
+                              ? 'ring-2 ring-orange-500 bg-orange-50/50 border-orange-300'
+                              : !isLocked && !isCrowd
+                                ? 'bg-amber-50/50 border-amber-200'
+                                : 'bg-stone-50/70 border-stone-200 hover:bg-stone-50'
                           }`}
                         >
                           <div className='flex items-center gap-2.5 min-w-0'>
@@ -606,26 +663,31 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                                       ? `[${t('scriptReview.defaultVariant')}]`
                                       : item.category}
                                 </span>
+                                {item.boundRevision?.versionNumber && (
+                                  <span className='font-mono text-[11px] text-stone-400'>
+                                    v{item.boundRevision.versionNumber}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
 
                           <div className='flex items-center gap-1.5 shrink-0'>
-                            {isLocked ? (
+                            {isCrowd ? (
+                              <span className='bg-stone-100 text-stone-600 border border-stone-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusExempt', 'Miễn trừ')}
+                              </span>
+                            ) : isLocked ? (
                               <span className='bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2 py-0.5 rounded-full font-medium'>
                                 {t('scriptReview.entities.statusLocked', 'Đã khóa chuẩn')}
                               </span>
-                            ) : isApproved ? (
-                              <span className='bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusApproved', 'Đã duyệt thiết kế')}
-                              </span>
-                            ) : isInRev ? (
+                            ) : isPendingConfirm ? (
                               <span className='bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2 py-0.5 rounded-full font-medium'>
                                 {t('scriptReview.entities.statusInReview', 'Chờ duyệt vẽ')}
                               </span>
-                            ) : isCrowd ? (
-                              <span className='bg-stone-100 text-stone-600 border border-stone-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusExempt', 'Miễn trừ')}
+                            ) : isRework ? (
+                              <span className='bg-rose-50 text-rose-700 border border-rose-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusRework', 'Cần vẽ lại')}
                               </span>
                             ) : (
                               <span className='bg-rose-50 text-rose-700 border border-rose-200 text-xs px-2 py-0.5 rounded-full font-medium'>

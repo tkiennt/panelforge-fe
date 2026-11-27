@@ -129,7 +129,7 @@ export const ArtistScriptReferenceSidebar: React.FC<ArtistScriptReferenceSidebar
           title={t('scriptRefSidebar.openTitle')}
         >
           <FileText className='w-4 h-4 text-[#EA580C]' />
-          <span className='text-[10px] font-mono font-bold uppercase tracking-widest [writing-mode:vertical-rl] rotate-180'>
+          <span className='text-xs font-mono font-bold uppercase tracking-widest [writing-mode:vertical-rl] rotate-180'>
             {t('scriptRefSidebar.verticalLabel', { pageNumber })}
           </span>
         </button>

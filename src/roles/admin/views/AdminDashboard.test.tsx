@@ -1,10 +1,9 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AdminDashboard } from './AdminDashboard';
-import { adminService } from '@/services/admin.service';
-import { monetizationService } from '@/services/payment.service';
 
 vi.mock('@/services/admin.service', () => ({
   adminService: {
@@ -28,37 +27,61 @@ vi.mock('@/services/payment.service', () => ({
   },
 }));
 
-describe('AdminDashboard Component', () => {
+const LocationProbe = () => {
+  const location = useLocation();
+  return <div data-testid='location'>{location.pathname + location.search}</div>;
+};
+
+const renderAt = (route: string) =>
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter initialEntries={[route]}>
+        <Routes>
+          <Route
+            path='/admin'
+            element={
+              <>
+                <AdminDashboard />
+                <LocationProbe />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+describe('AdminDashboard (nội dung Admin Portal trong AppShell)', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
   });
 
-  it('hiển thị mục "Thống kê độc giả" trong danh sách điều hướng quản trị (Row #13)', () => {
-    render(
-      <MemoryRouter>
-        <AdminDashboard />
-      </MemoryRouter>,
-    );
-
-    const analyticsNavButtons = screen.getAllByRole('button', { name: /Thống kê độc giả/i });
-    expect(analyticsNavButtons.length).toBeGreaterThan(0);
+  it('không tự dựng sidebar riêng — điều hướng do AppShell đảm nhiệm', () => {
+    renderAt('/admin');
+    expect(screen.queryByTestId('admin-sidebar')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
   });
 
-  it('chuyển sang tab Thống kê độc giả khi bấm vào mục điều hướng', async () => {
-    render(
-      <MemoryRouter>
-        <AdminDashboard />
-      </MemoryRouter>,
-    );
+  it('hiển thị Thống kê độc giả khi URL có ?tab=analytics (Row #13)', async () => {
+    renderAt('/admin?tab=analytics');
+    expect(await screen.findByText('Lượt đọc bộ truyện')).toBeInTheDocument();
+  });
 
-    const analyticsBtn = screen.getAllByRole('button', { name: /Thống kê độc giả/i })[0];
-    fireEvent.click(analyticsBtn);
+  it('tab không hợp lệ quay về Tổng quan', () => {
+    renderAt('/admin?tab=khong-ton-tai');
+    expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
+  });
 
-    await waitFor(() => {
-      // Breadcrumb updates to current page: Thống kê độc giả
-      const currentPage = screen.getByRole('listitem', { current: 'page' });
-      expect(currentPage).toHaveTextContent('Thống kê độc giả');
-    });
+  it('lối tắt trên Tổng quan cập nhật ?tab= để menu AppShell khớp', async () => {
+    renderAt('/admin');
+    const shortcut = screen
+      .getAllByRole('button')
+      .find((b) => /Người dùng/i.test(b.textContent ?? ''));
+    expect(shortcut).toBeDefined();
+    fireEvent.click(shortcut!);
+    expect(screen.getByTestId('location')).toHaveTextContent('/admin?tab=users');
   });
 });

@@ -587,11 +587,11 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
                           <div className='font-semibold text-[#171717]'>
                             {tx.readerName || t('table.unknownReader')}
                           </div>
-                          <div className='text-[11px] text-[#737373]'>{tx.readerEmail || '—'}</div>
+                          <div className='text-xs text-[#737373]'>{tx.readerEmail || '—'}</div>
                         </td>
                         <td className='px-4 py-3'>
                           <div className='font-medium text-[#171717]'>{typeName}</div>
-                          <div className='text-[11px] text-[#737373]'>
+                          <div className='text-xs text-[#737373]'>
                             {tx.seriesTitle
                               ? `${tx.seriesTitle}${tx.chapterNumber != null ? ` · Ch. ${tx.chapterNumber}` : ''}`
                               : tx.type === 'Topup'
@@ -604,7 +604,7 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
                         <td className='px-4 py-3 text-right font-mono font-bold text-[#171717]'>
                           {formatVnd(tx.amountVnd)}
                         </td>
-                        <td className='px-4 py-3 font-mono text-[11px] text-[#737373]'>
+                        <td className='px-4 py-3 font-mono text-xs text-[#737373]'>
                           {tx.createdAt
                             ? new Date(tx.createdAt).toLocaleString(
                                 lang === 'en' ? 'en-US' : 'vi-VN',

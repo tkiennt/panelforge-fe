@@ -545,6 +545,18 @@
     "visualReport": "Visual Report"
   },
   "chapterReview": {
+    "gate2Badge": "Gate 2",
+    "gate2Subtitle": "Quality & Composite Gate",
+    "status": {
+      "unassigned": "Unassigned",
+      "assigned": "Assigned",
+      "inProgress": "In Progress",
+      "submitted": "Submitted",
+      "underReview": "Under Review",
+      "approved": "Approved",
+      "reworkRequired": "Rework Required",
+      "blocked": "Blocked"
+    },
     "stepper": {
       "editor": "Editor Review",
       "producer": "Producer Review",
@@ -733,6 +745,14 @@
   "readerView": {
     "title": "Chapter {number}: {title} — Artwork Review",
     "pageIndicator": "Page {current} / {total}",
+    "readingModeBtn": "Read through",
+    "readingModeTitle": "Read the chapter like a comic",
+    "readingModeClose": "Exit reading mode",
+    "readingModePrev": "Previous page",
+    "readingModeNext": "Next page",
+    "readingModeLoading": "Composing page",
+    "readingModeEmptyPage": "Page {page} has no artwork yet",
+    "readingModeOpenReview": "Open this page in review mode",
     "reworkCount": "Request rework ({count})",
     "approvePage": "Approve this page",
     "scriptRefTitle": "Script reference",

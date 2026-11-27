@@ -113,12 +113,12 @@ export const ProfileCoverPickerDialog: React.FC<Props> = ({
         <span className='flex items-center justify-between gap-2 px-0.5 text-xs'>
           <span className='font-semibold text-[#1C1917] truncate'>{title}</span>
           {isSaved && (
-            <span className='shrink-0 text-[10px] font-bold text-[#C2410C] bg-white border border-[#F97316]/40 px-1.5 rounded'>
+            <span className='shrink-0 text-xs font-bold text-[#C2410C] bg-white border border-[#F97316]/40 px-1.5 rounded'>
               {t('profile.coverPicker.inUseBadge')}
             </span>
           )}
         </span>
-        {hint && <span className='px-0.5 text-[11px] text-[#57534E]'>{hint}</span>}
+        {hint && <span className='px-0.5 text-xs text-[#57534E]'>{hint}</span>}
       </label>
     );
   };

@@ -50,7 +50,7 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
         type='button'
         data-testid='btn-toggle-locked-script-drawer'
         onClick={onToggleScriptDrawer}
-        className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg border font-semibold text-[11px] cursor-pointer transition-colors ${
+        className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg border font-semibold text-xs cursor-pointer transition-colors ${
           scriptDrawerOpen
             ? 'bg-[#1C1917] text-white border-stone-800'
             : 'bg-[#F3EFE6] text-stone-700 border-[#DDD6C8] hover:bg-stone-100'
@@ -59,7 +59,7 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
         <MessageSquare className='w-3 h-3 text-orange-600' />
         <span>{t('letteringBar.script')}</span>
         <span
-          className={`px-1 rounded text-[10px] font-mono font-bold ${
+          className={`px-1 rounded text-xs font-mono font-bold ${
             unplacedCount === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
           }`}
         >
@@ -73,14 +73,14 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
         data-testid='lettering-bar-auto-assign-btn'
         onClick={onOpenAutoAssignModal}
         title={t('letteringBar.aiSplitTitle')}
-        className='flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 text-white font-bold text-[11px] shadow-2xs cursor-pointer transition-all active:scale-95'
+        className='flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 text-white font-bold text-xs shadow-2xs cursor-pointer transition-all active:scale-95'
       >
         <Sparkles className='w-3 h-3' />
         <span>{t('letteringBar.aiSplitButton')}</span>
       </button>
 
       {/* Bộ công cụ bóng thoại & SFX */}
-      <div className='flex items-center gap-0.5 bg-[#F3EFE6] p-0.5 rounded-lg border border-[#DDD6C8] font-semibold text-[11px]'>
+      <div className='flex items-center gap-0.5 bg-[#F3EFE6] p-0.5 rounded-lg border border-[#DDD6C8] font-semibold text-xs'>
         <button
           type='button'
           data-testid='btn-tool-balloon'
@@ -143,7 +143,7 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
         data-testid='btn-toggle-reading-flow'
         onClick={onToggleReadingFlow}
         title={t('letteringBar.readingFlowTitle')}
-        className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg border font-semibold text-[11px] cursor-pointer transition-colors ${
+        className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg border font-semibold text-xs cursor-pointer transition-colors ${
           readingFlowVisible
             ? 'bg-indigo-50 text-indigo-900 border-indigo-300 font-bold'
             : 'bg-[#F3EFE6] text-stone-700 border-[#DDD6C8] hover:bg-stone-100'
@@ -160,7 +160,7 @@ export const LetteringStageWorkspaceBar: React.FC<Props> = ({
         onClick={onSubmitToGate2}
         disabled={isSubmitting}
         title={t('letteringBar.submitGate2Title')}
-        className='hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAF8F5] hover:bg-[#F3EFE6] text-stone-700 border border-[#DDD6C8] text-[11px] font-semibold cursor-pointer transition-all active:scale-95 disabled:opacity-50 shrink-0'
+        className='hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAF8F5] hover:bg-[#F3EFE6] text-stone-700 border border-[#DDD6C8] text-xs font-semibold cursor-pointer transition-all active:scale-95 disabled:opacity-50 shrink-0'
       >
         <span>➔ Gate 2</span>
       </button>

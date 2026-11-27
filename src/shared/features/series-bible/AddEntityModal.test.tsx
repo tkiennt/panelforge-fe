@@ -35,7 +35,7 @@ describe('AddEntityModal UX/UI improvements', () => {
     expect(screen.getByLabelText(/Danh mục tri thức/i)).toBeDefined();
     expect(screen.getByLabelText(/Mã định danh/i)).toBeDefined();
     expect(screen.getByLabelText(/Tên mục/i)).toBeDefined();
-    expect(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i)).toBeDefined();
+    expect(screen.getByLabelText(/Ghi chú nhân vật & Yêu cầu thiết kế/i)).toBeDefined();
 
     // Verify fake LoRA slider is NOT present
     expect(screen.queryByText(/LoRA Enforcement Weight/i)).toBeNull();
@@ -62,7 +62,7 @@ describe('AddEntityModal UX/UI improvements', () => {
     fireEvent.change(screen.getByLabelText(/Tên mục/i), {
       target: { value: 'Bạch Du' },
     });
-    fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
+    fireEvent.change(screen.getByLabelText(/Ghi chú nhân vật & Yêu cầu thiết kế/i), {
       target: { value: 'Cố nhân của Tần Mục tại Diên Khang.' },
     });
     fireEvent.change(screen.getByLabelText(/Nhãn biến thể tạo hình/i), {
@@ -91,7 +91,7 @@ describe('AddEntityModal UX/UI improvements', () => {
     fireEvent.change(screen.getByLabelText(/Tên mục/i), {
       target: { value: 'Goku' },
     });
-    fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
+    fireEvent.change(screen.getByLabelText(/Ghi chú nhân vật & Yêu cầu thiết kế/i), {
       target: { value: 'Chiến binh Saiyan' },
     });
     fireEvent.change(screen.getByLabelText(/Nhãn biến thể tạo hình/i), {
@@ -123,36 +123,28 @@ describe('AddEntityModal UX/UI improvements', () => {
     expect(screen.getByRole('button', { name: /Tạo bản nháp mới/i })).toBeInTheDocument();
   });
 
-  it('renders simplified age and artistNotes inputs and omits multi-angle turnaround sketches', async () => {
+  it('creates an entity from one unified design brief without rigid appearance fields', async () => {
     render(<AddEntityModal {...defaultProps} isProducer={true} />);
 
     expect(screen.queryByText(/Bộ Sưu Tập Phác Thảo/i)).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/Độ tuổi/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Ghi chú cho Artist/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Độ tuổi/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Ghi chú nhân vật & Yêu cầu thiết kế/i)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Tên mục/i), { target: { value: 'Luffy' } });
-    fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
-      target: { value: 'Mũ rơm' },
+    fireEvent.change(screen.getByLabelText(/Ghi chú nhân vật & Yêu cầu thiết kế/i), {
+      target: { value: 'Mũ rơm, vết sẹo dưới mắt trái, áo đỏ' },
     });
     fireEvent.change(screen.getByLabelText(/Nhãn biến thể tạo hình/i), {
       target: { value: 'Mặc định' },
     });
-    fireEvent.change(screen.getByLabelText(/Độ tuổi/i), {
-      target: { value: '17 tuổi' },
-    });
-    fireEvent.change(screen.getByLabelText(/Ghi chú cho Artist/i), {
-      target: { value: 'Vết sẹo dưới mắt trái, áo đỏ' },
-    });
-
     const submitBtn = screen.getByRole('button', { name: /Lưu vào Series Bible/i });
     fireEvent.click(submitBtn);
 
     expect(defaultProps.onAdd).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Luffy',
-        description: 'Mũ rơm',
-        age: '17 tuổi',
-        artistNotes: 'Vết sẹo dưới mắt trái, áo đỏ',
+        description: 'Mũ rơm, vết sẹo dưới mắt trái, áo đỏ',
+        artistNotes: 'Mũ rơm, vết sẹo dưới mắt trái, áo đỏ',
       }),
     );
   });

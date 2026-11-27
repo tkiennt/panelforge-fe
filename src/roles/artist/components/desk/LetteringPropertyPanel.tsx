@@ -246,7 +246,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
           </span>
           <span
             data-testid='lettering-property-link-status'
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
               linked ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'
             }`}
           >
@@ -412,7 +412,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
               <div className='flex-1'>
                 <label
                   htmlFor={`shorten-max-chars-${element.elementId}`}
-                  className='block text-[11px] font-semibold text-stone-700 mb-1'
+                  className='block text-xs font-semibold text-stone-700 mb-1'
                 >
                   {t('letteringProperty.maxCharsLabel')}
                 </label>

@@ -115,7 +115,7 @@ export const KeepOutZoneOverlay: React.FC<KeepOutZoneOverlayProps> = ({
             height: `${(kz.height / pageHeight) * 100}%`,
           }}
         >
-          <div className='flex items-center justify-between text-[11px] font-bold text-red-700 bg-white/95 px-1.5 py-0.5 rounded shadow-xs max-w-full pointer-events-auto'>
+          <div className='flex items-center justify-between text-xs font-bold text-red-700 bg-white/95 px-1.5 py-0.5 rounded shadow-xs max-w-full pointer-events-auto'>
             <span className='truncate flex items-center gap-1'>
               <ShieldAlert className='w-3 h-3 text-red-500 shrink-0' aria-hidden='true' />
               <span className='truncate'>{kz.label || t('keepOut.zoneFallbackLabel')}</span>

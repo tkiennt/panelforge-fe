@@ -44,7 +44,7 @@ import type { BalloonType } from '../../hooks/useLetteringBalloons';
 import { PageHistoryDto } from '@/services/page.service';
 import { ElementSnapshotDto, type TextStyleDto } from '@/services/element.service';
 import { CollapsibleSidebar, SidebarSection } from '@/shared/ui';
-import { ArtistScriptReader } from './ArtistScriptReader';
+import { ArtistScriptReader, ChapterPanelRef } from './ArtistScriptReader';
 
 export type CanvaSidebarTab =
   'pages' | 'script' | 'bible' | 'templates' | 'changes' | 'history' | 'lettering';
@@ -65,6 +65,8 @@ export interface ScriptLineItem {
   characterName?: string;
   characterColor?: string;
   characterAvatarUrl?: string;
+  /** Biến thể tạo hình đang dùng ở chương/panel (BR-15), vd "Lúc nhỏ". */
+  characterVariant?: string;
   dialogueText?: string;
   stageDirection?: string;
   narrationMode?: string;
@@ -108,6 +110,7 @@ export interface ArtistCanvaSidebarProps {
   onToggleVisibility: (pageId: string) => void;
   // Script props
   scriptLines?: ScriptLineItem[];
+  chapterPanels?: ChapterPanelRef[];
   sceneTitle?: string;
   sceneSlugline?: string;
   chapterTitle?: string;
@@ -160,6 +163,8 @@ export interface ArtistCanvaSidebarProps {
   onAddLetteringElement?: (type: BalloonType, scriptLine?: ScriptLineItem) => void;
   onDeleteLetteringElement?: (id: string) => void;
   selectedElementId?: string | null;
+  /** Bóng đang chờ server lưu (chưa được xác nhận). */
+  pendingElementIds?: ReadonlySet<string>;
   onSelectElementId?: (id: string | null) => void;
   activeLang?: string;
   originalLang?: string;
@@ -900,6 +905,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   onMovePage,
   onToggleVisibility,
   scriptLines = DEFAULT_SCRIPT_LINES,
+  chapterPanels,
   chapterTitle,
   chapters,
   selectedChapterId,
@@ -942,6 +948,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   onAddLetteringElement,
   onDeleteLetteringElement,
   selectedElementId = null,
+  pendingElementIds,
   onSelectElementId,
   activeLang,
   originalLang = 'vi',
@@ -1741,6 +1748,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         {activeTab === 'script' && (
           <ArtistScriptReader
             scriptLines={scriptLines}
+            chapterPanels={chapterPanels}
             activePageNumber={activePageNumber}
             chapterTitle={chapterTitle}
             chapters={chapters}
@@ -2589,10 +2597,12 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
           <LetteringScriptPanel
             chapterTitle={chapterTitle}
             scriptLines={scriptLines}
+            chapterPanels={chapterPanels}
             activePageNumber={activePageNumber}
             pageId={selectedPageId}
             elements={letteringElements}
             selectedElementId={selectedElementId}
+            pendingElementIds={pendingElementIds}
             onSelectElementId={onSelectElementId}
             onAddElement={onAddLetteringElement}
             onUpdateElementTranslation={

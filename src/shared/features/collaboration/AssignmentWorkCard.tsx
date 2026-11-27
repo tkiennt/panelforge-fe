@@ -242,7 +242,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
     ? { label: t(statusStyle.labelKey), className: statusStyle.className }
     : {
         label: status,
-        className: 'bg-zinc-100 text-zinc-700 border-zinc-200',
+        className: 'bg-stone-100 text-stone-700 border-stone-200',
       };
   const openCrCount = changeRequests.filter((c) => String(c.status) === 'Open').length;
 

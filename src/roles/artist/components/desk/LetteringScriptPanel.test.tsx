@@ -113,6 +113,13 @@ describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)
     expect(onSelect).toHaveBeenCalledWith('el-2');
   });
 
+  it('bóng chờ server lưu hiện "Đang lưu…", không hiện "Đã liên kết"', () => {
+    renderPanel({ elements: [balloon()], pendingElementIds: new Set(['el-1']) });
+    const item = screen.getByTestId('lettering-item-el-1');
+    expect(item).toHaveTextContent('Đang lưu…');
+    expect(item).not.toHaveTextContent('Đã liên kết');
+  });
+
   it('đếm bóng thiếu bản dịch khi soạn ngôn ngữ dịch', () => {
     renderPanel({
       elements: [balloon(), balloon({ elementId: 'el-2', texts: { en: 'Hi' } })],

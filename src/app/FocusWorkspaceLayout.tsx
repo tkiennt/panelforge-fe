@@ -22,6 +22,7 @@ import {
   BookMarked,
   Kanban,
   Users,
+  MessageSquare,
 } from 'lucide-react';
 import { BrandMark } from '@/shared/components/BrandMark';
 import { MangaProject } from '@/types';
@@ -31,6 +32,7 @@ import { formatChapterLabel } from '@/shared/features/pipeline-board/productionB
 import { useTranslation } from '@/lib/i18n';
 import { CurrentUser } from './AppShell';
 import { AppShellSidebar } from './AppShellSidebar';
+import { useSidebarTheme } from './useSidebarTheme';
 
 export interface FocusStageItem {
   id: string;
@@ -56,7 +58,6 @@ export interface FocusHeaderConfig {
   isStageFlowCompleted?: boolean;
   isSubmittingStage?: boolean;
   onSubmitStage?: () => void;
-  onSelectStage?: (stageIndex: number) => void;
   submitButtonLabel?: string;
   onWithdrawStage?: () => void;
   showWithdrawButton?: boolean;
@@ -275,7 +276,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             data-testid='focus-stage-stepper'
             role='list'
             aria-label={t('navigation.focus.stageProgressAria')}
-            className='hidden md:flex items-center gap-1 px-2 py-1 rounded-full bg-[#FAF9F5] border border-[#E7E5E4] text-[11px] shrink-0'
+            className='hidden md:flex items-center gap-1 px-2 py-1 rounded-full bg-[#FAF9F5] border border-[#E7E5E4] text-xs shrink-0'
           >
             {stages.map((stage, idx) => {
               const isCompleted = isStageFlowCompleted || idx < currentStageIndex;
@@ -293,10 +294,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                     data-stage-id={stage.id}
                     data-stage-state={stepState}
                     aria-current={isCurrent ? 'step' : undefined}
-                    onClick={() => headerConfig?.onSelectStage?.(idx)}
-                    className={`flex items-center gap-1 transition-all whitespace-nowrap ${
-                      headerConfig?.onSelectStage ? 'cursor-pointer hover:opacity-90' : ''
-                    } ${
+                    className={`flex items-center gap-1 transition-all whitespace-nowrap select-none ${
                       isCurrent
                         ? 'bg-[#EA580C] text-white px-2 py-0.5 rounded-full font-semibold shadow-2xs'
                         : isCompleted
@@ -450,6 +448,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
   const [isExiting, setIsExiting] = useState(false);
   const [headerConfig, setHeaderConfig] = useState<FocusHeaderConfig | null>(null);
   const [fetchedSeriesTitle, setFetchedSeriesTitle] = useState<string | undefined>(undefined);
+  const [sidebarTheme, setSidebarTheme] = useSidebarTheme();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
@@ -608,17 +607,17 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
     if (effectiveRole === 'WRITER') {
       return [
         {
-          section: '',
+          section: t('navigation.writerSections.overview', 'TỔNG QUAN'),
           items: [
             {
               icon: Layers,
-              label: t('navigation.menu.myWork', 'Việc của tôi'),
+              label: t('navigation.menu.writerWorkspace', 'Không gian sáng tác'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
             },
           ],
         },
         {
-          section: t('navigation.sidebar.chapterWriting', 'SÁNG TÁC CHƯƠNG'),
+          section: t('navigation.writerSections.writing', 'SÁNG TÁC'),
           items: [
             {
               icon: FileText,
@@ -628,7 +627,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
           ],
         },
         {
-          section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+          section: t('navigation.writerSections.storyWorld', 'THẾ GIỚI TRUYỆN'),
           items: [
             {
               icon: BookMarked,
@@ -636,10 +635,15 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
               href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
               badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
             },
+          ],
+        },
+        {
+          section: t('navigation.writerSections.collaboration', 'PHỐI HỢP'),
+          items: [
             {
-              icon: Users,
-              label: t('navigation.menu.characterProfilesAndLore', 'Hồ sơ Nhân vật & Lore'),
-              href: `/workspaces/${workspaceId}/series/${seriesId}/bible?tab=entities`,
+              icon: MessageSquare,
+              label: t('navigation.menu.writerFeedback', 'Góp ý & Yêu cầu chỉnh sửa'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/my-work?view=feedback`,
             },
           ],
         },
@@ -653,17 +657,17 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
           items: [
             {
               icon: Layers,
-              label: t('navigation.menu.myWork', 'Việc của tôi'),
+              label: t('navigation.menu.artistMyWork', 'Công việc của tôi'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
             },
           ],
         },
         {
-          section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+          section: t('navigation.sidebar.comicProduction', 'SẢN XUẤT TRUYỆN'),
           items: [
             {
               icon: LayoutTemplate,
-              label: t('navigation.menu.panelCanvasDesk', 'Bàn vẽ Khung tranh'),
+              label: t('navigation.menu.artistDesk', 'Bàn vẽ truyện'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
               isActive: location.pathname.includes('/artist'),
             },
@@ -680,13 +684,12 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
           ],
         },
         {
-          section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+          section: t('navigation.sidebar.designAssets', 'THIẾT KẾ TÀI NGUYÊN'),
           items: [
             {
               icon: BookMarked,
               label: t('navigation.menu.bible', 'Series Bible'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
-              badge: { type: 'text', text: 'VAULT', color: 'bg-blue-50 text-blue-700' },
             },
           ],
         },
@@ -899,8 +902,8 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
             isCollapsed={isSidebarCollapsed}
             onToggleSidebar={handleToggleSidebar}
             isMobileDrawer={false}
-            theme='paper'
-            surfaceClassName='!bg-white'
+            theme={sidebarTheme}
+            onChangeTheme={setSidebarTheme}
             activeChapterNumber={activeChapterObj?.chapterNumber ?? null}
           />
         )}

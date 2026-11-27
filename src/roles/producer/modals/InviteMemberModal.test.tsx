@@ -31,8 +31,10 @@ describe('InviteMemberModal Component', () => {
 
     expect(screen.getByText('Mời thành viên mới vào Studio')).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/vd: artist.kenji@mappa.jp/i)).toBeInTheDocument();
-    expect(screen.getByText(/Họa sĩ chì \/ Name \(Lead Artist\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/Biên kịch \(Writer\)/i)).toBeInTheDocument();
+    // Spec D10: Studio chỉ chọn Thành viên hoặc Producer
+    expect(screen.getByDisplayValue('Member')).toBeChecked();
+    expect(screen.getByDisplayValue('Producer')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Writer')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Gửi lời mời & Cấp quyền/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Hủy bỏ/i })).toBeInTheDocument();
   });
@@ -68,16 +70,15 @@ describe('InviteMemberModal Component', () => {
     const input = screen.getByPlaceholderText(/vd: artist.kenji@mappa.jp/i);
     await user.type(input, 'artist.kenji@mappa.jp');
 
-    // Select Writer role
-    const writerRadio = screen.getByDisplayValue('Writer');
-    await user.click(writerRadio);
+    // Spec D10: mời làm Producer của Studio
+    await user.click(screen.getByDisplayValue('Producer'));
 
     const submitBtn = screen.getByRole('button', { name: /Gửi lời mời & Cấp quyền/i });
     await user.click(submitBtn);
 
     expect(workspaceService.addMember).toHaveBeenCalledWith('ws-123', {
       email: 'artist.kenji@mappa.jp',
-      role: 'Writer',
+      role: 'Producer',
     });
     expect(onInvited).toHaveBeenCalled();
     expect(onShowToast).toHaveBeenCalled();

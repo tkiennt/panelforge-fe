@@ -21,11 +21,20 @@
     "productionUtilities": "PRODUCTION UTILITIES",
     "qualityReview": "QUALITY REVIEW"
   },
+  "writerSections": {
+    "overview": "OVERVIEW",
+    "writing": "WRITING",
+    "storyWorld": "STORY WORLD",
+    "collaboration": "COLLABORATION"
+  },
   "menu": {
     "dashboard": "Dashboard",
     "seriesDashboard": "Series Dashboard",
     "systemDashboard": "System Dashboard",
     "myWork": "My Work",
+    "artistMyWork": "My Work",
+    "writerWorkspace": "Creative Workspace",
+    "writerFeedback": "Feedback & Revisions",
     "workAndReview": "Work & Review",
     "production": "Production Workflow",
     "script": "Script",
@@ -68,6 +77,8 @@
     "characterProfilesAndLore": "Character Profiles & Lore",
     "panelCanvasDesk": "Panel Canvas",
     "scriptReadOnly": "Script (Read-only)",
+    "artistDesk": "Drawing Workspace",
+    "scriptReference": "Script Reference",
     "letteringAndBalloons": "Lettering & Balloons",
     "editorReviewDesk": "Review & Proofing",
     "pageMatrix": "Page Matrix",
@@ -90,6 +101,7 @@
     "currentChapter": "Current chapter",
     "quickSearch": "Quick search or open command palette (⌘K / Ctrl+K)",
     "publisherPortal": "PanelForge // Publishing Portal",
+    "adminPortal": "PanelForge // Admin Portal",
     "scriptManagement": "Script Management",
     "lettererDesk": "Lettering & Dialogue Desk",
     "switchStudio": "Switch Studio Workspace"
@@ -127,6 +139,8 @@
     "activeSeriesLabel": "OPEN SERIES",
     "activeWorkspaceLabel": "CURRENT WORKSPACE",
     "chapterProduction": "CHAPTER PRODUCTION",
+    "comicProduction": "COMIC PRODUCTION",
+    "designAssets": "ASSET DESIGN",
     "chapterWriting": "CHAPTER CREATION",
     "seriesOverview": "OVERVIEW",
     "crew": "Crew",

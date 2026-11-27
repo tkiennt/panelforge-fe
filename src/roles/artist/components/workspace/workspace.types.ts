@@ -4,6 +4,7 @@ export interface ScriptLineItem {
   panelId?: string | null;
   characterName?: string | null;
   characterColor?: string | null;
+  characterVariant?: string | null;
   dialogueText?: string | null;
   stageDirection?: string | null;
   cameraAngle?: string | null;

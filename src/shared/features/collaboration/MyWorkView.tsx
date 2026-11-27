@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, PageHeader, SectionHeader } from '@/shared/ui';
+import { Alert } from '@/shared/ui';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   BookOpen,
@@ -8,12 +8,17 @@ import {
   ChevronUp,
   Clapperboard,
   ClipboardList,
+  CalendarClock,
   Film,
   Layers,
   Loader2,
+  MessageSquare,
+  Palette,
+  PenLine,
   RefreshCw,
   CheckCircle2,
   Globe,
+  RotateCcw,
   User,
 } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
@@ -21,6 +26,11 @@ import { chapterService, type ChapterDto } from '@/services/chapter.service';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import { seriesService } from '@/services/series.service';
+import {
+  bibleService,
+  type BibleDesignQueueItemDto,
+  type BibleEntryDto,
+} from '@/services/bible.service';
 import { formatSeriesFormat } from '@/shared/utils/seriesFormat';
 import { scriptLineService, type SceneDto } from '@/services/scriptLine.service';
 import { pageService, type PageDto } from '@/services/page.service';
@@ -44,6 +54,7 @@ import {
   type WorkOrderContext,
 } from './collaborationRules';
 import { PageContainer } from '@/shared/components/PageContainer';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { useTranslation } from '@/lib/i18n';
 
 interface MyWorkViewProps {
@@ -64,16 +75,22 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   onShowToast,
 }) => {
   const { workspaceId, seriesId } = useParams();
-  const { t, lang } = useTranslation('collaboration');
+  const { t } = useTranslation('collaboration');
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const reviewer = isReviewerRole(workspaceRole);
+  const normalizedRole = String(workspaceRole || '').toUpperCase();
+  const isWriter = normalizedRole === 'WRITER';
+  const isArtist = normalizedRole === 'ARTIST';
+  const isFeedbackView = searchParams.get('view') === 'feedback';
 
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [stages, setStages] = useState<PipelineStageDto[]>([]);
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [seriesFormat, setSeriesFormat] = useState('');
   const [seriesTitle, setSeriesTitle] = useState('');
+  const [writerBibleEntries, setWriterBibleEntries] = useState<BibleEntryDto[]>([]);
+  const [writerDesignQueue, setWriterDesignQueue] = useState<BibleDesignQueueItemDto[]>([]);
   const [scenes, setScenes] = useState<SceneDto[]>([]);
   const [pages, setPages] = useState<PageDto[]>([]);
   const [panels, setPanels] = useState<PanelDto[]>([]);
@@ -91,6 +108,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const [loadingStudio, setLoadingStudio] = useState(false);
   const [gridLots, setGridLots] = useState<MyTaskLotViewItem[]>([]);
   const [gridReviewItems, setGridReviewItems] = useState<TaskGridReviewItemDto[]>([]);
+  const [artistDesignQueue, setArtistDesignQueue] = useState<BibleDesignQueueItemDto[]>([]);
 
   const highlightedId = searchParams.get('taskId') || searchParams.get('assignmentId');
   const chaptersRef = useRef<ChapterDto[]>([]);
@@ -109,6 +127,41 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         setSeriesTitle('');
       });
   }, [seriesId]);
+
+  useEffect(() => {
+    if (!isArtist || !seriesId) {
+      setArtistDesignQueue([]);
+      return;
+    }
+    let cancelled = false;
+    bibleService
+      .getBibleDesignQueue(seriesId)
+      .then((queue) => {
+        if (!cancelled) setArtistDesignQueue(queue || []);
+      })
+      .catch(() => {
+        if (!cancelled) setArtistDesignQueue([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isArtist, seriesId]);
+
+  useEffect(() => {
+    if (!seriesId || !isWriter) return;
+    let cancelled = false;
+    void Promise.all([
+      bibleService.getSeriesBible(seriesId).catch(() => null),
+      bibleService.getBibleDesignQueue(seriesId).catch(() => []),
+    ]).then(([bible, queue]) => {
+      if (cancelled) return;
+      setWriterBibleEntries(bible?.entries ?? []);
+      setWriterDesignQueue(queue ?? []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isWriter, seriesId]);
 
   // Chương, pipeline và thành viên của Series
   useEffect(() => {
@@ -736,21 +789,444 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       ]
     : baseTabs;
   const isStudioTab = tab === 'studio';
+  const currentMember = members.find((m) => m.userId === currentUserId);
+  const currentMemberName =
+    currentMember?.fullName ||
+    (typeof window !== 'undefined' ? localStorage.getItem('userName') : null) ||
+    '—';
+  const artistCells = mineGridLots.flatMap((lot) => lot.tasks);
+  const artistAssignments = artistCells.length
+    ? []
+    : assignments.filter((assignment) => assignment.assigneeUserId === currentUserId);
+  const artistPrimaryLot =
+    mineGridLots.find((lot) =>
+      lot.tasks.some((cell) => ['ReworkRequired', 'InProgress', 'Assigned'].includes(cell.status)),
+    ) || mineGridLots[0];
+  const artistProductionReworks = mineGridLots.flatMap((lot) =>
+    lot.tasks.filter((cell) => cell.status === 'ReworkRequired').map((cell) => ({ lot, cell })),
+  );
+  const artistRevisionCells = artistProductionReworks.map(({ cell }) => cell);
+  const artistDesignReworks = artistDesignQueue.filter(
+    (item) => item.isPriorityRework || item.reviewStatus === 'ReworkRequired',
+  );
+  const artistSummary = {
+    assigned: artistCells.length + artistAssignments.length,
+    pendingReview:
+      artistCells.filter((cell) => ['Submitted', 'UnderReview'].includes(cell.status)).length +
+      artistAssignments.filter((assignment) =>
+        ['Submitted', 'UnderReview'].includes(String(assignment.status)),
+      ).length,
+    revisions:
+      artistRevisionCells.length +
+      artistAssignments.filter((assignment) => String(assignment.status) === 'ReworkRequired')
+        .length +
+      artistDesignReworks.length,
+  };
+
+  const writerActiveChapter = useMemo(
+    () =>
+      [...chapters]
+        .filter((chapter) => !chapter.isScriptFrozen && chapter.scriptStatus !== 'Frozen')
+        .sort((a, b) => {
+          const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+          const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+          return bTime - aTime;
+        })[0] ?? null,
+    [chapters],
+  );
+
+  const writerAssignedChapterCount = useMemo(() => {
+    const assignedChapterIds = new Set<string>();
+    gridLots.forEach((lot) => {
+      if (lot.status !== 'Completed') assignedChapterIds.add(lot.chapterId);
+    });
+    assignments.forEach((assignment) => {
+      if (!currentUserId || assignment.assigneeUserId === currentUserId) {
+        assignedChapterIds.add(assignment.chapterId);
+      }
+    });
+    return assignedChapterIds.size;
+  }, [assignments, currentUserId, gridLots]);
+
+  const writerWritingCount = useMemo(
+    () =>
+      chapters.filter(
+        (chapter) =>
+          !chapter.isScriptFrozen &&
+          chapter.scriptStatus !== 'Frozen' &&
+          chapter.scriptStatus !== 'InReview',
+      ).length,
+    [chapters],
+  );
+
+  const writerWaitingReviewCount = useMemo(
+    () => chapters.filter((chapter) => chapter.scriptStatus === 'InReview').length,
+    [chapters],
+  );
+
+  const writerCharactersMissingNotes = useMemo(
+    () =>
+      writerBibleEntries.filter((entry) => {
+        const category = String(entry.category).toLowerCase();
+        const isCharacter = category === 'character' || category === '0';
+        const notes = entry.effectiveRevision?.artistNotes || entry.artistNotes;
+        return isCharacter && entry.isActive !== false && (entry.isStub || !notes?.trim());
+      }),
+    [writerBibleEntries],
+  );
+
+  const writerReworkCells = useMemo(
+    () =>
+      gridLots.flatMap((lot) =>
+        lot.tasks.filter((task) => task.status === 'ReworkRequired').map((task) => ({ lot, task })),
+      ),
+    [gridLots],
+  );
+
+  const writerBibleRework = useMemo(
+    () => writerDesignQueue.filter((item) => item.reviewStatus === 'ReworkRequired'),
+    [writerDesignQueue],
+  );
+
+  if (isWriter) {
+    const firstMissingNotes = writerCharactersMissingNotes[0];
+    const activeChapterHref = writerActiveChapter
+      ? `/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${writerActiveChapter.id}`
+      : `/workspaces/${workspaceId}/series/${seriesId}/script`;
+    const bibleHref = firstMissingNotes
+      ? `/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(firstMissingNotes.name)}`
+      : `/workspaces/${workspaceId}/series/${seriesId}/bible`;
+    const feedbackCount = writerReworkCells.length + writerBibleRework.length;
+    const lastEdited = writerActiveChapter?.updatedAt || writerActiveChapter?.createdAt;
+
+    return (
+      <PageContainer
+        className='space-y-5 py-6 text-stone-900 font-sans'
+        data-testid='writer-workspace-overview'
+      >
+        <header className='border-b border-head-line pb-4 relative'>
+          <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
+            <div className='flex items-start gap-3 min-w-0'>
+              <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-dark'>
+                <PenLine className='h-5 w-5' aria-hidden='true' />
+              </div>
+              <div className='min-w-0'>
+                <p className='text-xs font-semibold uppercase tracking-wider text-sienna'>
+                  {t('writerStudio.workspaceEyebrow', {
+                    series: seriesTitle || t('myWork.currentSeries'),
+                  })}
+                </p>
+                <h1 className='mt-1 text-2xl font-serif font-bold text-stone-900'>
+                  {t('writerStudio.creativeWorkspace')}
+                </h1>
+                <p className='mt-1 text-sm text-stone-600'>
+                  {t('writerStudio.workspaceGreeting', { name: currentMemberName })}
+                </p>
+              </div>
+            </div>
+            <button
+              type='button'
+              onClick={() => void loadWork()}
+              aria-label={t('myWork.reload')}
+              className='inline-flex h-9 items-center justify-center gap-2 self-start rounded-lg border border-stone-300 bg-white px-3 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${loadingWork ? 'animate-spin text-orange-600' : ''}`}
+                aria-hidden='true'
+              />
+              {t('myWork.reload')}
+            </button>
+          </div>
+          <span className='absolute -bottom-0.5 left-0 h-[3px] w-12 rounded-full bg-accent' />
+        </header>
+
+        <section
+          className='grid grid-cols-2 gap-3 lg:grid-cols-4'
+          aria-label={t('writerStudio.summaryAria')}
+        >
+          {[
+            {
+              value: writerAssignedChapterCount,
+              label: t('writerStudio.assignedChapters'),
+              testId: 'writer-metric-assigned',
+            },
+            {
+              value: writerWritingCount,
+              label: t('writerStudio.currentlyWriting'),
+              testId: 'writer-metric-writing',
+            },
+            {
+              value: writerDesignQueue.length,
+              label: t('writerStudio.collaborating'),
+              testId: 'writer-metric-collaborating',
+            },
+            {
+              value: writerWaitingReviewCount,
+              label: t('writerStudio.awaitingReview'),
+              testId: 'writer-metric-review',
+            },
+          ].map((metric) => (
+            <div
+              key={metric.label}
+              data-testid={metric.testId}
+              className='rounded-xl border border-stone-200/80 bg-white p-4'
+            >
+              <p className='font-mono text-2xl font-bold text-orange-700'>{metric.value}</p>
+              <p className='mt-1 text-xs font-medium text-stone-600'>{metric.label}</p>
+            </div>
+          ))}
+        </section>
+
+        <article className='overflow-hidden rounded-xl border border-stone-200/80 border-t-[3px] border-t-accent bg-white shadow-sm'>
+          <header className='flex flex-wrap items-center justify-between gap-3 border-b border-head-line bg-head-wash px-4 py-3'>
+            <div>
+              <p className='text-xs font-semibold uppercase tracking-wide text-sienna'>
+                {t('writerStudio.continueSection')}
+              </p>
+              <h2 className='mt-1 font-serif text-lg font-bold text-stone-900'>
+                {writerActiveChapter
+                  ? t('writerStudio.chapterTitle', {
+                      number: writerActiveChapter.chapterNumber,
+                      title: writerActiveChapter.title || t('writerStudio.untitledChapter'),
+                    })
+                  : t('writerStudio.noActiveChapter')}
+              </h2>
+            </div>
+            {writerActiveChapter && (
+              <span className='rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-800'>
+                {t('writerStudio.writingVersion', {
+                  version: writerActiveChapter.versionVector || 1,
+                })}
+              </span>
+            )}
+          </header>
+          <div className='space-y-4 p-4'>
+            {writerActiveChapter ? (
+              <>
+                <p className='max-w-3xl text-sm leading-relaxed text-stone-700'>
+                  {writerActiveChapter.outline || t('myWork.noOutline')}
+                </p>
+                <dl className='flex flex-wrap gap-x-5 gap-y-2 text-xs text-stone-600'>
+                  <div className='flex items-center gap-1.5'>
+                    <Film className='h-3.5 w-3.5 text-orange-700' aria-hidden='true' />
+                    <dt className='sr-only'>{t('writerStudio.scenesMetric')}</dt>
+                    <dd>
+                      {t('writerStudio.scenesCount', {
+                        count: writerActiveChapter.scenesCount || 0,
+                      })}
+                    </dd>
+                  </div>
+                  <div className='flex items-center gap-1.5'>
+                    <BookOpen className='h-3.5 w-3.5 text-orange-700' aria-hidden='true' />
+                    <dt className='sr-only'>{t('writerStudio.pagesMetric')}</dt>
+                    <dd>
+                      {t('myWork.pagesCount', { count: writerActiveChapter.pagesCount || 0 })}
+                    </dd>
+                  </div>
+                  {lastEdited && (
+                    <div className='flex items-center gap-1.5'>
+                      <CalendarClock className='h-3.5 w-3.5 text-orange-700' aria-hidden='true' />
+                      <dt>{t('writerStudio.lastEdited')}</dt>
+                      <dd>
+                        {new Intl.DateTimeFormat(undefined, {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        }).format(new Date(lastEdited))}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </>
+            ) : (
+              <p className='text-sm text-stone-600'>{t('writerStudio.noActiveChapterDesc')}</p>
+            )}
+            <footer className='flex justify-end border-t border-stone-200/80 pt-3'>
+              <Link
+                to={activeChapterHref}
+                className='inline-flex min-h-9 items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-orange-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700 active:scale-[0.98]'
+              >
+                {writerActiveChapter
+                  ? t('writerStudio.continueAction')
+                  : t('writerStudio.openScripts')}
+                <ChevronRight className='h-4 w-4' aria-hidden='true' />
+              </Link>
+            </footer>
+          </div>
+        </article>
+
+        <div className='grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]'>
+          <section
+            id='writer-action-center'
+            className={`rounded-xl border bg-white shadow-sm ${
+              isFeedbackView ? 'border-orange-400 ring-2 ring-orange-200' : 'border-stone-200/80'
+            }`}
+            aria-labelledby='writer-action-center-title'
+          >
+            <header className='flex items-center justify-between border-b border-head-line bg-head-wash px-4 py-3'>
+              <div className='flex items-center gap-2'>
+                <div className='flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-dark'>
+                  <ClipboardList className='h-4 w-4' aria-hidden='true' />
+                </div>
+                <h2 id='writer-action-center-title' className='text-sm font-bold text-stone-900'>
+                  {t('writerStudio.actionCenter')}
+                </h2>
+              </div>
+              <span className='rounded-full bg-kraft px-2 py-0.5 font-mono text-xs font-semibold text-kraft-ink'>
+                {writerCharactersMissingNotes.length + feedbackCount}
+              </span>
+            </header>
+            <div className='divide-y divide-stone-200/80 px-4'>
+              <Link
+                to={bibleHref}
+                className='flex items-center gap-3 py-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
+              >
+                <PenLine className='h-4 w-4 shrink-0 text-orange-700' aria-hidden='true' />
+                <span className='min-w-0 flex-1'>
+                  <span className='block text-sm font-semibold text-stone-900'>
+                    {t('writerStudio.completeCharacterNotes')}
+                  </span>
+                  <span className='mt-0.5 block text-xs text-stone-600'>
+                    {t('writerStudio.charactersNeedNotes', {
+                      count: writerCharactersMissingNotes.length,
+                    })}
+                  </span>
+                </span>
+                <ChevronRight className='h-4 w-4 shrink-0 text-stone-500' aria-hidden='true' />
+              </Link>
+              <Link
+                to={activeChapterHref}
+                className='flex items-center gap-3 py-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
+              >
+                <BookOpen className='h-4 w-4 shrink-0 text-orange-700' aria-hidden='true' />
+                <span className='min-w-0 flex-1'>
+                  <span className='block text-sm font-semibold text-stone-900'>
+                    {t('writerStudio.checkScriptReadiness')}
+                  </span>
+                  <span className='mt-0.5 block text-xs text-stone-600'>
+                    {t('writerStudio.scriptReadinessDesc', {
+                      chapter: writerActiveChapter?.chapterNumber ?? '—',
+                    })}
+                  </span>
+                </span>
+                <ChevronRight className='h-4 w-4 shrink-0 text-stone-500' aria-hidden='true' />
+              </Link>
+              {feedbackCount > 0 && (
+                <div className='flex items-start gap-3 py-4'>
+                  <MessageSquare
+                    className='mt-0.5 h-4 w-4 shrink-0 text-rose-700'
+                    aria-hidden='true'
+                  />
+                  <div className='min-w-0 flex-1'>
+                    <p className='text-sm font-semibold text-stone-900'>
+                      {t('writerStudio.feedbackNeedsAction')}
+                    </p>
+                    <p className='mt-0.5 text-xs text-stone-600'>
+                      {t('writerStudio.feedbackNeedsActionDesc', { count: feedbackCount })}
+                    </p>
+                    {writerBibleRework.slice(0, 3).map((item) => (
+                      <Link
+                        key={item.revisionId}
+                        to={`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(item.name)}`}
+                        className='mt-2 flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-900 hover:bg-rose-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700'
+                      >
+                        <span className='truncate'>{item.name}</span>
+                        <ChevronRight className='h-3.5 w-3.5 shrink-0' aria-hidden='true' />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section
+            className='rounded-xl border border-stone-200/80 bg-white shadow-sm'
+            aria-labelledby='writer-collaboration-title'
+          >
+            <header className='flex items-center justify-between border-b border-head-line bg-head-wash px-4 py-3'>
+              <div className='flex items-center gap-2'>
+                <div className='flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-dark'>
+                  <Palette className='h-4 w-4' aria-hidden='true' />
+                </div>
+                <h2 id='writer-collaboration-title' className='text-sm font-bold text-stone-900'>
+                  {t('writerStudio.artistCollaboration')}
+                </h2>
+              </div>
+              <span className='rounded-full bg-kraft px-2 py-0.5 font-mono text-xs font-semibold text-kraft-ink'>
+                {writerDesignQueue.length}
+              </span>
+            </header>
+            {writerDesignQueue.length > 0 ? (
+              <ul className='divide-y divide-stone-200/80 px-4'>
+                {writerDesignQueue.slice(0, 5).map((item) => (
+                  <li key={item.revisionId}>
+                    <Link
+                      to={`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(item.name)}`}
+                      className='flex items-center gap-3 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
+                    >
+                      <span className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100 font-mono text-xs font-bold text-stone-700'>
+                        {item.name.trim().charAt(0).toUpperCase() || '?'}
+                      </span>
+                      <span className='min-w-0 flex-1'>
+                        <span className='block truncate text-sm font-semibold text-stone-900'>
+                          {item.name}
+                        </span>
+                        <span className='block truncate text-xs text-stone-600'>
+                          {item.variantLabel || t('writerStudio.defaultVariant')} · v
+                          {item.versionNumber || 1}
+                        </span>
+                      </span>
+                      <span
+                        className={`shrink-0 text-xs font-semibold ${
+                          item.reviewStatus === 'ReworkRequired'
+                            ? 'text-rose-700'
+                            : item.reviewStatus === 'ConceptSubmitted'
+                              ? 'text-amber-800'
+                              : 'text-blue-700'
+                        }`}
+                      >
+                        {t(`writerStudio.designStatus.${item.reviewStatus}`)}
+                      </span>
+                      <ChevronRight
+                        className='h-4 w-4 shrink-0 text-stone-500'
+                        aria-hidden='true'
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className='p-6 text-center text-sm text-stone-600'>
+                {t('writerStudio.noArtistCollaboration')}
+              </p>
+            )}
+          </section>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer className='space-y-6 py-6 text-[#1C1917] font-sans' data-testid='my-work-view'>
-      <PageHeader
-        icon={<BookOpen className='w-5 h-5' aria-hidden='true' />}
-        eyebrow={seriesTitle || undefined}
-        title={
-          workspaceRole?.toLowerCase() === 'writer'
-            ? t('writerStudio.workbenchTitle')
-            : t('myWork.title')
-        }
-        description={t('myWork.desc')}
-        actions={
-          <div className='flex items-center gap-2 flex-wrap justify-end'>
-            {chapters.length > 0 &&
+      {/* Stitch Manga Production Workspace Banner */}
+      <header className='relative bg-white rounded-xl p-6 sm:p-8 shadow-sm overflow-hidden border border-stone-200/80'>
+        <div className='relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6'>
+          <div>
+            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#18181B] tracking-tight'>
+              {isWriter
+                ? `${t('writerStudio.workbenchTitle')} — ${currentMemberName}`
+                : isArtist
+                  ? `${t('myWork.artistOverview.title')} — ${currentMemberName}`
+                  : `${t('myWork.title')} — ${currentMemberName}`}
+            </h1>
+            <p className='text-sm text-stone-500 mt-1'>
+              {isArtist ? t('myWork.artistOverview.desc') : t('myWork.desc')}
+            </p>
+          </div>
+
+          <div className='flex items-center gap-2.5 flex-wrap'>
+            {isWriter &&
+              chapters.length > 0 &&
               workspaceId &&
               seriesId &&
               (() => {
@@ -758,21 +1234,39 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 return (
                   <Link
                     to={`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${activeChapter.id}`}
-                    className='focus-ring inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs transition-colors shadow-xs'
+                    className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs transition-colors shadow-xs'
                   >
-                    <BookOpen className='w-4 h-4' aria-hidden='true' />
+                    <BookOpen className='w-4 h-4' />
                     <span>
                       {t('writerStudio.continueWriting', { chapter: activeChapter.chapterNumber })}
                     </span>
                   </Link>
                 );
               })()}
+            {isArtist && workspaceId && seriesId && (
+              <>
+                <Link
+                  to={`/workspaces/${workspaceId}/series/${seriesId}/artist`}
+                  className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs transition-colors shadow-xs'
+                >
+                  <Palette className='w-4 h-4' aria-hidden='true' />
+                  <span>{t('myWork.artistOverview.openDesk')}</span>
+                </Link>
+                <Link
+                  to={`/workspaces/${workspaceId}/series/${seriesId}/bible`}
+                  className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 font-semibold text-xs transition-colors'
+                >
+                  <BookOpen className='w-4 h-4' aria-hidden='true' />
+                  <span>{t('myWork.artistOverview.openDesignRequests')}</span>
+                </Link>
+              </>
+            )}
             <select
               value={chapterId}
               onChange={(e) => selectChapter(e.target.value)}
               aria-label={t('collaboration.myWork.selectChapterAria')}
               disabled={loadingChapters && chapters.length === 0}
-              className='h-9 max-w-48 truncate px-3 bg-white border border-stone-200 rounded-lg text-xs font-semibold text-[#1C1917] shadow-2xs focus:outline-none focus:border-[#F97316] cursor-pointer'
+              className='px-4 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] shadow-xs focus:outline-none focus:border-[#F97316] cursor-pointer'
             >
               <option value='ALL_STUDIO'>{t('collaboration.myWork.allStudioOption')}</option>
               {chapters.map((c) => (
@@ -786,25 +1280,279 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               type='button'
               onClick={() => void (isStudioTab ? loadStudioWork() : loadWork())}
               aria-label={t('collaboration.myWork.reload')}
-              title={t('collaboration.myWork.reload')}
-              className='focus-ring h-9 w-9 inline-flex items-center justify-center rounded-lg border border-stone-200 bg-white hover:bg-stone-50 shadow-2xs cursor-pointer transition-colors text-[#1C1917]'
+              className='p-2.5 rounded-xl border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] shadow-xs cursor-pointer transition-colors text-[#1C1917]'
             >
               <RefreshCw
-                aria-hidden='true'
                 className={`w-3.5 h-3.5 ${(isStudioTab ? loadingStudio : loadingWork) ? 'animate-spin text-[#F97316]' : ''}`}
               />
             </button>
           </div>
-        }
-      />
+        </div>
+
+        {isWriter && (
+          <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-stone-200/80'>
+            <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
+              <div className='w-10 h-10 rounded-lg bg-[#EA580C]/10 flex items-center justify-center text-[#EA580C] shrink-0'>
+                <BookOpen className='w-5 h-5' />
+              </div>
+              <div>
+                <div className='font-bold text-[#18181B] text-sm sm:text-base'>
+                  {counts.mine > 0
+                    ? t('writerStudio.scriptsInProgress', { count: counts.mine })
+                    : chapters.length > 0
+                      ? t('writerStudio.scriptsInProgress', { count: chapters.length })
+                      : '—'}
+                </div>
+                <div className='text-xs text-stone-500'>
+                  {t('writerStudio.scriptsInProgressDesc')}
+                </div>
+              </div>
+            </div>
+            <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
+              <div className='w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0'>
+                <User className='w-5 h-5' />
+              </div>
+              <div>
+                <div className='font-bold text-[#18181B] text-sm sm:text-base'>—</div>
+                <div className='text-xs text-stone-500'>{t('myWork.characterProfiles')}</div>
+              </div>
+            </div>
+            <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
+              <div className='w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0'>
+                <CheckCircle2 className='w-5 h-5' />
+              </div>
+              <div>
+                <div className='font-bold text-[#18181B] text-sm sm:text-base'>—</div>
+                <div className='text-xs text-stone-500'>Model Sheet</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isArtist && (
+          <div className='grid grid-cols-2 xl:grid-cols-4 gap-3 mt-6 pt-5 border-t border-stone-200/80'>
+            <div className='rounded-lg border border-stone-200 bg-[#FAF9F5] px-3.5 py-3'>
+              <div className='flex items-center gap-2 text-xs font-semibold text-stone-600'>
+                <ClipboardList className='h-4 w-4 text-orange-600' aria-hidden='true' />
+                {t('myWork.artistOverview.assigned')}
+              </div>
+              <div className='mt-1 text-xl font-bold tabular-nums text-stone-900'>
+                {artistSummary.assigned}
+              </div>
+            </div>
+            <div className='rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-3'>
+              <div className='flex items-center gap-2 text-xs font-semibold text-blue-800'>
+                <Palette className='h-4 w-4' aria-hidden='true' />
+                {t('myWork.artistOverview.designRequests')}
+              </div>
+              <div className='mt-1 text-xl font-bold tabular-nums text-blue-950'>
+                {artistDesignQueue.length}
+              </div>
+            </div>
+            <div className='rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3'>
+              <div className='flex items-center gap-2 text-xs font-semibold text-amber-800'>
+                <CheckCircle2 className='h-4 w-4' aria-hidden='true' />
+                {t('myWork.artistOverview.pendingReview')}
+              </div>
+              <div className='mt-1 text-xl font-bold tabular-nums text-amber-950'>
+                {artistSummary.pendingReview}
+              </div>
+            </div>
+            <div className='rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3'>
+              <div className='flex items-center gap-2 text-xs font-semibold text-rose-800'>
+                <RotateCcw className='h-4 w-4' aria-hidden='true' />
+                {t('myWork.artistOverview.revisions')}
+              </div>
+              <div className='mt-1 text-xl font-bold tabular-nums text-rose-950'>
+                {artistSummary.revisions}
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {isArtist && artistPrimaryLot && workspaceId && seriesId && (
+        <section className='space-y-3' aria-labelledby='artist-continue-production'>
+          <h2 id='artist-continue-production' className='text-sm font-bold text-stone-900'>
+            {t('myWork.artistOverview.continueProduction')}
+          </h2>
+          <div className='rounded-xl border border-stone-200 bg-white p-4 shadow-xs'>
+            <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
+              <div className='min-w-0 space-y-2'>
+                <div>
+                  <h3 className='text-base font-bold text-stone-900'>
+                    {t('myWork.artistOverview.chapterTitle', {
+                      number: artistPrimaryLot.chapterNumber,
+                      title: artistPrimaryLot.chapterTitle || '',
+                    })}
+                  </h3>
+                  <p className='mt-0.5 text-xs text-stone-500'>
+                    {t('myWork.artistOverview.productionScope', {
+                      pages:
+                        artistPrimaryLot.tasks
+                          .map((task) => task.pageNumber)
+                          .filter((page): page is number => page != null)
+                          .join(', ') || '—',
+                      stage: artistPrimaryLot.stageName,
+                    })}
+                  </p>
+                </div>
+                <div
+                  className='flex flex-wrap gap-1.5'
+                  aria-label={t('myWork.artistOverview.stageAria')}
+                >
+                  {stages.map((stage) => {
+                    const active = stage.id === artistPrimaryLot.pipelineStageId;
+                    return (
+                      <span
+                        key={stage.id}
+                        className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                          active
+                            ? 'border-orange-300 bg-orange-50 text-orange-800'
+                            : 'border-stone-200 bg-stone-50 text-stone-500'
+                        }`}
+                      >
+                        {stage.name}
+                      </span>
+                    );
+                  })}
+                </div>
+                <p className='text-xs text-stone-600'>
+                  {artistPrimaryLot.brief || t('myWork.artistOverview.checkAssignment')}
+                </p>
+              </div>
+              <Link
+                to={`/workspaces/${workspaceId}/series/${seriesId}/artist?chapterId=${encodeURIComponent(artistPrimaryLot.chapterId)}`}
+                className='inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-orange-700'
+              >
+                {t('myWork.artistOverview.openDesk')}
+                <ChevronRight className='h-4 w-4' aria-hidden='true' />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isArtist && workspaceId && seriesId && artistDesignQueue.length > 0 && (
+        <section className='space-y-3' aria-labelledby='artist-design-requests'>
+          <div className='flex items-center justify-between gap-3'>
+            <h2 id='artist-design-requests' className='text-sm font-bold text-stone-900'>
+              {t('myWork.artistOverview.designSectionTitle')}
+            </h2>
+            <Link
+              to={`/workspaces/${workspaceId}/series/${seriesId}/bible`}
+              className='text-xs font-semibold text-orange-700 hover:underline'
+            >
+              {t('myWork.artistOverview.viewAllDesignRequests')}
+            </Link>
+          </div>
+          <div className='divide-y divide-stone-200 rounded-xl border border-stone-200 bg-white px-4 shadow-xs'>
+            {artistDesignQueue.slice(0, 3).map((item) => (
+              <Link
+                key={item.revisionId || item.entryId}
+                to={`/workspaces/${workspaceId}/series/${seriesId}/bible?entityId=${encodeURIComponent(item.entryId)}`}
+                className='flex items-center gap-3 py-3 transition-colors hover:bg-stone-50'
+              >
+                <div className='flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-stone-100 text-stone-500'>
+                  {item.referenceImageUrl ? (
+                    <AuthenticatedImage
+                      src={item.referenceImageUrl}
+                      alt={item.name}
+                      className='h-full w-full object-cover'
+                    />
+                  ) : (
+                    <User className='h-4 w-4' aria-hidden='true' />
+                  )}
+                </div>
+                <div className='min-w-0 flex-1'>
+                  <h3 className='truncate text-xs font-bold text-stone-900'>{item.name}</h3>
+                  <p className='truncate text-xs text-stone-500'>
+                    {t('myWork.artistOverview.designRequestMeta', {
+                      variant: item.variantLabel || t('myWork.artistOverview.defaultVariant'),
+                      chapters: item.waitingChapterNumbers?.join(', ') || '—',
+                    })}
+                  </p>
+                </div>
+                <span className='shrink-0 text-xs font-semibold text-orange-700'>
+                  {t('myWork.artistOverview.viewRequest')}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {isArtist && (
+        <section
+          className='space-y-3 border-t border-stone-200 pt-5'
+          aria-labelledby='artist-revisions'
+        >
+          <h2 id='artist-revisions' className='text-sm font-bold text-stone-900'>
+            {t('myWork.artistOverview.revisionSectionTitle')}
+          </h2>
+          {artistSummary.revisions === 0 ? (
+            <div className='flex flex-col items-center justify-center rounded-xl border border-dashed border-stone-300 bg-white px-5 py-8 text-center'>
+              <CheckCircle2 className='h-5 w-5 text-emerald-600' aria-hidden='true' />
+              <p className='mt-2 text-xs text-stone-500'>
+                {t('myWork.artistOverview.noRevisions')}
+              </p>
+            </div>
+          ) : (
+            <div className='divide-y divide-rose-200 rounded-xl border border-rose-200 bg-white px-4'>
+              {artistProductionReworks.map(({ lot, cell }) => (
+                <Link
+                  key={cell.id}
+                  to={`/workspaces/${workspaceId}/series/${seriesId}/artist?chapterId=${encodeURIComponent(lot.chapterId)}&taskId=${encodeURIComponent(cell.id)}`}
+                  className='flex items-center justify-between gap-3 py-3 text-sm hover:bg-rose-50'
+                >
+                  <span className='min-w-0'>
+                    <strong className='block truncate text-stone-900'>
+                      {t('myWork.artistOverview.revisionProductionTitle', {
+                        chapter: lot.chapterNumber,
+                        page: cell.pageNumber ?? '—',
+                      })}
+                    </strong>
+                    <span className='line-clamp-1 text-xs text-rose-700'>
+                      {cell.lastDecisionComment || lot.stageName}
+                    </span>
+                  </span>
+                  <ChevronRight className='h-4 w-4 shrink-0 text-rose-700' aria-hidden='true' />
+                </Link>
+              ))}
+              {artistDesignReworks.map((item) => (
+                <Link
+                  key={item.revisionId || item.entryId}
+                  to={`/workspaces/${workspaceId}/series/${seriesId}/bible?entityId=${encodeURIComponent(item.entryId)}`}
+                  className='flex items-center justify-between gap-3 py-3 text-sm hover:bg-rose-50'
+                >
+                  <span className='min-w-0'>
+                    <strong className='block truncate text-stone-900'>{item.name}</strong>
+                    <span className='line-clamp-1 text-xs text-rose-700'>
+                      {item.reworkFeedback || t('myWork.artistOverview.designRevisionFallback')}
+                    </span>
+                  </span>
+                  <ChevronRight className='h-4 w-4 shrink-0 text-rose-700' aria-hidden='true' />
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Kịch bản Chương đang thực hiện (Stitch tab-tasks view) */}
-      {chapters.length > 0 && workspaceId && seriesId && (
+      {isWriter && chapters.length > 0 && workspaceId && seriesId && (
         <section className='space-y-3.5'>
-          <SectionHeader
-            title={t('writerStudio.chaptersInProgressTitle')}
-            count={t('myWork.chaptersInSeries', { count: chapters.length })}
-          />
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <Film className='w-5 h-5 text-[#EA580C]' />
+              <h2 className='text-lg font-serif font-bold text-[#18181B]'>
+                {t('writerStudio.chaptersInProgressTitle')}
+              </h2>
+            </div>
+            <span className='text-xs text-stone-500'>
+              {t('myWork.chaptersInSeries', { count: chapters.length })}
+            </span>
+          </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             {chapters.slice(0, 4).map((c) => {
@@ -841,7 +1589,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                         </span>
                         {isActive && (
                           <span className='inline-flex items-center gap-1.5 text-xs text-amber-800 font-medium'>
-                            <span className='w-1.5 h-1.5 rounded-full bg-amber-500' />
+                            <span className='w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping' />
                             {t('writerStudio.activeStatus')}
                           </span>
                         )}
@@ -857,19 +1605,35 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     <ChevronRight className='w-5 h-5 text-stone-400 group-hover:text-[#EA580C] transition-colors shrink-0' />
                   </div>
 
-                  <div className='flex justify-between text-xs'>
-                    <span className='text-stone-500'>{t('writerStudio.draftProgress')}</span>
-                    <span className='font-semibold text-[#18181B]'>
-                      {t('myWork.pagesCount', { count: c.pagesCount ?? 0 })}
-                    </span>
+                  <div className='space-y-1.5 pt-1'>
+                    <div className='flex justify-between text-xs'>
+                      <span className='text-stone-500'>{t('writerStudio.draftProgress')}</span>
+                      <span className='font-semibold font-mono text-[#18181B]'>
+                        {t('myWork.pagesCount', { count: c.pagesCount ?? 0 })}
+                      </span>
+                    </div>
+                    <div className='w-full h-2 rounded-full bg-stone-100 overflow-hidden'>
+                      <div
+                        className='h-full bg-[#EA580C] rounded-full transition-all duration-500'
+                        style={{
+                          width: c.isScriptFrozen
+                            ? '100%'
+                            : (c.pagesCount ?? 0) > 0
+                              ? '60%'
+                              : '15%',
+                        }}
+                      />
+                    </div>
                   </div>
 
                   <div className='pt-3 border-t border-stone-200/80 flex items-center justify-between text-xs text-stone-500'>
-                    <span>
+                    <span className='font-mono'>
                       {c.updatedAt
-                        ? new Intl.DateTimeFormat(lang, {
-                            dateStyle: 'medium',
-                            timeStyle: 'short',
+                        ? new Intl.DateTimeFormat(undefined, {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
                           }).format(new Date(c.updatedAt))
                         : '—'}
                     </span>

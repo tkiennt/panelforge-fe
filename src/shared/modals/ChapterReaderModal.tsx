@@ -23,6 +23,7 @@ import { Modal } from '@/shared/ui';
 import { LanguageSelector } from '@/shared/components/LanguageSelector';
 import { userService } from '@/services/user.service';
 import { useTranslation } from '@/lib/i18n';
+import { formatContentLanguageName } from '@/roles/publisher/components/multilingual';
 
 interface ChapterReaderModalProps {
   isOpen: boolean;
@@ -30,12 +31,13 @@ interface ChapterReaderModalProps {
   chapterId: string;
   chapterNumber?: number;
   chapterTitle?: string | null;
+  initialLanguage?: string;
 }
 
 const pageUrl = (url?: string | null, lang?: string) => {
   if (!url || !url.trim()) return null;
   const resolved = resolveCatalogImageUrl(url);
-  if (!lang) return resolved;
+  if (!lang || /[?&]lang=/i.test(resolved)) return resolved;
   const separator = resolved.includes('?') ? '&' : '?';
   return `${resolved}${separator}lang=${encodeURIComponent(lang)}`;
 };
@@ -46,8 +48,9 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
   chapterId,
   chapterNumber,
   chapterTitle,
+  initialLanguage,
 }) => {
-  const { t } = useTranslation();
+  const { t, lang: uiLang } = useTranslation();
   const [data, setData] = useState<PublicChapterReadDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,12 +60,19 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
   const [fitMode, setFitMode] = useState<'height' | 'width'>('height');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [readingLang, setReadingLang] = useState<string>(() => {
+    if (initialLanguage) return initialLanguage;
     try {
       return localStorage.getItem('preferred_reading_language') || 'vi';
     } catch {
       return 'vi';
     }
   });
+
+  useEffect(() => {
+    if (isOpen && initialLanguage) {
+      setReadingLang(initialLanguage);
+    }
+  }, [isOpen, initialLanguage]);
 
   const handleLanguageChange = (newLang: string) => {
     setReadingLang(newLang);
@@ -144,7 +154,9 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentPageUrl = pageUrl(data?.pages[currentPageIndex]?.imageUrl, readingLang);
+  const languageList = data?.languages ?? data?.availableLanguages ?? [];
+  const activeLang = data?.language ?? data?.currentLanguage ?? readingLang;
+  const currentPageUrl = pageUrl(data?.pages[currentPageIndex]?.imageUrl, activeLang);
   const ready = !loading && !error && data && totalPages > 0;
   const toolBtn =
     'h-8 px-2.5 rounded-lg border border-[#27272A] transition-colors cursor-pointer text-xs flex items-center gap-1.5';
@@ -184,15 +196,18 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                 <h2 className='text-sm font-bold text-white truncate'>
                   {data?.seriesTitle || t('common.modals.chapterReader.loadingSeries')}
                 </h2>
-                <span className='shrink-0 px-1.5 py-0.5 rounded bg-orange-950/60 text-orange-400 border border-orange-800 text-[10px] font-mono'>
+                <span className='shrink-0 px-1.5 py-0.5 rounded bg-orange-950/60 text-orange-400 border border-orange-800 text-xs font-mono'>
                   {data?.readingDirection === 'RightToLeft'
                     ? 'Manga (RTL)'
                     : data?.readingDirection === 'Vertical'
                       ? 'Webtoon'
                       : 'Comic (LTR)'}
                 </span>
+                <span className='hidden sm:inline-flex shrink-0 px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-200 border border-neutral-700 text-[10px] font-medium'>
+                  {formatContentLanguageName(activeLang, uiLang)}
+                </span>
               </div>
-              <p className='text-[11px] text-neutral-400 font-mono truncate'>
+              <p className='text-xs text-neutral-400 font-mono truncate'>
                 {t('common.modals.chapterReader.chapterLabel', {
                   number: data ? data.chapterNumber : (chapterNumber ?? ''),
                 })}
@@ -227,11 +242,11 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
           </div>
         )}
 
-        {data?.availableLanguages && data.availableLanguages.length > 1 && (
+        {languageList.length > 1 && (
           <div className='flex items-center gap-1 shrink-0'>
             <LanguageSelector
-              languages={data.availableLanguages.map((l) => l.language)}
-              activeLang={data.currentLanguage || readingLang}
+              languages={languageList.map((l) => l.language)}
+              activeLang={activeLang}
               onChange={handleLanguageChange}
               size='sm'
             />
@@ -361,7 +376,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
 
                     {/* Zoom badge and reset button */}
                     {state.scale !== 1 && (
-                      <div className='absolute bottom-3 right-3 z-30 flex items-center gap-2 bg-neutral-900/90 text-white border border-neutral-700 px-2 py-1 rounded-md text-[11px] font-mono shadow-lg backdrop-blur-xs'>
+                      <div className='absolute bottom-3 right-3 z-30 flex items-center gap-2 bg-neutral-900/90 text-white border border-neutral-700 px-2 py-1 rounded-md text-xs font-mono shadow-lg backdrop-blur-xs'>
                         <span>{Math.round(state.scale * 100)}%</span>
                         <button
                           type='button'
@@ -406,7 +421,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
         {ready && viewMode === 'vertical' && (
           <div className='mx-auto w-full max-w-3xl flex flex-col gap-2 py-4 px-2'>
             {data.pages.map((p) => {
-              const url = pageUrl(p.imageUrl, readingLang);
+              const url = pageUrl(p.imageUrl, activeLang);
               return url ? (
                 <img
                   key={p.id}
@@ -434,7 +449,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
           <div className='flex-1 min-w-0 overflow-x-auto custom-scrollbar'>
             <div className={`flex gap-2 w-max mx-auto ${isRTL ? 'flex-row-reverse' : ''}`}>
               {data.pages.map((p, i) => {
-                const url = pageUrl(p.imageUrl, readingLang);
+                const url = pageUrl(p.imageUrl, activeLang);
                 const active = i === currentPageIndex;
                 return (
                   <button
@@ -460,7 +475,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                     ) : (
                       <span className='w-full h-full bg-neutral-800 block' />
                     )}
-                    <span className='absolute bottom-0 inset-x-0 bg-black/70 text-[9px] font-mono text-center'>
+                    <span className='absolute bottom-0 inset-x-0 bg-black/70 text-xs font-mono text-center'>
                       {p.pageNumber}
                     </span>
                   </button>
@@ -468,7 +483,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
               })}
             </div>
           </div>
-          <span className='hidden md:block shrink-0 text-[11px] text-neutral-500 font-mono w-40 text-right'>
+          <span className='hidden md:block shrink-0 text-xs text-neutral-500 font-mono w-40 text-right'>
             {isRTL
               ? t('common.modals.chapterReader.nextPageRtl')
               : t('common.modals.chapterReader.nextPageLtr')}

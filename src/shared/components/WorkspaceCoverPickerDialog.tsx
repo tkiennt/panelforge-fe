@@ -233,7 +233,7 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
                   ? t('workspace.shelf.chooseDifferent')
                   : t('workspace.shelf.coverDropzone')}
               </p>
-              <p className='text-[11px] text-[#78716C] leading-normal'>
+              <p className='text-xs text-[#78716C] leading-normal'>
                 {t('workspace.shelf.coverHint')}
               </p>
             </div>

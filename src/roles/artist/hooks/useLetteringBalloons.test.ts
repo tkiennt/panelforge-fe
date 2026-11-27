@@ -84,4 +84,41 @@ describe('useLetteringBalloons – đặt bóng từ script (BR-05)', () => {
     expect(req.x + req.width / 2).toBeCloseTo(600, 0);
     expect(req.y + req.height / 2).toBeCloseTo(900, 0);
   });
+
+  it('bóng chờ server lưu được đánh dấu pending, lưu xong thì bỏ đánh dấu', async () => {
+    let resolveAdd: (v: unknown) => void = () => {};
+    vi.mocked(elementService.addElement).mockImplementationOnce(
+      () => new Promise((r) => (resolveAdd = r)) as never,
+    );
+    const { result } = renderHook(() => useLetteringBalloons(page('p1', 1), [], 1, toast));
+    await waitFor(() => expect(elementService.getPageSnapshot).toHaveBeenCalled());
+
+    let pendingAdd: Promise<void> = Promise.resolve();
+    act(() => {
+      pendingAdd = result.current.addElement('SPEECH_BALLOON', { ...line, id: 'l-slow' });
+    });
+    const tempId = result.current.pageElements.find((e) => e.scriptLineId === 'l-slow')!.elementId;
+    expect(result.current.pendingElementIds.has(tempId)).toBe(true);
+
+    await act(async () => {
+      resolveAdd({});
+      await pendingAdd;
+    });
+    expect(result.current.pendingElementIds.size).toBe(0);
+  });
+
+  it('bóng tạo liên tiếp từ script không chồng cùng một vị trí', async () => {
+    const { result } = renderHook(() => useLetteringBalloons(page('p1', 1), [], 1, toast));
+    await waitFor(() => expect(elementService.getPageSnapshot).toHaveBeenCalled());
+
+    await act(async () => {
+      await result.current.addElement('SPEECH_BALLOON', { ...line, id: 'l-a' });
+    });
+    await act(async () => {
+      await result.current.addElement('SPEECH_BALLOON', { ...line, id: 'l-b' });
+    });
+
+    const [a, b] = vi.mocked(elementService.addElement).mock.calls.map((c) => c[1]);
+    expect({ x: a.x, y: a.y }).not.toEqual({ x: b.x, y: b.y });
+  });
 });

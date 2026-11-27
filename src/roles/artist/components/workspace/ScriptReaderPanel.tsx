@@ -41,7 +41,7 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
               {t('scriptReaderPanel.pageScriptTitle', { pageNumber })}
             </h2>
           </div>
-          <span className='text-[10px] font-mono px-1.5 py-0.5 rounded bg-stone-200/70 text-stone-700 font-semibold'>
+          <span className='text-xs font-mono px-1.5 py-0.5 rounded bg-stone-200/70 text-stone-700 font-semibold'>
             {t('scriptReaderPanel.linesCount', { count: lines.length })}
           </span>
         </div>
@@ -51,7 +51,7 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
           <div className='font-serif font-bold text-stone-900 text-sm tracking-tight truncate'>
             {resolvedSceneTitle}
           </div>
-          <div className='text-[10px] font-mono text-stone-500 uppercase tracking-wide truncate mt-0.5'>
+          <div className='text-xs font-mono text-stone-500 uppercase tracking-wide truncate mt-0.5'>
             {resolvedSceneSlugline}
           </div>
         </div>
@@ -88,7 +88,7 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
                       title={t('scriptReaderPanel.linkedToPanelTitle', {
                         panelNumber: line.panelId.replace('panel-', ''),
                       })}
-                      className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded transition-colors ${
+                      className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded transition-colors ${
                         isLinkedToSelectedPanel
                           ? 'bg-orange-500 text-white shadow-2xs'
                           : 'bg-stone-100 text-stone-600 group-hover:bg-stone-200'
@@ -101,7 +101,7 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
                   ) : (
                     <span
                       title={t('scriptReaderPanel.unassignedPanelTitle')}
-                      className='text-[10px] font-mono text-stone-300'
+                      className='text-xs font-mono text-stone-300'
                     >
                       —
                     </span>
@@ -110,11 +110,11 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
 
                 {/* Line Order Pill */}
                 <div className='flex items-center gap-1.5 mb-1.5'>
-                  <span className='text-[10px] font-mono font-semibold text-stone-400'>
+                  <span className='text-xs font-mono font-semibold text-stone-400'>
                     #{line.lineOrder}
                   </span>
                   {line.cameraAngle && (
-                    <span className='text-[9px] font-mono px-1 py-0.2 rounded bg-stone-100 text-stone-600 uppercase'>
+                    <span className='text-xs font-mono px-1 py-0.2 rounded bg-stone-100 text-stone-600 uppercase'>
                       {line.cameraAngle}
                     </span>
                   )}
@@ -136,9 +136,14 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
                           className='w-2 h-2 rounded-full shrink-0'
                           style={{ backgroundColor: line.characterColor || '#F97316' }}
                         />
-                        <span className='text-[11px] font-bold text-stone-900 tracking-wide'>
+                        <span className='text-xs font-bold text-stone-900 tracking-wide'>
                           {line.characterName}
                         </span>
+                        {line.characterVariant && (
+                          <span className='rounded-full border border-violet-200 bg-violet-50 px-1.5 text-xs font-semibold text-violet-800'>
+                            {line.characterVariant}
+                          </span>
+                        )}
                       </div>
                     )}
                     <p className='text-xs text-stone-900 font-sans leading-relaxed pl-3 border-l-2 border-stone-300/80'>

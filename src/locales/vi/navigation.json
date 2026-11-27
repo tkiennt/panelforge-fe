@@ -21,11 +21,20 @@
     "productionUtilities": "TIỆN ÍCH SẢN XUẤT",
     "qualityReview": "KIỂM DUYỆT"
   },
+  "writerSections": {
+    "overview": "TỔNG QUAN",
+    "writing": "SÁNG TÁC",
+    "storyWorld": "THẾ GIỚI TRUYỆN",
+    "collaboration": "PHỐI HỢP"
+  },
   "menu": {
     "dashboard": "Dashboard",
     "seriesDashboard": "Series Dashboard",
     "systemDashboard": "System Dashboard",
     "myWork": "Việc của tôi",
+    "artistMyWork": "Công việc của tôi",
+    "writerWorkspace": "Không gian sáng tác",
+    "writerFeedback": "Góp ý & Yêu cầu chỉnh sửa",
     "workAndReview": "Công việc & Xét duyệt",
     "production": "Quy trình sản xuất",
     "script": "Kịch bản (Script)",
@@ -68,6 +77,8 @@
     "characterProfilesAndLore": "Hồ sơ Nhân vật & Lore",
     "panelCanvasDesk": "Bàn vẽ Khung tranh",
     "scriptReadOnly": "Kịch bản (chỉ đọc)",
+    "artistDesk": "Bàn vẽ truyện",
+    "scriptReference": "Kịch bản tham chiếu",
     "letteringAndBalloons": "Chèn chữ & Bóng thoại",
     "editorReviewDesk": "Kiểm tra & Hiệu đính",
     "pageMatrix": "Ma trận trang",
@@ -90,6 +101,7 @@
     "currentChapter": "Chương đang mở",
     "quickSearch": "Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)",
     "publisherPortal": "PanelForge // Cổng Xuất Bản",
+    "adminPortal": "PanelForge // Cổng Quản Trị",
     "scriptManagement": "Quản lý Kịch bản",
     "lettererDesk": "Bàn làm việc Chữ & Thoại",
     "switchStudio": "Chuyển đổi Studio làm việc"
@@ -127,6 +139,8 @@
     "activeSeriesLabel": "BỘ TRUYỆN ĐANG MỞ",
     "activeWorkspaceLabel": "WORKSPACE HIỆN TẠI",
     "chapterProduction": "SẢN XUẤT CHƯƠNG",
+    "comicProduction": "SẢN XUẤT TRUYỆN",
+    "designAssets": "THIẾT KẾ TÀI NGUYÊN",
     "chapterWriting": "SÁNG TÁC CHƯƠNG",
     "seriesOverview": "TỔNG QUAN",
     "crew": "Đội ngũ",

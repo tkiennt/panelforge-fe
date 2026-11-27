@@ -14,12 +14,24 @@ export interface PublicSeriesDto {
   latestPublishedAt?: string | null;
 }
 
+export interface PublicChapterLanguageDto {
+  language: string;
+  priceVnd: number;
+  isUnlocked?: boolean;
+  unlocked?: boolean;
+}
+
 export interface PublicChapterDto {
   id: string;
   chapterNumber: number;
   title?: string | null;
   publishedAt?: string | null;
   coverUrl?: string | null;
+  isLocked?: boolean;
+  priceVnd?: number;
+  isUnlocked?: boolean;
+  isFree?: boolean;
+  languages?: PublicChapterLanguageDto[];
 }
 
 export interface PublicSeriesDetailDto {
@@ -30,13 +42,8 @@ export interface PublicSeriesDetailDto {
   format: string;
   readingDirection: 'RightToLeft' | 'LeftToRight' | 'Vertical';
   studioName: string;
+  language?: string;
   chapters: PublicChapterDto[];
-}
-
-export interface PublicChapterLanguageDto {
-  language: string;
-  priceVnd: number;
-  unlocked: boolean;
 }
 
 export interface PublicPageReadDto {
@@ -55,8 +62,14 @@ export interface PublicChapterReadDto {
   publishedAt?: string | null;
   pages: PublicPageReadDto[];
   coverUrl?: string | null;
+  language?: string;
+  languages?: PublicChapterLanguageDto[];
   availableLanguages?: PublicChapterLanguageDto[];
   currentLanguage?: string;
+  isLocked?: boolean;
+  priceVnd?: number;
+  isUnlocked?: boolean;
+  isFree?: boolean;
 }
 
 export interface PublicCatalogPagedResult {
@@ -105,11 +118,16 @@ export const catalogService = {
 
   /**
    * Xem chi tiết truyện và danh sách các chương đã xuất bản (AllowAnonymous)
-   * GET /api/catalog/series/{seriesId}
+   * GET /api/catalog/series/{seriesId}?lang=
    */
-  getPublicSeriesDetail: async (seriesId: string): Promise<PublicSeriesDetailDto> => {
+  getPublicSeriesDetail: async (
+    seriesId: string,
+    lang?: string,
+  ): Promise<PublicSeriesDetailDto> => {
     try {
-      const response = await axiosClient.get(`/catalog/series/${seriesId}`);
+      const response = await axiosClient.get(`/catalog/series/${seriesId}`, {
+        params: lang ? { lang } : undefined,
+      });
       return response.data;
     } catch (error) {
       throw new Error(

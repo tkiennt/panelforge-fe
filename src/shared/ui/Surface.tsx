@@ -1,5 +1,6 @@
 import React, { forwardRef, useContext } from 'react';
 import { cn } from '@/lib/utils';
+import { CountChip } from './CountChip';
 
 export type SurfaceTone = 'brand' | 'ai' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
@@ -179,11 +180,7 @@ export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(func
         )}
         <div className='flex items-center gap-2'>
           <HeadingTag className='text-lg font-bold text-stone-900'>{title}</HeadingTag>
-          {count !== undefined && count !== null && (
-            <span className='rounded-full bg-kraft px-2 py-0.5 text-xs font-semibold text-kraft-ink'>
-              {count}
-            </span>
-          )}
+          {count !== undefined && count !== null && <CountChip>{count}</CountChip>}
         </div>
       </div>
       {actions && <div className='flex shrink-0 items-center gap-2'>{actions}</div>}
@@ -198,11 +195,20 @@ export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(func
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   tone?: SurfaceTone;
   featured?: boolean;
+  interactive?: boolean;
   as?: 'section' | 'article' | 'div';
 }
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
-  { tone = 'brand', featured = false, as = 'div', className, children, ...props },
+  {
+    tone = 'brand',
+    featured = false,
+    interactive = false,
+    as = 'div',
+    className,
+    children,
+    ...props
+  },
   ref,
 ) {
   const Component = as;
@@ -212,7 +218,9 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
       <Component
         ref={ref}
         className={cn(
-          'overflow-hidden rounded-xl border border-stone-200/80 bg-white shadow-xs',
+          'overflow-hidden rounded-xl border border-stone-200/90 bg-white text-[#171717] shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)]',
+          interactive &&
+            'cursor-pointer transition-studio hover:border-[#171717] hover:shadow-[0_10px_24px_-6px_rgba(23,23,23,0.08)]',
           featured && featuredBorderClasses[tone],
           className,
         )}
@@ -252,14 +260,14 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(function C
   return (
     <div
       ref={ref}
-      className={cn('flex items-center justify-between gap-3 px-4 py-3', bandClass, className)}
+      className={cn('flex items-center justify-between gap-3 px-5 py-3.5', bandClass, className)}
       {...props}
     >
       <div className='flex min-w-0 items-center gap-2.5'>
         {icon && (
           <div
             className={cn(
-              'grid size-7 shrink-0 place-items-center rounded-lg [&_svg]:size-4',
+              'grid size-8 shrink-0 place-items-center rounded-lg [&_svg]:size-4',
               toneTileClasses[resolvedTone],
             )}
           >
@@ -287,7 +295,7 @@ export const CardBody = forwardRef<HTMLDivElement, CardBodyProps>(function CardB
   ref,
 ) {
   return (
-    <div ref={ref} className={cn('px-4 py-4', className)} {...props}>
+    <div ref={ref} className={cn('px-5 py-4', className)} {...props}>
       {children}
     </div>
   );

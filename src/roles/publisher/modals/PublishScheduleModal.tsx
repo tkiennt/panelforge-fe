@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Send, Calendar, Clock, Loader2, Sparkles } from 'lucide-react';
+import { Send, Calendar, Clock, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { chapterService } from '@/services/chapter.service';
 import {
   monetizationService,
@@ -10,6 +10,7 @@ import {
 import { seriesService } from '@/services/series.service';
 import { Modal } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface PublishScheduleModalProps {
   isOpen: boolean;
@@ -21,6 +22,16 @@ interface PublishScheduleModalProps {
   onShowToast?: (title: string, desc: string) => void;
 }
 
+type TranslationState = 'selectable' | 'published' | 'notApproved' | 'needsPricing';
+
+/** D1/BR-34: trạng thái của một ấn bản dịch khi Publisher phát hành chương. */
+const translationState = (edition: ChapterLanguageStatusDto): TranslationState => {
+  if (edition.isAvailable || edition.editionStatus === 'Published') return 'published';
+  if (edition.editionStatus !== 'Approved') return 'notApproved';
+  if (!edition.isMonetizationConfigured) return 'needsPricing';
+  return 'selectable';
+};
+
 export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
   isOpen,
   onClose,
@@ -31,6 +42,8 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
   onShowToast,
 }) => {
   const { t, lang } = useTranslation('publisher');
+  const { t: tPay } = useTranslation('payments');
+  const langName = (code: string) => tPay(`lang.${code}`, code.toUpperCase());
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now');
   const [scheduleDate, setScheduleDate] = useState(() => {
     // Default to tomorrow at 09:00 AM
@@ -49,6 +62,8 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
   const [priceType, setPriceType] = useState<'free' | 'paid' | null>(null);
   const [price, setPrice] = useState('');
   const [previewPages, setPreviewPages] = useState(1);
+  // D1: ấn bản dịch (Approved, đã đặt giá) Publisher chọn phát hành cùng lúc với chương
+  const [selectedTranslations, setSelectedTranslations] = useState<ContentLanguage[]>([]);
 
   useEffect(() => {
     if (!isOpen || !chapterId) return;
@@ -59,9 +74,14 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
         if (!alive) return;
         setManage(m);
         const series = await seriesService.getSeriesById(m.seriesId).catch(() => null);
-        if (alive && series?.originalLanguage) {
-          setOriginalLanguage(series.originalLanguage as ContentLanguage);
-        }
+        if (!alive) return;
+        const original = (series?.originalLanguage as ContentLanguage | undefined) ?? 'vi';
+        setOriginalLanguage(original);
+        setSelectedTranslations(
+          m.languages
+            .filter((l) => l.language !== original && translationState(l) === 'selectable')
+            .map((l) => l.language),
+        );
       } catch {
         // Không đọc được cấu hình giá: BE vẫn chặn phát hành nếu chưa đặt giá (D4)
       }
@@ -75,6 +95,13 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
     (l) => l.language === originalLanguage,
   );
   const needsPricing = !!manage && !originalEdition?.isMonetizationConfigured;
+  const translations = manage?.languages.filter((l) => l.language !== originalLanguage) ?? [];
+  // BE chỉ hẹn giờ được ấn bản gốc (qua chương); ấn bản dịch phát hành ngay.
+  const translationsToPublish = publishMode === 'now' ? selectedTranslations : [];
+  const toggleTranslation = (code: ContentLanguage) =>
+    setSelectedTranslations((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
+    );
   const pageCount = manage?.pages.length ?? 0;
   const priceNumber = Number(price);
   const pricingError = !needsPricing
@@ -132,10 +159,29 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
 
       await chapterService.publishChapter(chapterId, isoUtc);
 
-      if (publishMode === 'now') {
+      // Chương đã phát hành (kèm ấn bản gốc); phát hành tiếp từng ấn bản dịch đã chọn.
+      const published: string[] = [langName(originalLanguage)];
+      const failures: string[] = [];
+      for (const code of translationsToPublish) {
+        try {
+          await monetizationService.publishLanguageEdition(chapterId, code);
+          published.push(langName(code));
+        } catch (err) {
+          failures.push(
+            t('scheduleModal.editionPublishFailed', {
+              language: langName(code),
+              reason: getApiErrorMessage(err) || t('scheduleModal.publishError'),
+            }),
+          );
+        }
+      }
+
+      if (failures.length > 0) {
+        onShowToast?.(t('scheduleModal.publishPartialTitle'), failures.join(' '));
+      } else if (publishMode === 'now') {
         onShowToast?.(
           t('scheduleModal.publishSuccessTitle'),
-          t('scheduleModal.publishSuccessDesc', { chapterNumber }),
+          t('scheduleModal.publishSuccessDesc', { chapterNumber, languages: published.join(', ') }),
         );
       } else {
         onShowToast?.(
@@ -236,6 +282,65 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
         )}
 
         {manage && (
+          <div className='space-y-2' data-testid='publish-editions-section'>
+            <span className='block text-xs font-bold text-[#1C1917]'>
+              {t('scheduleModal.editionsLabel')}
+            </span>
+            <ul className='space-y-1.5'>
+              <li className='flex items-center gap-2 p-2.5 rounded-xl border border-[#F97316] bg-[#FFF2E6] text-xs'>
+                <CheckCircle2 className='w-3.5 h-3.5 text-[#C2410C] shrink-0' />
+                <span className='font-bold text-[#1C1917]'>{langName(originalLanguage)}</span>
+                <span className='text-[#57534E]'>{t('scheduleModal.editionOriginal')}</span>
+              </li>
+              {translations.map((edition) => {
+                const state = translationState(edition);
+                const selectable = state === 'selectable' && publishMode === 'now';
+                const checked = selectable && selectedTranslations.includes(edition.language);
+                const hint =
+                  state === 'published'
+                    ? t('scheduleModal.editionPublished')
+                    : state === 'notApproved'
+                      ? t('scheduleModal.editionNotApproved')
+                      : state === 'needsPricing'
+                        ? t('scheduleModal.editionNeedsPricing')
+                        : publishMode === 'schedule'
+                          ? t('scheduleModal.editionScheduleNote')
+                          : null;
+                return (
+                  <li key={edition.language}>
+                    <label
+                      className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs ${
+                        selectable
+                          ? 'border-[#D8D2C5] bg-[#FCFBF8] cursor-pointer hover:border-[#F97316]/60'
+                          : 'border-[#E7E2D7] bg-[#F8F6F0] opacity-70 cursor-not-allowed'
+                      }`}
+                    >
+                      <input
+                        type='checkbox'
+                        data-testid={`publish-edition-${edition.language}`}
+                        checked={checked}
+                        disabled={!selectable}
+                        onChange={() => toggleTranslation(edition.language)}
+                        className='accent-[#F97316]'
+                      />
+                      <span className='font-bold text-[#1C1917]'>{langName(edition.language)}</span>
+                      {edition.isMonetizationConfigured && (
+                        <span className='text-[#57534E] whitespace-nowrap shrink-0'>
+                          {edition.isPaid
+                            ? `${edition.priceVnd.toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN')} VNĐ`
+                            : t('scheduleModal.pricingFree')}
+                        </span>
+                      )}
+                      {hint && <span className='ml-auto text-[10px] text-[#78716C]'>{hint}</span>}
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {manage && (
           <div className='space-y-2' data-testid='publish-pricing-section'>
             <label className='block text-xs font-bold text-[#1C1917]'>
               {t('scheduleModal.pricingLabel', { lang: originalLanguage.toUpperCase() })}
@@ -308,6 +413,50 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
             )}
           </div>
         )}
+
+        {/* Explicit Release Confirmation Summary */}
+        <div
+          data-testid='publish-confirmation-summary'
+          className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5] text-xs text-[#1C1917] space-y-1'
+        >
+          <div className='font-bold'>
+            {publishMode === 'now'
+              ? lang === 'en'
+                ? `Publishing Chapter ${chapterNumber} — ${langName(originalLanguage)} (${originalLanguage.toUpperCase()})`
+                : `Xuất bản Chương ${chapterNumber} — ${langName(originalLanguage)} (${originalLanguage.toUpperCase()})`
+              : lang === 'en'
+                ? `Scheduling Chapter ${chapterNumber} — ${langName(originalLanguage)} (${originalLanguage.toUpperCase()})`
+                : `Lên lịch Chương ${chapterNumber} — ${langName(originalLanguage)} (${originalLanguage.toUpperCase()})`}
+            {' — '}
+            <span className='font-mono text-[#C2410C]'>
+              {needsPricing
+                ? priceType === 'paid' && price
+                  ? `${Number(price).toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN')} VND`
+                  : priceType === 'free'
+                    ? lang === 'en'
+                      ? 'Free'
+                      : 'Miễn phí'
+                    : lang === 'en'
+                      ? 'Price not selected'
+                      : 'Chưa chọn giá'
+                : originalEdition?.isPaid
+                  ? `${originalEdition.priceVnd.toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN')} VND`
+                  : lang === 'en'
+                    ? 'Free'
+                    : 'Miễn phí'}
+            </span>
+          </div>
+          {translationsToPublish.length > 0 && (
+            <div className='text-[11px] text-[#57534E]'>
+              {lang === 'en' ? 'Also publishing translations:' : 'Phát hành kèm bản dịch:'}{' '}
+              <strong>
+                {translationsToPublish
+                  .map((c) => `${langName(c)} (${c.toUpperCase()})`)
+                  .join(', ')}
+              </strong>
+            </div>
+          )}
+        </div>
 
         <div className='p-3 bg-amber-50/60 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed'>
           <strong>{t('scheduleModal.importantNoteLabel')}</strong>{' '}

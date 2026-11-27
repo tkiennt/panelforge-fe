@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import './tokens/index.css';
 @import './modules/lucian/lucian-070.css';
+@import './modules/sidebar-theme.css';
 
 @theme {
   --font-serif: 'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { ImageUp, Loader2 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { ArtistLayoutToolbar } from './ArtistLayoutToolbar';
 
@@ -74,7 +74,13 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
         onSplitPanels={onSplitPanels}
         onSaveLayout={onSaveLayout}
       />
-      <div className='flex min-h-0 flex-1 items-center justify-center overflow-hidden p-2 sm:p-3 md:p-4'>
+      <div className='flex h-8 shrink-0 items-center justify-between border-b border-stone-800 bg-stone-900 px-3 text-xs text-stone-200'>
+        <span className='font-semibold'>{t('canvasViewport.originalPage')}</span>
+        <span className='truncate text-stone-400'>
+          {sketch ? sketch.fileName : t('canvasViewport.noPageImage')}
+        </span>
+      </div>
+      <div className='flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-stone-200/80 p-2 sm:p-3 md:p-4'>
         <div
           className='w-full h-full flex items-center justify-center m-auto transition-transform duration-200 ease-out origin-center'
           style={{ transform: `scale(${zoomScale})` }}
@@ -108,8 +114,10 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
                   <img
                     src={sketch.imageUrl}
                     alt={sketch.fileName}
+                    width={1200}
+                    height={1697}
                     className='absolute inset-0 w-full h-full object-contain pointer-events-none z-5 select-none transition-opacity duration-300'
-                    style={{ opacity: sketch.isVisible ? 0.5 : 0 }}
+                    style={{ opacity: sketch.isVisible ? 1 : 0 }}
                   />
                 )}
                 {isDetectingPanels && (
@@ -124,9 +132,17 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
                   </div>
                 )}
                 {!hasPanels && !sketch && (
-                  <p className='absolute inset-0 z-20 flex items-center justify-center p-4 text-center text-xs text-stone-500'>
-                    {t('canvasViewport.emptyPrompt')}
-                  </p>
+                  <div className='absolute inset-[8%] z-20 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 p-6 text-center'>
+                    <span className='mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 text-orange-700'>
+                      <ImageUp className='h-6 w-6' aria-hidden='true' />
+                    </span>
+                    <p className='text-sm font-bold text-stone-900'>
+                      {t('canvasViewport.emptyTitle')}
+                    </p>
+                    <p className='mt-1 max-w-xs text-xs leading-relaxed text-stone-500'>
+                      {t('canvasViewport.emptyPrompt')}
+                    </p>
+                  </div>
                 )}
                 {children}
               </div>

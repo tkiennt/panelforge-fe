@@ -13,6 +13,8 @@ export interface PanelArtworkData {
   uploadedAt: string;
   /** 'auto-split': ảnh cắt tự động từ ảnh phác thảo toàn trang (chỉ có ở máy, chưa tải lên). */
   source?: 'auto-split' | 'upload';
+  /** Ảnh mới chỉ ở máy (bố cục chưa lưu): được tải lên server khi lưu bố cục. */
+  pendingUpload?: boolean;
 }
 
 const ACCEPTED_IMAGES = 'image/png,image/jpeg,image/webp';
@@ -207,7 +209,9 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                   </button>
                 </div>
               </div>
-            ) : isLayoutSaved ? (
+            ) : (
+              // Khung trống là giấy trắng (che phác thảo/ảnh trang bên dưới) kèm ô nạp ảnh mới,
+              // kể cả khi bố cục chưa lưu; bị khoá khi trang không có ô đang mở.
               <button
                 type='button'
                 disabled={!canUploadArtwork}
@@ -223,22 +227,22 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                 onClick={openPicker}
                 data-testid={`panel-dropzone-${panelNum}`}
                 title={canUploadArtwork ? undefined : t('common.noOpenSlotForPageStage')}
-                className='group focus-ring w-full h-full flex flex-col items-center justify-center gap-1 p-2 bg-white text-stone-600 hover:text-stone-900 hover:bg-orange-50/30 cursor-pointer transition-colors border-2 border-dashed border-stone-300 hover:border-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed'
+                className='group focus-ring w-full h-full flex flex-col items-center justify-center gap-1 p-2 bg-white text-stone-600 hover:text-stone-900 hover:bg-orange-50/30 cursor-pointer transition-colors border-2 border-dashed border-stone-300 hover:border-[#EA580C] disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-stone-300'
               >
                 <span
-                  className='w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 group-hover:text-[#EA580C] transition-colors'
+                  className='w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 group-hover:text-[#EA580C] group-disabled:opacity-40 transition-colors'
                   aria-hidden='true'
                 >
                   <ImagePlus className='w-4 h-4' />
                 </span>
-                <span className='text-xs font-semibold text-stone-800 text-center'>
+                <span className='text-xs font-semibold text-stone-800 text-center group-disabled:opacity-40'>
                   {t('panelFrame.uploadPanel', { panelNum })}
                 </span>
-                <span className='text-[11px] text-stone-500 text-center'>
+                <span className='text-xs text-stone-500 text-center group-disabled:opacity-40'>
                   {t('panelFrame.dropOrClick')}
                 </span>
               </button>
-            ) : null}
+            )}
 
             <input
               type='file'
