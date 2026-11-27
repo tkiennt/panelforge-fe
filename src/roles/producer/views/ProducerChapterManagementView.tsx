@@ -786,7 +786,6 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         />
         {createChapterModal}
       </div>
-      </div>
     );
   }
 
