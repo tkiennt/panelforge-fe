@@ -41,8 +41,22 @@ describe('RefreezeScriptModal Component', () => {
   };
 
   const mockMembers = [
-    { id: 'm1', userId: 'artist-1', fullName: 'Nguyễn Văn Họa Sĩ', email: 'a@pf.local', seriesRole: 'Artist', status: 'Active' },
-    { id: 'm2', userId: 'letterer-1', fullName: 'Trần Thị Letterer', email: 'l@pf.local', seriesRole: 'Letterer', status: 'Active' },
+    {
+      id: 'm1',
+      userId: 'artist-1',
+      fullName: 'Nguyễn Văn Họa Sĩ',
+      email: 'a@pf.local',
+      seriesRole: 'Artist',
+      status: 'Active',
+    },
+    {
+      id: 'm2',
+      userId: 'letterer-1',
+      fullName: 'Trần Thị Letterer',
+      email: 'l@pf.local',
+      seriesRole: 'Letterer',
+      status: 'Active',
+    },
   ] as any;
 
   const basePreview = {

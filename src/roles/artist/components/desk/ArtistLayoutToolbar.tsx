@@ -75,7 +75,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
       data-testid='artist-layout-toolbar'
     >
       {!layoutLockedReason && (
-        <ol className='hidden 2xl:flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-stone-500'>
+        <ol className='hidden 2xl:flex items-center gap-1.5 text-xs text-stone-500 whitespace-nowrap shrink-0'>
           {STEP_KEYS.map((key, index) => {
             const step = index + 1;
             const label = t(key);

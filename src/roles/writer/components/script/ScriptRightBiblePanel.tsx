@@ -77,8 +77,7 @@ export const ScriptRightBiblePanel: React.FC<ScriptRightBiblePanelProps> = ({
       (e) =>
         e.name.toLowerCase().includes(q) ||
         (e.subtitle && e.subtitle.toLowerCase().includes(q)) ||
-        (e.effectiveRevision?.stageName &&
-          e.effectiveRevision.stageName.toLowerCase().includes(q)),
+        (e.effectiveRevision?.stageName && e.effectiveRevision.stageName.toLowerCase().includes(q)),
     );
   }, [allBibleEntries, characters, searchQuery]);
 
@@ -201,7 +200,6 @@ export const ScriptRightBiblePanel: React.FC<ScriptRightBiblePanelProps> = ({
               <div className='space-y-2.5'>
                 {regularChapterCharacters.map((char) => {
                   const variantLabel =
-                    char.effectiveRevision?.variantLabel ||
                     char.effectiveRevision?.stageName ||
                     char.subtitle ||
                     t('production.cast.mainCharacter', 'Mặc định');
@@ -233,7 +231,8 @@ export const ScriptRightBiblePanel: React.FC<ScriptRightBiblePanelProps> = ({
                             <h4 className='font-headline-sm text-xs font-bold text-stone-900 leading-tight group-hover:text-[#EA580C] transition-colors truncate'>
                               <span>{char.name}</span>
                               <span className='font-normal text-stone-500 font-sans'>
-                                {' '}— {variantLabel} (v{versionNum})
+                                {' '}
+                                — {variantLabel} (v{versionNum})
                               </span>
                             </h4>
                             <p className='text-xs text-stone-500 truncate'>

@@ -52,6 +52,7 @@ import {
   AutoAssignPlanDto,
   UpdateStageTaskLotRequest,
   SubmitStageTasksRequest,
+  ApproveStageTasksRequest,
   UnassignStageTasksRequest,
   ReopenStageTaskRequest,
   ResolveStageTaskImpactRequest,
@@ -110,6 +111,7 @@ export type {
   AutoAssignPlanDto,
   UpdateStageTaskLotRequest,
   SubmitStageTasksRequest,
+  ApproveStageTasksRequest,
   UnassignStageTasksRequest,
   ReopenStageTaskRequest,
   ResolveStageTaskImpactRequest,
@@ -1040,6 +1042,24 @@ export const assignmentService = {
     } catch (error: any) {
       const err: any = new Error(
         extractError(error, translate('errors.services.assignment.approveStageTaskFailed')),
+      );
+      err.status = error?.response?.status;
+      err.code = error?.response?.data?.code;
+      err.data = error?.response?.data;
+      throw err;
+    }
+  },
+
+  /** Duyệt nhiều ô StageTask một lần, tất cả hoặc không (POST /api/chapters/{chapterId}/task-grid/tasks/approve) — Editor/Producer */
+  approveStageTasks: async (chapterId: string, taskIds: string[]): Promise<StageTaskDto[]> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/task-grid/tasks/approve`, {
+        taskIds,
+      });
+      return response.data || [];
+    } catch (error: any) {
+      const err: any = new Error(
+        extractError(error, translate('errors.services.assignment.approveStageTasksFailed')),
       );
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;

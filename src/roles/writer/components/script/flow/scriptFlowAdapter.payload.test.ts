@@ -62,5 +62,6 @@ describe('scriptFlowAdapter Bible draft payload', () => {
         newDraft: { name: 'Thanh kiếm', category: 'Prop' },
       },
     ]);
+    editor.destroy();
   });
 });

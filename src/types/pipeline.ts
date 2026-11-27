@@ -759,6 +759,8 @@ export interface StageTaskLotDto {
   taskCount: number;
   approvedCount: number;
   rowVersion: number;
+  isAutoAssigned?: boolean;
+  autoAssignReason?: string | null;
 }
 
 export interface TaskGridDto {
@@ -834,6 +836,10 @@ export interface AutoAssignPlanDto {
 }
 
 export interface SubmitStageTasksRequest {
+  taskIds: string[];
+}
+
+export interface ApproveStageTasksRequest {
   taskIds: string[];
 }
 

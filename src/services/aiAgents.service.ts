@@ -463,6 +463,8 @@ export interface RunWorkflowRequest {
   /** Chỉ dùng cho workflow Artist: danh sách ID panel cần tạo mô tả vẽ; null/rỗng = mọi panel của layout đã duyệt */
   panelIds?: string[] | null;
   revisionOfSuggestionId?: string;
+  /** Chỉ dùng cho workflow Script: viết nối thêm dòng mới sau dòng cuối, giữ nguyên dòng cũ (kể cả dòng đã gắn Panel). */
+  appendScript?: boolean;
 }
 export interface RunWorkflowResponse {
   runId: string;
@@ -769,10 +771,14 @@ export const aiAgentsService = {
     seriesId: string,
     chapterId: string,
     sceneId?: string | null,
+    appendScript?: boolean,
   ): Promise<AiWorkflowAvailabilityResponse> {
     try {
+      const params: Record<string, string | boolean> = { chapterId };
+      if (sceneId) params.sceneId = sceneId;
+      if (appendScript) params.appendScript = true;
       const res = await axiosClient.get(`/series/${seriesId}/ai/workflows/availability`, {
-        params: sceneId ? { chapterId, sceneId } : { chapterId },
+        params,
       });
       return res.data;
     } catch (e) {

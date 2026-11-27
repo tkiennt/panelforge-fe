@@ -277,7 +277,10 @@
       "openNarrative": "Mở Đề cương",
       "openBible": "Mở Bible",
       "replaceWarning": "Accept sẽ thay {count} dòng hiện tại của phân cảnh này (không nối thêm).",
-      "linkedPanelsWarning": "Phân cảnh có {count} dòng đã gắn Panel — đề xuất Script sẽ không thể Accept. Đã tắt nút Viết nháp.",
+      "linkedPanelsWarning": "Phân cảnh có {count} dòng đã gắn Panel — thay cả Script sẽ không thể Accept. Bật 'Viết nối thêm' bên dưới để viết tiếp cuối cảnh.",
+      "appendScriptLabel": "Viết nối thêm",
+      "appendScriptDesc": "Bật để AI chỉ viết dòng mới nối sau dòng cuối, giữ nguyên các dòng đã gắn Panel.",
+      "appendScriptActiveDesc": "AI chỉ viết thêm dòng mới sau dòng cuối; Accept giữ nguyên dòng cũ và liên kết Panel.",
       "nextStepTitle": "Bước tiếp theo",
       "nextStepDesc": "Đã áp dụng script cho phân cảnh. Accept Script không tạo Trang và Panel.",
       "nextStepStoryboard": "Tạo Trang và Panel bằng Storyboard",
@@ -735,7 +738,9 @@
       "toastSuccessDesc": "Chương {number} đã chuyển sang InProduction. Kịch bản đã được đóng băng.",
       "markCrowdQuickBtn": "Đánh dấu Quần chúng",
       "crowdMarkedTitle": "Đã đánh dấu Quần chúng",
-      "crowdMarkFailed": "Không thể đánh dấu Quần chúng"
+      "crowdMarkFailed": "Không thể đánh dấu Quần chúng",
+      "firstStageOnlyLabel": "Chỉ giao công đoạn đầu",
+      "firstStageOnlyHint": "Các công đoạn sau để trống; bật 'Tự giao công đoạn kế tiếp' ở tab Automation để hệ thống tự giao khi đến lượt."
     },
     "pagination": "Trang {current} / {total} (Tổng {count} chương)",
     "footerNote": "* Ngày phát hành dự kiến hỗ trợ ban biên tập đối chiếu và điều phối tiến độ sản xuất kịp thời.",

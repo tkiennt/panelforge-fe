@@ -13,8 +13,8 @@ const PAGE_ID = '11111111-1111-4111-8111-111111111111';
 const PANEL_1 = '22222222-2222-4222-8222-222222222222';
 const PANEL_2 = '33333333-3333-4333-8333-333333333333';
 
-const toNode = (doc: JSONContent) =>
-  new Editor({
+const toNode = (doc: JSONContent) => {
+  const editor = new Editor({
     extensions: [
       StarterKit.configure({
         document: false,
@@ -35,7 +35,11 @@ const toNode = (doc: JSONContent) =>
       BibleRefMark,
     ],
     content: doc,
-  }).state.doc;
+  });
+  const node = editor.state.doc;
+  editor.destroy();
+  return node;
+};
 
 const page = { id: PAGE_ID, chapterId: 'c', pageNumber: 1 } as PageDto;
 const panels = [

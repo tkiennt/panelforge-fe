@@ -342,4 +342,48 @@ describe('StartProductionModal Component', () => {
       expect(defaultProps.onSuccess).toHaveBeenCalledWith(mockLotsResult);
     });
   });
+
+  it('TASK-360: sends firstStageOnly: true alongside lettererAssignments when "Chỉ giao công đoạn đầu" is checked', async () => {
+    render(<StartProductionModal {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('gate1-artist-select')).toBeInTheDocument();
+    });
+
+    const firstStageCheckbox = screen.getByTestId(
+      'gate1-first-stage-only-checkbox',
+    ) as HTMLInputElement;
+    expect(firstStageCheckbox.checked).toBe(false);
+    expect(screen.getByText(/Tự giao công đoạn kế tiếp.*tab Automation/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('gate1-artist-select'), {
+      target: { value: 'user-artist-1' },
+    });
+    fireEvent.click(firstStageCheckbox);
+    expect(firstStageCheckbox.checked).toBe(true);
+
+    fireEvent.click(screen.getByTestId('gate1-letterer-checkbox'));
+    await waitFor(() => {
+      expect(screen.getByTestId('gate1-letterer-select')).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId('gate1-letterer-select'), {
+      target: { value: 'user-letterer-1' },
+    });
+
+    vi.mocked(chapterService.startProduction).mockResolvedValueOnce({
+      chapter: { id: 'chap-1', status: 'InProduction' } as any,
+      assignments: [],
+      lots: [],
+    });
+
+    fireEvent.click(screen.getByTestId('gate1-submit-btn'));
+
+    await waitFor(() => {
+      expect(chapterService.startProduction).toHaveBeenCalledWith('chap-1', {
+        pageAssignments: [{ artistId: 'user-artist-1', pageFrom: 1, pageTo: 3 }],
+        lettererAssignments: [{ artistId: 'user-letterer-1', pageFrom: 1, pageTo: 3 }],
+        firstStageOnly: true,
+      });
+    });
+  });
 });

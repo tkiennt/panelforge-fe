@@ -1,15 +1,29 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { NotificationCenterView } from './NotificationCenterView';
 import { notificationService } from '@/services/notification.service';
+import { chapterService } from '@/services/chapter.service';
+import { seriesService } from '@/services/series.service';
 
 vi.mock('@/services/notification.service', () => ({
   notificationService: {
     getNotifications: vi.fn(),
     markAsRead: vi.fn(),
     markAllAsRead: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/chapter.service', () => ({
+  chapterService: {
+    getChapterById: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/series.service', () => ({
+  seriesService: {
+    getSeriesById: vi.fn(),
   },
 }));
 
@@ -120,6 +134,59 @@ describe('NotificationCenterView Component', () => {
 
     await waitFor(() => {
       expect(notificationService.getNotifications).toHaveBeenCalledWith(true, 1, 50);
+    });
+  });
+
+  it('TASK-362: bấm thông báo "Chương X sẵn sàng chốt" hoặc "có ô bị ngâm" (chỉ có chapterId) điều hướng đến lưới giao việc của chương đó', async () => {
+    vi.mocked(notificationService.getNotifications).mockResolvedValueOnce({
+      items: [
+        {
+          id: 'notif-lock',
+          type: 'AssignmentUpdated',
+          title: 'Chương 5 sẵn sàng chốt',
+          message: 'Mọi ô đã duyệt và không còn điều kiện chặn. Mở chương để duyệt/chốt.',
+          chapterId: 'chap-5',
+          assignmentId: null,
+          readAt: null,
+          createdAt: '2026-11-26T15:00:00Z',
+        },
+      ],
+      totalCount: 1,
+      unreadCount: 1,
+      pageIndex: 1,
+      pageSize: 50,
+    });
+    vi.mocked(chapterService.getChapterById).mockResolvedValueOnce({
+      id: 'chap-5',
+      seriesId: 'series-9',
+    } as any);
+    vi.mocked(seriesService.getSeriesById).mockResolvedValueOnce({
+      id: 'series-9',
+      workspaceId: 'ws-9',
+    } as any);
+
+    const LocationEcho = () => {
+      const loc = useLocation();
+      return <div data-testid='center-location'>{loc.pathname + loc.search}</div>;
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/notifications']}>
+        <Routes>
+          <Route path='/notifications' element={<NotificationCenterView />} />
+          <Route path='*' element={<LocationEcho />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const cardTitle = await screen.findByText('Chương 5 sẵn sàng chốt');
+    fireEvent.click(cardTitle);
+
+    await waitFor(() => {
+      expect(notificationService.markAsRead).toHaveBeenCalledWith('notif-lock');
+      expect(screen.getByTestId('center-location')).toHaveTextContent(
+        '/workspaces/ws-9/series/series-9/workspace?chapterId=chap-5&board=grid-v3',
+      );
     });
   });
 });

@@ -85,9 +85,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
         className='flex flex-col gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between'
         aria-label={copy('summaryAria')}
       >
-        <h2 className='text-base font-bold text-stone-900'>
-          {copy('overviewTitle')}
-        </h2>
+        <h2 className='text-base font-bold text-stone-900'>{copy('overviewTitle')}</h2>
         <div className='flex flex-wrap items-center gap-2 text-xs font-semibold'>
           <span className='rounded-full bg-orange-50 px-2.5 py-1 text-orange-800'>
             {copy('todoCompact', {
@@ -120,12 +118,8 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
           {designQueue.length === 0 ? (
             <div className='flex flex-col items-center justify-center rounded-xl border border-dashed border-stone-300 bg-stone-50 px-6 py-10 text-center'>
               <CheckCircle2 className='h-8 w-8 text-emerald-600' />
-              <h3 className='mt-3 text-base font-bold text-stone-900'>
-                {copy('queueEmptyTitle')}
-              </h3>
-              <p className='mt-1 max-w-md text-sm text-stone-500'>
-                {copy('queueEmptyBody')}
-              </p>
+              <h3 className='mt-3 text-base font-bold text-stone-900'>{copy('queueEmptyTitle')}</h3>
+              <p className='mt-1 max-w-md text-sm text-stone-500'>{copy('queueEmptyBody')}</p>
             </div>
           ) : (
             designQueue.map((item) => {
@@ -157,9 +151,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                       <div className='mt-1 flex flex-wrap items-center gap-2 text-xs text-stone-600'>
                         <span>
                           {copy('variantLabel', {
-                            variant:
-                              item.variantLabel ||
-                              copy('defaultVariant'),
+                            variant: item.variantLabel || copy('defaultVariant'),
                           })}
                         </span>
                         {item.waitingChapterNumbers?.length ? (
@@ -199,9 +191,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
 
       <section className='space-y-3'>
         <div className='flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between'>
-          <h2 className='text-lg font-bold text-stone-900'>
-            {copy('libraryTitle')}
-          </h2>
+          <h2 className='text-lg font-bold text-stone-900'>{copy('libraryTitle')}</h2>
           <span className='text-xs font-semibold text-stone-500'>
             {copy('libraryCount', { count: referenceEntities.length })}
           </span>

@@ -73,6 +73,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
   const [artistMode, setArtistMode] = useState<'whole' | 'ranges'>('whole');
   const [singleArtistId, setSingleArtistId] = useState('');
   const [artistRanges, setArtistRanges] = useState<RangeItem[]>([]);
+  const [firstStageOnly, setFirstStageOnly] = useState(false);
 
   // Letterer assignment
   const [assignLetterer, setAssignLetterer] = useState(false);
@@ -99,6 +100,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
     setArtistMode('whole');
     setSingleArtistId('');
     setArtistRanges([]);
+    setFirstStageOnly(false);
     setAssignLetterer(false);
     setLettererMode('whole');
     setSingleLettererId('');
@@ -348,6 +350,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
       const body: StartChapterProductionRequest = {
         pageAssignments,
         lettererAssignments,
+        ...(firstStageOnly ? { firstStageOnly: true } : {}),
       };
 
       const result = await chapterService.startProduction(chapterId, body);
@@ -733,6 +736,30 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                     )}
                   </div>
                 )}
+
+                <div className='pt-3 border-t border-stone-100 space-y-1'>
+                  <label className='inline-flex items-center gap-2 cursor-pointer font-semibold text-xs text-stone-900'>
+                    <input
+                      type='checkbox'
+                      checked={firstStageOnly}
+                      onChange={(e) => setFirstStageOnly(e.target.checked)}
+                      data-testid='gate1-first-stage-only-checkbox'
+                      className='rounded border-stone-300 text-[#F97316] focus:ring-[#F97316] accent-[#F97316]'
+                    />
+                    <span>
+                      {t(
+                        'seriesChaptersModal.startProductionModal.firstStageOnlyLabel',
+                        'Chỉ giao công đoạn đầu',
+                      )}
+                    </span>
+                  </label>
+                  <p className='text-[11px] text-stone-500 pl-6 leading-relaxed'>
+                    {t(
+                      'seriesChaptersModal.startProductionModal.firstStageOnlyHint',
+                      "Các công đoạn sau để trống; bật 'Tự giao công đoạn kế tiếp' ở tab Automation để hệ thống tự giao khi đến lượt.",
+                    )}
+                  </p>
+                </div>
               </div>
 
               {/* 4. Letterer Assignment (Optional) */}

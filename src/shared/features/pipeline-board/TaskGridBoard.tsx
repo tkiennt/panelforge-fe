@@ -1,5 +1,5 @@
 // src/shared/features/pipeline-board/TaskGridBoard.tsx
-import { Link } from 'react-router-dom';
+import { Link, useInRouterContext } from 'react-router-dom';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
@@ -52,7 +52,11 @@ import { chapterService } from '@/services/chapter.service';
 import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
 import { panelService } from '@/services/panel.service';
 import { elementService } from '@/services/element.service';
-import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
+import {
+  workspaceService,
+  type AutomationSettingsDto,
+  type WorkspaceMemberDto,
+} from '@/services/workspace.service';
 import { buildPageComposite } from '@/shared/utils/compositePageRenderer';
 import { loadPreviousStageArtworks } from '@/shared/utils/stageArtworks';
 import {
@@ -128,8 +132,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   isChapterLocked = false,
 }) => {
   const { t, lang } = useTranslation('pipeline');
+  const inRouter = useInRouterContext();
   const confirm = useConfirm();
   const [grid, setGrid] = useState<TaskGridDto | null>(null);
+  const [automationSettings, setAutomationSettings] = useState<AutomationSettingsDto | null>(null);
   const [reworkCommentsByTask, setReworkCommentsByTask] = useState<Record<string, string>>({});
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -143,6 +149,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   const [selectedUnassignIds, setSelectedUnassignIds] = useState<Set<string>>(new Set());
   // Ô InProgress được người nhận việc chọn để nộp hàng loạt
   const [selectedSubmitIds, setSelectedSubmitIds] = useState<Set<string>>(new Set());
+  // Ô Submitted/UnderReview được Editor/Producer chọn để duyệt hàng loạt (N3)
+  const [selectedApproveIds, setSelectedApproveIds] = useState<Set<string>>(new Set());
 
   // Trạng thái mở lại ô Approved (Producer)
   const [reopeningTaskId, setReopeningTaskId] = useState<string | null>(null);
@@ -209,6 +217,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   useEffect(() => {
     setImpactSuggestionsByTask({});
     setImpactErrorsByTask({});
+    setSelectedApproveIds(new Set());
     autoAssignLoadSeqRef.current += 1;
     setAutoAssignOpen(false);
     setAutoAssignPlan(null);
@@ -255,6 +264,12 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     }
   }, [isProducerOnly]);
 
+  useEffect(() => {
+    if (!effectiveIsReviewer || isChapterLocked) {
+      setSelectedApproveIds(new Set());
+    }
+  }, [effectiveIsReviewer, isChapterLocked]);
+
   const loadGrid = useCallback(
     async (preserveError = false) => {
       if (!chapterId) return;
@@ -292,6 +307,60 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   useEffect(() => {
     loadGrid();
   }, [loadGrid, refreshKey]);
+
+  useEffect(() => {
+    if (!workspaceId || typeof workspaceService.getAutomationSettings !== 'function') {
+      setAutomationSettings(null);
+      return;
+    }
+    let cancelled = false;
+    void Promise.resolve(workspaceService.getAutomationSettings(workspaceId))
+      .then((dto) => {
+        if (cancelled) return;
+        setAutomationSettings(dto && typeof dto === 'object' ? dto : null);
+      })
+      .catch(() => {
+        if (!cancelled) setAutomationSettings(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId, refreshKey]);
+
+  const automationChipModel = useMemo(() => {
+    if (!workspaceId || !automationSettings) return null;
+    const isOn = Boolean(automationSettings.autoNextStage || automationSettings.autoRouteReview);
+    const parts: string[] = [];
+    if (!isOn) {
+      parts.push(t('taskGridV3.automationChip.tooltipOffPrefix'));
+    }
+    if (automationSettings.autoNextStage) {
+      parts.push(
+        automationSettings.assignMode === 'BalanceOnly'
+          ? t('taskGridV3.automationChip.tooltipR1Balance')
+          : t('taskGridV3.automationChip.tooltipR1Keep'),
+      );
+    }
+    if (automationSettings.autoRouteReview) {
+      parts.push(t('taskGridV3.automationChip.tooltipR2'));
+    }
+    const leadHours = automationSettings.leadHours ?? 24;
+    parts.push(
+      automationSettings.escalationHours !== null &&
+        automationSettings.escalationHours !== undefined
+        ? t('taskGridV3.automationChip.tooltipR3WithEscalation', {
+            leadHours,
+            escalationHours: automationSettings.escalationHours,
+          })
+        : t('taskGridV3.automationChip.tooltipR3LeadOnly', { leadHours }),
+    );
+    return {
+      isOn,
+      label: isOn ? t('taskGridV3.automationChip.on') : t('taskGridV3.automationChip.off'),
+      tooltip: parts.join(' · '),
+      href: `/workspaces/${encodeURIComponent(workspaceId)}?tab=automation`,
+    };
+  }, [workspaceId, automationSettings, t]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -366,6 +435,8 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     }
     return map;
   }, [grid, taskMap]);
+
+  const lotById = useMemo(() => new Map((grid?.lots ?? []).map((lot) => [lot.id, lot])), [grid]);
 
   const hasChapterRow = useMemo(() => {
     if (!grid) return false;
@@ -452,6 +523,15 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
   const toggleSelectUnassign = (taskId: string) => {
     setSelectedUnassignIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
+
+  const toggleSelectApprove = (taskId: string) => {
+    setSelectedApproveIds((prev) => {
       const next = new Set(prev);
       if (next.has(taskId)) next.delete(taskId);
       else next.add(taskId);
@@ -808,8 +888,15 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   const handleApproveTask = async (task: StageTaskDto) => {
     setActionLoading(`approve:${task.id}`);
     setError(null);
+    setErrorIsConflict(false);
     try {
       await assignmentService.approveStageTask(chapterId, task.id);
+      setSelectedApproveIds((prev) => {
+        if (!prev.has(task.id)) return prev;
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
       onShowToast?.(t('taskGridV3.approveSuccessTitle'), t('taskGridV3.approveSuccessDesc'));
       await loadGrid();
     } catch (err: any) {
@@ -819,6 +906,36 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         err.message || t('taskGridV3.approveErrorFallback'),
       );
       if (err?.status === 409) void loadGrid(true);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleApproveTasks = async (taskIds: string[]) => {
+    if (taskIds.length === 0) return;
+    setActionLoading('approveBatch');
+    setError(null);
+    setErrorIsConflict(false);
+    try {
+      const updated = await assignmentService.approveStageTasks(chapterId, taskIds);
+      setSelectedApproveIds((prev) => {
+        const next = new Set(prev);
+        taskIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      onShowToast?.(
+        t('taskGridV3.approveSuccessTitle'),
+        t('taskGridV3.approveBatchSuccessDesc', { count: updated.length || taskIds.length }),
+      );
+      await loadGrid();
+    } catch (err: any) {
+      const msg = err?.message || t('taskGridV3.approveErrorFallback');
+      const isConflict =
+        err?.status === 409 || String(err?.code || '').toLowerCase() === 'conflict';
+      setError(msg);
+      setErrorIsConflict(isConflict);
+      onShowToast?.(t('taskGridV3.approveErrorTitle'), msg);
+      if (isConflict) void loadGrid(true);
     } finally {
       setActionLoading(null);
     }
@@ -1211,23 +1328,12 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     setActionLoading(`resolveImpact:${task.id}:${keep ? 'keep' : 'rework'}`);
     setError(null);
     try {
-      const updated = await assignmentService.resolveStageTaskImpact(chapterId, task.id, keep);
+      await assignmentService.resolveStageTaskImpact(chapterId, task.id, keep);
       onShowToast?.(
         t('taskGridV3.impactSuccessTitle'),
         keep ? t('taskGridV3.impactKeepDesc') : t('taskGridV3.impactReworkDesc'),
       );
-      if (keep && task.status !== 'Approved') {
-        applyUpdatedTasks([
-          {
-            ...updated,
-            id: task.id,
-            isInputOutdated: updated?.isInputOutdated ?? false,
-            outdatedReason: updated?.outdatedReason ?? null,
-          },
-        ]);
-      } else {
-        await loadGrid();
-      }
+      await loadGrid();
     } catch (err: any) {
       setError(err.message || t('taskGridV3.impactErrorFallback'));
       onShowToast?.(
@@ -1426,12 +1532,16 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     const isSelectedForLot = selectedUnassignedIds.has(task.id);
     const isSelectedForSubmit = selectedSubmitIds.has(task.id);
     const isSelectedForUnassign = selectedUnassignIds.has(task.id);
+    const canSelectForApprove =
+      !isChapterLocked && canReview && !task.isInputOutdated && !isLockedByOtherReviewer;
+    const isSelectedForApprove = canSelectForApprove && selectedApproveIds.has(task.id);
     const hasOpenInlineForm =
       requestingChangesTaskId === task.id ||
       reopeningTaskId === task.id ||
       reassigningTaskId === task.id ||
       Boolean(impactSuggestion);
     const attemptCount = task.attemptCount ?? 0;
+    const taskLot = task.lotId ? lotById.get(task.lotId) : undefined;
     const reworkDisplay = resolveReworkReasonDisplay(
       task,
       reworkCommentsByTask[task.id] || pickLatestDecisionComment(submissionsByTaskId[task.id]),
@@ -1449,7 +1559,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         className={`w-full min-w-0 box-border p-2.5 rounded-lg border text-xs flex flex-col gap-1.5 transition-all ${
           hasOpenInlineForm ? 'min-w-[230px]' : ''
         } ${
-          isSelectedForLot || isSelectedForSubmit || isSelectedForUnassign
+          isSelectedForLot || isSelectedForSubmit || isSelectedForUnassign || isSelectedForApprove
             ? 'ring-2 ring-[#F97316] border-[#F97316] bg-[#FFF7ED]'
             : 'bg-white border-stone-200 hover:border-stone-300'
         }`}
@@ -1465,6 +1575,15 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 className='px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-[10px] font-mono font-semibold text-stone-700'
               >
                 {t('taskGridV3.attemptBadge', { count: attemptCount })}
+              </span>
+            )}
+            {taskLot?.isAutoAssigned && (
+              <span
+                data-testid={`task-auto-badge-${task.id}`}
+                title={taskLot.autoAssignReason || undefined}
+                className='px-1.5 py-0.5 rounded bg-orange-50 border border-orange-200 text-[10px] font-semibold text-[#C2410C]'
+              >
+                {t('taskGridV3.autoAssignedBadge')}
               </span>
             )}
           </div>
@@ -1497,6 +1616,16 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 checked={isSelectedForSubmit}
                 onChange={() => toggleSelectSubmit(task.id)}
                 className='h-3.5 w-3.5 accent-emerald-600 cursor-pointer'
+              />
+            )}
+
+            {canSelectForApprove && (
+              <input
+                type='checkbox'
+                aria-label={t('taskGridV3.selectApproveCellAria', { stage: stage.name })}
+                checked={isSelectedForApprove}
+                onChange={() => toggleSelectApprove(task.id)}
+                className='h-3.5 w-3.5 accent-indigo-600 cursor-pointer'
               />
             )}
           </div>
@@ -2128,6 +2257,26 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     () => activeTasks.filter((t) => t.isInputOutdated).length,
     [activeTasks],
   );
+  const selectedApprovableIds = useMemo(() => {
+    if (!effectiveIsReviewer || isChapterLocked || selectedApproveIds.size === 0) return [];
+    return activeTasks
+      .filter((task) => {
+        if (!selectedApproveIds.has(task.id)) return false;
+        if (task.status !== 'Submitted' && task.status !== 'UnderReview') return false;
+        if (task.isInputOutdated) return false;
+        if (
+          task.status === 'UnderReview' &&
+          task.reviewerUserId &&
+          (!currentUserId || task.reviewerUserId !== currentUserId)
+        ) {
+          return false;
+        }
+        return Boolean(
+          !task.assigneeUserId || (currentUserId && task.assigneeUserId !== currentUserId),
+        );
+      })
+      .map((t) => t.id);
+  }, [activeTasks, selectedApproveIds, effectiveIsReviewer, isChapterLocked, currentUserId]);
 
   return (
     <div className='space-y-4' data-testid='task-grid-board'>
@@ -2146,6 +2295,34 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               })}
             </span>
           )}
+          {automationChipModel &&
+            (inRouter ? (
+              <Link
+                to={automationChipModel.href}
+                data-testid='task-grid-automation-chip'
+                title={automationChipModel.tooltip}
+                className={`rounded-lg border px-2.5 py-1 text-xs font-semibold inline-flex items-center transition-colors ${
+                  automationChipModel.isOn
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                    : 'bg-stone-100 border-stone-200 text-stone-600 hover:bg-stone-200/70'
+                }`}
+              >
+                {automationChipModel.label}
+              </Link>
+            ) : (
+              <a
+                href={automationChipModel.href}
+                data-testid='task-grid-automation-chip'
+                title={automationChipModel.tooltip}
+                className={`rounded-lg border px-2.5 py-1 text-xs font-semibold inline-flex items-center transition-colors ${
+                  automationChipModel.isOn
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                    : 'bg-stone-100 border-stone-200 text-stone-600 hover:bg-stone-200/70'
+                }`}
+              >
+                {automationChipModel.label}
+              </a>
+            ))}
           {outdatedCount > 0 && (
             <span
               data-testid='outdated-tasks-badge'
@@ -2180,6 +2357,25 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 <UserMinus className='h-3.5 w-3.5' />
               )}
               <span>{t('taskGridV3.unassignBatchBtn', { count: selectedUnassignIds.size })}</span>
+            </button>
+          )}
+
+          {selectedApprovableIds.length > 0 && (
+            <button
+              type='button'
+              data-testid='approve-batch-btn'
+              disabled={actionLoading === 'approveBatch'}
+              onClick={() => void handleApproveTasks(selectedApprovableIds)}
+              className='inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 text-xs font-semibold cursor-pointer shadow-xs disabled:opacity-50'
+            >
+              {actionLoading === 'approveBatch' ? (
+                <Loader2 className='h-3.5 w-3.5 animate-spin' />
+              ) : (
+                <CheckCircle2 className='h-3.5 w-3.5' />
+              )}
+              <span>
+                {t('taskGridV3.approveBatchBtn', { count: selectedApprovableIds.length })}
+              </span>
             </button>
           )}
 
@@ -2468,6 +2664,15 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                     }`}
                   >
                     <span className='font-bold'>{stg?.name || 'Stage'}</span>
+                    {lot.isAutoAssigned && (
+                      <span
+                        data-testid={`lot-auto-badge-${lot.id}`}
+                        title={lot.autoAssignReason || undefined}
+                        className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-semibold text-[#C2410C]'
+                      >
+                        {t('taskGridV3.autoAssignedBadge')}
+                      </span>
+                    )}
                     {isLotStageDisabled && (
                       <span className='rounded bg-stone-200 px-1 py-0.2 text-[9px] font-mono text-stone-600'>
                         {t('taskGridV3.stageDisabledBadge')}

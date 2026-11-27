@@ -1549,8 +1549,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           code: e.code || `BE-${e.id.slice(0, 4)}`,
           name: e.name,
           subtitle: e.subtitle || undefined,
-          variantLabel:
-            e.effectiveRevision?.variantLabel || e.effectiveRevision?.stageName || undefined,
+          variantLabel: e.effectiveRevision?.stageName || undefined,
           versionNumber: e.effectiveRevision?.versionNumber ?? undefined,
           category,
           tag: getBibleCategoryTag(e.category, e.subtitle),
