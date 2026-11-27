@@ -338,13 +338,21 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
         count: roleCounts.writer,
       });
     }
+    if (roleCounts.letterer > 0) {
+      list.push({
+        id: 'Letterer',
+        label: t('workspace.studioHub.directory.filterLetterer', { count: roleCounts.letterer }),
+        count: roleCounts.letterer,
+      });
+    }
     return list;
   }, [roleCounts, t]);
 
-  const showFilter = roleFilters.length > 1;
+  // roleFilters[0] là "All": chỉ khi có >= 2 vai trò thực tế bộ lọc mới có tác dụng
+  const showFilter = roleFilters.length > 2;
 
   const filteredByRole = useMemo(() => {
-    if (selectedRoleFilter === 'all') return workspaces;
+    if (!showFilter || selectedRoleFilter === 'all') return workspaces;
     if (selectedRoleFilter === 'Producer') {
       return workspaces.filter(
         (w) => w.isOwner || String(w.currentUserRole || '').toUpperCase() === 'PRODUCER',
@@ -359,8 +367,11 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
     if (selectedRoleFilter === 'Writer') {
       return workspaces.filter((w) => String(w.currentUserRole || '').toUpperCase() === 'WRITER');
     }
+    if (selectedRoleFilter === 'Letterer') {
+      return workspaces.filter((w) => String(w.currentUserRole || '').toUpperCase() === 'LETTERER');
+    }
     return workspaces;
-  }, [workspaces, selectedRoleFilter]);
+  }, [workspaces, selectedRoleFilter, showFilter]);
 
   // Tìm kiếm Studio
   const [query, setQuery] = useState('');
@@ -431,8 +442,12 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
               <span className='font-semibold text-stone-800 truncate max-w-[140px]'>
                 {currentUser.name}
               </span>
-              <span className='text-stone-400'>•</span>
-              <span className='text-stone-500 text-xs'>{currentUser.role || 'Producer'}</span>
+              {/* Không hiện SystemRole thô (USER) cạnh tên; chỉ gắn nhãn Admin */}
+              {isAdmin && (
+                <span className='rounded-full bg-kraft px-2 py-0.5 text-xs font-semibold text-kraft-ink'>
+                  {t('workspace.studioHub.directory.adminBadge')}
+                </span>
+              )}
               <div className='w-6 h-6 rounded-full bg-orange-600 text-white flex items-center justify-center shrink-0 ml-0.5 overflow-hidden'>
                 {avatarUrl && !avatarFailed ? (
                   <img
@@ -834,7 +849,8 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                           </div>
 
                           {/* Storage Bar (Stitch Directory Spec: Lưu trữ: used / quota + %) */}
-                          {(mayManageCover || quota > 0) && (
+                          {/* Dung lượng là chỉ số quản trị: chỉ Owner/Producer thấy */}
+                          {mayManageCover && quota > 0 && (
                             <div
                               className='col-span-2 pt-1 border-t border-stone-200/60 mt-1'
                               data-testid='ws-card-storage'
