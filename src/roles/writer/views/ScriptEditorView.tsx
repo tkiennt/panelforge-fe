@@ -103,7 +103,7 @@ import { formatChapterOption } from '../utils/chapterFormat';
  */
 const getBibleEntryNameWithStage = (entry?: BibleEntryDto | null): string => {
   if (!entry) return '';
-  const variant = entry.effectiveRevision?.variantLabel?.trim() || entry.subtitle?.trim();
+  const variant = entry.effectiveRevision?.stageName?.trim() || entry.subtitle?.trim();
   return variant ? `${entry.name} (${variant})` : entry.name;
 };
 
@@ -511,6 +511,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Banner & Modal xung đột phiên bản (BR-11 / 409 CONFLICT)
   const [concurrencyError, setConcurrencyError] = useState<string | null>(null);
+  const [deleteBlockedError, setDeleteBlockedError] = useState<string | null>(null);
+  const [protectedPageNumbers, setProtectedPageNumbers] = useState<number[]>([]);
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
   const [conflictErrorMsg, setConflictErrorMsg] = useState<string | undefined>(undefined);
   const [conflictEntityId, setConflictEntityId] = useState<string | undefined>(undefined);
@@ -720,32 +722,59 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // 4. Tải danh sách Scenes khi currentChapter thay đổi
   // V2.5: Đồng bộ kịch bản từ Screenplay Flow Editor (TipTap) lên Backend khi bấm Lưu (Explicit Commit)
-  const loadPagesAndPanels = useCallback(async (chapId: string): Promise<PanelDto[]> => {
-    try {
-      const pages = await pageService.getPagesByChapter(chapId);
-      setChapterPages(pages || []);
-      if (!pages || pages.length === 0) {
-        setChapterPanels([]);
-        return [];
-      }
-      const panelsByPages = await Promise.all(
-        pages.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
-      );
-      const allPanels: PanelDto[] = [];
-      panelsByPages.forEach((list, idx) => {
-        list.forEach((p) => {
-          (p as any).pageNumber = pages[idx].pageNumber;
-          allPanels.push(p);
+  const fetchPagesAndPanels = useCallback(
+    async (chapId: string): Promise<{ pages: PageDto[]; panels: PanelDto[] }> => {
+      try {
+        const pages = await pageService.getPagesByChapter(chapId);
+        if (!pages || pages.length === 0) {
+          return { pages: [], panels: [] };
+        }
+        const panelsByPages = await Promise.all(
+          pages.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
+        );
+        const allPanels: PanelDto[] = [];
+        panelsByPages.forEach((list, idx) => {
+          list.forEach((p) => {
+            (p as any).pageNumber = pages[idx].pageNumber;
+            allPanels.push(p);
+          });
         });
-      });
-      setChapterPanels(allPanels);
-      return allPanels;
-    } catch {
-      setChapterPages([]);
-      setChapterPanels([]);
-      return [];
-    }
-  }, []);
+        return { pages, panels: allPanels };
+      } catch {
+        return { pages: [], panels: [] };
+      }
+    },
+    [],
+  );
+
+  const fetchScenesAndDetails = useCallback(
+    async (chapId: string): Promise<{ scenes: SceneDto[]; details: SceneDetailDto[] }> => {
+      try {
+        const freshScenes = await scriptLineService.getScenesByChapter(chapId);
+        freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        const details = (
+          await Promise.all(
+            freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
+          )
+        ).filter((d): d is SceneDetailDto => d !== null);
+        details.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        return { scenes: freshScenes, details };
+      } catch {
+        return { scenes: [], details: [] };
+      }
+    },
+    [],
+  );
+
+  const loadPagesAndPanels = useCallback(
+    async (chapId: string): Promise<PanelDto[]> => {
+      const res = await fetchPagesAndPanels(chapId);
+      setChapterPages(res.pages);
+      setChapterPanels(res.panels);
+      return res.panels;
+    },
+    [fetchPagesAndPanels],
+  );
 
   const buildFallbackScriptTree = useCallback((): ChapterScriptBody => {
     const linesByPanel = new Map<string, any[]>();
@@ -826,6 +855,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       try {
         const res = await chapterService.saveChapterScript(chapterId, body);
         setConcurrencyError(null);
+        setDeleteBlockedError(null);
         setExpectedRevisionId(res.revisionId);
         expectedRevisionIdRef.current = res.revisionId;
 
@@ -837,21 +867,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
         setVersionsTick((n) => n + 1);
 
-        // Nạp lại dữ liệu sau khi lưu
-        await loadPagesAndPanels(chapterId);
+        // Nạp lại dữ liệu sau khi lưu đồng thời bằng Promise.all (tránh desync state giữa panels và scenes)
         try {
-          const freshScenes = await scriptLineService.getScenesByChapter(chapterId);
-          freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
-          setScenes(freshScenes);
-          const details = (
-            await Promise.all(
-              freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-            )
-          ).filter((d): d is SceneDetailDto => d !== null);
-          details.sort((a, b) => a.sceneNumber - b.sceneNumber);
-          setChapterScenesDetail(details);
+          const [freshPagesAndPanels, freshScenesAndDetails] = await Promise.all([
+            fetchPagesAndPanels(chapterId),
+            fetchScenesAndDetails(chapterId),
+          ]);
+          setChapterPages(freshPagesAndPanels.pages);
+          setChapterPanels(freshPagesAndPanels.panels);
+          setScenes(freshScenesAndDetails.scenes);
+          setChapterScenesDetail(freshScenesAndDetails.details);
           if (selectedScene) {
-            setSelectedScene(details.find((d) => d.id === selectedScene.id) ?? details[0] ?? null);
+            setSelectedScene(
+              freshScenesAndDetails.details.find((d) => d.id === selectedScene.id) ??
+                freshScenesAndDetails.details[0] ??
+                null,
+            );
           }
           if (seriesId) {
             const freshBible = await bibleService.getSeriesBible(seriesId);
@@ -869,9 +900,28 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }
         return true;
       } catch (err: any) {
-        // 409 do kịch bản bỏ bớt trang còn việc / ô lưới: hiện đúng lý do của BE, không phải lỗi sửa đồng thời.
-        if (err?.message?.startsWith('Không thể xoá')) {
-          notify(t('scriptStudio.save.deleteBlocked', 'Không xoá được trang'), err.message);
+        // 409 do xóa trang/khung đang có bản vẽ hoặc công đoạn sản xuất: hiện banner + toast rõ ràng, giữ nguyên bản nháp.
+        if (
+          err?.code === 'CANNOT_DELETE_ACTIVE_PRODUCTION_PAGE' ||
+          err?.message?.startsWith('Không thể xoá') ||
+          err?.message?.startsWith('Không thể xóa')
+        ) {
+          const blockedPageIds: string[] = Array.isArray(err?.details?.blockedPageIds)
+            ? err.details.blockedPageIds
+            : [];
+          const blockedNums = blockedPageIds
+            .map((id) => chapterPages.find((p) => p.id === id)?.pageNumber)
+            .filter((n): n is number => typeof n === 'number')
+            .sort((a, b) => a - b);
+          const detailMsg =
+            blockedNums.length > 0
+              ? `Trang ${blockedNums.join(', ')} đã có bản vẽ hoặc công đoạn đang thực hiện nên không thể xóa.`
+              : err.message;
+          setDeleteBlockedError(detailMsg);
+          notify(
+            t('scriptStudio.save.deleteBlocked', 'Không xóa được trang đang sản xuất'),
+            detailMsg,
+          );
           return false;
         }
         if (
@@ -1405,26 +1455,39 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       await applyChapterUpdate(res.chapter);
       setVersionsTick((v) => v + 1);
 
-      await loadPagesAndPanels(currentChapter.id);
       try {
-        const freshScenes = await scriptLineService.getScenesByChapter(currentChapter.id);
-        freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setScenes(freshScenes);
-        const details = (
-          await Promise.all(
-            freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-          )
-        ).filter((d): d is SceneDetailDto => d !== null);
-        details.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setChapterScenesDetail(details);
+        const [freshPagesAndPanels, freshScenesAndDetails] = await Promise.all([
+          fetchPagesAndPanels(currentChapter.id),
+          fetchScenesAndDetails(currentChapter.id),
+        ]);
+        setChapterPages(freshPagesAndPanels.pages);
+        setChapterPanels(freshPagesAndPanels.panels);
+        setScenes(freshScenesAndDetails.scenes);
+        setChapterScenesDetail(freshScenesAndDetails.details);
         if (selectedScene) {
-          setSelectedScene(details.find((d) => d.id === selectedScene.id) ?? details[0] ?? null);
+          setSelectedScene(
+            freshScenesAndDetails.details.find((d) => d.id === selectedScene.id) ??
+              freshScenesAndDetails.details[0] ??
+              null,
+          );
         }
         void loadChapterCast(currentChapter.id);
       } catch (refreshErr) {
         console.error('Lỗi làm mới kịch bản sau khi submit:', refreshErr);
       }
     } catch (err: any) {
+      if (
+        err?.code === 'CANNOT_DELETE_ACTIVE_PRODUCTION_PAGE' ||
+        err?.message?.startsWith('Không thể xoá') ||
+        err?.message?.startsWith('Không thể xóa')
+      ) {
+        const msg =
+          err?.message ||
+          'Không thể xóa trang đã có bản vẽ hoặc công đoạn đang thực hiện trong giai đoạn sản xuất.';
+        setDeleteBlockedError(msg);
+        notify(t('scriptStudio.save.deleteBlocked', 'Không xóa được trang đang sản xuất'), msg);
+        return;
+      }
       if (
         err?.status === 409 ||
         err?.code === 'CONFLICT' ||
@@ -1568,6 +1631,32 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         flowDirtyRef.current = false;
         setWorkingCopySyncTick((n) => n + 1);
         void loadChapterCast(chapId);
+
+        if (currentChapter?.status === 'InProduction' && assignmentService?.getTaskGrid) {
+          void assignmentService
+            .getTaskGrid(chapId)
+            .then((grid) => {
+              const startedIds = new Set(
+                (grid?.tasks ?? [])
+                  .filter(
+                    (tk) =>
+                      tk.pageId &&
+                      tk.status !== 'Unassigned' &&
+                      tk.status !== 'Assigned' &&
+                      tk.status !== 'Cancelled',
+                  )
+                  .map((tk) => tk.pageId!),
+              );
+              const nums = loadedPages
+                .filter((pg) => startedIds.has(pg.id))
+                .map((pg) => pg.pageNumber)
+                .sort((a, b) => a - b);
+              setProtectedPageNumbers(nums);
+            })
+            .catch(() => setProtectedPageNumbers([]));
+        } else {
+          setProtectedPageNumbers([]);
+        }
       })().finally(() => {
         if (reloadInFlightRef.current?.chapterId === chapId) {
           reloadInFlightRef.current = null;
@@ -2006,6 +2095,26 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
       <h1 className='sr-only'>{t('writer.scriptEditor.srHeading')}</h1>
 
+      {deleteBlockedError && (
+        <div
+          data-testid='delete-blocked-banner'
+          role='alert'
+          className='w-full bg-rose-50 border-b border-rose-200 px-4 py-2 flex items-center justify-between gap-3 text-xs text-rose-900 shrink-0'
+        >
+          <span className='flex items-center gap-2 font-medium'>
+            <Lock className='w-3.5 h-3.5 text-rose-600 shrink-0' aria-hidden='true' />
+            <span>{deleteBlockedError}</span>
+          </span>
+          <button
+            type='button'
+            onClick={() => setDeleteBlockedError(null)}
+            className='text-rose-700 hover:text-rose-950 cursor-pointer'
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {concurrencyError && (
         <div
           data-testid='concurrency-error-banner'
@@ -2167,6 +2276,23 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Bảo vệ trang đang sản xuất: hiển thị các trang đã có công đoạn đang vẽ để Writer không xóa nhầm */}
+      {currentChapter?.status === 'InProduction' &&
+        !isScriptFrozen &&
+        protectedPageNumbers.length > 0 && (
+          <div
+            data-testid='production-protected-pages-bar'
+            title='Trang này đã có bản vẽ hoặc công đoạn đang sản xuất nên không thể xóa.'
+            className='shrink-0 border-b border-amber-200 bg-amber-50/70 px-4 py-1.5 text-xs text-amber-900 flex items-center gap-2'
+          >
+            <Lock className='w-3.5 h-3.5 text-[#D97706] shrink-0' aria-hidden='true' />
+            <span>
+              Trang đã có bản vẽ (được khóa xóa):{' '}
+              <strong>{protectedPageNumbers.map((n) => `Trang ${n}`).join(', ')}</strong>
+            </span>
+          </div>
+        )}
 
       {/* Gate 1 bị chặn: còn biến thể Bible chưa khoá Canon (F#24) */}
       {isStartBlocked && (chapterCast?.gate?.blockers?.length ?? 0) > 0 && (

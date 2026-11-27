@@ -81,9 +81,6 @@ const ReviewView = lazy(() =>
 const EditorDeskView = lazy(() =>
   import('@/roles/editor/views/EditorDeskView').then((m) => ({ default: m.EditorDeskView })),
 );
-const BibleReviewView = lazy(() =>
-  import('@/roles/editor/views/BibleReviewView').then((m) => ({ default: m.BibleReviewView })),
-);
 const ScriptReviewView = lazy(() =>
   import('@/roles/editor/views/ScriptReviewView').then((m) => ({ default: m.ScriptReviewView })),
 );
@@ -646,12 +643,12 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   }
                 />
 
-                {/* Editor Desk, Bible Review & Script Review: inside AppShell so Editor retains the system sidetab */}
+                {/* Review workspace stays in AppShell for Editor and Producer fallback (BR-06 / Gate 2). */}
                 <Route
                   path='editor/desk'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={['EDITOR', 'ADMINISTRATOR']}
+                      allowedRoles={['EDITOR', 'PRODUCER', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -829,7 +826,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             </Route>
           </Route>
 
-          {/* FOCUSED STUDIO WORKSPACE ROUTES: Desk & Editors (Dedicated layout without AppShellSidebar) */}
+          {/* FOCUSED STUDIO WORKSPACE ROUTES: authoring canvases only.
+              Producer and Editor review screens stay in AppShell so their navigation is continuous. */}
           <Route
             element={
               <FocusWorkspaceLayout
@@ -876,85 +874,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                       currentUserId={currentUserInfo?.id}
                       onShowToast={showToast}
                       workspaceRole={currentWorkspaceRole}
-                    />
-                  }
-                />
-              </Route>
-
-              {/* Editor Desk & Bible Review routes: EDITOR, ADMINISTRATOR */}
-              <Route
-                element={
-                  <RequireWorkspaceRole
-                    allowedRoles={['EDITOR', 'ADMINISTRATOR']}
-                    currentWorkspaceRole={currentWorkspaceRole}
-                    currentRole={currentRole}
-                    activeRoles={activeProjectRoles}
-                  />
-                }
-              >
-                <Route
-                  path='editor/desk'
-                  element={
-                    <EditorDeskView
-                      currentUserId={currentUserInfo?.id}
-                      workspaceRole={currentWorkspaceRole}
-                      onShowToast={showToast}
-                    />
-                  }
-                />
-                <Route
-                  path='editor/bible'
-                  element={
-                    <BibleReviewView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />
-                  }
-                />
-              </Route>
-
-              {/* Review & Feedback routes: Reviewers + Authors viewing review comments */}
-              <Route
-                element={
-                  <RequireWorkspaceRole
-                    allowedRoles={[
-                      'EDITOR',
-                      'PRODUCER',
-                      'ARTIST',
-                      'LETTERER',
-                      'WRITER',
-                      'ADMINISTRATOR',
-                    ]}
-                    currentWorkspaceRole={currentWorkspaceRole}
-                    currentRole={currentRole}
-                    activeRoles={activeProjectRoles}
-                  />
-                }
-              >
-                <Route
-                  path='chapters/:chapterId/script/review'
-                  element={
-                    <ScriptReviewView
-                      currentUserId={currentUserInfo?.id}
-                      workspaceRole={currentWorkspaceRole}
-                      onShowToast={showToast}
-                    />
-                  }
-                />
-                <Route
-                  path='review/:taskId'
-                  element={
-                    <ReviewView
-                      currentUserId={currentUserInfo?.id}
-                      workspaceRole={currentWorkspaceRole}
-                      onShowToast={showToast}
-                    />
-                  }
-                />
-                <Route
-                  path='chapters/:chapterId/review/:taskId'
-                  element={
-                    <ReviewView
-                      currentUserId={currentUserInfo?.id}
-                      workspaceRole={currentWorkspaceRole}
-                      onShowToast={showToast}
                     />
                   }
                 />

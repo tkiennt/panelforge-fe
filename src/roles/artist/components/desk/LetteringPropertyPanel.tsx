@@ -55,6 +55,7 @@ export interface LetteringPropertyPanelProps {
   /** Khóa ô nhập chữ (chữ gốc khi trang readOnly, hoặc bản dịch khi ấn bản không ở trạng thái Draft). */
   textReadOnly?: boolean;
   onCommitText: (text: string) => void;
+  onSyncScriptText?: () => Promise<void> | void;
   onChangeStyle: (patch: Partial<TextStyleDto> | null) => void;
   onDelete?: () => void;
   onViewScript?: () => void;
@@ -89,6 +90,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
   originalLang = 'vi',
   textReadOnly = false,
   onCommitText,
+  onSyncScriptText,
   onChangeStyle,
   onDelete,
   onViewScript,
@@ -121,6 +123,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
     ),
   );
   const [runningAi, setRunningAi] = useState(false);
+  const [isSyncingScript, setIsSyncingScript] = useState(false);
   const [decidingAi, setDecidingAi] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<AiSuggestionDto | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -310,10 +313,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
                     {t('letteringProperty.linePrefix', { line: lineNumber ?? '?' })} “
                     {scriptText ?? '…'}”
                   </p>
-                  <p
-                    data-testid='lettering-property-speaker'
-                    className='text-[11px] text-stone-500'
-                  >
+                  <p data-testid='lettering-property-speaker' className='text-xs text-stone-500'>
                     {t('letteringProperty.characterLabel', {
                       name: scriptLine?.characterName || t('letteringProperty.narratorFallback'),
                     })}
@@ -324,9 +324,49 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
                 </div>
               </div>
               {element.isStale && (
-                <p className='text-[11px] font-semibold text-amber-700'>
-                  {t('letteringProperty.staleWarning')}
-                </p>
+                <details
+                  data-testid='lettering-stale-diff'
+                  className='rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-stone-700'
+                >
+                  <summary className='cursor-pointer list-none font-medium text-amber-800'>
+                    <span className='inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800'>
+                      {t('letteringProperty.staleBadge')}
+                    </span>
+                  </summary>
+                  <div className='mt-2 space-y-2'>
+                    <p>
+                      <span className='font-medium text-stone-600'>
+                        {t('letteringProperty.renderedTextLabel')}:
+                      </span>{' '}
+                      <span className='line-through'>{currentBubbleText || '—'}</span>
+                    </p>
+                    <p>
+                      <span className='font-medium text-stone-600'>
+                        {t('letteringProperty.latestScriptTextLabel')}:
+                      </span>{' '}
+                      <span>{scriptText || '—'}</span>
+                    </p>
+                    <button
+                      type='button'
+                      data-testid='lettering-sync-script-btn'
+                      disabled={!onSyncScriptText || textReadOnly || isSyncingScript}
+                      onClick={async () => {
+                        if (!onSyncScriptText) return;
+                        setIsSyncingScript(true);
+                        try {
+                          await onSyncScriptText();
+                        } finally {
+                          setIsSyncingScript(false);
+                        }
+                      }}
+                      className='inline-flex items-center rounded-md border border-amber-300 bg-white px-2.5 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50'
+                    >
+                      {isSyncingScript
+                        ? t('letteringProperty.syncingScriptText')
+                        : t('letteringProperty.syncScriptText')}
+                    </button>
+                  </div>
+                </details>
               )}
               {onViewScript && (
                 <div className='flex justify-end'>

@@ -31,6 +31,13 @@ export interface BibleRevisionEventDto {
 
 export type BibleReviewStatus = 'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'CanonLocked';
 
+export interface WriterEndorsementDto {
+  endorsed: boolean;
+  endorsedByName?: string | null;
+  endorsedAt?: string | null;
+  conceptVersion?: number | null;
+}
+
 export interface BibleEntryRevisionDto {
   id: string;
   bibleEntryId: string;
@@ -48,14 +55,16 @@ export interface BibleEntryRevisionDto {
   isLocked?: boolean;
   lockedAt?: string | null;
   lockedById?: string | null;
-  variantLabel?: string | null;
   stageName?: string | null;
+  age?: string | null;
+  artistNotes?: string | null;
   referenceImageUrl?: string | null;
   conceptImageUrl?: string | null;
   events?: BibleRevisionEventDto[] | null;
   supersedesRevisionId?: string | null;
   currentConceptEventId?: string | null;
   currentConceptVersionNumber?: number | null;
+  writerEndorsement?: WriterEndorsementDto | null;
 }
 
 export interface BibleEntryDto {
@@ -67,15 +76,19 @@ export interface BibleEntryDto {
   subtitle?: string | null;
   description: string;
   detailsJson: string;
+  age?: string | null;
+  artistNotes?: string | null;
   referenceImageUrl?: string | null;
-  priority: BiblePriority;
-  strictCheck: boolean;
-  isActive: boolean;
+  priority?: BiblePriority;
+  strictCheck?: boolean;
+  isActive?: boolean;
   effectiveRevision?: BibleEntryRevisionDto | null;
+  pendingReviewRevision?: BibleEntryRevisionDto | null;
   createdAt: string;
   updatedAt?: string | null;
   isStub?: boolean;
   isCrowd?: boolean;
+  aliases?: string[];
   latestDraftVersionNumber?: number | null;
 }
 
@@ -91,16 +104,19 @@ export interface SeriesBibleDto {
 
 export interface CreateBibleEntryRequest {
   category: BibleCategory;
-  code: string;
   name: string;
   description: string;
+  code?: string;
   subtitle?: string;
   detailsJson?: string;
   referenceImageUrl?: string;
   priority?: BiblePriority;
   strictCheck?: boolean;
-  variantLabel: string;
+  variantLabel?: string;
+  stageName?: string;
   isCrowd?: boolean;
+  age?: string;
+  artistNotes?: string;
 }
 
 export interface DefineBibleEntryRequest {
@@ -112,6 +128,8 @@ export interface DefineBibleEntryRequest {
   priority?: BiblePriority;
   strictCheck?: boolean;
   code?: string;
+  age?: string;
+  artistNotes?: string;
 }
 
 export interface ConfirmBibleRevisionRequest {
@@ -124,6 +142,9 @@ export interface BibleConceptCommentDto {
   conceptEventId: string;
   parentCommentId?: string | null;
   authorId: string;
+  authorName?: string | null;
+  authorDisplayName?: string | null;
+  authorRole?: string | null;
   body: string;
   region?: string | null;
   resolvedAt?: string | null;
@@ -160,7 +181,10 @@ export interface AddBibleEntryRevisionRequest {
   referenceImageUrl?: string;
   priority?: BiblePriority;
   strictCheck?: boolean;
-  variantLabel: string;
+  variantLabel?: string;
+  stageName?: string;
+  age?: string;
+  artistNotes?: string;
   /** Phiên bản gốc đang sửa (BE dùng để giữ đúng biến thể khi mục có nhiều biến thể). */
   targetRevisionId?: string;
 }
@@ -168,7 +192,7 @@ export interface AddBibleEntryRevisionRequest {
 /** Producer thay thế bản đã khoá: nội dung mới + lý do; chương hiệu lực lấy theo bản bị thay. */
 export type SupersedeBibleEntryRevisionRequest = Omit<
   AddBibleEntryRevisionRequest,
-  'summary' | 'variantLabel'
+  'summary' | 'variantLabel' | 'stageName'
 > & { reason: string };
 
 function extractError(error: any, defaultMsg: string): any {
@@ -349,6 +373,57 @@ export const bibleService = {
   },
 
   /**
+   * Writer xác nhận tạo hình (soft endorsement, non-blocking) trên bản ConceptSubmitted.
+   */
+  async endorseRevision(
+    seriesId: string,
+    revisionId: string,
+    endorse = true,
+  ): Promise<BibleEntryRevisionDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/revisions/${revisionId}/endorse`,
+        { endorse },
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, translate('errors.services.bible.endorseRevisionFailed'));
+    }
+  },
+
+  /**
+   * Tạo biến thể song song (New Variant) cho mục Bible mà không làm thay đổi bản CanonLocked hiện tại.
+   */
+  async createVariant(
+    seriesId: string,
+    entryId: string,
+    data: AddBibleEntryRevisionRequest,
+  ): Promise<BibleEntryRevisionDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/variants`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, translate('errors.services.bible.createVariantFailed'));
+    }
+  },
+
+  /**
+   * Writer huỷ bản nháp thay thế (supersede) chưa khoá.
+   */
+  async cancelReplacement(seriesId: string, revisionId: string): Promise<void> {
+    try {
+      await axiosClient.delete(
+        `/series/${seriesId}/bible/revisions/${revisionId}/cancel-replacement`,
+      );
+    } catch (error) {
+      throw extractError(error, translate('errors.services.bible.cancelReplacementFailed'));
+    }
+  },
+
+  /**
    * Writer bật/tắt cờ Quần chúng cho mục Bible (BIB-13, 7A, Q19).
    */
   async setBibleEntryCrowd(
@@ -517,6 +592,7 @@ export interface BibleDesignQueueItemDto {
   createdAt?: string;
   updatedAt: string;
   isStub?: boolean;
+  isPriorityRework?: boolean;
   waitingChapterNumbers?: number[] | null;
 }
 

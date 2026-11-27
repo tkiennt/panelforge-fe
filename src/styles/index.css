@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import './tokens/index.css';
 @import './modules/lucian/lucian-070.css';
+@import './modules/sidebar-theme.css';
 
 @theme {
   --font-serif: 'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif;
@@ -177,6 +178,16 @@
   --animate-pulse-subtle: pulseSubtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-orb-float-slow: orbFloat 20s ease-in-out infinite;
   --animate-orb-float-reverse: orbFloat 25s ease-in-out infinite reverse;
+
+  /* Header & card-header accents (UIQ-09) */
+  --color-head-wash: var(--studio-head-wash);
+  --color-head-line: var(--studio-head-line);
+  --color-kraft: var(--studio-kraft);
+  --color-kraft-ink: var(--studio-kraft-ink);
+  --color-sienna: var(--studio-sienna);
+  --color-accent: var(--studio-accent);
+  --color-accent-soft: var(--studio-accent-soft);
+  --color-accent-dark: var(--studio-accent-dark);
 }
 
 @keyframes shared-dialog-in {

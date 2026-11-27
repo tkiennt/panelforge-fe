@@ -1,5 +1,5 @@
 // src/roles/writer/components/script/flow/nodes/ScriptLineBlockNode.test.ts
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { Editor } from '@tiptap/core';
 import type { JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -20,8 +20,13 @@ const line = (el: GnElement, text = ''): JSONContent => ({
   ...(text ? { content: [{ type: 'text', text }] } : {}),
 });
 
+const editors: Editor[] = [];
+afterEach(() => {
+  editors.splice(0).forEach((e) => e.destroy());
+});
+
 function createEditor(lines: JSONContent[], options?: { bibleSpeakers?: { name: string }[] }) {
-  return new Editor({
+  const editor = new Editor({
     extensions: [
       StarterKit.configure({
         document: false,
@@ -44,6 +49,8 @@ function createEditor(lines: JSONContent[], options?: { bibleSpeakers?: { name: 
     ],
     content: { type: 'doc', content: lines },
   });
+  editors.push(editor);
+  return editor;
 }
 
 /** Đặt con trỏ ở cuối dòng thứ `index`. */
@@ -150,6 +157,18 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
     expect(activeEl(editor)).toBe('dialogue');
   });
 
+  it('Tab nhận tên nhân vật được đề xuất từ Series Bible dù chưa xuất hiện trong kịch bản', () => {
+    const editor = createEditor([line('character', 'nar')], {
+      bibleSpeakers: [{ name: 'Naruto Uzumaki' }],
+    });
+    caretAtEndOf(editor, 0);
+
+    press(editor, 'Tab');
+
+    expect(texts(editor)[0]).toBe('NARUTO UZUMAKI:');
+    expect(activeEl(editor)).toBe('dialogue');
+  });
+
   it('Ctrl+1..8 đổi loại dòng; đổi dòng có chữ thành Trang thì chèn Trang mới, không mất chữ', () => {
     const editor = createEditor([line('action', 'BÙM')]);
     caretAtEndOf(editor, 0);
@@ -237,5 +256,27 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
     press(editor, 'Mod-8'); // đổi sang sfx
     expect(els(editor)).toEqual(['sfx']);
     expect(editor.getJSON().content?.[0].attrs?.refId).toBeNull();
+  });
+
+  it('gõ "Panel 2: " hoặc "Khung 1: " ở đầu dòng action thì tự động đổi thành panel', () => {
+    const editor = createEditor([
+      line('page'),
+      line('panel'),
+      line('action', ''),
+    ]);
+    caretAtEndOf(editor, 2);
+    // Gõ chuỗi "Panel 2: "
+    const textToType = 'Panel 2: ';
+    for (let i = 0; i < textToType.length; i++) {
+      const char = textToType[i];
+      const from = editor.state.selection.from;
+      const handled = editor.view.someProp('handleTextInput', (f: any) =>
+        f(editor.view, from, from, char),
+      );
+      if (!handled) {
+        editor.commands.insertContent(char);
+      }
+    }
+    expect(els(editor)).toEqual(['page', 'panel', 'panel']);
   });
 });

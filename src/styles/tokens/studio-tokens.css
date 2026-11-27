@@ -29,6 +29,13 @@
   --studio-accent-soft: #fff2e6;
   --studio-accent-border: #fdba74;
 
+  /* --- HEADER ACCENTS & KRAFT (UIQ-09) --- */
+  --studio-head-wash: #FBF5EC;
+  --studio-head-line: #EFE3D1;
+  --studio-kraft: #F6E7D3;
+  --studio-kraft-ink: #5B4636;
+  --studio-sienna: #9A3412;
+
   /* --- STATUS (Trạng thái công đoạn duyệt) --- */
   --studio-mint: #119c72;
   --studio-mint-soft: #ecfdf5;
@@ -99,6 +106,13 @@
   --studio-accent-dark: #ea580c;
   --studio-accent-soft: rgba(251, 146, 60, 0.16);
   --studio-accent-border: rgba(251, 146, 60, 0.42);
+
+  /* --- HEADER ACCENTS & KRAFT (UIQ-09) --- */
+  --studio-head-wash: #1F1A15;
+  --studio-head-line: rgba(251, 146, 60, 0.18);
+  --studio-kraft: rgba(251, 146, 60, 0.14);
+  --studio-kraft-ink: #E9D5BC;
+  --studio-sienna: #FDBA74;
 
   --studio-mint: #7ee8c0;
   --studio-mint-soft: rgba(17, 156, 114, 0.18);

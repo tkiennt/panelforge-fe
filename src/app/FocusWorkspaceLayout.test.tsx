@@ -86,6 +86,21 @@ describe('FocusWorkspaceLayout Component', () => {
     expect(screen.queryByTestId('focus-zen-pill')).not.toBeInTheDocument();
   });
 
+  it('reuses and updates the persisted sidebar theme in focus routes', () => {
+    localStorage.setItem('pf.sidebar.theme', 'ocean');
+    renderLayout();
+
+    const sidebar = screen.getByTestId('app-shell-sidebar');
+    expect(sidebar).toHaveAttribute('data-sb-theme', 'ocean');
+
+    fireEvent.click(screen.getByTestId('sidebar-theme-btn'));
+    fireEvent.click(screen.getByTestId('sidebar-theme-paper'));
+
+    expect(sidebar).toHaveAttribute('data-sb-theme', 'paper');
+    expect(localStorage.getItem('pf.sidebar.theme')).toBe('paper');
+    localStorage.removeItem('pf.sidebar.theme');
+  });
+
   it('hides focus mode button and zen toggle UI for writer script editor, and renders clean breadcrumb with suffix', () => {
     const writerUser: CurrentUser = {
       name: 'Arata K.',

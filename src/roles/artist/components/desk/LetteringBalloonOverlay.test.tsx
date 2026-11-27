@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { LetteringBalloonOverlay } from './LetteringBalloonOverlay';
 import { pageUnit } from '@/shared/lib/lettering/textStyle';
 import type { ElementSnapshotDto } from '@/services/element.service';
@@ -112,5 +112,49 @@ describe('LetteringBalloonOverlay – cỡ chữ theo tỉ lệ trang', () => {
       />,
     );
     expect(screen.queryByTestId('lettering-tail-el-1')).toBeNull();
+  });
+
+  it('chỉ mở phần chỉnh thoại khi click, không mở sau thao tác kéo', () => {
+    const element: ElementSnapshotDto = {
+      elementId: 'balloon-1',
+      elementType: 'SPEECH_BALLOON',
+      x: 100,
+      y: 100,
+      width: 200,
+      height: 100,
+      zIndex: 1,
+      content: 'Xin chào',
+      isRemoved: false,
+      version: 1,
+    };
+
+    const clickedSelect = vi.fn();
+    const clicked = render(
+      <LetteringBalloonOverlay
+        {...props}
+        elements={[element]}
+        selectedId={null}
+        onSelect={clickedSelect}
+      />,
+    );
+    fireEvent.click(clicked.getByTestId('lettering-element-balloon-1'));
+    expect(clickedSelect).toHaveBeenCalledWith('balloon-1');
+    cleanup();
+
+    const draggedSelect = vi.fn();
+    const dragged = render(
+      <LetteringBalloonOverlay
+        {...props}
+        elements={[element]}
+        selectedId={null}
+        onSelect={draggedSelect}
+      />,
+    );
+    const target = dragged.getByTestId('lettering-element-balloon-1');
+    fireEvent.pointerDown(target, { clientX: 10, clientY: 10, button: 0 });
+    fireEvent.pointerMove(target, { clientX: 30, clientY: 10 });
+    fireEvent.pointerUp(target, { clientX: 30, clientY: 10 });
+    fireEvent.click(target);
+    expect(draggedSelect).not.toHaveBeenCalled();
   });
 });

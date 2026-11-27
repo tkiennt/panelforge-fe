@@ -18,7 +18,7 @@ import {
 import { assignmentService } from '@/services/assignment.service';
 import { formatBytes } from './studio-overview/formatters';
 import { PendingInvitations, TodayTasks, type PendingInvitation } from './WorkspaceShelfSections';
-import { Alert } from '@/shared/ui';
+import { Alert, PageHeader } from '@/shared/ui';
 import { sortByDue, type TodayTask } from './workspaceShelfTasks';
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
@@ -354,7 +354,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
         ? a.name.localeCompare(b.name, lang === 'en' ? 'en' : 'vi')
         : activityTime(b) - activityTime(a),
     );
-  }, [searched, sort]);
+  }, [searched, sort, lang]);
 
   const createButton = (
     <button
@@ -370,7 +370,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   return (
     <div className='min-h-screen flex flex-col font-sans bg-[#FAF9F5] text-stone-900'>
       {/* 1. STICKY TOP HEADER (Stitch Multi-Studio Navigation) */}
-      <header className='h-16 bg-white border-b border-stone-200 px-6 lg:px-12 flex items-center justify-between sticky top-0 z-40 shadow-xs'>
+      <header className='h-16 bg-white border-b border-stone-200 px-6 lg:px-12 flex items-center justify-between sticky top-0 z-40 shadow-[inset_0_2px_0_var(--studio-accent)]'>
         <div className='flex items-center shrink-0'>
           <div className='flex items-center gap-1.5 cursor-pointer select-none'>
             <span className='text-lg font-bold text-orange-600 tracking-tight font-serif'>
@@ -424,7 +424,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             <button
               type='button'
               onClick={handleOpenCreate}
-              className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs whitespace-nowrap'
+              className='bg-white hover:bg-stone-50 text-stone-800 font-medium px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1.5 border border-stone-200 shadow-2xs whitespace-nowrap'
             >
               <Plus className='w-4 h-4' />
               <span>{t('workspace.shelf.create')}</span>
@@ -474,7 +474,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
           ) : loadError ? (
             <Alert tone='danger' className='max-w-md mx-auto mt-10 text-center'>
               <AlertCircle className='w-6 h-6 text-rose-600 mx-auto mb-3' aria-hidden='true' />
-              <p className='text-xs text-[#44403C] mb-4'>{t('workspace.shelf.loadError')}</p>
+              <p className='text-xs text-stone-900 mb-4'>{t('workspace.shelf.loadError')}</p>
               <button
                 type='button'
                 onClick={fetchWorkspaces}
@@ -500,59 +500,66 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </div>
           ) : (
             <>
-              {/* STITCH HEADER CARD (VIEW 1: DIRECTORY) */}
-              <div className='bg-white border border-stone-200 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6'>
-                <div className='flex flex-col gap-1.5'>
-                  <h1 className='text-2xl font-bold text-stone-900 tracking-tight flex items-center gap-3 font-serif'>
+              {/* STITCH HEADER (VIEW 1: DIRECTORY) */}
+              <PageHeader
+                icon={<Building2 className='w-5 h-5' />}
+                title={
+                  <div className='flex items-center gap-3'>
                     <span>{t('workspace.studioHub.directory.title')}</span>
                     <span
                       id='dir-total-badge'
-                      className='px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-700 font-semibold text-xs border border-stone-200'
+                      className='px-2.5 py-0.5 rounded-full bg-kraft text-kraft-ink font-semibold text-xs'
                     >
                       {workspaces.length} Studio
                     </span>
-                  </h1>
-                  <p
-                    className='text-stone-600 text-xs leading-relaxed max-w-3xl'
-                    data-testid='ws-summary'
-                  >
-                    {summary}
-                  </p>
-                  {/* KPI Chips */}
-                  {(pendingTotal > 0 || reviewTotal > 0) && (
-                    <div className='mt-2 flex flex-wrap items-center gap-2'>
-                      {pendingTotal > 0 && (
-                        <span
-                          className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-800 border border-orange-200 text-xs font-medium'
-                          data-testid='ws-chip-pending'
-                        >
-                          <ListTodo className='w-3.5 h-3.5' aria-hidden='true' />
-                          {t('workspace.shelf.pendingForYou', { count: pendingTotal })}
-                        </span>
-                      )}
-                      {reviewTotal > 0 && (
-                        <span
-                          className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium'
-                          data-testid='ws-chip-reviews'
-                        >
-                          <ShieldCheck className='w-3.5 h-3.5' aria-hidden='true' />
-                          {t('workspace.shelf.pendingReviews', { count: reviewTotal })}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {canCreate && (
-                  <button
-                    type='button'
-                    onClick={handleOpenCreate}
-                    className='bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs shrink-0 self-start md:self-auto'
-                  >
-                    <Plus className='w-4 h-4' />
-                    <span>{t('workspace.studioHub.directory.createStudioBtn')}</span>
-                  </button>
-                )}
-              </div>
+                  </div>
+                }
+                description={
+                  <div>
+                    <p
+                      className='text-stone-600 text-xs leading-relaxed max-w-3xl'
+                      data-testid='ws-summary'
+                    >
+                      {summary}
+                    </p>
+                    {/* KPI Chips */}
+                    {(pendingTotal > 0 || reviewTotal > 0) && (
+                      <div className='mt-2 flex flex-wrap items-center gap-2'>
+                        {pendingTotal > 0 && (
+                          <span
+                            className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-800 border border-orange-200 text-xs font-medium'
+                            data-testid='ws-chip-pending'
+                          >
+                            <ListTodo className='w-3.5 h-3.5' aria-hidden='true' />
+                            {t('workspace.shelf.pendingForYou', { count: pendingTotal })}
+                          </span>
+                        )}
+                        {reviewTotal > 0 && (
+                          <span
+                            className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium'
+                            data-testid='ws-chip-reviews'
+                          >
+                            <ShieldCheck className='w-3.5 h-3.5' aria-hidden='true' />
+                            {t('workspace.shelf.pendingReviews', { count: reviewTotal })}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                }
+                actions={
+                  canCreate && (
+                    <button
+                      type='button'
+                      onClick={handleOpenCreate}
+                      className='bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs shrink-0 self-start md:self-auto'
+                    >
+                      <Plus className='w-4 h-4' />
+                      <span>{t('workspace.studioHub.directory.createStudioBtn')}</span>
+                    </button>
+                  )
+                }
+              />
 
               {/* Pending Studio Invitations Banner */}
               {invitations.length > 0 && (

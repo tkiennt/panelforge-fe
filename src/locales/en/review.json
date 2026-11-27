@@ -91,6 +91,10 @@
     "filterStatusAll": "All statuses",
     "filterStatusSubmitted": "Pending review (Submitted)",
     "filterStatusUnderReview": "Under review (UnderReview)",
+    "scopeFilterAria": "Filter by assigned reviewer",
+    "scopeAll": "All",
+    "scopeMine": "Mine",
+    "assignedToYouChip": "Assigned to you",
     "searchPlaceholder": "Search chapter, artist, page...",
     "retry": "Retry",
     "loadingQueue": "Loading Editor review queue...",
@@ -511,12 +515,22 @@
     "decisionHint": "Does the design match the spec and story? Editor confirmation locks this revision as canon.",
     "lockCanon": "Confirm & Lock Canon",
     "requestRework": "Request redraw",
+    "endorseBtn": "Endorse Design",
+    "endorsedToggleBtn": "Design endorsed v{version}",
+    "writerEndorsedBadge": "Writer endorsed v{version}",
+    "writerNotEndorsedBanner": "Writer has not endorsed concept v{version} yet. You can still Lock Canon if aligned.",
+    "producerReworkModalTitle": "Producer: Request redraw (production reason)",
+    "producerReworkReasonLabel": "Production reason / scope adjustment",
+    "producerReworkReasonPlaceholder": "e.g. armor details exceed weekly schedule capacity, simplify motifs...",
+    "producerReworkReasonHelp": "The Artist will see this as a priority item at the top of the design queue.",
     "reworkReason": "What needs to change? (the artist sees this note)",
     "waitingArtist": "Redraw requested. Waiting for the artist's new version.",
     "notReviewer": "Your role can view designs only.",
     "toast": {
       "canonLocked": "Canon locked",
       "reworkRequested": "Redraw requested",
+      "endorsed": "Design endorsed",
+      "endorseRemoved": "Endorsement removed",
       "failed": "Could not save the decision"
     },
     "errors": {
@@ -531,6 +545,18 @@
     "visualReport": "Visual Report"
   },
   "chapterReview": {
+    "gate2Badge": "Gate 2",
+    "gate2Subtitle": "Quality & Composite Gate",
+    "status": {
+      "unassigned": "Unassigned",
+      "assigned": "Assigned",
+      "inProgress": "In Progress",
+      "submitted": "Submitted",
+      "underReview": "Under Review",
+      "approved": "Approved",
+      "reworkRequired": "Rework Required",
+      "blocked": "Blocked"
+    },
     "stepper": {
       "editor": "Editor Review",
       "producer": "Producer Review",

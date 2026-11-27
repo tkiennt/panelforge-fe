@@ -133,14 +133,21 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
-    expect(screen.getByText('Tiến độ & Giao việc')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản & Cổng duyệt')).toBeInTheDocument();
-    expect(screen.getByText('Đọc duyệt tranh')).toBeInTheDocument();
-    expect(screen.getByText('Đóng gói & Xuất bản')).toBeInTheDocument();
+    expect(screen.getByText('Ma trận trang')).toBeInTheDocument();
+    expect(screen.getByText('Tổng quan chương')).toBeInTheDocument();
+    expect(screen.getByText('Quản lý Ê-kíp')).toBeInTheDocument();
+    expect(screen.getByText('Kịch bản')).toBeInTheDocument();
+    expect(screen.getByText('Đọc thử & Soát trang')).toBeInTheDocument();
+    expect(screen.getByText('Bàn giao')).toBeInTheDocument();
+    expect(screen.getByText('Kiểm tra & Hiệu đính')).toBeInTheDocument();
     expect(screen.getByText('Thư viện')).toBeInTheDocument();
     expect(screen.getByText('Doanh thu & Lượt đọc')).toBeInTheDocument();
-    expect(screen.getByText('Đội ngũ')).toBeInTheDocument();
     // Removed old items:
+    expect(screen.queryByText('Tiến độ & Giao việc')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kịch bản & Cổng duyệt')).not.toBeInTheDocument();
+    expect(screen.queryByText('Đọc duyệt tranh')).not.toBeInTheDocument();
+    expect(screen.queryByText('Đóng gói & Xuất bản')).not.toBeInTheDocument();
+    expect(screen.queryByText('Đội ngũ')).not.toBeInTheDocument();
     expect(screen.queryByText('Quy trình sản xuất')).not.toBeInTheDocument();
     expect(screen.queryByText('Bàn vẽ & Khung trang')).not.toBeInTheDocument();
     expect(screen.queryByText('Chèn chữ & Bóng thoại')).not.toBeInTheDocument();
@@ -334,7 +341,7 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/workspace');
 
-    const activeLink = screen.getByRole('link', { name: /Tiến độ & Giao việc/i });
+    const activeLink = screen.getByRole('link', { name: /Ma trận trang/i });
     expect(activeLink).toBeInTheDocument();
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 

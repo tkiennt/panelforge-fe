@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import type { NotificationDto, NotificationListDto } from '@/types';
 import { notificationService } from '@/services/notification.service';
 import { chapterService } from '@/services/chapter.service';
+import { seriesService } from '@/services/series.service';
 import { workspaceService } from '@/services/workspace.service';
 import type { ComponentProps } from 'react';
 import { NotificationBell } from './NotificationBell';
@@ -82,6 +83,7 @@ describe('NotificationBell', () => {
     vi.mocked(notificationService.markAsRead).mockResolvedValue(1);
     vi.mocked(notificationService.markAllAsRead).mockResolvedValue(2);
     vi.mocked(chapterService.getChapterById).mockResolvedValue(null as any);
+    vi.mocked(seriesService.getSeriesById).mockResolvedValue(null as any);
     vi.mocked(workspaceService.getPendingInvitations).mockResolvedValue([]);
   });
 
@@ -306,6 +308,77 @@ describe('NotificationBell', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(
       '/workspaces/ws-1/series/se-resolved/workspace?chapterId=chap-99&board=grid-v3',
     );
+  });
+
+  it('TASK-362: thông báo "Chương X sẵn sàng chốt", "có ô bị ngâm" và "Lô việc trễ hạn quá N giờ" mở đúng chương / lưới giao việc của chương đó (kể cả khi đang xem bộ truyện khác)', async () => {
+    const { seriesService } = await import('@/services/series.service');
+    vi.mocked(chapterService.getChapterById)
+      .mockResolvedValueOnce({ id: 'chap-lock', seriesId: 'se-other' } as any)
+      .mockResolvedValueOnce({ id: 'chap-stale', seriesId: 'se-1' } as any)
+      .mockResolvedValueOnce({ id: 'chap-escalated', seriesId: 'se-1' } as any);
+    vi.mocked(seriesService.getSeriesById).mockResolvedValueOnce({
+      id: 'se-other',
+      workspaceId: 'ws-2',
+    } as any);
+
+    vi.mocked(notificationService.getNotifications).mockResolvedValue(
+      list([
+        notification({
+          id: 'n-ready-lock',
+          type: 'AssignmentUpdated',
+          title: 'Chương 5 sẵn sàng chốt',
+          message: 'Mọi ô đã duyệt và không còn điều kiện chặn. Mở chương để duyệt/chốt.',
+          assignmentId: null,
+          chapterId: 'chap-lock',
+        }),
+        notification({
+          id: 'n-stale-cells',
+          type: 'AssignmentUpdated',
+          title: 'Chương 6: có ô bị ngâm',
+          message: 'Có ô đã giao và đủ điều kiện quá 48 giờ mà chưa bắt đầu.',
+          assignmentId: null,
+          chapterId: 'chap-stale',
+        }),
+        notification({
+          id: 'n-lot-escalated',
+          type: 'AssignmentOverdue',
+          title: 'Lô việc trễ hạn quá 48 giờ',
+          message: 'Hạn 2026-11-25 10:00 UTC · lô lot-1.',
+          assignmentId: null,
+          chapterId: 'chap-escalated',
+        }),
+      ]),
+    );
+
+    const user = userEvent.setup();
+    renderBell({ workspaceId: 'ws-1', seriesId: 'se-1' });
+
+    // 1. Chương sẵn sàng chốt (thuộc bộ truyện/Studio khác se-other / ws-2)
+    await user.click(await screen.findByTestId('notification-bell'));
+    await user.click(await screen.findByTestId('notification-n-ready-lock'));
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/workspaces/ws-2/series/se-other/workspace?chapterId=chap-lock&board=grid-v3',
+      );
+    });
+
+    // 2. Có ô bị ngâm
+    await user.click(screen.getByTestId('notification-bell'));
+    await user.click(await screen.findByTestId('notification-n-stale-cells'));
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/workspaces/ws-1/series/se-1/workspace?chapterId=chap-stale&board=grid-v3',
+      );
+    });
+
+    // 3. Lô việc trễ hạn quá N giờ
+    await user.click(screen.getByTestId('notification-bell'));
+    await user.click(await screen.findByTestId('notification-n-lot-escalated'));
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/workspaces/ws-1/series/se-1/workspace?chapterId=chap-escalated&board=grid-v3',
+      );
+    });
   });
 
   it('bấm thông báo đã đọc thì không gọi đánh dấu lại', async () => {

@@ -1,13 +1,31 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, FileText, ImageOff, Minus, Plus, Search, Volume2 } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronRight,
+  FileText,
+  ImageOff,
+  Minus,
+  Plus,
+  Search,
+  Volume2,
+} from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { useTranslation } from '@/lib/i18n';
 import type { BibleEntityItem, ScriptLineItem, SidebarChapterOption } from './ArtistCanvaSidebar';
 
 type ScriptViewMode = 'current-page' | 'all';
 
-interface ArtistScriptReaderProps {
+export interface ChapterPanelRef {
+  id: string;
+  pageNumber?: number;
+  panelNumber?: number;
+  direction?: string | null;
+  pageId?: string;
+}
+
+export interface ArtistScriptReaderProps {
   scriptLines: ScriptLineItem[];
+  chapterPanels?: ChapterPanelRef[];
   activePageNumber: number;
   chapterTitle?: string;
   chapters?: SidebarChapterOption[];
@@ -26,6 +44,8 @@ interface ArtistScriptReaderProps {
 interface PanelGroup {
   pageNumber: number;
   panelNumber: number;
+  panelId?: string | null;
+  direction?: string | null;
   lines: ScriptLineItem[];
 }
 
@@ -94,7 +114,7 @@ const EntityChip: React.FC<{ entity: BibleEntityItem }> = ({ entity }) => (
   <span className='group/entity relative inline-flex'>
     <span
       tabIndex={0}
-      className='rounded-full border border-[var(--sb-border)] bg-[var(--sb-surface)] px-2 py-0.5 text-[11px] font-semibold text-[var(--sb-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--sb-accent)]'
+      className='rounded-full border border-[var(--sb-border)] bg-[var(--sb-surface)] px-2 py-0.5 text-xs font-semibold text-[var(--sb-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--sb-accent)]'
     >
       {entity.name}
     </span>
@@ -108,7 +128,7 @@ const EntityChip: React.FC<{ entity: BibleEntityItem }> = ({ entity }) => (
       )}
       <strong className='block text-xs text-[var(--sb-text)]'>{entity.name}</strong>
       {entity.visualNotes[0] && (
-        <span className='mt-1 block text-[11px] leading-relaxed text-[var(--sb-muted)]'>
+        <span className='mt-1 block text-xs leading-relaxed text-[var(--sb-muted)]'>
           {entity.visualNotes[0]}
         </span>
       )}
@@ -140,7 +160,7 @@ const ScriptLine: React.FC<{ line: ScriptLineItem; fontSize: number }> = ({ line
       )}
       {line.dialogueText && kind === 'caption' && (
         <div className='border-l-2 border-[var(--sb-accent)] bg-[var(--sb-surface)] px-3 py-2'>
-          <span className='mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--sb-muted)]'>
+          <span className='mb-1 block text-xs font-bold uppercase tracking-wider text-[var(--sb-muted)]'>
             {narrationMode || t('scriptReader.narrationVoice')}
           </span>
           <p className='font-serif leading-relaxed text-[var(--sb-text)]' style={{ fontSize }}>
@@ -153,14 +173,14 @@ const ScriptLine: React.FC<{ line: ScriptLineItem; fontSize: number }> = ({ line
           <div className='mb-1 flex flex-wrap items-center gap-1.5'>
             {line.characterName && (
               <span
-                className='rounded-full border border-[var(--sb-border)] bg-[var(--sb-surface)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide'
+                className='rounded-full border border-[var(--sb-border)] bg-[var(--sb-surface)] px-2 py-0.5 text-xs font-bold uppercase tracking-wide'
                 style={{ color: line.characterColor || 'var(--sb-accent)' }}
               >
                 {line.characterName}
               </span>
             )}
             {narrationMode && (
-              <span className='text-[11px] text-[var(--sb-muted)]'>({narrationMode})</span>
+              <span className='text-xs text-[var(--sb-muted)]'>({narrationMode})</span>
             )}
           </div>
           <p className='font-serif leading-relaxed text-[var(--sb-text)]' style={{ fontSize }}>
@@ -174,6 +194,7 @@ const ScriptLine: React.FC<{ line: ScriptLineItem; fontSize: number }> = ({ line
 
 export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
   scriptLines,
+  chapterPanels,
   activePageNumber,
   chapterTitle,
   chapters,
@@ -192,7 +213,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
   const [query, setQuery] = useState('');
   const [viewMode, setViewMode] = useState<ScriptViewMode>('current-page');
   const [fontStep, setFontStep] = useState(readFontStep);
-  const selectedCardRef = useRef<HTMLButtonElement | null>(null);
+  const selectedCardRef = useRef<HTMLElement | null>(null);
 
   const groups = useMemo(() => {
     const normalizedQuery = query.trim();
@@ -202,17 +223,61 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
         (viewMode === 'all' || line.pageNumber === activePageNumber),
     );
     const panelMap = new Map<string, PanelGroup>();
+
+    // 1. Khởi tạo danh sách Panel từ chapterPanels (Left-join mô hình khung xương từ DB)
+    if (chapterPanels && chapterPanels.length > 0) {
+      chapterPanels
+        .filter(
+          (p) =>
+            typeof p.pageNumber === 'number' &&
+            p.pageNumber > 0 &&
+            (viewMode === 'all' || p.pageNumber === activePageNumber),
+        )
+        .forEach((p) => {
+          const pageNumber = p.pageNumber!;
+          const panelNumber = p.panelNumber && p.panelNumber > 0 ? p.panelNumber : 0;
+          const key = `${pageNumber}:${panelNumber}`;
+          panelMap.set(key, {
+            pageNumber,
+            panelNumber,
+            panelId: p.id,
+            direction: p.direction ?? null,
+            lines: [],
+          });
+        });
+    }
+
+    // 2. Điền scriptLines vào từng panel
     visibleLines
       .filter((line) => typeof line.pageNumber === 'number' && line.pageNumber > 0)
       .forEach((line) => {
         const pageNumber = line.pageNumber!;
         const panelNumber = line.panelNumber && line.panelNumber > 0 ? line.panelNumber : 0;
         const key = `${pageNumber}:${panelNumber}`;
-        const group = panelMap.get(key) || { pageNumber, panelNumber, lines: [] };
+        const group = panelMap.get(key) || {
+          pageNumber,
+          panelNumber,
+          panelId: line.panelId ?? null,
+          direction: null,
+          lines: [],
+        };
         group.lines.push(line);
+        if (line.panelId && !group.panelId) group.panelId = line.panelId;
         panelMap.set(key, group);
       });
-    const panels = [...panelMap.values()].sort(
+
+    // Nếu query tìm kiếm đang có, chỉ giữ các panel có dòng khớp hoặc có direction khớp
+    let panelValues = [...panelMap.values()];
+    if (normalizedQuery) {
+      panelValues = panelValues.filter(
+        (g) =>
+          g.lines.length > 0 ||
+          (g.direction &&
+            g.direction.toLocaleLowerCase('vi').includes(normalizedQuery.toLocaleLowerCase('vi'))),
+      );
+    }
+
+    const panels = panelValues.sort(
       (a, b) =>
         a.pageNumber - b.pageNumber ||
         (a.panelNumber === 0 ? 1 : b.panelNumber === 0 ? -1 : a.panelNumber - b.panelNumber),
@@ -221,7 +286,9 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
       (line) => typeof line.pageNumber !== 'number' || line.pageNumber <= 0,
     );
     return { panels, unpaged: viewMode === 'all' ? unpaged : [] };
-  }, [activePageNumber, query, scriptLines, viewMode]);
+  }, [activePageNumber, chapterPanels, query, scriptLines, viewMode]);
+
+  const hasSelectedPanel = selectedPanelId !== null || selectedPanelNumber !== null;
 
   useEffect(() => {
     if (!selectedCardRef.current) return;
@@ -292,7 +359,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
         className='absolute inset-y-0 left-0 z-40 w-2 cursor-ew-resize border-l border-transparent hover:border-[var(--sb-accent)] focus-visible:border-[var(--sb-accent)] focus-visible:outline-none'
       />
 
-      <div className='shrink-0 space-y-3 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] p-3.5 pl-4'>
+      <div className='shrink-0 space-y-2 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] p-3 pl-4'>
         <div className='flex items-center justify-between gap-2'>
           <div className='min-w-0'>
             {chapters && chapters.length > 1 && onSelectChapter ? (
@@ -332,7 +399,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
               <Minus className='h-3.5 w-3.5' aria-hidden='true' />
               <span className='sr-only'>A-</span>
             </button>
-            <span className='text-[11px] font-bold text-[var(--sb-muted)]'>A</span>
+            <span className='text-xs font-bold text-[var(--sb-muted)]'>A</span>
             <button
               type='button'
               aria-label={t('scriptReader.increaseFontAriaLabel')}
@@ -415,8 +482,8 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
             )}
           </div>
         ) : (
-          groups.panels.map((group) => {
-            const panelId = group.lines.find((line) => line.panelId)?.panelId;
+          groups.panels.map((group, groupIndex) => {
+            const panelId = group.panelId || group.lines.find((line) => line.panelId)?.panelId;
             const isSelected =
               group.pageNumber === activePageNumber &&
               group.panelNumber > 0 &&
@@ -435,73 +502,95 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
             if (sceneKey.replaceAll('|', '')) previousSceneKey = sceneKey;
             const entities = mentionedEntities(group.lines, bibleEntities);
             return (
-              <div
+              <details
                 key={`${group.pageNumber}:${group.panelNumber}`}
-                className={`rounded-xl border bg-[var(--sb-surface)] shadow-sm ${
+                open={isSelected || (!hasSelectedPanel && groupIndex === 0) || undefined}
+                className={`group overflow-hidden rounded-lg border bg-[var(--sb-surface)] ${
                   isSelected
-                    ? 'border-[var(--sb-accent)] ring-2 ring-[var(--sb-accent)]'
+                    ? 'border-[var(--sb-accent)] bg-[var(--sb-surface-hover)] ring-1 ring-[var(--sb-accent)]'
                     : 'border-[var(--sb-border)]'
                 }`}
               >
-                <button
-                  type='button'
+                <summary
                   ref={isSelected ? selectedCardRef : undefined}
                   aria-current={isSelected ? 'true' : undefined}
                   onClick={() =>
                     group.panelNumber > 0 && onSelectPanel?.(group.pageNumber, group.panelNumber)
                   }
                   data-testid={`script-panel-section-${group.pageNumber}-${group.panelNumber}`}
-                  className='w-full cursor-pointer p-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--sb-accent)]'
+                  className='focus-ring cursor-pointer list-none p-2.5 text-left [&::-webkit-details-marker]:hidden'
                 >
                   {showSceneHeader && (
-                    <div className='mb-2 border-b border-[var(--sb-border)] pb-2'>
-                      <div className='text-xs font-bold uppercase tracking-wide text-[var(--sb-accent)]'>
+                    <div className='mb-2 flex min-w-0 items-baseline gap-2 border-b border-[var(--sb-border)] pb-2'>
+                      <span className='truncate text-xs font-bold uppercase tracking-wide text-[var(--sb-accent)]'>
                         {group.lines[0]?.sceneTitle ||
                           t('scriptReader.sceneFallback', {
                             number: group.lines[0]?.sceneNumber || '',
                           })}
-                      </div>
+                      </span>
                       {group.lines[0]?.sceneSlugline && (
-                        <div className='mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--sb-muted)]'>
+                        <span className='truncate text-xs font-semibold uppercase tracking-wide text-[var(--sb-muted)]'>
                           {group.lines[0].sceneSlugline}
-                        </div>
+                        </span>
                       )}
                     </div>
                   )}
-                  <div className='mb-3 flex items-center justify-between gap-2'>
+                  <div className='flex items-center justify-between gap-2'>
                     <strong className='text-sm text-[var(--sb-text)]'>
                       {group.panelNumber > 0
                         ? t('scriptReader.panelLabel', { number: group.panelNumber })
                         : t('scriptReader.unassignedPanel')}
                     </strong>
-                    {group.panelNumber > 0 && group.pageNumber === activePageNumber && (
-                      <span className='inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--sb-muted)]'>
-                        {hasArtwork ? (
-                          <CheckCircle2
-                            className='h-3.5 w-3.5 text-[var(--sb-accent)]'
-                            aria-hidden='true'
-                          />
-                        ) : (
-                          <ImageOff className='h-3.5 w-3.5' aria-hidden='true' />
-                        )}
-                        {hasArtwork ? t('scriptReader.hasArtwork') : t('scriptReader.notDrawn')}
+                    <span className='flex items-center gap-2'>
+                      {group.panelNumber > 0 && group.pageNumber === activePageNumber && (
+                        <span className='inline-flex items-center gap-1 text-xs font-semibold text-[var(--sb-muted)]'>
+                          {hasArtwork ? (
+                            <CheckCircle2
+                              className='h-3.5 w-3.5 text-[var(--sb-accent)]'
+                              aria-hidden='true'
+                            />
+                          ) : (
+                            <ImageOff className='h-3.5 w-3.5' aria-hidden='true' />
+                          )}
+                          {hasArtwork ? t('scriptReader.hasArtwork') : t('scriptReader.notDrawn')}
+                        </span>
+                      )}
+                      <ChevronRight
+                        className='h-4 w-4 text-[var(--sb-muted)] transition-transform group-open:rotate-90'
+                        aria-hidden='true'
+                      />
+                    </span>
+                  </div>
+                </summary>
+                <div className='space-y-3 border-t border-[var(--sb-border)] px-3 py-3'>
+                  {group.direction && (
+                    <div className='rounded bg-[var(--sb-bg)] p-2 text-xs italic text-[var(--sb-muted)] border border-[var(--sb-border)]'>
+                      <span className='font-semibold not-italic text-[var(--sb-text)] mr-1'>
+                        {t('scriptReader.directionLabel', 'Chỉ dẫn')}:
                       </span>
-                    )}
-                  </div>
-                  <div className='space-y-3'>
-                    {group.lines.map((line) => (
-                      <ScriptLine key={line.id} line={line} fontSize={FONT_STEPS[fontStep]} />
-                    ))}
-                  </div>
-                </button>
-                {entities.length > 0 && (
-                  <div className='flex flex-wrap gap-1.5 border-t border-[var(--sb-border)] px-3 py-2.5'>
-                    {entities.map((entity) => (
-                      <EntityChip key={entity.id} entity={entity} />
-                    ))}
-                  </div>
-                )}
-              </div>
+                      {group.direction}
+                    </div>
+                  )}
+                  {group.lines.length > 0 ? (
+                    <div className='space-y-3'>
+                      {group.lines.map((line) => (
+                        <ScriptLine key={line.id} line={line} fontSize={FONT_STEPS[fontStep]} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className='py-2 text-center text-xs italic text-[var(--sb-muted)]'>
+                      {t('scriptReader.emptyPanelNotice', 'Khung trống — chưa có mô tả/thoại')}
+                    </div>
+                  )}
+                  {entities.length > 0 && (
+                    <div className='flex flex-wrap gap-1.5 border-t border-[var(--sb-border)] pt-2.5'>
+                      {entities.map((entity) => (
+                        <EntityChip key={entity.id} entity={entity} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </details>
             );
           })
         )}

@@ -123,14 +123,12 @@ describe('AddEntityModal UX/UI improvements', () => {
     expect(screen.getByRole('button', { name: /Tạo bản nháp mới/i })).toBeInTheDocument();
   });
 
-  it('renders character sheet gallery section and adds turnaround sketches (Step 3)', async () => {
+  it('renders simplified age and artistNotes inputs and omits multi-angle turnaround sketches', async () => {
     render(<AddEntityModal {...defaultProps} isProducer={true} />);
 
-    expect(screen.getByText(/Bộ Sưu Tập Phác Thảo Góc Nhìn & Biểu Cảm/i)).toBeInTheDocument();
-    expect(screen.getByText(/0 góc phác thảo/i)).toBeInTheDocument();
-
-    const labelSelect = screen.getByDisplayValue('Chính diện (Front)');
-    fireEvent.change(labelSelect, { target: { value: 'Góc nghiêng 3/4' } });
+    expect(screen.queryByText(/Bộ Sưu Tập Phác Thảo/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Độ tuổi/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Ghi chú cho Artist/i)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Tên mục/i), { target: { value: 'Luffy' } });
     fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
@@ -138,6 +136,12 @@ describe('AddEntityModal UX/UI improvements', () => {
     });
     fireEvent.change(screen.getByLabelText(/Nhãn biến thể tạo hình/i), {
       target: { value: 'Mặc định' },
+    });
+    fireEvent.change(screen.getByLabelText(/Độ tuổi/i), {
+      target: { value: '17 tuổi' },
+    });
+    fireEvent.change(screen.getByLabelText(/Ghi chú cho Artist/i), {
+      target: { value: 'Vết sẹo dưới mắt trái, áo đỏ' },
     });
 
     const submitBtn = screen.getByRole('button', { name: /Lưu vào Series Bible/i });
@@ -147,6 +151,8 @@ describe('AddEntityModal UX/UI improvements', () => {
       expect.objectContaining({
         name: 'Luffy',
         description: 'Mũ rơm',
+        age: '17 tuổi',
+        artistNotes: 'Vết sẹo dưới mắt trái, áo đỏ',
       }),
     );
   });

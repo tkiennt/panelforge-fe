@@ -79,6 +79,9 @@ describe('ArtistScriptReader', () => {
       'true',
     );
     expect(screen.getByTestId('script-panel-section-1-1')).toBeInTheDocument();
+    expect(screen.getByTestId('script-panel-section-1-1').closest('details')).toHaveAttribute(
+      'open',
+    );
     expect(screen.queryByTestId('script-panel-section-2-2')).not.toBeInTheDocument();
     expect(screen.getByText('Đã có tranh')).toBeInTheDocument();
     expect(screen.getByText('Minh Triết', { selector: 'span[tabindex="0"]' })).toBeInTheDocument();
@@ -107,5 +110,21 @@ describe('ArtistScriptReader', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tăng cỡ chữ' }));
     expect(localStorage.getItem('pf.artist.scriptReader.fontStep')).toBe('2');
     expect(screen.getByRole('button', { name: 'Tăng cỡ chữ' })).toBeDisabled();
+  });
+
+  it('left-joins empty panels from chapterPanels and displays empty panel notice and direction', () => {
+    renderReader({
+      activePageNumber: 1,
+      chapterPanels: [
+        { id: 'panel-1', pageNumber: 1, panelNumber: 1, direction: 'Cảnh cổng thành' },
+        { id: 'panel-empty', pageNumber: 1, panelNumber: 2, direction: 'Toàn cảnh hoàng hôn' },
+      ],
+    });
+    // Panel 1 có dòng
+    expect(screen.getByTestId('script-panel-section-1-1')).toBeInTheDocument();
+    // Panel 2 rỗng không có dòng nào trong kịch bản vẫn được render
+    expect(screen.getByTestId('script-panel-section-1-2')).toBeInTheDocument();
+    expect(screen.getByText('Toàn cảnh hoàng hôn')).toBeInTheDocument();
+    expect(screen.getByText('Khung trống — chưa có mô tả/thoại')).toBeInTheDocument();
   });
 });

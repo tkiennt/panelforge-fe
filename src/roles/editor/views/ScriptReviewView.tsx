@@ -16,6 +16,7 @@ import { assignmentService } from '@/services/assignment.service';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { ProducerSharedHeader } from '@/shared/features/production-workspace/ProducerSharedHeader';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
+import { RefreezeScriptModal } from '@/shared/modals/RefreezeScriptModal';
 import { ScriptCommentItemCard } from '@/shared/features/script-review/ScriptCommentCard';
 import {
   SubmittedScriptPane,
@@ -407,7 +408,6 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         seriesTitle={series?.title}
         seriesFormat={series?.format}
         currentChapter={chapter}
-        activeTab='script'
         subtitle={
           (pushed
             ? t('scriptReview.pushed.version', {
@@ -445,7 +445,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 className='inline-flex items-center gap-1.5 rounded-lg bg-[#EA580C] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C] shadow-xs cursor-pointer'
               >
                 <Play className='h-3.5 w-3.5' aria-hidden='true' />
-                {t('scriptReview.lifecycle.startProduction')}
+                {chapter?.status === 'InProduction'
+                  ? t('scriptReview.lifecycle.refreezeScript', 'Khóa lại kịch bản')
+                  : t('scriptReview.lifecycle.startProduction')}
               </button>
             </div>
           ) : undefined
@@ -749,7 +751,23 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
           </div>
         </aside>
       </div>
-      {startOpen && chapter && (
+      {startOpen && chapter && chapter.status === 'InProduction' && (
+        <RefreezeScriptModal
+          isOpen
+          workspaceId={workspaceId}
+          seriesId={seriesId}
+          chapterId={chapterId}
+          chapterNumber={chapter.chapterNumber}
+          chapterTitle={chapter.title || undefined}
+          onClose={() => setStartOpen(false)}
+          onSuccess={() => {
+            setStartOpen(false);
+            void chapterService.getChapterById(chapterId).then(setChapter);
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
+      {startOpen && chapter && chapter.status !== 'InProduction' && (
         <StartProductionModal
           isOpen
           workspaceId={workspaceId}

@@ -269,7 +269,6 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
         seriesTitle={series?.title}
         seriesFormat={series?.format}
         currentChapter={chapter}
-        activeTab='reader'
         onChapterChange={(nextId) => {
           navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${nextId}/reader`);
         }}

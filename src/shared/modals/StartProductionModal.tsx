@@ -24,6 +24,7 @@ import {
   ChapterCastDto,
   ChapterCastBlockerDto,
 } from '@/services/chapterCast.service';
+import { bibleService } from '@/services/bible.service';
 import { workspaceService } from '@/services/workspace.service';
 import { pageService, PageDto } from '@/services/page.service';
 import { SeriesMemberDto } from '@/services/series.service';
@@ -72,6 +73,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
   const [artistMode, setArtistMode] = useState<'whole' | 'ranges'>('whole');
   const [singleArtistId, setSingleArtistId] = useState('');
   const [artistRanges, setArtistRanges] = useState<RangeItem[]>([]);
+  const [firstStageOnly, setFirstStageOnly] = useState(false);
 
   // Letterer assignment
   const [assignLetterer, setAssignLetterer] = useState(false);
@@ -82,6 +84,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
   // Inline submit error (409)
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitBlockers, setSubmitBlockers] = useState<ChapterCastBlockerDto[]>([]);
+  const [togglingCrowdId, setTogglingCrowdId] = useState<string | null>(null);
 
   const minPage = useMemo(() => {
     if (pages.length === 0) return 1;
@@ -97,12 +100,14 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
     setArtistMode('whole');
     setSingleArtistId('');
     setArtistRanges([]);
+    setFirstStageOnly(false);
     setAssignLetterer(false);
     setLettererMode('whole');
     setSingleLettererId('');
     setLettererRanges([]);
     setSubmitError(null);
     setSubmitBlockers([]);
+    setTogglingCrowdId(null);
   }, []);
 
   useEffect(() => {
@@ -279,6 +284,40 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
     setLettererRanges((prev) => prev.filter((r) => r.id !== id));
   };
 
+  const handleQuickMarkCrowd = async (bibleEntryId: string) => {
+    if (!seriesId || !bibleEntryId) return;
+    setTogglingCrowdId(bibleEntryId);
+    try {
+      await bibleService.setBibleEntryCrowd(seriesId, bibleEntryId, true);
+      const updatedCast = await chapterCastService.getChapterCast(chapterId).catch(() => null);
+      if (updatedCast) {
+        setCast(updatedCast);
+      }
+      setSubmitBlockers((prev) => {
+        const remaining = prev.filter((b) => b.bibleEntryId !== bibleEntryId);
+        if (remaining.length === 0) {
+          setSubmitError(null);
+        }
+        return remaining;
+      });
+      onShowToast?.(
+        t('seriesChaptersModal.startProductionModal.crowdMarkedTitle', 'Đã đánh dấu Quần chúng'),
+        '',
+      );
+    } catch (err: any) {
+      onShowToast?.(
+        err?.message ||
+          t(
+            'seriesChaptersModal.startProductionModal.crowdMarkFailed',
+            'Không thể đánh dấu Quần chúng',
+          ),
+        '',
+      );
+    } finally {
+      setTogglingCrowdId(null);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
@@ -311,6 +350,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
       const body: StartChapterProductionRequest = {
         pageAssignments,
         lettererAssignments,
+        ...(firstStageOnly ? { firstStageOnly: true } : {}),
       };
 
       const result = await chapterService.startProduction(chapterId, body);
@@ -414,11 +454,30 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                         )}
                       </p>
                       {cast?.gate?.blockers && cast.gate.blockers.length > 0 && (
-                        <ul className='mt-2 space-y-1 list-disc list-inside text-xs font-mono bg-white/70 rounded-lg p-2.5 border border-rose-200'>
+                        <ul className='mt-2 space-y-1.5 text-xs bg-white/80 rounded-lg p-2.5 border border-rose-200'>
                           {cast.gate.blockers.map((b, idx) => (
-                            <li key={idx} className='text-rose-800 font-medium'>
-                              <span className='font-bold'>{b.entryName}</span>: {b.reason}
-                              {b.sourceExplanation ? ` (${b.sourceExplanation})` : ''}
+                            <li
+                              key={b.bibleEntryId || idx}
+                              className='text-rose-800 font-medium flex items-center justify-between gap-2 flex-wrap'
+                            >
+                              <span className='font-mono'>
+                                <span className='font-bold'>{b.entryName}</span>: {b.reason}
+                                {b.sourceExplanation ? ` (${b.sourceExplanation})` : ''}
+                              </span>
+                              {b.bibleEntryId && seriesId && (
+                                <button
+                                  type='button'
+                                  disabled={togglingCrowdId === b.bibleEntryId}
+                                  onClick={() => void handleQuickMarkCrowd(b.bibleEntryId)}
+                                  data-testid={`gate1-quick-crowd-${b.bibleEntryId}`}
+                                  className='px-2 py-0.5 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-sans text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-50'
+                                >
+                                  {t(
+                                    'seriesChaptersModal.startProductionModal.markCrowdQuickBtn',
+                                    'Đánh dấu Quần chúng',
+                                  )}
+                                </button>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -677,6 +736,30 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                     )}
                   </div>
                 )}
+
+                <div className='pt-3 border-t border-stone-100 space-y-1'>
+                  <label className='inline-flex items-center gap-2 cursor-pointer font-semibold text-xs text-stone-900'>
+                    <input
+                      type='checkbox'
+                      checked={firstStageOnly}
+                      onChange={(e) => setFirstStageOnly(e.target.checked)}
+                      data-testid='gate1-first-stage-only-checkbox'
+                      className='rounded border-stone-300 text-[#F97316] focus:ring-[#F97316] accent-[#F97316]'
+                    />
+                    <span>
+                      {t(
+                        'seriesChaptersModal.startProductionModal.firstStageOnlyLabel',
+                        'Chỉ giao công đoạn đầu',
+                      )}
+                    </span>
+                  </label>
+                  <p className='text-[11px] text-stone-500 pl-6 leading-relaxed'>
+                    {t(
+                      'seriesChaptersModal.startProductionModal.firstStageOnlyHint',
+                      "Các công đoạn sau để trống; bật 'Tự giao công đoạn kế tiếp' ở tab Automation để hệ thống tự giao khi đến lượt.",
+                    )}
+                  </p>
+                </div>
               </div>
 
               {/* 4. Letterer Assignment (Optional) */}
@@ -914,11 +997,30 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                     <span className='font-semibold text-xs leading-relaxed'>{submitError}</span>
                   </div>
                   {submitBlockers.length > 0 && (
-                    <ul className='space-y-1 list-disc list-inside text-xs font-mono bg-white/70 rounded-lg p-2.5 border border-rose-200'>
+                    <ul className='space-y-1.5 text-xs bg-white/80 rounded-lg p-2.5 border border-rose-200'>
                       {submitBlockers.map((b, idx) => (
-                        <li key={idx} className='text-rose-800 font-medium'>
-                          <span className='font-bold'>{b.entryName}</span>: {b.reason}
-                          {b.sourceExplanation ? ` (${b.sourceExplanation})` : ''}
+                        <li
+                          key={b.bibleEntryId || idx}
+                          className='text-rose-800 font-medium flex items-center justify-between gap-2 flex-wrap'
+                        >
+                          <span className='font-mono'>
+                            <span className='font-bold'>{b.entryName}</span>: {b.reason}
+                            {b.sourceExplanation ? ` (${b.sourceExplanation})` : ''}
+                          </span>
+                          {b.bibleEntryId && seriesId && (
+                            <button
+                              type='button'
+                              disabled={togglingCrowdId === b.bibleEntryId}
+                              onClick={() => void handleQuickMarkCrowd(b.bibleEntryId)}
+                              data-testid={`gate1-quick-crowd-${b.bibleEntryId}`}
+                              className='px-2 py-0.5 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-sans text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-50'
+                            >
+                              {t(
+                                'seriesChaptersModal.startProductionModal.markCrowdQuickBtn',
+                                'Đánh dấu Quần chúng',
+                              )}
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>

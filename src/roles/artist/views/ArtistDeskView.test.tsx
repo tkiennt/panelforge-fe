@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ArtistDeskView } from './ArtistDeskView';
 import { chapterService } from '@/services/chapter.service';
@@ -51,6 +51,8 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
     expect(screen.getByTestId('canva-tab-pages')).toBeInTheDocument();
     expect(screen.getByTestId('canva-tab-script')).toBeInTheDocument();
     expect(screen.getByTestId('canva-tab-bible')).toBeInTheDocument();
+    expect(screen.getByTestId('canva-secondary-drawer')).not.toHaveClass('w-0');
+    expect(screen.getByTestId('canva-drawer-script')).toBeInTheDocument();
 
     // Canvas Shell & Clean Blank Manga Paper
     expect(screen.getByTestId('artist-canvas-shell')).toBeInTheDocument();
@@ -79,8 +81,7 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
       </MemoryRouter>,
     );
 
-    // Open Script tab
-    fireEvent.click(screen.getByTestId('canva-tab-script'));
+    // Script is the default drawer on Artist Desk.
     expect(screen.getByTestId('canva-secondary-drawer')).not.toHaveClass('w-0');
 
     // Switch to Bible tab
@@ -113,6 +114,28 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
     expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('7 / 7');
   });
 
+  it('renumbers remaining pages immediately after deleting an earlier page', async () => {
+    const deleteSpy = vi.spyOn(pageService, 'deletePage').mockResolvedValue({ message: 'ok' });
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/artist'
+            element={<ArtistDeskView workspaceRole='ARTIST' />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(within(screen.getByTestId('canva-page-card-1')).getByTitle('Xóa trang'));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith('page-default-1'));
+    expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('1 / 5');
+    expect(screen.getByTestId('canva-page-card-5')).toBeInTheDocument();
+    expect(screen.queryByTestId('canva-page-card-6')).not.toBeInTheDocument();
+  });
+
   it('defaults script to the current page and supports the full chapter mode', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
@@ -125,8 +148,7 @@ describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Pa
       </MemoryRouter>,
     );
 
-    // Open Script tab -> defaults to the page currently being drawn.
-    fireEvent.click(screen.getByTestId('canva-tab-script'));
+    // Script opens by default on the page currently being drawn.
     expect(screen.getByTestId('canva-script-mode-current-page')).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -216,7 +238,7 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
             summary: 'Bản canon đầu tiên',
             snapshotJson: '{}',
             contentHash: 'hash-1',
-            variantLabel: 'Mặc định',
+            stageName: 'Mặc định',
             isInitialVersion: true,
             createdAt: '2026-01-01T00:00:00Z',
             reviewStatus: 'CanonLocked',
@@ -334,9 +356,6 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
       </MemoryRouter>,
     );
 
-    // Open Script tab
-    fireEvent.click(screen.getByTestId('canva-tab-script'));
-
     await waitFor(() => {
       expect(screen.getByTestId('script-line-ln-1')).toBeInTheDocument();
     });
@@ -360,11 +379,14 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
     await waitFor(() => {
       expect(screen.getByTestId('bible-entity-char-kuro')).toBeInTheDocument();
     });
-    expect(screen.getByText('Thợ rèn ẩn danh mang cánh tay máy.')).toBeInTheDocument();
+    expect(screen.getAllByText('Thợ rèn ẩn danh mang cánh tay máy.').length).toBeGreaterThan(0);
     expect(screen.getByText('Ngoại hình: Tóc bạc cắt ngắn, áo choàng đen')).toBeInTheDocument();
     expect(screen.getByText('Vết sẹo chữ X ở cổ tay trái')).toBeInTheDocument();
     expect(screen.getByText('Đã chốt')).toBeInTheDocument();
-    expect(screen.getByRole('img')).toHaveAttribute('src', 'https://example.com/kurogane.png');
+    expect(screen.getByTestId('bible-entity-char-kuro').querySelector('img')).toHaveAttribute(
+      'src',
+      'https://example.com/kurogane.png',
+    );
   });
 });
 
@@ -879,6 +901,8 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
           seriesId: 'ser-real',
           chapterNumber: 1,
           title: 'Chương 1',
+          status: 'InProduction',
+          isScriptFrozen: true,
           versionVector: 1,
           createdAt: '2026-01-01T00:00:00Z',
           scenesCount: 0,
@@ -998,6 +1022,8 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
           seriesId: 'ser-real',
           chapterNumber: 1,
           title: 'Chương 1',
+          status: 'InProduction',
+          isScriptFrozen: true,
           versionVector: 1,
           createdAt: '2026-01-01T00:00:00Z',
           scenesCount: 0,
@@ -1540,8 +1566,8 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     });
   });
 
-  describe('ArtistDeskView - Collapsible Script Reference Sidebar (VIỆC 2)', () => {
-    it('renders collapsible script reference sidebar in line format with line kind labels and highlights lines when a panel is selected', () => {
+  describe('ArtistDeskView - Consolidated Script Drawer', () => {
+    it('uses the left script drawer as the single script reference surface', () => {
       render(
         <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
           <Routes>
@@ -1553,43 +1579,12 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         </MemoryRouter>,
       );
 
-      // Right script reference sidebar is open by default with panel cards (Stitch design)
-      const scriptRefSidebar = screen.getByTestId('artist-script-ref-sidebar');
-      expect(scriptRefSidebar).toBeInTheDocument();
-      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveTextContent('[Mô tả]');
-      expect(screen.getByTestId('artist-script-ref-line-line-2')).toHaveTextContent('MINH TRIẾT:');
-
-      // Apply a 3-panel template so panels exist on Page 1
-      fireEvent.click(screen.getByTestId('canva-tab-templates'));
-      fireEvent.click(
-        screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-000000000004'),
-      );
-
-      // Click Panel #2 on the canvas -> highlights lines of Panel #2 (line-3)
-      fireEvent.click(screen.getByTestId('canvas-panel-badge-2'));
-      expect(screen.getByTestId('artist-script-ref-line-line-3')).toHaveAttribute(
-        'data-line-highlighted',
-        'true',
-      );
-      expect(screen.getByTestId('artist-script-ref-line-line-1')).toHaveAttribute(
-        'data-line-highlighted',
-        'false',
-      );
-
-      // Click "Cả trang" button in script reference sidebar -> clears panel selection
-      fireEvent.click(screen.getByTestId('artist-script-ref-filter-all'));
-      expect(screen.getByTestId('artist-script-ref-line-line-3')).toHaveAttribute(
-        'data-line-highlighted',
-        'false',
-      );
-
-      // Collapse and re-expand the script reference sidebar
-      fireEvent.click(screen.getByTestId('artist-script-ref-toggle'));
       expect(screen.queryByTestId('artist-script-ref-sidebar')).not.toBeInTheDocument();
-      expect(screen.getByTestId('artist-script-ref-collapsed')).toBeInTheDocument();
+      expect(screen.queryByTestId('artist-script-ref-collapsed')).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByTestId('artist-script-ref-toggle'));
-      expect(screen.getByTestId('artist-script-ref-sidebar')).toBeInTheDocument();
+      expect(screen.getByTestId('canva-drawer-script')).toBeInTheDocument();
+      expect(screen.getByTestId('script-line-line-1')).toBeInTheDocument();
+      expect(screen.getByTestId('script-line-line-2')).toBeInTheDocument();
     });
 
     it('filters by pageId/pageNumber and highlights by panelNumber from GET /api/scenes/{sceneId} (TASK-6)', async () => {
@@ -1727,35 +1722,36 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
 
       // Page 1 shows only Page 1 lines (filtered by pageId/pageNumber)
       await waitFor(() => {
-        expect(screen.getByTestId('artist-script-ref-line-ln-p1-k1')).toBeInTheDocument();
+        expect(screen.getByTestId('script-line-ln-p1-k1')).toBeInTheDocument();
       });
-      expect(screen.getByTestId('artist-script-ref-line-ln-p1-k2')).toBeInTheDocument();
-      expect(screen.queryByTestId('artist-script-ref-line-ln-p2-k3')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('artist-script-ref-line-ln-unpaged')).not.toBeInTheDocument();
+      expect(screen.getByTestId('script-line-ln-p1-k2')).toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-ln-p2-k3')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-ln-unpaged')).not.toBeInTheDocument();
 
       // Selecting Khung #2 highlights only ln-p1-k2
-      fireEvent.click(screen.getByTestId('artist-script-ref-panel-btn-2'));
-      expect(screen.getByTestId('artist-script-ref-line-ln-p1-k2')).toHaveAttribute(
-        'data-line-highlighted',
+      fireEvent.click(screen.getByTestId('script-panel-section-1-2'));
+      expect(screen.getByTestId('script-panel-section-1-2')).toHaveAttribute(
+        'aria-current',
         'true',
       );
-      expect(screen.getByTestId('artist-script-ref-line-ln-p1-k1')).toHaveAttribute(
-        'data-line-highlighted',
-        'false',
-      );
+      expect(screen.getByTestId('script-panel-section-1-1')).not.toHaveAttribute('aria-current');
 
       // Switch to Page 2 -> shows Page 2 line in Panel 3 card
       const card2 = screen.getByTestId('canva-page-card-2');
       fireEvent.click(card2.querySelector('[role="button"]')!);
-      expect(screen.getByTestId('artist-script-ref-panel-btn-3')).toHaveTextContent('Khung 3');
-      expect(screen.getByTestId('artist-script-ref-line-ln-p2-k3')).toBeInTheDocument();
-      expect(screen.queryByTestId('artist-script-ref-line-ln-p1-k1')).not.toBeInTheDocument();
+      expect(screen.getByTestId('script-panel-section-2-3')).toHaveTextContent('Khung 3');
+      expect(screen.getByTestId('script-line-ln-p2-k3')).toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-ln-p1-k1')).not.toBeInTheDocument();
 
-      // Switch to Page 3 (no assigned lines) -> falls back to unpaged line only
+      // Page 3 has no assigned lines; the unpaged scene remains available in whole-chapter mode.
       const card3 = screen.getByTestId('canva-page-card-3');
       fireEvent.click(card3.querySelector('[role="button"]')!);
-      expect(screen.getByTestId('artist-script-ref-line-ln-unpaged')).toBeInTheDocument();
-      expect(screen.queryByTestId('artist-script-ref-line-ln-p2-k3')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-ln-p2-k3')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-ln-unpaged')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('canva-script-mode-all'));
+      expect(screen.getByTestId('script-unpaged-scenes')).toBeInTheDocument();
+      expect(screen.getByTestId('script-line-ln-unpaged')).toBeInTheDocument();
     });
   });
 
@@ -2264,7 +2260,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
           'Chỉ công đoạn Pencil mới được sửa bố cục khung',
         );
         expect(screen.getByTestId('canvas-btn-save-layout')).toBeDisabled();
-        expect(screen.getByTestId('canva-tab-templates')).toBeDisabled();
+        expect(screen.getByTestId('canva-tab-templates')).toHaveAttribute('aria-disabled', 'true');
 
         // Nạp tranh vào khung vẫn hoạt động bình thường
         const dropzone = screen.getByTestId('panel-dropzone-1');
@@ -2571,6 +2567,81 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
             1,
           );
         });
+      } finally {
+        localStorage.removeItem('user');
+      }
+    });
+
+    it('hiển thị banner hổ phách khi kịch bản đang mở khóa trong InProduction và huy hiệu ⚑ Kịch bản thay đổi', async () => {
+      localStorage.setItem('user', JSON.stringify({ id: 'artist-1', role: 'ARTIST' }));
+      const page1Id = '00000000-0000-0000-0000-000000000501';
+      const pencilStageId = 'stage-pencil';
+
+      vi.spyOn(chapterService, 'getChaptersBySeries').mockResolvedValue([
+        {
+          id: 'chap-1',
+          seriesId: 'ser-1',
+          chapterNumber: 1,
+          title: 'Chương 1',
+          status: 'InProduction',
+          isScriptFrozen: false,
+        },
+      ] as any);
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        { id: page1Id, chapterId: 'chap-1', pageNumber: 1, widthPx: 1200, heightPx: 1800 },
+      ] as any);
+      vi.spyOn(assignmentService, 'getTaskGrid').mockResolvedValue({
+        chapterId: 'chap-1',
+        stages: [
+          {
+            id: pencilStageId,
+            name: 'Pencil',
+            stageOrder: 1,
+            isEnabled: true,
+            allowedRole: 'Artist',
+          },
+        ],
+        pages: [{ id: page1Id, pageNumber: 1 }],
+        lots: [],
+        tasks: [
+          {
+            id: 'cell-p1-pencil',
+            pipelineStageId: pencilStageId,
+            pageId: page1Id,
+            status: 'InProgress',
+            lotId: 'lot-pencil',
+            assigneeUserId: 'artist-1',
+            isInputOutdated: true,
+            hasScriptImpact: true,
+            outdatedReason: 'Hành động khung 1 đã thay đổi',
+            isStartable: false,
+          },
+        ],
+      } as any);
+
+      try {
+        render(
+          <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+            <ToastProvider>
+              <ConfirmProvider>
+                <Routes>
+                  <Route
+                    path='/workspaces/:workspaceId/series/:seriesId/artist'
+                    element={<ArtistDeskView workspaceRole='ARTIST' initialScriptLines={[]} />}
+                  />
+                </Routes>
+              </ConfirmProvider>
+            </ToastProvider>
+          </MemoryRouter>,
+        );
+
+        const unfrozenBanner = await screen.findByTestId('script-unfrozen-banner');
+        expect(unfrozenBanner).toHaveTextContent(
+          /Kịch bản đang được mở khóa để chỉnh sửa — lưu ý trước khi nộp bài mới/i,
+        );
+
+        const impactBadge = await screen.findByTestId('visual-impact-badge');
+        expect(impactBadge).toHaveTextContent(/⚑ Kịch bản thay đổi/);
       } finally {
         localStorage.removeItem('user');
       }

@@ -270,6 +270,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           impactReviewReason: cell.isInputOutdated
             ? cell.outdatedReason || t('artworkReview.impact.inputOutdatedFallback')
             : null,
+          hasScriptImpact: cell.hasScriptImpact === true,
           createdAt: cell.startedAt ?? new Date().toISOString(),
         });
         setChangeRequests([]);
@@ -705,6 +706,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   impactReviewReason: updated?.isInputOutdated
                     ? updated.outdatedReason || prev.impactReviewReason
                     : null,
+                  hasScriptImpact: updated?.hasScriptImpact === true,
                 }
               : prev,
           );
@@ -976,6 +978,13 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
 
       <div className='flex min-h-0 flex-1 flex-col lg:flex-row'>
         <main className='flex min-h-0 min-w-0 flex-1 flex-col'>
+          {assignment.hasScriptImpact === true && (
+            <div className='mx-4 mt-4' data-testid='review-script-impact-badge'>
+              <span className='inline-flex rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700'>
+                ⚑ Kịch bản thay đổi
+              </span>
+            </div>
+          )}
           {assignment.impactReviewReason && (
             <div className='mx-4 mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3'>
               <p className='text-xs font-semibold text-amber-900'>

@@ -21,16 +21,24 @@ export const ScriptDiffPreview: React.FC<{
   suggestion: AiSuggestionDto;
   scene: SceneDetailDto;
   nameById: Record<string, string>;
-}> = ({ suggestion, scene, nameById }) => {
+  appendScript?: boolean;
+}> = ({ suggestion, scene, nameById, appendScript }) => {
   const { t } = useTranslation('writer');
   const labels: Record<string, string> = { caption: t('diffPreview.captionLabel'), sfx: 'SFX:' };
+  const before = sceneRows(scene);
   const draft = suggestion.kind === 'Script' ? (suggestion.payload as ScriptDraft) : null;
+  const isAppend =
+    Boolean(appendScript) ||
+    (suggestion.kind === 'Script' &&
+      (scene.scriptLines ?? []).some((l) => l.panelId != null && l.panelId !== ''));
   const after = draft
-    ? draftRows(draft, nameById)
+    ? isAppend
+      ? [...before, ...draftRows(draft, nameById)]
+      : draftRows(draft, nameById)
     : suggestion.kind === 'ScriptLineInsert'
       ? insertRows(scene, suggestion.payload as NextLineSuggestion)
       : rewriteRows(scene, suggestion.payload as LineRewriteSuggestion);
-  const rows = diffScriptRows(sceneRows(scene), after);
+  const rows = diffScriptRows(before, after);
   const newNames = draft ? newBibleNames(draft) : [];
 
   return (
