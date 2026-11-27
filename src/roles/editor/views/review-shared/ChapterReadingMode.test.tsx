@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ChapterReadingMode, pageStepForKey, toReadingDirection } from './ChapterReadingMode';
+import { ChapterReadingMode } from './ChapterReadingMode';
+import { pageStepForKey, toReadingDirection } from './readingDirection';
 
 vi.mock('@/services/pipeline.service', () => ({
   pipelineService: { getSeriesPipeline: vi.fn().mockResolvedValue({ stages: [] }) },

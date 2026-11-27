@@ -192,7 +192,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [chapterId, t]);
+  }, [chapterId, seriesId, t]);
 
   useEffect(() => {
     loadData();

@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { MyWorkHubView, flattenMyWork, lotHref } from './MyWorkHubView';
+import { MyWorkHubView } from './MyWorkHubView';
+import { flattenMyWork, lotHref } from './myWorkItems';
 import { assignmentService } from '@/services/assignment.service';
 
 vi.mock('@/services/assignment.service', () => ({ assignmentService: { getMyWork: vi.fn() } }));

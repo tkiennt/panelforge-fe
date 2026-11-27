@@ -10,10 +10,8 @@ import type { ScriptVersionRow, ScriptCommentDto } from '@/services/chapter.serv
 import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { isAiFinding } from '@/shared/features/script-review/reviewModel';
 import { rowLineId } from '@/shared/features/script-versions/versionDiff';
-import {
-  ScriptCommentComposer,
-  renderQuotedHighlight,
-} from '@/shared/features/script-review/ScriptCommentCard';
+import { ScriptCommentComposer } from '@/shared/features/script-review/ScriptCommentCard';
+import { renderQuotedHighlight } from '@/shared/features/script-review/renderQuotedHighlight';
 import type { ChapterCastDto } from '@/services/chapterCast.service';
 import type { BibleEntryDto } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';

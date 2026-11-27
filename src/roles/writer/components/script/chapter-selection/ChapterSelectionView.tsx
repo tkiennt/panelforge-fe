@@ -140,7 +140,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
     });
 
     return list;
-  }, [chapters, searchQuery, statusFilter, sortBy]);
+  }, [chapters, searchQuery, statusFilter, sortBy, t]);
 
   const handleOpenCreateModal = () => {
     if (!canCreateChapter) {
