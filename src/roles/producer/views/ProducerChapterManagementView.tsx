@@ -1135,8 +1135,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                             <span className='font-bold text-xs text-stone-900 truncate'>
                               <span>{ent.name}</span>
                               <span className='font-normal text-stone-500 font-sans'>
-                                {' '}— {ent.boundRevision?.variantLabel ||
-                                  t('producer.chapterManagement.defaultVariantLabel')} (v{ent.boundRevision?.versionNumber ?? 1})
+                                {' '}
+                                —{' '}
+                                {ent.boundRevision?.variantLabel ||
+                                  t('producer.chapterManagement.defaultVariantLabel')}{' '}
+                                (v{ent.boundRevision?.versionNumber ?? 1})
                               </span>
                             </span>
                             <span className='font-mono text-xs text-stone-400'>{ent.code}</span>

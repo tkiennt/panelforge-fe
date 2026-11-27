@@ -329,7 +329,7 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/workspace');
 
-    const activeLink = screen.getByRole('link', { name: /Tiến độ & Giao việc/i });
+    const activeLink = screen.getByRole('link', { name: /Ma trận trang/i });
     expect(activeLink).toBeInTheDocument();
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 

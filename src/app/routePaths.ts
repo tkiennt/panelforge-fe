@@ -88,11 +88,7 @@ export const buildChapterReaderUrl = (
   seriesId: string,
   chapterId: string,
 ): string =>
-  buildSeriesPath(
-    workspaceId,
-    seriesId,
-    `chapters/${encodeURIComponent(chapterId)}/reader`,
-  );
+  buildSeriesPath(workspaceId, seriesId, `chapters/${encodeURIComponent(chapterId)}/reader`);
 
 export const buildSeriesExportUrl = (
   workspaceId: string,

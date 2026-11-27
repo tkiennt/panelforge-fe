@@ -1737,7 +1737,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               const pendingDraftRev = variant.revisions.find(
                 (r) =>
                   r.reviewStatus !== 'CanonLocked' &&
-                  ((r.versionNumber || 0) > 1 || r.supersedesRevisionId != null || variant.isLocked),
+                  ((r.versionNumber || 0) > 1 ||
+                    r.supersedesRevisionId != null ||
+                    variant.isLocked),
               );
 
               return (
@@ -1803,7 +1805,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               }}
               data-testid='add-new-variant-btn'
               className='px-3 py-1.5 border border-dashed border-[#EA580C] hover:border-[#C2410C] text-[#EA580C] hover:text-[#C2410C] hover:bg-orange-50/50 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-2xs'
-              title={t('bible.detailModal.createNewVariantTitle', 'Tạo biến thể mới (bắt đầu từ v1)')}
+              title={t(
+                'bible.detailModal.createNewVariantTitle',
+                'Tạo biến thể mới (bắt đầu từ v1)',
+              )}
             >
               <Plus className='w-3.5 h-3.5' />
               <span>{t('bible.detailModal.createNewVariant', 'Thêm biến thể')}</span>
@@ -2549,14 +2554,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             <span className='truncate text-xs font-bold text-[#1C1917]'>
                               {artworkImageTitle || `${entity.name} - Model Sheet`}
                             </span>
-                            {activeRevision && (activeRevision.currentConceptVersionNumber || 0) > 1 && (
-                              <span className='px-1.5 py-0.5 rounded text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200 shrink-0'>
-                                {t('bible.detailModal.conceptIteration', {
-                                  n: activeRevision.currentConceptVersionNumber,
-                                  defaultValue: `Bản vẽ lần ${activeRevision.currentConceptVersionNumber}`,
-                                })}
-                              </span>
-                            )}
+                            {activeRevision &&
+                              (activeRevision.currentConceptVersionNumber || 0) > 1 && (
+                                <span className='px-1.5 py-0.5 rounded text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200 shrink-0'>
+                                  {t('bible.detailModal.conceptIteration', {
+                                    n: activeRevision.currentConceptVersionNumber,
+                                    defaultValue: `Bản vẽ lần ${activeRevision.currentConceptVersionNumber}`,
+                                  })}
+                                </span>
+                              )}
                           </div>
                           <span className='text-xs text-stone-400 font-mono'>
                             Turnaround / Model Sheet Canvas
@@ -2671,14 +2677,22 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <div
                         onDragOver={(e) => {
                           e.preventDefault();
-                          if (!isWriterUser && (effectiveCanCreateDraft || isArtistUser) && !isStubEntity)
+                          if (
+                            !isWriterUser &&
+                            (effectiveCanCreateDraft || isArtistUser) &&
+                            !isStubEntity
+                          )
                             setIsDraggingOver(true);
                         }}
                         onDragLeave={() => setIsDraggingOver(false)}
                         onDrop={(e) => {
                           e.preventDefault();
                           setIsDraggingOver(false);
-                          if (!isWriterUser && (effectiveCanCreateDraft || isArtistUser) && !isStubEntity) {
+                          if (
+                            !isWriterUser &&
+                            (effectiveCanCreateDraft || isArtistUser) &&
+                            !isStubEntity
+                          ) {
                             if (isArtistUser) {
                               selectConceptFile(e.dataTransfer.files?.[0]);
                             } else {
@@ -2708,57 +2722,58 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               : visualCardInfo.emptyWriterPrompt}
                           </p>
                         </div>
-                        {(isArtistUser || (!isWriterUser && effectiveCanCreateDraft)) && !isStubEntity && (
-                          <div className='flex flex-col items-center gap-2 pt-2'>
-                            <button
-                              type='button'
-                              onClick={() => {
-                                if (isArtistUser) {
-                                  conceptFileInputRef.current?.click();
-                                } else {
-                                  onOpenAddRevision(entity, activeRevision);
-                                }
-                              }}
-                              className='inline-flex items-center gap-2 px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-[0.98]'
-                              title={t(
-                                'bible.detailModal.uploadModelSheetTitle',
-                                'Tải lên bản vẽ tham chiếu Model Sheet mới',
-                              )}
-                            >
-                              <Upload className='w-4 h-4' />
-                              <span>
-                                {t('bible.detailModal.uploadModelSheet', 'Tải lên Model Sheet')}
-                              </span>
-                            </button>
-                            <div className='flex items-center gap-1.5 text-xs text-stone-400'>
-                              <span>
-                                {t(
-                                  'bible.detailModal.dragDropOrPaste',
-                                  'Kéo thả file ảnh vào đây hoặc nhấn',
-                                )}
-                              </span>
-                              <kbd className='px-1.5 py-0.5 bg-stone-200/80 border border-stone-300 rounded font-mono text-xs text-stone-700 font-semibold'>
-                                Ctrl + V
-                              </kbd>
-                              <span>{t('bible.detailModal.toPaste', 'để dán')}</span>
-                            </div>
-                            {!isArtistUser && (
+                        {(isArtistUser || (!isWriterUser && effectiveCanCreateDraft)) &&
+                          !isStubEntity && (
+                            <div className='flex flex-col items-center gap-2 pt-2'>
                               <button
                                 type='button'
-                                onClick={() => onOpenAddRevision(entity)}
-                                className='inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg text-xs font-medium text-stone-600 transition-colors cursor-pointer mt-0.5'
+                                onClick={() => {
+                                  if (isArtistUser) {
+                                    conceptFileInputRef.current?.click();
+                                  } else {
+                                    onOpenAddRevision(entity, activeRevision);
+                                  }
+                                }}
+                                className='inline-flex items-center gap-2 px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-[0.98]'
+                                title={t(
+                                  'bible.detailModal.uploadModelSheetTitle',
+                                  'Tải lên bản vẽ tham chiếu Model Sheet mới',
+                                )}
                               >
-                                <Edit3 className='w-3 h-3 text-stone-500' />
+                                <Upload className='w-4 h-4' />
                                 <span>
-                                  {t(
-                                    'bible.detailModal.editSpecOrNewVerArtist',
-                                    'Tạo phiên bản mới để thêm ảnh',
-                                  )}
+                                  {t('bible.detailModal.uploadModelSheet', 'Tải lên Model Sheet')}
                                 </span>
                               </button>
-                            )}
-                          </div>
-                        )}
+                              <div className='flex items-center gap-1.5 text-xs text-stone-400'>
+                                <span>
+                                  {t(
+                                    'bible.detailModal.dragDropOrPaste',
+                                    'Kéo thả file ảnh vào đây hoặc nhấn',
+                                  )}
+                                </span>
+                                <kbd className='px-1.5 py-0.5 bg-stone-200/80 border border-stone-300 rounded font-mono text-xs text-stone-700 font-semibold'>
+                                  Ctrl + V
+                                </kbd>
+                                <span>{t('bible.detailModal.toPaste', 'để dán')}</span>
+                              </div>
+                              {!isArtistUser && (
+                                <button
+                                  type='button'
+                                  onClick={() => onOpenAddRevision(entity)}
+                                  className='inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg text-xs font-medium text-stone-600 transition-colors cursor-pointer mt-0.5'
+                                >
+                                  <Edit3 className='w-3 h-3 text-stone-500' />
+                                  <span>
+                                    {t(
+                                      'bible.detailModal.editSpecOrNewVerArtist',
+                                      'Tạo phiên bản mới để thêm ảnh',
+                                    )}
+                                  </span>
+                                </button>
+                              )}
+                            </div>
+                          )}
                       </div>
                     )}
 

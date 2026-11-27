@@ -200,7 +200,7 @@ describe('EditorDeskView Component', () => {
     await waitFor(() => {
       expect(assignmentService.openReview).toHaveBeenCalledWith('chap-101', 'asg-open-me');
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/workspaces/ws-1/series/series-001/chapters/chap-101/review/asg-open-me?chapterId=chap-101',
+        '/workspaces/ws-1/series/series-001/chapters/chap-101/review/asg-open-me',
       );
       expect(onShowToast).toHaveBeenCalledWith(
         'Bắt đầu thẩm định',
@@ -232,7 +232,7 @@ describe('EditorDeskView Component', () => {
 
     expect(openReviewSpy).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/workspaces/ws-1/series/series-001/chapters/chap-101/review/asg-under-review?chapterId=chap-101',
+      '/workspaces/ws-1/series/series-001/chapters/chap-101/review/asg-under-review',
     );
   });
 
@@ -407,7 +407,7 @@ describe('EditorDeskView Component', () => {
     fireEvent.click(screen.getByTestId('editor-open-grid-review-grid-task-open'));
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/workspaces/ws-1/series/series-001/chapters/chap-101/review/grid-task-open?chapterId=chap-101',
+        '/workspaces/ws-1/series/series-001/chapters/chap-101/review/grid-task-open',
       );
     });
   });

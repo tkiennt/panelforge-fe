@@ -868,7 +868,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   }
                 />
               </Route>
-
             </Route>
           </Route>
 

@@ -250,7 +250,8 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
                   >
                     <span>{entry.name}</span>
                     <span className='font-normal text-stone-500 font-sans'>
-                      {' '}— {variantName} (v{versionNum})
+                      {' '}
+                      — {variantName} (v{versionNum})
                     </span>
                   </h4>
                   <ExternalLink className='w-3 h-3 text-stone-300 group-hover:text-[#F97316] transition-colors shrink-0' />

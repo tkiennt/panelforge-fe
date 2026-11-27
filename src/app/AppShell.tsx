@@ -360,7 +360,8 @@ export function AppShell({
                 icon: LayoutDashboard,
                 label: t('navigation.menu.chapterOverview', 'Tổng quan chương'),
                 href: buildChapterManagementUrl(workspaceId!, seriesId!, chapterId ?? undefined),
-                isActive: location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'chapters'),
+                isActive:
+                  location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'chapters'),
               },
               {
                 icon: Users,
@@ -818,36 +819,42 @@ export function AppShell({
     }
   };
 
-  // Set isActive based on location pathname & tab query: phân biệt rõ tab=crew và trang chính không có tab
-  let bestMatch: any = null;
+  // Set isActive based on location pathname & tab query (ưu tiên item đã tính sẵn isActive kiểu boolean)
+  const explicitActiveItem = navSections
+    .flatMap((section) => section.items)
+    .find((item: any) => item.isActive === true);
+  let bestMatch: any = explicitActiveItem ?? null;
   let bestScore = -1;
   const currentTab = searchParams.get('tab');
 
-  navSections.forEach((section) => {
-    section.items.forEach((item: any) => {
-      const [itemPath, itemQuery] = String(item.href).split('?');
-      const itemSearchParams = new URLSearchParams(itemQuery || '');
-      const itemTab = itemSearchParams.get('tab');
+  if (!bestMatch) {
+    navSections.forEach((section) => {
+      section.items.forEach((item: any) => {
+        if (typeof item.isActive === 'boolean') return;
+        const [itemPath, itemQuery] = String(item.href).split('?');
+        const itemSearchParams = new URLSearchParams(itemQuery || '');
+        const itemTab = itemSearchParams.get('tab');
 
-      // Kiểm tra khớp pathname
-      const isPathMatch =
-        location.pathname === itemPath ||
-        (itemPath !== '/' && location.pathname.startsWith(`${itemPath}/`));
+        // Kiểm tra khớp pathname
+        const isPathMatch =
+          location.pathname === itemPath ||
+          (itemPath !== '/' && location.pathname.startsWith(`${itemPath}/`));
 
-      if (!isPathMatch) return;
+        if (!isPathMatch) return;
 
-      // Kiểm tra khớp tab: nếu item có tab thì tab hiện tại phải khớp; nếu URL có tab=crew thì item không được là item không tab
-      if (itemTab && itemTab !== currentTab) return;
-      if (!itemTab && currentTab === 'crew') return;
+        // Kiểm tra khớp tab: nếu item có tab thì tab hiện tại phải khớp; nếu URL có tab=crew thì item không được là item không tab
+        if (itemTab && itemTab !== currentTab) return;
+        if (!itemTab && currentTab === 'crew') return;
 
-      // Điểm ưu tiên: khớp tab cụ thể > khớp path dài hơn
-      const score = itemPath.length + (itemTab === currentTab && itemTab ? 1000 : 0);
-      if (score > bestScore) {
-        bestMatch = item;
-        bestScore = score;
-      }
+        // Điểm ưu tiên: khớp tab cụ thể > khớp path dài hơn
+        const score = itemPath.length + (itemTab === currentTab && itemTab ? 1000 : 0);
+        if (score > bestScore) {
+          bestMatch = item;
+          bestScore = score;
+        }
+      });
     });
-  });
+  }
 
   navSections.forEach((section) => {
     section.items.forEach((item: any) => {

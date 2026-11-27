@@ -1583,7 +1583,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   `${filteredEntities.length} mục hiển thị`,
                 )}
               </span>
-        </div>
+            </div>
 
             <div className='space-y-2.5' id='master-entities-list'>
               {filteredEntities.length === 0 ? (

@@ -29,11 +29,7 @@ import { bibleService } from '@/services/bible.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { workspaceService } from '@/services/workspace.service';
-import {
-  buildScriptReviewUrl,
-  buildSeriesPath,
-  buildTaskReviewUrl,
-} from '@/app/routePaths';
+import { buildScriptReviewUrl, buildSeriesPath, buildTaskReviewUrl } from '@/app/routePaths';
 
 export interface EditorDeskViewProps {
   currentUserId?: string | null;
@@ -457,9 +453,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
           <div className='flex items-center gap-2 self-start md:self-auto'>
             <button
               type='button'
-              onClick={() =>
-                navigate(buildSeriesPath(workspaceId, seriesId, 'bible?tab=review'))
-              }
+              onClick={() => navigate(buildSeriesPath(workspaceId, seriesId, 'bible?tab=review'))}
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer'
             >
               <Palette className='w-3.5 h-3.5 text-[#C2410C]' />
@@ -667,9 +661,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                     </div>
                     <button
                       type='button'
-                      onClick={() =>
-                        navigate(buildScriptReviewUrl(workspaceId, seriesId, c.id))
-                      }
+                      onClick={() => navigate(buildScriptReviewUrl(workspaceId, seriesId, c.id))}
                       className='shrink-0 rounded-full bg-[#EA580C] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C]'
                     >
                       {t('scriptReview.desk.openComments')}

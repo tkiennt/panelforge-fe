@@ -85,24 +85,22 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
       const [previewData, membersData] = await Promise.all([
         chapterService.getRefreezePreview(chapterId),
         seriesId && workspaceId
-          ? seriesService
-              .getSeriesMembers(workspaceId, seriesId)
-              .catch(() =>
-                workspaceService.getMembers(workspaceId).then((ws) =>
-                  ws.map((m): SeriesMemberDto => ({
-                    id: m.userId,
-                    seriesId: seriesId || '',
-                    userId: m.userId,
-                    fullName: m.fullName,
-                    email: m.email,
-                    avatarUrl: m.avatarUrl,
-                    studioRole: String(m.role),
-                    seriesRole: String(m.role),
-                    joinedAt: m.joinedAt,
-                    status: m.status,
-                  })),
-                ),
-              )
+          ? seriesService.getSeriesMembers(workspaceId, seriesId).catch(() =>
+              workspaceService.getMembers(workspaceId).then((ws) =>
+                ws.map((m): SeriesMemberDto => ({
+                  id: m.userId,
+                  seriesId: seriesId || '',
+                  userId: m.userId,
+                  fullName: m.fullName,
+                  email: m.email,
+                  avatarUrl: m.avatarUrl,
+                  studioRole: String(m.role),
+                  seriesRole: String(m.role),
+                  joinedAt: m.joinedAt,
+                  status: m.status,
+                })),
+              ),
+            )
           : workspaceId
             ? workspaceService.getMembers(workspaceId).then((ws) =>
                 ws.map((m): SeriesMemberDto => ({
@@ -200,8 +198,8 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
     setAssignments((prev) => ({
       ...prev,
       [pageNumber]: {
-        artistId: field === 'artistId' ? value : prev[pageNumber]?.artistId ?? '',
-        lettererId: field === 'lettererId' ? value : prev[pageNumber]?.lettererId ?? '',
+        artistId: field === 'artistId' ? value : (prev[pageNumber]?.artistId ?? ''),
+        lettererId: field === 'lettererId' ? value : (prev[pageNumber]?.lettererId ?? ''),
       },
     }));
   };
@@ -260,7 +258,8 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
       });
       onShowToast?.(
         'Đã khóa lại kịch bản',
-        result.message || `Kịch bản Chương ${chapterNumber ?? preview.chapterNumber} đã được chốt lại.`,
+        result.message ||
+          `Kịch bản Chương ${chapterNumber ?? preview.chapterNumber} đã được chốt lại.`,
       );
       onSuccess?.(result);
     } catch (err: any) {
@@ -343,7 +342,9 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
                   <span>
                     Bản mới nộp:{' '}
                     <strong className='text-[#EA580C]'>
-                      {preview.submittedVersionNumber ? `v${preview.submittedVersionNumber}` : 'Mới nhất'}
+                      {preview.submittedVersionNumber
+                        ? `v${preview.submittedVersionNumber}`
+                        : 'Mới nhất'}
                     </strong>
                   </span>
                 </div>
@@ -444,7 +445,8 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
               )}
 
               {/* Active Artwork on Removed Page 409 Error */}
-              {(submitError?.code === 'ACTIVE_ARTWORK_ON_REMOVED_PAGE' || hasRemovedPageBlocker) && (
+              {(submitError?.code === 'ACTIVE_ARTWORK_ON_REMOVED_PAGE' ||
+                hasRemovedPageBlocker) && (
                 <div
                   role='alert'
                   data-testid='refreeze-active-artwork-alert'
@@ -523,7 +525,11 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
                                   data-testid={`refreeze-artist-select-${ap.pageNumber}`}
                                   value={current.artistId}
                                   onChange={(e) =>
-                                    handleAssignmentChange(ap.pageNumber, 'artistId', e.target.value)
+                                    handleAssignmentChange(
+                                      ap.pageNumber,
+                                      'artistId',
+                                      e.target.value,
+                                    )
                                   }
                                   className='w-full rounded-md border border-stone-300 bg-white px-2 py-1 text-xs text-[#171717] focus:border-[#F97316] focus:outline-none'
                                 >
@@ -628,7 +634,8 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
                 {activeTab === 'visual' ? (
                   visualImpacts.length === 0 ? (
                     <p className='text-stone-500 py-2'>
-                      Không có thay đổi về hành động vẽ hay thiết kế nhân vật trên các trang đang vẽ. Họa sĩ không bị gián đoạn.
+                      Không có thay đổi về hành động vẽ hay thiết kế nhân vật trên các trang đang
+                      vẽ. Họa sĩ không bị gián đoạn.
                     </p>
                   ) : (
                     <ul className='space-y-2' data-testid='refreeze-visual-list'>
@@ -677,9 +684,7 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
                             </span>
                           )}
                         </div>
-                        {ti.oldText && (
-                          <p className='text-stone-500 line-through'>{ti.oldText}</p>
-                        )}
+                        {ti.oldText && <p className='text-stone-500 line-through'>{ti.oldText}</p>}
                         <p className='text-[#171717] font-medium'>
                           {ti.newText || '(Dòng thoại đã được gỡ bỏ)'}
                         </p>
