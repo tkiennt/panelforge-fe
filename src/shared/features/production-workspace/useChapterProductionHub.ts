@@ -9,7 +9,6 @@ import {
   buildBibleUrl,
   buildChapterManagementUrl,
   buildChapterReaderUrl,
-  buildEditorDeskUrl,
   buildProductionWorkspaceUrl,
   buildScriptReviewUrl,
   buildSeriesExportUrl,
@@ -55,9 +54,7 @@ export const buildReadinessResolutionUrl = (
         tab: target.section === 'team' ? 'crew' : 'progress',
       });
     case 'review':
-      return target.section === 'reader'
-        ? buildChapterReaderUrl(workspaceId, seriesId, chapterId)
-        : buildEditorDeskUrl(workspaceId, seriesId, { chapterId });
+      return buildChapterReaderUrl(workspaceId, seriesId, chapterId);
     case 'delivery':
       return buildSeriesExportUrl(workspaceId, seriesId, chapterId);
     case 'bible':

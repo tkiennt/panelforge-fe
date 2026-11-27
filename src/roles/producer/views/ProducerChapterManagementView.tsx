@@ -7,7 +7,6 @@ import {
   BookOpen,
   CheckCircle2,
   ChevronRight,
-  ClipboardCheck,
   Clock,
   Edit2,
   FileText,
@@ -62,7 +61,6 @@ import {
 import {
   buildBibleUrl,
   buildChapterReaderUrl,
-  buildEditorDeskUrl,
   buildProductionWorkspaceUrl,
   buildScriptReviewUrl,
   buildSeriesExportUrl,
@@ -1516,17 +1514,6 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     <span className='inline-flex items-center gap-2'>
                       <Play className='w-3.5 h-3.5 text-stone-500' />
                       Đọc thử & Soát trang (Reader)
-                    </span>
-                    <ArrowRight className='w-3.5 h-3.5 text-stone-400' />
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => navigate(buildEditorDeskUrl(workspaceId, seriesId, { chapterId: chapter.id }))}
-                    className='w-full px-3 py-2 rounded-lg border border-stone-200 hover:bg-stone-50 flex items-center justify-between text-stone-800 font-medium cursor-pointer'
-                  >
-                    <span className='inline-flex items-center gap-2'>
-                      <ClipboardCheck className='w-3.5 h-3.5 text-stone-500' />
-                      Hàng đợi Kiểm duyệt & Hiệu đính
                     </span>
                     <ArrowRight className='w-3.5 h-3.5 text-stone-400' />
                   </button>

@@ -3,11 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Calendar,
-  CheckCircle2,
-  ClipboardCheck,
-  FileText,
-  LayoutDashboard,
-  LayoutGrid,
   Lock,
   Rocket,
   Unlock,
@@ -19,7 +14,6 @@ import { daysUntil } from './workspaceMetrics';
 import {
   buildChapterManagementUrl,
   buildChapterReaderUrl,
-  buildEditorDeskUrl,
   buildProductionWorkspaceUrl,
   buildScriptReviewUrl,
   buildSeriesExportUrl,
@@ -87,7 +81,6 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
   actionCta,
   loadingChapters = false,
   hideBackLink = false,
-  showWorkspaceTabs = true,
 }) => {
   const { t } = useTranslation('pipeline');
   const navigate = useNavigate();
@@ -126,11 +119,7 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
   const activeHubSection: 'overview' | 'pre-production' | 'production' | 'review' = (() => {
     if (location.pathname.includes('/script/review')) return 'pre-production';
     if (location.pathname.endsWith('/workspace')) return 'production';
-    if (
-      location.pathname.endsWith('/reader') ||
-      location.pathname.endsWith('/export') ||
-      location.pathname.includes('/editor/desk')
-    ) {
+    if (location.pathname.endsWith('/reader') || location.pathname.endsWith('/export')) {
       return 'review';
     }
     return 'overview';
@@ -149,8 +138,6 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
         navigate(buildSeriesExportUrl(workspaceId, seriesId, nextId));
       } else if (location.pathname.endsWith('/workspace')) {
         navigate(buildProductionWorkspaceUrl(workspaceId, seriesId, { chapterId: nextId, tab: 'progress' }));
-      } else if (location.pathname.includes('/editor/desk')) {
-        navigate(buildEditorDeskUrl(workspaceId, seriesId, { chapterId: nextId }));
       } else {
         navigate(buildChapterManagementUrl(workspaceId, seriesId, nextId));
       }
@@ -294,71 +281,6 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
             ) : null}
           </div>
         </div>
-
-        {/* Unified Chapter Production Hub Section Tabs */}
-        {showWorkspaceTabs && workspaceId && seriesId && effectiveChapterId && (
-          <nav
-            aria-label='Điều hướng trung tâm sản xuất chương'
-            data-testid='producer-hub-tabs'
-            className='flex items-center gap-1 overflow-x-auto pt-1 border-t border-stone-100'
-          >
-            {[
-              {
-                id: 'overview' as const,
-                label: 'Tổng quan',
-                icon: LayoutDashboard,
-                url: buildChapterManagementUrl(workspaceId, seriesId, effectiveChapterId),
-              },
-              {
-                id: 'pre-production' as const,
-                label: 'Tiền sản xuất',
-                icon: FileText,
-                url: buildScriptReviewUrl(workspaceId, seriesId, effectiveChapterId),
-              },
-              {
-                id: 'production' as const,
-                label: 'Sản xuất',
-                icon: LayoutGrid,
-                url: buildProductionWorkspaceUrl(workspaceId, seriesId, {
-                  chapterId: effectiveChapterId,
-                  tab: 'progress',
-                }),
-              },
-              {
-                id: 'review' as const,
-                label: 'Kiểm duyệt & Bàn giao',
-                icon:
-                  resolvedStatus === 'ChapterApproved' || resolvedStatus === 'HandedOffAndPublished'
-                    ? CheckCircle2
-                    : ClipboardCheck,
-                url:
-                  resolvedStatus === 'ChapterApproved' || resolvedStatus === 'HandedOffAndPublished'
-                    ? buildSeriesExportUrl(workspaceId, seriesId, effectiveChapterId)
-                    : buildEditorDeskUrl(workspaceId, seriesId, { chapterId: effectiveChapterId }),
-              },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeHubSection === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type='button'
-                  onClick={() => navigate(tab.url)}
-                  data-testid={`hub-tab-${tab.id}`}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
-                    isActive
-                      ? 'bg-orange-50 text-orange-700 border border-orange-200/80'
-                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/80 border border-transparent'
-                  }`}
-                >
-                  <Icon className='w-3.5 h-3.5 shrink-0' aria-hidden='true' />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        )}
       </div>
     </div>
   );

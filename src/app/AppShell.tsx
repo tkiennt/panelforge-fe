@@ -64,7 +64,6 @@ import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
 import {
   buildChapterManagementUrl,
   buildChapterReaderUrl,
-  buildEditorDeskUrl,
   buildProductionWorkspaceUrl,
   buildScriptReviewUrl,
   buildSeriesExportUrl,
@@ -368,7 +367,6 @@ export function AppShell({
         const workspacePath = buildSeriesPath(workspaceId!, seriesId!, 'workspace');
         const isWorkspacePath = location.pathname === workspacePath;
         const isReviewOrDeliveryPath =
-          location.pathname.includes('/editor/desk') ||
           location.pathname.endsWith('/reader') ||
           location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'export');
         return [
@@ -409,9 +407,7 @@ export function AppShell({
               {
                 icon: ShieldCheck,
                 label: t('navigation.menu.reviewAndDelivery', 'Kiểm duyệt & Bàn giao'),
-                href: buildEditorDeskUrl(workspaceId!, seriesId!, {
-                  chapterId: chapterId ?? undefined,
-                }),
+                href: buildSeriesExportUrl(workspaceId!, seriesId!, chapterId ?? undefined),
                 isActive: isReviewOrDeliveryPath,
               },
             ],
