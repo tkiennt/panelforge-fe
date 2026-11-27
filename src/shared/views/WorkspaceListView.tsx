@@ -27,6 +27,7 @@ import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
 import { CreateWorkspaceModal } from '@/roles/producer/modals/CreateWorkspaceModal';
 import { PageContainer } from '@/shared/components/PageContainer';
+import { BrandMark } from '@/shared/components/BrandMark';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { SeriesBannerFallback } from '@/shared/features/series-identity/SeriesImageFallbacks';
 import { useTranslation } from '@/lib/i18n';
@@ -432,15 +433,18 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   return (
     <div className='min-h-screen flex flex-col font-sans bg-[#FAF9F5] text-stone-900'>
       {/* 1. STICKY TOP HEADER (§4.8.2 Toolbar strip) */}
-      <header className='h-16 bg-white/95 backdrop-blur-md border-b border-stone-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-40 shadow-[inset_0_2px_0_var(--studio-accent)]'>
-        <div className='max-w-7xl mx-auto w-full flex items-center justify-between gap-4'>
+      <header className='h-16 bg-white/95 backdrop-blur-md border-b border-stone-200 flex items-center sticky top-0 z-40 shadow-[inset_0_2px_0_var(--studio-accent)]'>
+        {/* Cùng PageContainer + max-w-7xl với phần thân để mép header thẳng hàng nội dung */}
+        <PageContainer className='max-w-7xl mx-auto flex items-center justify-between gap-4'>
           <div className='flex items-center shrink-0'>
-            <div className='flex items-center gap-1.5 select-none'>
-              <span className='text-lg font-bold text-orange-600 tracking-tight font-serif'>
-                PanelForge
+            {/* Logo dự án giống AppShell: BrandMark + chữ PanelForge + nhãn STUDIO */}
+            <div className='flex items-center gap-2 select-none'>
+              <BrandMark size={26} className='shrink-0' />
+              <span className='font-serif text-lg font-medium tracking-tight text-stone-900'>
+                {t('workspace.studioHub.brand')}
               </span>
-              <span className='text-xs font-bold tracking-wider uppercase bg-kraft text-kraft-ink px-1.5 py-0.5 rounded'>
-                STUDIO
+              <span className='hidden sm:inline-flex text-[11px] font-bold tracking-wider uppercase bg-kraft text-sienna px-1.5 py-0.5 rounded'>
+                {t('workspace.studioHub.studioBadge')}
               </span>
             </div>
             <div className='h-5 w-px bg-stone-200 mx-3' aria-hidden='true' />
@@ -486,17 +490,6 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
               </Link>
             )}
 
-            {canCreate && workspaces.length > 0 && (
-              <button
-                type='button'
-                onClick={handleOpenCreate}
-                className='focus-ring hidden sm:inline-flex bg-white hover:bg-stone-50 text-stone-800 font-semibold px-3.5 py-2 rounded-lg text-xs transition-colors cursor-pointer items-center gap-1.5 border border-stone-200 shadow-2xs whitespace-nowrap'
-              >
-                <Plus className='w-4 h-4 text-accent-dark' aria-hidden='true' />
-                <span>{t('workspace.shelf.create')}</span>
-              </button>
-            )}
-
             {onLogout && (
               <button
                 type='button'
@@ -509,7 +502,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
               </button>
             )}
           </div>
-        </div>
+        </PageContainer>
       </header>
 
       {/* 2. MAIN DIRECTORY CONTENT */}
@@ -902,9 +895,12 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                                   }}
                                   title={t('workspace.shelf.changeCover')}
                                   aria-label={t('workspace.shelf.changeCover')}
-                                  className='focus-ring absolute -bottom-1 -right-1 p-1 rounded-md bg-white border border-stone-200 shadow-xs text-stone-600 hover:text-orange-600 cursor-pointer transition-colors'
+                                  className='focus-ring absolute -bottom-2 -right-2 p-0.5 rounded-md bg-white border border-stone-200 shadow-xs text-stone-600 hover:text-orange-600 cursor-pointer transition-colors'
                                 >
-                                  <Camera className='w-3 h-3 text-accent-dark' aria-hidden='true' />
+                                  <Camera
+                                    className='w-2.5 h-2.5 text-accent-dark'
+                                    aria-hidden='true'
+                                  />
                                 </button>
                               )}
                             </div>
