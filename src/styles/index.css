@@ -1088,6 +1088,10 @@ body {
       flip-block flip-inline;
     margin-block-start: 6px;
   }
+  .pf-sb-popover-menu[data-placement='bottom-end'] {
+    position-area: block-end span-inline-start;
+    margin-block-start: 6px;
+  }
   .pf-sb-popover-menu[data-placement='top'] {
     position-area: block-start span-inline-start;
     margin-block-start: 0;

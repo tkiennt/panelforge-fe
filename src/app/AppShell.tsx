@@ -50,6 +50,7 @@ import {
   FileCheck,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
+import { StudioHubTabBar } from './StudioHubTabBar';
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
@@ -905,6 +906,18 @@ export function AppShell({
     return null;
   };
 
+  const headerRoleDisplay = (() => {
+    const raw =
+      currentUser.workspaceRole ||
+      (currentUser.role && String(currentUser.role).toUpperCase() !== 'USER'
+        ? currentUser.role
+        : null);
+    if (!raw) return null;
+    const key = String(raw).trim().toLowerCase();
+    const mapKey = key === 'administrator' ? 'admin' : key;
+    return t(`navigation.roles.${mapKey}`, String(raw));
+  })();
+
   const isArtistDesk =
     location.pathname.endsWith('/artist') || location.pathname.endsWith('/artist/');
   const isScriptDesk =
@@ -976,24 +989,28 @@ export function AppShell({
 
       {/* --- RIGHT WRAPPER --- */}
       <div className='flex-1 flex flex-col min-w-0 h-full bg-[#FAF9F5] relative overflow-hidden'>
-        <header className='h-16 bg-white border-b border-stone-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-20 shadow-xs'>
-          <div className={`flex items-center gap-2 ${isStudioHome ? 'shrink-0' : 'min-w-0'}`}>
+        <header
+          className={`h-16 bg-white border-b border-stone-200 flex items-center justify-between gap-3 px-4 md:px-6 shrink-0 z-20 shadow-xs ${
+            isStudioHome ? 'shadow-[inset_0_2px_0_var(--studio-accent)]' : ''
+          }`}
+        >
+          <div className='flex items-center gap-2 min-w-0'>
             {isStudioHome && (
               <div className='flex items-center shrink-0'>
                 <button
                   type='button'
                   onClick={() => navigate(seriesListHref)}
-                  className='flex items-center gap-2 cursor-pointer'
+                  className='focus-ring flex items-center gap-2 rounded-lg cursor-pointer'
                 >
-                  <BrandMark size={28} className='shrink-0' />
+                  <BrandMark size={26} className='shrink-0' />
                   <span className='font-serif text-lg font-medium tracking-tight text-stone-900'>
                     {t('workspace.studioHub.brand')}
                   </span>
-                  <span className='text-xs font-bold tracking-wider uppercase bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded'>
+                  <span className='hidden sm:inline-flex text-[11px] font-bold tracking-wider uppercase bg-kraft text-sienna px-1.5 py-0.5 rounded'>
                     {t('workspace.studioHub.studioBadge')}
                   </span>
                 </button>
-                <div className='h-5 w-px bg-stone-200 mx-3' aria-hidden />
+                <div className='h-5 w-px bg-stone-200 mx-2.5' aria-hidden='true' />
               </div>
             )}
             {!isReader && !isStudioHome && (
@@ -1035,6 +1052,11 @@ export function AppShell({
                 <StudioSwitcher
                   activeWorkspaceId={activeWorkspace?.id || workspaceId}
                   activeWorkspaceName={activeWorkspace?.name}
+                  className={
+                    isStudioHome
+                      ? '[&_[data-testid=studio-switcher-trigger]]:max-w-[180px] sm:[&_[data-testid=studio-switcher-trigger]]:max-w-[260px] lg:[&_[data-testid=studio-switcher-trigger]]:max-w-[320px]'
+                      : ''
+                  }
                   onSelectStudio={(ws) => {
                     navigate(`/workspaces/${ws.id}`);
                   }}
@@ -1083,43 +1105,7 @@ export function AppShell({
             )}
           </div>
 
-          {isStudioHome && canViewStudioAutomation && (
-            <nav
-              className='hidden lg:flex items-center gap-6 h-full text-sm font-medium'
-              aria-label={t('workspace.studioHub.tabsLabel')}
-              data-testid='studio-hub-tabs'
-            >
-              {(canManageStudio
-                ? ([
-                    ['series', t('workspace.studioHub.tabs.series')],
-                    ['members', t('workspace.studioHub.tabs.crew')],
-                    ['schedule', t('workspace.studioHub.tabs.schedule')],
-                    ['audit', t('workspace.studioHub.tabs.audit')],
-                    ['automation', t('workspace.studioHub.tabs.automation')],
-                  ] as const)
-                : ([
-                    ['series', t('workspace.studioHub.tabs.series')],
-                    ['automation', t('workspace.studioHub.tabs.automation')],
-                  ] as const)
-              ).map(([tab, label]) => (
-                <button
-                  key={tab}
-                  type='button'
-                  aria-current={studioTab === tab ? 'page' : undefined}
-                  onClick={() => setStudioQuery('tab', tab === 'series' ? null : tab)}
-                  className={`h-16 flex items-center border-b-2 px-1 whitespace-nowrap transition-colors cursor-pointer ${
-                    studioTab === tab
-                      ? 'border-orange-600 text-orange-600 font-semibold'
-                      : 'border-transparent text-stone-600 hover:text-stone-900'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </nav>
-          )}
-
-          <div className='flex items-center gap-3 shrink-0'>
+          <div className='flex items-center gap-2.5 md:gap-3 shrink-0'>
             {/* Chuyển đổi ngôn ngữ VI / EN */}
             <LanguageSwitcher />
 
@@ -1147,12 +1133,14 @@ export function AppShell({
                   )}
                 </div>
                 <div className='hidden md:flex flex-col text-left'>
-                  <span className='text-xs font-semibold text-stone-900 leading-tight'>
+                  <span className='text-xs font-semibold text-stone-900 leading-tight max-w-[140px] lg:max-w-[180px] truncate'>
                     {currentUser.name}
                   </span>
-                  <span className='text-xs text-stone-500 font-mono leading-tight'>
-                    {currentUser.role}
-                  </span>
+                  {headerRoleDisplay && (
+                    <span className='text-[11px] text-stone-500 leading-tight'>
+                      {headerRoleDisplay}
+                    </span>
+                  )}
                 </div>
                 <ChevronDown className='w-3.5 h-3.5 text-stone-400' />
               </button>
@@ -1163,7 +1151,9 @@ export function AppShell({
                   <div className='absolute right-0 mt-2 w-56 bg-white border border-stone-200 rounded-xl shadow-xl z-50 p-1.5 text-xs animate-in fade-in-50 zoom-in-95'>
                     <div className='px-3 py-2 border-b border-stone-100 mb-1'>
                       <p className='font-semibold text-stone-900'>{currentUser.name}</p>
-                      <p className='text-xs text-stone-500 font-mono'>{currentUser.role}</p>
+                      {headerRoleDisplay && (
+                        <p className='text-[11px] text-stone-500'>{headerRoleDisplay}</p>
+                      )}
                     </div>
 
                     <button
@@ -1250,18 +1240,6 @@ export function AppShell({
               )}
             </div>
 
-            {isStudioHome && canManageStudio && (
-              <button
-                type='button'
-                onClick={() => setStudioQuery('action', 'create-series')}
-                className='bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs whitespace-nowrap'
-                data-testid='studio-hub-create-series'
-              >
-                <Plus className='w-4 h-4' />
-                <span>{t('workspace.studioHub.createSeries')}</span>
-              </button>
-            )}
-
             {isReader && (
               <button
                 onClick={onLeaveFeedback}
@@ -1272,6 +1250,14 @@ export function AppShell({
             )}
           </div>
         </header>
+
+        {isStudioHome && canViewStudioAutomation && (
+          <StudioHubTabBar
+            activeTab={studioTab}
+            canManageStudio={canManageStudio}
+            onSelectTab={(tab) => setStudioQuery('tab', tab === 'series' ? null : tab)}
+          />
+        )}
 
         <main className='flex-1 overflow-y-auto custom-scrollbar flex flex-col relative min-h-0 bg-[#FAF9F5]'>
           <div className='relative z-10 w-full min-h-full flex-1 flex flex-col transition-opacity duration-200 animate-in fade-in'>

@@ -552,4 +552,154 @@ describe('AppShell Component', () => {
       within(headerUserBtn).queryByRole('img', { name: 'Alex Producer' }),
     ).not.toBeInTheDocument();
   });
+
+  describe('Studio Hub header & sub-navigation tab bar (TASK-369 / BR-07)', () => {
+    const renderStudioRoute = (user: CurrentUser, route = '/workspaces/ws-1/series') =>
+      render(
+        <I18nProvider>
+          <MemoryRouter initialEntries={[route]}>
+            <Routes>
+              <Route
+                path='/workspaces/:workspaceId/series'
+                element={
+                  <AppShell
+                    currentUser={user}
+                    activeWorkspace={{ id: 'ws-1', name: 'PanelForge Studio' }}
+                  >
+                    <div data-testid='outlet-content'>Studio Content</div>
+                  </AppShell>
+                }
+              />
+            </Routes>
+          </MemoryRouter>
+        </I18nProvider>,
+      );
+
+    it('đặt thanh tab Studio tách dưới <header> không thanh cuộn cho Producer và chuyển tab đúng', () => {
+      const producerUser: CurrentUser = {
+        name: 'Alex Producer',
+        role: 'USER',
+        workspaceRole: 'PRODUCER' as any,
+        activeRoles: ['PRODUCER'],
+        avatarInitials: 'AP',
+      };
+
+      renderStudioRoute(producerUser, '/workspaces/ws-1/series');
+
+      const header = screen.getByRole('banner');
+      const tabsNav = screen.getByTestId('studio-hub-tabs');
+
+      // Thanh tab nằm ngoài <header>, không còn overflow-x-auto và nút Tạo Series không nằm trên header
+      expect(header).not.toContainElement(tabsNav);
+      expect(within(header).queryByTestId('studio-hub-create-series')).not.toBeInTheDocument();
+      expect(tabsNav.className).not.toContain('overflow-x-auto');
+
+      // Producer thấy đủ 5 tab Studio
+      expect(within(tabsNav).getByRole('button', { name: 'Danh sách Series' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+      expect(within(tabsNav).getByRole('button', { name: 'Nhân sự Studio' })).toBeInTheDocument();
+      expect(
+        within(tabsNav).getByRole('button', { name: 'Lịch phát hành tổng' }),
+      ).toBeInTheDocument();
+      expect(
+        within(tabsNav).getByRole('button', { name: 'Nhật ký hoạt động' }),
+      ).toBeInTheDocument();
+      expect(within(tabsNav).getByRole('button', { name: 'Automation' })).toBeInTheDocument();
+
+      // Chuyển tab sang Nhân sự Studio cập nhật aria-current
+      fireEvent.click(within(tabsNav).getByRole('button', { name: 'Nhân sự Studio' }));
+      expect(within(tabsNav).getByRole('button', { name: 'Nhân sự Studio' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+    });
+
+    it('Editor chỉ thấy 2 tab (Danh sách Series, Automation) và Artist không thấy thanh tab Studio (BR-07)', () => {
+      const editorUser: CurrentUser = {
+        name: 'Elena Editor',
+        role: 'USER',
+        workspaceRole: 'EDITOR' as any,
+        activeRoles: ['EDITOR'],
+        avatarInitials: 'EE',
+      };
+
+      const { unmount } = renderStudioRoute(editorUser);
+      const tabsNav = screen.getByTestId('studio-hub-tabs');
+      expect(within(tabsNav).getByRole('button', { name: 'Danh sách Series' })).toBeInTheDocument();
+      expect(within(tabsNav).getByRole('button', { name: 'Automation' })).toBeInTheDocument();
+      expect(
+        within(tabsNav).queryByRole('button', { name: 'Nhân sự Studio' }),
+      ).not.toBeInTheDocument();
+
+      unmount();
+
+      const artistUser: CurrentUser = {
+        name: 'Aoi Artist',
+        role: 'USER',
+        workspaceRole: 'ARTIST' as any,
+        activeRoles: ['ARTIST'],
+        avatarInitials: 'AA',
+      };
+      renderStudioRoute(artistUser);
+      expect(screen.queryByTestId('studio-hub-tabs')).not.toBeInTheDocument();
+    });
+
+    it('gom các tab vượt quá độ rộng vào menu Thêm (Popover API) và chọn tab từ menu', () => {
+      const origClientWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth');
+      const origOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+        configurable: true,
+        get() {
+          return this.getAttribute?.('data-testid') === 'studio-hub-tabs' ? 420 : 0;
+        },
+      });
+      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+        configurable: true,
+        get() {
+          return this.tagName === 'BUTTON' ? 150 : 0;
+        },
+      });
+
+      try {
+        const producerUser: CurrentUser = {
+          name: 'Alex Producer',
+          role: 'USER',
+          workspaceRole: 'PRODUCER' as any,
+          activeRoles: ['PRODUCER'],
+          avatarInitials: 'AP',
+        };
+        renderStudioRoute(producerUser, '/workspaces/ws-1/series');
+
+        const moreBtn = screen.getByTestId('studio-hub-tabs-more-btn');
+        const moreMenu = screen.getByTestId('studio-hub-tabs-more-menu');
+        expect(moreMenu).toHaveAttribute('popover', 'auto');
+
+        fireEvent.click(moreBtn);
+        const automationItem = within(moreMenu).getByRole('button', { name: 'Automation' });
+        fireEvent.click(automationItem);
+
+        // Chọn xong menu tự đóng; mở lại xác nhận tab Automation đã có aria-current="page"
+        expect(moreBtn).toHaveAttribute('aria-expanded', 'false');
+        fireEvent.click(moreBtn);
+        expect(within(moreMenu).getByRole('button', { name: 'Automation' })).toHaveAttribute(
+          'aria-current',
+          'page',
+        );
+      } finally {
+        if (origClientWidth) {
+          Object.defineProperty(HTMLElement.prototype, 'clientWidth', origClientWidth);
+        } else {
+          delete (HTMLElement.prototype as any).clientWidth;
+        }
+        if (origOffsetWidth) {
+          Object.defineProperty(HTMLElement.prototype, 'offsetWidth', origOffsetWidth);
+        } else {
+          delete (HTMLElement.prototype as any).offsetWidth;
+        }
+      }
+    });
+  });
 });

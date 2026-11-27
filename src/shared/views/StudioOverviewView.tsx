@@ -44,7 +44,7 @@ import { StudioAuditTab } from './studio-overview/StudioAuditTab';
 import { StudioAutomationTab } from './studio-overview/StudioAutomationTab';
 import { MemberSeriesPortal } from './studio-overview/MemberSeriesPortal';
 import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
-import { Alert } from '@/shared/ui';
+import { Alert, Card, CardBody, CardHeader, PageHeader } from '@/shared/ui';
 import {
   CoverPickerModal,
   CreateSeriesModal,
@@ -183,8 +183,6 @@ export const StudioOverviewView: React.FC = () => {
   const [directionFilter, setDirectionFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState<SeriesStatusFilter>('ALL');
   const [sortBy, setSortBy] = useState<'recent' | 'az' | 'za' | 'chapters'>('recent');
-  const [isResourcesExpanded, setIsResourcesExpanded] = useState(false);
-  const [openMenuSeriesId, setOpenMenuSeriesId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // CanCreateStudio check (B3 / F4)
@@ -246,7 +244,7 @@ export const StudioOverviewView: React.FC = () => {
         isYou: currentUser?.id === m.userId || currentUser?.email === m.email,
       };
     });
-  }, [members, currentUser, t]);
+  }, [members, currentUser]);
 
   const filteredMembers = React.useMemo(() => {
     return studioMembers.filter((m) => {
@@ -687,34 +685,12 @@ export const StudioOverviewView: React.FC = () => {
     }
   };
 
-  // Close card options menu on click outside or Escape
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('[data-series-options-menu]')) {
-        setOpenMenuSeriesId(null);
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setOpenMenuSeriesId(null);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
   // Reset search, filters and sort when active workspace changes
   useEffect(() => {
     setSearchQuery('');
     setGenreFilter('ALL');
     setDirectionFilter('ALL');
     setSortBy('recent');
-    setOpenMenuSeriesId(null);
   }, [activeWorkspace?.id, workspaceId]);
 
   const handleOpenSeries = (sId: string) => {
@@ -818,9 +794,10 @@ export const StudioOverviewView: React.FC = () => {
   if (!isProducerOrAdmin) {
     if (wsRole === 'EDITOR' && activeTab === 'automation') {
       return (
-        <div className='flex-1 bg-[#FAF9F5] min-h-full px-4 md:px-8 xl:px-12 py-6 space-y-6 text-stone-900 font-sans'>
+        <div className='flex-1 bg-[#FAF9F5] min-h-full px-4 md:px-8 xl:px-10 py-6 space-y-6 text-stone-900 font-sans'>
           <StudioAutomationTab
             workspaceId={activeWorkspace?.id || workspaceId}
+            workspaceName={activeWorkspace?.name}
             canEdit={false}
             onShowToast={showToast}
             onBackToSeries={() => setActiveTab('series')}
@@ -850,6 +827,12 @@ export const StudioOverviewView: React.FC = () => {
     : activeWorkspace?.storageQuotaBytes || 0;
   const storagePct =
     storageQuota > 0 ? Math.min(100, Math.round((storageUsed / storageQuota) * 100)) : 0;
+  const storagePctLabel =
+    storageQuota <= 0
+      ? t('workspace.studioHub.metrics.unlimited')
+      : storageUsed > 0 && storagePct === 0
+        ? '<1%'
+        : `${storagePct}%`;
   const runningSeries = seriesList.filter((s) => !s.isCompleted).length;
   const completedSeries = seriesList.length - runningSeries;
   const activeMembers = members.filter((m) => {
@@ -864,395 +847,437 @@ export const StudioOverviewView: React.FC = () => {
   }).length;
   const numberFmt = new Intl.NumberFormat(lang);
 
+  const totalChapters = seriesList.reduce((acc, s) => acc + (s.chaptersCount ?? 0), 0);
+  const storageBarClass =
+    storagePct >= 90 ? 'bg-rose-600' : storagePct >= 75 ? 'bg-amber-500' : 'bg-accent';
+
   return (
-    <div className='flex-1 bg-[#FAF9F5] min-h-full px-4 md:px-8 xl:px-12 py-6 space-y-6 text-stone-900 font-sans'>
-      {/* Chọn ảnh bìa có sẵn của hệ thống */}
-      <CoverPickerModal
-        series={coverPickerSeries}
-        savingCoverId={savingCoverId}
-        onClose={() => !savingCoverId && setCoverPickerSeries(null)}
-        onPickSystemCover={(img) => void handlePickSystemCover(img)}
-      />
+    <div className='flex-1 bg-[#FAF9F5] min-h-full px-4 md:px-8 xl:px-12 py-6 text-stone-900 font-sans'>
+      <div className='max-w-[1440px] mx-auto w-full space-y-6'>
+        {/* Chọn ảnh bìa có sẵn của hệ thống */}
+        <CoverPickerModal
+          series={coverPickerSeries}
+          savingCoverId={savingCoverId}
+          onClose={() => !savingCoverId && setCoverPickerSeries(null)}
+          onPickSystemCover={(img) => void handlePickSystemCover(img)}
+        />
 
-      <section
-        className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch'
-        id='studio-metrics-strip'
-        aria-label={t('workspace.studioHub.metrics.ariaLabel')}
-      >
-        <div className='bg-white border border-stone-200/80 rounded-xl p-6 flex flex-col shadow-xs'>
-          <div className='flex items-start justify-between gap-2'>
-            <div className='flex items-center gap-2.5'>
-              <Layers className='w-5 h-5 text-orange-600' />
-              <span className='font-semibold text-stone-900'>
-                {t('workspace.studioHub.metrics.seriesTitle')}
-              </span>
-            </div>
-            <span className='px-2 py-0.5 rounded-md bg-orange-50 font-semibold text-xs text-orange-700'>
-              {t('workspace.studioHub.metrics.seriesRunning', { count: runningSeries })}
-            </span>
-          </div>
-          <div className='mt-4 flex items-baseline gap-1.5'>
-            <span className='text-4xl font-bold text-stone-900 tracking-tight'>
-              {seriesList.length}
-            </span>
-            <span className='text-stone-500'>
-              {t('workspace.studioHub.metrics.seriesChapters', {
-                count: seriesList.reduce((acc, s) => acc + (s.chaptersCount ?? 0), 0),
-              })}
-            </span>
-          </div>
-          <div className='mt-auto pt-4 flex items-center gap-2 text-sm text-stone-600'>
-            <span className='w-2 h-2 rounded-full bg-emerald-600' aria-hidden />
-            <span>
-              {t('workspace.studioHub.metrics.seriesSplit', {
-                running: runningSeries,
-                done: completedSeries,
-              })}
-            </span>
-          </div>
-        </div>
-
-        <div className='bg-white border border-stone-200/80 rounded-xl p-6 flex flex-col shadow-xs'>
-          <div className='flex items-start justify-between gap-2'>
-            <div className='flex items-center gap-2.5'>
-              <HardDrive className='w-5 h-5 text-orange-600' />
-              <span className='font-semibold text-stone-900'>
-                {t('workspace.studioHub.metrics.storageTitle')}
-              </span>
-            </div>
-            <span className='px-2 py-0.5 rounded-md bg-stone-100 font-semibold text-xs text-stone-700'>
-              {storageQuota > 0 ? `${storagePct}%` : t('workspace.studioHub.metrics.unlimited')}
-            </span>
-          </div>
-          <div className='mt-4 flex items-baseline gap-1.5'>
-            <span className='text-4xl font-bold text-stone-900 tracking-tight'>
-              {formatBytes(storageUsed)}
-            </span>
-            <span className='text-stone-500'>
-              /{' '}
-              {storageQuota > 0
-                ? formatBytes(storageQuota)
-                : t('workspace.studioHub.metrics.unlimited')}
-            </span>
-          </div>
-          <div className='w-full bg-stone-100 h-2 rounded-full overflow-hidden mt-3'>
-            <div
-              className='bg-orange-500 h-full rounded-full'
-              style={{ width: `${storagePct}%` }}
-            />
-          </div>
-          <div className='mt-auto pt-4 flex items-center gap-2 text-sm text-stone-600'>
-            <FileText className='w-4 h-4 text-stone-400' />
-            <span className='truncate'>{t('workspace.studioHub.metrics.storageFootnote')}</span>
-          </div>
-        </div>
-
-        <div className='bg-white border border-stone-200/80 rounded-xl p-6 flex flex-col shadow-xs'>
-          <div className='flex items-start justify-between gap-2'>
-            <div className='flex items-center gap-2.5'>
-              <Users className='w-5 h-5 text-orange-600' />
-              <span className='font-semibold text-stone-900'>
-                {t('workspace.studioHub.metrics.crewTitle')}
-              </span>
-            </div>
-            <span className='px-2 py-0.5 rounded-md bg-emerald-50 font-semibold text-xs text-emerald-700 flex items-center gap-1.5'>
-              <span className='w-1.5 h-1.5 rounded-full bg-emerald-600' aria-hidden />
-              {t('workspace.studioHub.metrics.crewActive', { count: activeMembers })}
-            </span>
-          </div>
-          <div className='mt-4 flex items-baseline gap-1.5'>
-            <span className='text-4xl font-bold text-stone-900 tracking-tight'>
-              {members.length}
-            </span>
-            <span className='text-stone-500'>{t('workspace.studioHub.metrics.crewMembers')}</span>
-          </div>
-          <p className='text-sm text-stone-500 mt-1'>
-            {t('workspace.studioHub.metrics.crewBreakdown', {
-              writers: tabCounts.WRITER,
-              artists: tabCounts.ARTIST,
-              letterers: studioMembers.filter((m) =>
-                (m.role || '').toLowerCase().includes('letterer'),
-              ).length,
-              editors: tabCounts.EDITOR,
-            })}
-          </p>
-          <button
-            type='button'
-            onClick={() => setActiveTab('members')}
-            className='mt-auto pt-4 border-t border-stone-100 flex items-center justify-between text-left text-sm text-orange-600 hover:text-orange-700 font-semibold transition-colors cursor-pointer'
-          >
-            <span>{t('workspace.studioHub.metrics.crewManage')}</span>
-            <ArrowRight className='w-4 h-4' />
-          </button>
-        </div>
-      </section>
-
-      <div className='space-y-6'>
-        {/* TAB 1: Series Projects View */}
         {activeTab === 'series' && (
-          <div
-            role='tabpanel'
-            id='tabpanel-series'
-            aria-labelledby='tab-series'
-            className='space-y-5'
-          >
-            {/* Error Message with Retry */}
-            {loadError && (
-              <Alert tone='danger' className='text-xs sm:text-sm'>
-                <div className='flex items-center gap-2.5'>
-                  <AlertTriangle className='w-5 h-5 text-rose-600 shrink-0' aria-hidden='true' />
-                  <span>{loadError}</span>
-                </div>
+          <PageHeader
+            icon={<BookOpen className='w-5 h-5' aria-hidden='true' />}
+            eyebrow={activeWorkspace?.name || t('workspace.hub')}
+            title={t('workspace.studioHub.series.title')}
+            description={t('workspace.library.subtitle.PRODUCER')}
+            actions={
+              isProducerOrAdmin ? (
                 <button
                   type='button'
-                  onClick={() => loadData()}
-                  className='btn-cta-danger focus-ring min-h-9 px-3.5 text-xs font-semibold cursor-pointer shrink-0'
+                  onClick={() => setCreateSeriesModalOpen(true)}
+                  className='focus-ring inline-flex items-center gap-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 active:scale-[0.98] text-white font-semibold px-4 py-2 text-sm shadow-xs transition-studio cursor-pointer whitespace-nowrap'
+                  data-testid='studio-hub-create-series'
                 >
-                  {t('workspace.shelf.retry')}
+                  <Plus className='w-4 h-4' aria-hidden='true' />
+                  <span>{t('workspace.studioHub.createSeries')}</span>
                 </button>
-              </Alert>
-            )}
+              ) : undefined
+            }
+          />
+        )}
 
-            {/* Search, Filter & Sort Toolbar */}
-            <SeriesFilterBar
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              onClearSearch={() => setSearchQuery('')}
-              genreFilter={genreFilter}
-              onGenreFilterChange={setGenreFilter}
-              availableGenres={availableGenres}
-              directionFilter={directionFilter}
-              onDirectionFilterChange={setDirectionFilter}
-              statusFilter={statusFilter}
-              onStatusFilterChange={setStatusFilter}
-              statusCounts={statusCounts}
-              sortBy={sortBy}
-              onSortByChange={setSortBy}
-              isFiltering={isFiltering}
-              onClearFilters={handleClearFilters}
-              displayedCount={filteredAndSortedSeries.length}
-              totalCount={seriesList.length}
-            />
+        {activeTab === 'series' && (
+          <section
+            className='grid grid-cols-1 md:grid-cols-3 gap-4 xl:gap-5 items-stretch'
+            id='studio-metrics-strip'
+            aria-label={t('workspace.studioHub.metrics.ariaLabel')}
+          >
+            <Card className='flex flex-col'>
+              <CardHeader
+                tone='brand'
+                className='gap-2 px-3.5'
+                icon={<Layers aria-hidden='true' />}
+                title={t('workspace.studioHub.metrics.seriesTitle')}
+                actions={
+                  <span className='rounded-full bg-kraft px-2 py-0.5 text-[11px] font-semibold text-kraft-ink tabular-nums whitespace-nowrap'>
+                    {t('workspace.studioHub.metrics.seriesRunning', { count: runningSeries })}
+                  </span>
+                }
+              />
+              <CardBody className='flex flex-1 flex-col'>
+                <div className='flex items-baseline gap-1.5'>
+                  <span className='text-3xl font-bold text-stone-900 tracking-tight tabular-nums'>
+                    {numberFmt.format(seriesList.length)}
+                  </span>
+                  <span className='text-sm text-stone-500 tabular-nums'>
+                    {t('workspace.studioHub.metrics.seriesChapters', { count: totalChapters })}
+                  </span>
+                </div>
+                <div className='mt-auto pt-4 border-t border-stone-100 flex items-center gap-2 text-xs text-stone-600'>
+                  <span
+                    className='w-2 h-2 rounded-full bg-emerald-600 shrink-0'
+                    aria-hidden='true'
+                  />
+                  <span className='tabular-nums'>
+                    {t('workspace.studioHub.metrics.seriesSplit', {
+                      running: runningSeries,
+                      done: completedSeries,
+                    })}
+                  </span>
+                </div>
+              </CardBody>
+            </Card>
 
-            <SeriesShelf
-              loading={loading}
-              totalCount={seriesList.length}
-              series={filteredAndSortedSeries}
-              canCreate={isProducerOrAdmin}
-              openMenuSeriesId={openMenuSeriesId}
-              onToggleMenu={(id) => setOpenMenuSeriesId(openMenuSeriesId === id ? null : id)}
-              onCreateSeries={() => setCreateSeriesModalOpen(true)}
-              onClearFilters={handleClearFilters}
-              onOpenSeries={handleOpenSeries}
-              openLabel={t(
-                `workspace.library.open.${isProducer ? 'default' : (wsRole ?? 'default')}`,
-                t('workspace.library.open.default'),
+            <Card className='flex flex-col'>
+              <CardHeader
+                tone='info'
+                className='gap-2 px-3.5'
+                icon={<HardDrive aria-hidden='true' />}
+                title={t('workspace.studioHub.metrics.storageTitle')}
+                actions={
+                  <span className='rounded-full bg-kraft px-2 py-0.5 text-[11px] font-semibold text-kraft-ink tabular-nums whitespace-nowrap'>
+                    {storagePctLabel}
+                  </span>
+                }
+              />
+              <CardBody className='flex flex-1 flex-col'>
+                <div className='flex items-baseline gap-1.5'>
+                  <span className='text-3xl font-bold text-stone-900 tracking-tight tabular-nums'>
+                    {formatBytes(storageUsed)}
+                  </span>
+                  <span className='text-sm text-stone-500 tabular-nums'>
+                    /{' '}
+                    {storageQuota > 0
+                      ? formatBytes(storageQuota)
+                      : t('workspace.studioHub.metrics.unlimited')}
+                  </span>
+                </div>
+                <div className='w-full bg-head-wash border border-head-line/70 h-2 rounded-full overflow-hidden mt-3'>
+                  <div
+                    className={`${storageBarClass} h-full rounded-full transition-studio`}
+                    style={{
+                      width: `${storageUsed > 0 && storagePct === 0 ? 1 : storagePct}%`,
+                    }}
+                  />
+                </div>
+                <div className='mt-auto pt-4 border-t border-stone-100 flex items-center gap-2 text-xs text-stone-600'>
+                  <FileText className='w-3.5 h-3.5 text-stone-400 shrink-0' aria-hidden='true' />
+                  <span className='truncate'>
+                    {t('workspace.studioHub.metrics.storageFootnote')}
+                  </span>
+                </div>
+              </CardBody>
+            </Card>
+
+            <Card className='flex flex-col'>
+              <CardHeader
+                tone='success'
+                className='gap-2 px-3.5'
+                icon={<Users aria-hidden='true' />}
+                title={t('workspace.studioHub.metrics.crewTitle')}
+                actions={
+                  <span className='inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 tabular-nums whitespace-nowrap'>
+                    <span className='w-1.5 h-1.5 rounded-full bg-emerald-600' aria-hidden='true' />
+                    {t('workspace.studioHub.metrics.crewActive', { count: activeMembers })}
+                  </span>
+                }
+              />
+              <CardBody className='flex flex-1 flex-col'>
+                <div className='flex items-baseline gap-1.5'>
+                  <span className='text-3xl font-bold text-stone-900 tracking-tight tabular-nums'>
+                    {numberFmt.format(members.length)}
+                  </span>
+                  <span className='text-sm text-stone-500'>
+                    {t('workspace.studioHub.metrics.crewMembers')}
+                  </span>
+                </div>
+                <p className='text-xs text-stone-600 mt-1.5 tabular-nums'>
+                  {t('workspace.studioHub.metrics.crewBreakdown', {
+                    writers: tabCounts.WRITER,
+                    artists: tabCounts.ARTIST,
+                    letterers: studioMembers.filter((m) =>
+                      (m.role || '').toLowerCase().includes('letterer'),
+                    ).length,
+                    editors: tabCounts.EDITOR,
+                  })}
+                </p>
+                <button
+                  type='button'
+                  onClick={() => setActiveTab('members')}
+                  className='focus-ring mt-auto pt-3 border-t border-stone-100 flex items-center justify-between text-left text-xs text-sienna hover:text-accent-dark font-semibold transition-studio cursor-pointer'
+                >
+                  <span>{t('workspace.studioHub.metrics.crewManage')}</span>
+                  <ArrowRight className='w-4 h-4' aria-hidden='true' />
+                </button>
+              </CardBody>
+            </Card>
+          </section>
+        )}
+
+        <div className='space-y-6'>
+          {/* TAB 1: Series Projects View */}
+          {activeTab === 'series' && (
+            <div
+              role='tabpanel'
+              id='tabpanel-series'
+              aria-labelledby='tab-series'
+              className='space-y-5'
+            >
+              {/* Error Message with Retry */}
+              {loadError && (
+                <Alert tone='danger' className='text-xs sm:text-sm'>
+                  <div className='flex items-center gap-2.5'>
+                    <AlertTriangle className='w-5 h-5 text-rose-600 shrink-0' aria-hidden='true' />
+                    <span>{loadError}</span>
+                  </div>
+                  <button
+                    type='button'
+                    onClick={() => loadData()}
+                    className='btn-cta-danger focus-ring min-h-9 px-3.5 text-xs font-semibold cursor-pointer shrink-0'
+                  >
+                    {t('workspace.shelf.retry')}
+                  </button>
+                </Alert>
               )}
-              onOpenPipeline={(ser) => setSelectedPipelineSeries(ser)}
-              onOpenPresets={(ser) => setSelectedPresetsSeries(ser)}
-              onOpenMembers={(ser) => setSelectedMembersSeries(ser)}
-              onPickCover={(ser) => setCoverPickerSeries(ser)}
-              onClearCover={(sId) => void handleClearCover(sId)}
-              onEditSeries={handleOpenEditSeries}
-              onDeleteSeries={handleDeleteSeries}
+
+              {/* Search, Filter & Sort Toolbar */}
+              <SeriesFilterBar
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onClearSearch={() => setSearchQuery('')}
+                genreFilter={genreFilter}
+                onGenreFilterChange={setGenreFilter}
+                availableGenres={availableGenres}
+                directionFilter={directionFilter}
+                onDirectionFilterChange={setDirectionFilter}
+                statusFilter={statusFilter}
+                onStatusFilterChange={setStatusFilter}
+                statusCounts={statusCounts}
+                sortBy={sortBy}
+                onSortByChange={setSortBy}
+                isFiltering={isFiltering}
+                onClearFilters={handleClearFilters}
+                displayedCount={filteredAndSortedSeries.length}
+                totalCount={seriesList.length}
+              />
+
+              <SeriesShelf
+                loading={loading}
+                totalCount={seriesList.length}
+                series={filteredAndSortedSeries}
+                canCreate={isProducerOrAdmin}
+                onCreateSeries={() => setCreateSeriesModalOpen(true)}
+                onClearFilters={handleClearFilters}
+                onOpenSeries={handleOpenSeries}
+                openLabel={t(
+                  `workspace.library.open.${isProducer ? 'default' : (wsRole ?? 'default')}`,
+                  t('workspace.library.open.default'),
+                )}
+                onOpenPipeline={(ser) => setSelectedPipelineSeries(ser)}
+                onOpenPresets={(ser) => setSelectedPresetsSeries(ser)}
+                onOpenMembers={(ser) => setSelectedMembersSeries(ser)}
+                onPickCover={(ser) => setCoverPickerSeries(ser)}
+                onClearCover={(sId) => void handleClearCover(sId)}
+                onEditSeries={handleOpenEditSeries}
+                onDeleteSeries={handleDeleteSeries}
+              />
+            </div>
+          )}
+
+          {/* TAB 2: Studio Members View */}
+          {activeTab === 'members' && (
+            <MembersTabContent
+              filteredMembers={filteredMembers}
+              tabCounts={tabCounts}
+              memberRoleFilter={memberRoleFilter}
+              onMemberRoleFilterChange={setMemberRoleFilter}
+              memberSearchQuery={memberSearchQuery}
+              onMemberSearchQueryChange={setMemberSearchQuery}
+              canCreateStudio={canCreateStudio}
+              onResendInvitation={handleResendInvitation}
+              onOpenEditAccess={handleOpenEditAccess}
+              onDeleteMember={handleDeleteMember}
+              onOpenInviteModal={() => setInviteModalOpen(true)}
             />
-          </div>
-        )}
+          )}
 
-        {/* TAB 2: Studio Members View */}
-        {activeTab === 'members' && (
-          <MembersTabContent
-            filteredMembers={filteredMembers}
-            tabCounts={tabCounts}
-            memberRoleFilter={memberRoleFilter}
-            onMemberRoleFilterChange={setMemberRoleFilter}
-            memberSearchQuery={memberSearchQuery}
-            onMemberSearchQueryChange={setMemberSearchQuery}
-            canCreateStudio={canCreateStudio}
-            onResendInvitation={handleResendInvitation}
-            onOpenEditAccess={handleOpenEditAccess}
-            onDeleteMember={handleDeleteMember}
-            onOpenInviteModal={() => setInviteModalOpen(true)}
-          />
-        )}
+          {/* TAB 3: Release Schedule View */}
+          {activeTab === 'schedule' && (
+            <StudioScheduleTab
+              seriesList={seriesList}
+              workspaceId={activeWorkspace?.id || workspaceId}
+              isProducer={isProducer}
+            />
+          )}
 
-        {/* TAB 3: Release Schedule View */}
-        {activeTab === 'schedule' && (
-          <StudioScheduleTab
-            seriesList={seriesList}
-            workspaceId={activeWorkspace?.id || workspaceId}
-            isProducer={isProducer}
-          />
-        )}
+          {/* TAB 4: Audit Logs View */}
+          {activeTab === 'audit' && (
+            <StudioAuditTab
+              logs={auditLogs}
+              loading={auditLoading}
+              filterEntity={auditFilterEntity}
+              onFilterChange={setAuditFilterEntity}
+              onRefresh={loadWorkspaceAudit}
+              workspaceName={activeWorkspace?.name}
+            />
+          )}
 
-        {/* TAB 4: Audit Logs View */}
-        {activeTab === 'audit' && (
-          <StudioAuditTab
-            logs={auditLogs}
-            loading={auditLoading}
-            filterEntity={auditFilterEntity}
-            onFilterChange={setAuditFilterEntity}
-            onRefresh={loadWorkspaceAudit}
-            workspaceName={activeWorkspace?.name}
-          />
-        )}
+          {/* TAB 5: Assign Automation Settings View */}
+          {activeTab === 'automation' && (
+            <StudioAutomationTab
+              workspaceId={activeWorkspace?.id || workspaceId}
+              workspaceName={activeWorkspace?.name}
+              canEdit={isProducer}
+              onShowToast={showToast}
+            />
+          )}
+        </div>
 
-        {/* TAB 5: Assign Automation Settings View */}
-        {activeTab === 'automation' && (
-          <StudioAutomationTab
-            workspaceId={activeWorkspace?.id || workspaceId}
-            canEdit={isProducer}
+        {/* Invite Member Modal */}
+        {activeWorkspace && (
+          <InviteMemberModal
+            isOpen={inviteModalOpen}
+            workspaceId={activeWorkspace.id}
+            workspaceName={activeWorkspace.name}
+            onClose={() => setInviteModalOpen(false)}
+            onInvited={async () => {
+              const memList = await workspaceService.getMembers(activeWorkspace.id);
+              setMembers(memList);
+            }}
             onShowToast={showToast}
           />
         )}
-      </div>
 
-      {/* Invite Member Modal */}
-      {activeWorkspace && (
-        <InviteMemberModal
-          isOpen={inviteModalOpen}
-          workspaceId={activeWorkspace.id}
-          workspaceName={activeWorkspace.name}
-          onClose={() => setInviteModalOpen(false)}
-          onInvited={async () => {
-            const memList = await workspaceService.getMembers(activeWorkspace.id);
-            setMembers(memList);
+        {/* UC-03: Create Series Modal */}
+        <CreateSeriesModal
+          isOpen={createSeriesModalOpen}
+          onClose={() => setCreateSeriesModalOpen(false)}
+          onSubmit={handleCreateSeries}
+          title={newSeriesTitle}
+          onTitleChange={setNewSeriesTitle}
+          format={newSeriesFormat}
+          onFormatChange={setNewSeriesFormat}
+          direction={newSeriesDirection}
+          onDirectionChange={setNewSeriesDirection}
+          genre={newSeriesGenre}
+          onGenreChange={setNewSeriesGenre}
+          synopsis={newSeriesSynopsis}
+          onSynopsisChange={setNewSeriesSynopsis}
+          storyArc={newSeriesStoryArc}
+          onStoryArcChange={setNewSeriesStoryArc}
+          pipelineTemplates={pipelineTemplates}
+          templateId={newSeriesTemplateId}
+          onTemplateIdChange={setNewSeriesTemplateId}
+          creating={creatingSeries}
+        />
+
+        {/* UC-03: Series Pipeline Configuration Modal */}
+        {selectedPipelineSeries && (
+          <SeriesPipelineModal
+            isOpen={!!selectedPipelineSeries}
+            seriesId={selectedPipelineSeries.id}
+            seriesTitle={selectedPipelineSeries.title}
+            onClose={() => setSelectedPipelineSeries(null)}
+            onShowToast={showToast}
+          />
+        )}
+
+        {/* NFR-08: Series Typography Presets & Consistency Rules Modal */}
+        {selectedPresetsSeries && (
+          <SeriesPresetsModal
+            isOpen={!!selectedPresetsSeries}
+            seriesId={selectedPresetsSeries.id}
+            seriesTitle={selectedPresetsSeries.title}
+            onClose={() => setSelectedPresetsSeries(null)}
+            onShowToast={showToast}
+          />
+        )}
+
+        {/* UC-04 / RBAC: Series Members Management Modal */}
+        {selectedMembersSeries && activeWorkspace && (
+          <SeriesMembersModal
+            isOpen={!!selectedMembersSeries}
+            workspaceId={activeWorkspace.id}
+            seriesId={selectedMembersSeries.id}
+            seriesTitle={selectedMembersSeries.title}
+            onClose={() => setSelectedMembersSeries(null)}
+          />
+        )}
+
+        {/* F5: Edit Series Modal */}
+        <EditSeriesModal
+          series={editingSeries}
+          onClose={() => setEditingSeries(null)}
+          onSubmit={handleUpdateSeries}
+          title={editSeriesTitle}
+          onTitleChange={setEditSeriesTitle}
+          synopsis={editSeriesSynopsis}
+          onSynopsisChange={setEditSeriesSynopsis}
+          storyArc={editSeriesStoryArc}
+          onStoryArcChange={setEditSeriesStoryArc}
+          genre={editSeriesGenre}
+          onGenreChange={setEditSeriesGenre}
+          format={editSeriesFormat}
+          onFormatChange={setEditSeriesFormat}
+          direction={editSeriesDirection}
+          onDirectionChange={setEditSeriesDirection}
+          schedule={editSeriesSchedule}
+          onScheduleChange={setEditSeriesSchedule}
+          isCompleted={editSeriesCompleted}
+          onCompletedChange={setEditSeriesCompleted}
+          originalLanguage={editSeriesOriginalLanguage}
+          onOriginalLanguageChange={setEditSeriesOriginalLanguage}
+          releaseLanguages={editSeriesReleaseLanguages}
+          onReleaseLanguagesChange={setEditSeriesReleaseLanguages}
+          updating={updatingSeries}
+        />
+
+        {/* F8: Workspace Audit Log Modal */}
+        <WorkspaceAuditModal
+          isOpen={auditModalOpen}
+          onClose={() => setAuditModalOpen(false)}
+          activeWorkspace={activeWorkspace}
+          filterEntity={auditFilterEntity}
+          onFilterEntityChange={setAuditFilterEntity}
+          onSearch={loadWorkspaceAudit}
+          loading={auditLoading}
+          logs={auditLogs}
+        />
+
+        {/* Edit Access & Role Modal */}
+        <EditMemberAccessModal
+          member={editingMember}
+          onClose={() => {
+            setEditingMember(null);
+            setEditMemberError(null);
+          }}
+          role={editRole}
+          onRoleChange={(r) => {
+            setEditRole(r);
+            setEditMemberError(null);
+          }}
+          task={editTask}
+          onTaskChange={setEditTask}
+          onSave={handleSaveAccess}
+          error={editMemberError}
+          saving={savingMemberRole}
+        />
+
+        {/* Create Studio Modal */}
+        <CreateWorkspaceModal
+          isOpen={createStudioModalOpen}
+          onClose={() => setCreateStudioModalOpen(false)}
+          onSuccess={(newWs) => {
+            setCreateStudioModalOpen(false);
+            const normalized = {
+              ...newWs,
+              currentUserRole: normalizeWorkspaceRole(newWs.currentUserRole),
+            } as any;
+            setActiveWorkspace(normalized);
+            writeCachedWorkspace(normalized, currentUser?.id);
+            navigate(`/workspaces/${newWs.id}`);
           }}
           onShowToast={showToast}
         />
-      )}
-
-      {/* UC-03: Create Series Modal */}
-      <CreateSeriesModal
-        isOpen={createSeriesModalOpen}
-        onClose={() => setCreateSeriesModalOpen(false)}
-        onSubmit={handleCreateSeries}
-        title={newSeriesTitle}
-        onTitleChange={setNewSeriesTitle}
-        format={newSeriesFormat}
-        onFormatChange={setNewSeriesFormat}
-        direction={newSeriesDirection}
-        onDirectionChange={setNewSeriesDirection}
-        genre={newSeriesGenre}
-        onGenreChange={setNewSeriesGenre}
-        synopsis={newSeriesSynopsis}
-        onSynopsisChange={setNewSeriesSynopsis}
-        storyArc={newSeriesStoryArc}
-        onStoryArcChange={setNewSeriesStoryArc}
-        pipelineTemplates={pipelineTemplates}
-        templateId={newSeriesTemplateId}
-        onTemplateIdChange={setNewSeriesTemplateId}
-        creating={creatingSeries}
-      />
-
-      {/* UC-03: Series Pipeline Configuration Modal */}
-      {selectedPipelineSeries && (
-        <SeriesPipelineModal
-          isOpen={!!selectedPipelineSeries}
-          seriesId={selectedPipelineSeries.id}
-          seriesTitle={selectedPipelineSeries.title}
-          onClose={() => setSelectedPipelineSeries(null)}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* NFR-08: Series Typography Presets & Consistency Rules Modal */}
-      {selectedPresetsSeries && (
-        <SeriesPresetsModal
-          isOpen={!!selectedPresetsSeries}
-          seriesId={selectedPresetsSeries.id}
-          seriesTitle={selectedPresetsSeries.title}
-          onClose={() => setSelectedPresetsSeries(null)}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* UC-04 / RBAC: Series Members Management Modal */}
-      {selectedMembersSeries && activeWorkspace && (
-        <SeriesMembersModal
-          isOpen={!!selectedMembersSeries}
-          workspaceId={activeWorkspace.id}
-          seriesId={selectedMembersSeries.id}
-          seriesTitle={selectedMembersSeries.title}
-          onClose={() => setSelectedMembersSeries(null)}
-        />
-      )}
-
-      {/* F5: Edit Series Modal */}
-      <EditSeriesModal
-        series={editingSeries}
-        onClose={() => setEditingSeries(null)}
-        onSubmit={handleUpdateSeries}
-        title={editSeriesTitle}
-        onTitleChange={setEditSeriesTitle}
-        synopsis={editSeriesSynopsis}
-        onSynopsisChange={setEditSeriesSynopsis}
-        storyArc={editSeriesStoryArc}
-        onStoryArcChange={setEditSeriesStoryArc}
-        genre={editSeriesGenre}
-        onGenreChange={setEditSeriesGenre}
-        format={editSeriesFormat}
-        onFormatChange={setEditSeriesFormat}
-        direction={editSeriesDirection}
-        onDirectionChange={setEditSeriesDirection}
-        schedule={editSeriesSchedule}
-        onScheduleChange={setEditSeriesSchedule}
-        isCompleted={editSeriesCompleted}
-        onCompletedChange={setEditSeriesCompleted}
-        originalLanguage={editSeriesOriginalLanguage}
-        onOriginalLanguageChange={setEditSeriesOriginalLanguage}
-        releaseLanguages={editSeriesReleaseLanguages}
-        onReleaseLanguagesChange={setEditSeriesReleaseLanguages}
-        updating={updatingSeries}
-      />
-
-      {/* F8: Workspace Audit Log Modal */}
-      <WorkspaceAuditModal
-        isOpen={auditModalOpen}
-        onClose={() => setAuditModalOpen(false)}
-        activeWorkspace={activeWorkspace}
-        filterEntity={auditFilterEntity}
-        onFilterEntityChange={setAuditFilterEntity}
-        onSearch={loadWorkspaceAudit}
-        loading={auditLoading}
-        logs={auditLogs}
-      />
-
-      {/* Edit Access & Role Modal */}
-      <EditMemberAccessModal
-        member={editingMember}
-        onClose={() => {
-          setEditingMember(null);
-          setEditMemberError(null);
-        }}
-        role={editRole}
-        onRoleChange={(r) => {
-          setEditRole(r);
-          setEditMemberError(null);
-        }}
-        task={editTask}
-        onTaskChange={setEditTask}
-        onSave={handleSaveAccess}
-        error={editMemberError}
-        saving={savingMemberRole}
-      />
-
-      {/* Create Studio Modal */}
-      <CreateWorkspaceModal
-        isOpen={createStudioModalOpen}
-        onClose={() => setCreateStudioModalOpen(false)}
-        onSuccess={(newWs) => {
-          setCreateStudioModalOpen(false);
-          const normalized = {
-            ...newWs,
-            currentUserRole: normalizeWorkspaceRole(newWs.currentUserRole),
-          } as any;
-          setActiveWorkspace(normalized);
-          writeCachedWorkspace(normalized, currentUser?.id);
-          navigate(`/workspaces/${newWs.id}`);
-        }}
-        onShowToast={showToast}
-      />
+      </div>
     </div>
   );
 };
