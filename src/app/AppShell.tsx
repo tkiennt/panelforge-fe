@@ -973,9 +973,10 @@ export function AppShell({
                 <button
                   type='button'
                   onClick={() => navigate('/workspaces')}
-                  className='flex items-center gap-1.5 cursor-pointer'
+                  className='flex items-center gap-2 cursor-pointer'
                 >
-                  <span className='text-lg font-bold text-orange-600 tracking-tight'>
+                  <BrandMark size={28} className='shrink-0' />
+                  <span className='font-serif text-lg font-medium tracking-tight text-stone-900'>
                     {t('workspace.studioHub.brand')}
                   </span>
                   <span className='text-xs font-bold tracking-wider uppercase bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded'>
