@@ -68,6 +68,23 @@ describe('MyWorkHubView helpers', () => {
 });
 
 describe('MyWorkHubView', () => {
+  it('shows the studio directory header with a way back to the studio list and logout', async () => {
+    vi.mocked(assignmentService.getMyWork).mockResolvedValue([]);
+    const onLogout = vi.fn();
+    render(
+      <MemoryRouter>
+        <MyWorkHubView currentUser={{ name: 'Alex Producer', role: 'USER' }} onLogout={onLogout} />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('link', { name: /Workspaces/ })).toHaveAttribute(
+      'href',
+      '/workspaces',
+    );
+    expect(screen.getByText('Alex Producer')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Đăng xuất|Log out|Logout/i }));
+    expect(onLogout).toHaveBeenCalled();
+  });
+
   it('lists work across studios and filters by studio', async () => {
     vi.mocked(assignmentService.getMyWork).mockResolvedValue(studios);
     render(
