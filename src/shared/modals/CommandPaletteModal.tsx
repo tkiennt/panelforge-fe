@@ -308,7 +308,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           {/* Quick Navigation Views */}
           {filteredNavItems.length > 0 && (
             <div>
-              <div className='px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-[#78716C]'>
+              <div className='px-2.5 py-1 text-xs font-mono font-bold uppercase tracking-wider text-[#78716C]'>
                 {t('common.modals.commandPalette.navSection')}
               </div>
               <div className='space-y-0.5 mt-1'>
@@ -334,17 +334,17 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                           <span className='font-semibold text-xs block text-[#1C1917]'>
                             {item.label}
                           </span>
-                          <span className='text-[11px] text-[#78716C] truncate block'>
+                          <span className='text-xs text-[#78716C] truncate block'>
                             {item.description}
                           </span>
                         </div>
                       </div>
                       {isDisabled ? (
-                        <span className='text-[10px] text-[#A8A29E] shrink-0 ml-2'>
+                        <span className='text-xs text-[#A8A29E] shrink-0 ml-2'>
                           {t('common.modals.commandPalette.needSeries')}
                         </span>
                       ) : (
-                        <span className='text-[10px] font-mono text-[#78716C] group-hover:text-[#F97316] shrink-0 ml-2'>
+                        <span className='text-xs font-mono text-[#78716C] group-hover:text-[#F97316] shrink-0 ml-2'>
                           {t('common.modals.commandPalette.openKey')}
                         </span>
                       )}
@@ -358,10 +358,10 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           {/* Matching Series from Live API */}
           {filteredSeries.length > 0 && (
             <div>
-              <div className='px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-[#78716C] flex items-center justify-between'>
+              <div className='px-2.5 py-1 text-xs font-mono font-bold uppercase tracking-wider text-[#78716C] flex items-center justify-between'>
                 <span>{t('common.modals.commandPalette.seriesSection')}</span>
                 {isSearchingApi && (
-                  <span className='text-[10px] text-[#F97316]'>
+                  <span className='text-xs text-[#F97316]'>
                     {t('common.modals.commandPalette.loadingApi')}
                   </span>
                 )}
@@ -380,7 +380,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                         <span className='font-semibold text-xs block text-[#1C1917] truncate'>
                           {series.title}
                         </span>
-                        <span className='text-[11px] text-[#78716C] truncate block'>
+                        <span className='text-xs text-[#78716C] truncate block'>
                           {series.genre || 'Manga'} • {series.format || 'Standard B5'} •{' '}
                           {t('common.modals.commandPalette.chaptersCount', {
                             count: series.chaptersCount || 0,
@@ -388,7 +388,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                         </span>
                       </div>
                     </div>
-                    <span className='text-[10px] font-mono text-[#78716C] group-hover:text-[#F97316] shrink-0 ml-2'>
+                    <span className='text-xs font-mono text-[#78716C] group-hover:text-[#F97316] shrink-0 ml-2'>
                       {t('common.modals.commandPalette.enterSeries')}
                     </span>
                   </button>
@@ -400,7 +400,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           {/* Matching Storyboard Pages */}
           {filteredCards.length > 0 && (
             <div>
-              <div className='px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-[#78716C]'>
+              <div className='px-2.5 py-1 text-xs font-mono font-bold uppercase tracking-wider text-[#78716C]'>
                 {t('common.modals.commandPalette.pagesSection')}
               </div>
               <div className='space-y-0.5 mt-1'>
@@ -422,7 +422,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                         {card.title}
                       </span>
                     </div>
-                    <span className='text-[10px] font-mono uppercase text-[#78716C] shrink-0 ml-2'>
+                    <span className='text-xs font-mono uppercase text-[#78716C] shrink-0 ml-2'>
                       {card.stage}
                     </span>
                   </button>
@@ -434,7 +434,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           {/* Matching Lore & Cast Entities */}
           {filteredEntities.length > 0 && (
             <div>
-              <div className='px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-[#78716C]'>
+              <div className='px-2.5 py-1 text-xs font-mono font-bold uppercase tracking-wider text-[#78716C]'>
                 {t('common.modals.commandPalette.entitiesSection')}
               </div>
               <div className='space-y-0.5 mt-1'>
@@ -451,9 +451,9 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                     <div className='flex items-center gap-2 truncate'>
                       <span className='w-2 h-2 rounded-full bg-[#10B981] shrink-0' />
                       <span className='font-semibold text-xs text-[#1C1917]'>{ent.name}</span>
-                      <span className='text-[#78716C] text-[11px] truncate'>({ent.subtitle})</span>
+                      <span className='text-[#78716C] text-xs truncate'>({ent.subtitle})</span>
                     </div>
-                    <span className='text-[10px] font-mono text-[#8B5CF6] shrink-0 ml-2'>
+                    <span className='text-xs font-mono text-[#8B5CF6] shrink-0 ml-2'>
                       LoRA {ent.loraWeight}
                     </span>
                   </button>
@@ -464,7 +464,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
         </div>
 
         {/* Footer info */}
-        <div className='p-3 bg-[#F8F6F0] border-t border-[#D8D2C5] text-[11px] text-[#78716C] font-mono flex items-center justify-between'>
+        <div className='p-3 bg-[#F8F6F0] border-t border-[#D8D2C5] text-xs text-[#78716C] font-mono flex items-center justify-between'>
           <span>
             {t('common.modals.commandPalette.footerUseKeys')}
             <strong>↑↓</strong>

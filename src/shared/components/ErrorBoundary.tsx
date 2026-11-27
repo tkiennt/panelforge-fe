@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <AlertTriangle className='w-6 h-6' />
             </div>
             <div>
-              <h2 className='text-base font-bold text-zinc-900'>
+              <h2 className='text-base font-bold text-stone-900'>
                 {this.props.fallbackTitle ||
                   translate(
                     'common.components.errorBoundary.defaultTitle',
@@ -48,7 +48,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     getInitialLanguage(),
                   )}
               </h2>
-              <p className='text-xs text-zinc-600 mt-1 font-mono break-words bg-zinc-50 p-2.5 rounded-lg border border-zinc-200 text-left max-h-40 overflow-y-auto'>
+              <p className='text-xs text-stone-600 mt-1 font-mono break-words bg-stone-50 p-2.5 rounded-lg border border-stone-200 text-left max-h-40 overflow-y-auto'>
                 {this.state.error?.message ||
                   translate(
                     'common.components.errorBoundary.unknownError',

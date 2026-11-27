@@ -118,7 +118,7 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
     >
       <div className='flex flex-wrap items-center justify-between gap-2'>
         <ol
-          className='flex items-center gap-1.5 text-[11px] font-semibold'
+          className='flex items-center gap-1.5 text-xs font-semibold'
           aria-label={t('pageArtwork.stepsAriaLabel')}
         >
           {[
@@ -140,10 +140,7 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
             </li>
           ))}
         </ol>
-        <p
-          className='text-[11px] text-[#57534E] truncate max-w-full'
-          data-testid='workflow-context'
-        >
+        <p className='text-xs text-[#57534E] truncate max-w-full' data-testid='workflow-context'>
           {t('pageArtwork.pagePrefix', { page: page.pageNumber })}
           {stageName ? t('pageArtwork.stageSuffix', { stage: stageName }) : ''}
           {assignmentBrief
@@ -163,7 +160,7 @@ export const PageArtworkWorkflow: React.FC<WorkflowProps> = ({
         />
       ) : artwork ? (
         <div className='flex flex-wrap items-center gap-2'>
-          <span className='text-[11px] font-mono font-bold text-[#C2410C] bg-white border border-[#D8D2C5] rounded px-1.5 py-0.5'>
+          <span className='text-xs font-mono font-bold text-[#C2410C] bg-white border border-[#D8D2C5] rounded px-1.5 py-0.5'>
             {artwork.isLocal ? t('pageArtwork.localUnsaved') : `Artwork v${artwork.versionNumber}`}
           </span>
           {canEdit && (
@@ -253,7 +250,7 @@ const PendingFileRow: React.FC<{
         >
           {file.name}
         </p>
-        <p className='text-[11px] text-[#57534E]' aria-live='polite'>
+        <p className='text-xs text-[#57534E]' aria-live='polite'>
           {formatBytes(file.size)} ·{' '}
           {uploading ? progressMsg || t('pageArtwork.uploading') : t('pageArtwork.previewing')}
         </p>
@@ -803,7 +800,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
           </svg>
         )}
         <span
-          className={`absolute -top-0.5 -left-0.5 px-1 text-[10px] font-bold font-mono leading-4 pointer-events-none ${
+          className={`absolute -top-0.5 -left-0.5 px-1 text-xs font-bold font-mono leading-4 pointer-events-none ${
             isPanel
               ? 'bg-[#F97316] text-white'
               : isCaption
@@ -913,7 +910,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
             ].map((o) => (
               <label
                 key={o.label}
-                className={`px-2 py-0.5 rounded-md text-[11px] font-semibold cursor-pointer has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[#F97316] ${
+                className={`px-2 py-0.5 rounded-md text-xs font-semibold cursor-pointer has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[#F97316] ${
                   rtl === o.v ? 'bg-[#F97316] text-white' : 'text-[#57534E]'
                 }`}
               >
@@ -979,7 +976,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                   <ZoomOut className='w-3.5 h-3.5' />
                 </button>
                 <span
-                  className='px-1 text-[11px] font-mono w-11 text-center'
+                  className='px-1 text-xs font-mono w-11 text-center'
                   data-testid='split-zoom-label'
                 >
                   {Math.round(scale * 100)}%
@@ -1002,7 +999,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                   onClick={() => setFit(true)}
                   aria-pressed={fit}
                   data-testid='split-fit-btn'
-                  className={`px-2 py-0.5 text-[11px] font-semibold rounded cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] ${
+                  className={`px-2 py-0.5 text-xs font-semibold rounded cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] ${
                     fit ? 'text-[#C2410C]' : 'text-[#57534E]'
                   }`}
                 >
@@ -1026,7 +1023,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                   type='button'
                   onClick={detectWithBrowser}
                   data-testid='split-fallback-btn'
-                  className='px-2 py-0.5 rounded bg-rose-100 hover:bg-rose-200 border border-rose-300 text-rose-900 font-semibold text-[11px] cursor-pointer transition-colors'
+                  className='px-2 py-0.5 rounded bg-rose-100 hover:bg-rose-200 border border-rose-300 text-rose-900 font-semibold text-xs cursor-pointer transition-colors'
                 >
                   {t('pageArtwork.fallbackBrowserSplit')}
                 </button>
@@ -1139,10 +1136,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                   )}
                 />
                 {selected && (
-                  <p
-                    className='text-[11px] font-mono text-[#57534E]'
-                    data-testid='split-selected-rect'
-                  >
+                  <p className='text-xs font-mono text-[#57534E]' data-testid='split-selected-rect'>
                     {t('pageArtwork.selectedRectHint', {
                       kind:
                         selected.kind === 'panel'
@@ -1171,7 +1165,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
                   </label>
                   {existingPanels.length > 0 && savePanels && (
                     <p
-                      className='text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1'
+                      className='text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1'
                       data-testid='split-existing-warning'
                     >
                       {t('pageArtwork.existingPanelsWarning', { count: existingPanels.length })}
@@ -1224,7 +1218,7 @@ const RegionList: React.FC<{
   return (
     <section aria-label={title}>
       <div className='flex items-center justify-between mb-1'>
-        <h3 className='text-[11px] font-bold uppercase tracking-wide text-[#57534E] flex items-center gap-1'>
+        <h3 className='text-xs font-bold uppercase tracking-wide text-[#57534E] flex items-center gap-1'>
           {kind === 'bubble' && <MessageCircle className='w-3 h-3' aria-hidden />}
           {title} ({items.length})
         </h3>
@@ -1233,14 +1227,14 @@ const RegionList: React.FC<{
             type='button'
             onClick={onAdd}
             data-testid={`split-add-${kind}`}
-            className='text-[11px] font-semibold text-[#C2410C] hover:underline flex items-center gap-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] rounded'
+            className='text-xs font-semibold text-[#C2410C] hover:underline flex items-center gap-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] rounded'
           >
             <Plus className='w-3 h-3' aria-hidden /> {t('pageArtwork.addRegion')}
           </button>
         )}
       </div>
       {items.length === 0 ? (
-        <p className='text-[11px] text-[#57534E] italic' data-testid={`split-empty-${kind}`}>
+        <p className='text-xs text-[#57534E] italic' data-testid={`split-empty-${kind}`}>
           {empty ?? t('pageArtwork.emptyRegions')}
         </p>
       ) : (
@@ -1260,11 +1254,11 @@ const RegionList: React.FC<{
               >
                 {kind === 'panel' ? `#${i + 1}` : r.isCaption ? `C${i + 1}` : `B${i + 1}`}
                 {r.isCaption && (
-                  <span className='ml-1 text-[9px] px-1 py-0.2 rounded bg-sky-100 text-sky-800 font-medium'>
+                  <span className='ml-1 text-xs px-1 py-0.2 rounded bg-sky-100 text-sky-800 font-medium'>
                     Cap
                   </span>
                 )}
-                <span className='ml-1 font-mono text-[10px] text-[#57534E]'>
+                <span className='ml-1 font-mono text-xs text-[#57534E]'>
                   {r.w}×{r.h}
                 </span>
               </button>

@@ -15,6 +15,7 @@ import {
 import { SeriesDto } from '@/services/series.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { useTranslation } from '@/lib/i18n';
+import { StatusBadge } from '@/shared/ui';
 import { formatGenre, formatReadingDirection } from './formatters';
 
 export interface SeriesCardItemProps {
@@ -69,12 +70,6 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
       : Math.min(95, Math.max(30, (s.chaptersCount ?? 1) * 16));
 
   const progressColor = isCompleted ? 'bg-emerald-600' : 'bg-orange-600';
-
-  const statusBadgeColor = isCompleted
-    ? 'bg-stone-700 text-white'
-    : isPreProd
-      ? 'bg-amber-500 text-white'
-      : 'bg-emerald-600 text-white';
 
   const statusText = isCompleted
     ? t('workspace.studioHub.series.statusCompleted')
@@ -146,11 +141,11 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
 
           {/* Top Right Status Badge & Menu */}
           <div className='absolute top-3 right-3 flex items-center gap-1.5 z-10'>
-            <span
-              className={`px-2 py-0.5 rounded-md text-xs font-semibold shadow-xs flex items-center gap-1 ${statusBadgeColor}`}
-            >
-              {statusText}
-            </span>
+            <StatusBadge
+              kind='series'
+              status={isCompleted ? 'Completed' : isPreProd ? 'PreProduction' : 'InProduction'}
+              label={statusText}
+            />
 
             {/* Accessible 3-dots Menu for Producer / Admin */}
             {isProducerOrAdmin && (

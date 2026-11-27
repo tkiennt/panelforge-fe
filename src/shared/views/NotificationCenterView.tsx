@@ -304,7 +304,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
           <span>{t('notifications.unreadTab')}</span>
           {unreadCount > 0 && (
             <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+              className={`px-1.5 py-0.2 rounded-full text-xs font-mono font-bold ${
                 filter === 'unread' ? 'bg-[#F97316] text-white' : 'bg-[#F97316]/20 text-[#C2410C]'
               }`}
             >
@@ -369,7 +369,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
                     <div className='flex items-start justify-between gap-3 mb-1'>
                       <div className='flex items-center gap-2 min-w-0'>
                         <span
-                          className={`text-[11px] font-mono px-2 py-0.5 rounded font-semibold border ${config.bg} ${config.color}`}
+                          className={`text-xs font-mono px-2 py-0.5 rounded font-semibold border ${config.bg} ${config.color}`}
                         >
                           {t(config.labelKey)}
                         </span>
@@ -381,7 +381,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
                           {n.title}
                         </h2>
                       </div>
-                      <span className='text-[11px] text-[#78716C] font-mono whitespace-nowrap shrink-0 flex items-center gap-1'>
+                      <span className='text-xs text-[#78716C] font-mono whitespace-nowrap shrink-0 flex items-center gap-1'>
                         <Clock className='w-3 h-3' />
                         {formatRelativeTime(n.createdAt)}
                       </span>
@@ -402,7 +402,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
                           type='button'
                           onClick={(e) => void handleMarkAsRead(e, n)}
                           title={t('notifications.markReadTooltip')}
-                          className='text-[11px] font-mono text-[#78716C] hover:text-[#1C1917] hover:underline flex items-center gap-1 p-1'
+                          className='text-xs font-mono text-[#78716C] hover:text-[#1C1917] hover:underline flex items-center gap-1 p-1'
                         >
                           <CheckCheck className='w-3 h-3' />
                           <span>{t('notifications.markRead')}</span>

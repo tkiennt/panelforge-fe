@@ -696,7 +696,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
           <div className='min-w-0'>
             {/* Nhãn phân loại phụ */}
             <div className='flex items-center gap-2 mb-1.5'>
-              <h1 className='inline-flex items-center rounded border border-stone-300 bg-stone-200/70 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-stone-700 font-mono'>
+              <h1 className='inline-flex items-center rounded border border-stone-300 bg-stone-200/70 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-stone-700 font-mono'>
                 {t('profile.headerBadge', 'Hồ sơ cá nhân')}
               </h1>
               <span className='inline-flex items-center rounded-md border border-stone-300 bg-[#FCFBF8] px-2 py-0.5 text-xs font-semibold text-[#57534E]'>
@@ -1012,7 +1012,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                   <p className='text-xs text-[#57534E] mt-0.5'>{t('profile.subtitle')}</p>
                 </div>
                 <span
-                  className={`text-[11px] font-mono px-2 py-0.5 rounded-md font-semibold border ${
+                  className={`text-xs font-mono px-2 py-0.5 rounded-md font-semibold border ${
                     isEditing
                       ? 'bg-[#FFF2E6] text-[#C2410C] border-[#FDBA74]'
                       : 'bg-[#F3F0E9] text-[#57534E] border-[#D8D2C5]'
@@ -1029,7 +1029,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                 <div className='space-y-4 animate-in fade-in-50 duration-200'>
                   <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                     <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg shadow-2xs'>
-                      <span className='text-[10px] font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
+                      <span className='text-xs font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
                         {t('profile.fullNameLabel', 'Tên hiển thị / Bút danh')}
                       </span>
                       <span className='text-sm font-semibold text-[#44403C] block'>
@@ -1038,7 +1038,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                     </div>
 
                     <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg shadow-2xs'>
-                      <span className='text-[10px] font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
+                      <span className='text-xs font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
                         {t('workspace.profileExtra.usernameIdLabel')}
                       </span>
                       <span className='text-sm font-mono text-[#44403C] block'>
@@ -1048,10 +1048,10 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
 
                     <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg shadow-2xs'>
                       <div className='flex items-center justify-between mb-1'>
-                        <span className='text-[10px] font-mono uppercase tracking-wider text-[#57534E] font-semibold'>
+                        <span className='text-xs font-mono uppercase tracking-wider text-[#57534E] font-semibold'>
                           {t('profile.email')}
                         </span>
-                        <span className='text-[9px] font-mono text-[#57534E] bg-[#EFECE6] px-1.5 rounded'>
+                        <span className='text-xs font-mono text-[#57534E] bg-[#EFECE6] px-1.5 rounded'>
                           {t('workspace.profileExtra.internalBadge')}
                         </span>
                       </div>
@@ -1061,7 +1061,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                     </div>
 
                     <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg shadow-2xs'>
-                      <span className='text-[10px] font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
+                      <span className='text-xs font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
                         {t('profile.phoneLabel', 'Số điện thoại liên hệ')}
                       </span>
                       <span className='text-sm text-[#44403C] block'>
@@ -1076,7 +1076,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                     </div>
 
                     <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg shadow-2xs'>
-                      <span className='text-[10px] font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
+                      <span className='text-xs font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
                         {t('profile.role', 'Vai trò hệ thống')}
                       </span>
                       <span className='text-sm font-medium text-[#44403C] block'>
@@ -1087,7 +1087,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                     </div>
 
                     <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg shadow-2xs'>
-                      <span className='text-[10px] font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
+                      <span className='text-xs font-mono uppercase tracking-wider text-[#57534E] block mb-1 font-semibold'>
                         {t('profile.statusLabel', 'Trạng thái kích hoạt')}
                       </span>
                       <span className='text-sm font-medium text-emerald-700 flex items-center gap-1.5'>
@@ -1106,14 +1106,14 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                           {t('profile.authorCode', 'Mã tác giả sáng tác')}
                         </span>
                         <span
-                          className='text-[11px] font-mono text-[#57534E] block truncate'
+                          className='text-xs font-mono text-[#57534E] block truncate'
                           title={profile?.id}
                         >
                           {profile?.id ? `PF-${profile.id.slice(0, 8).toUpperCase()}` : '—'}
                         </span>
                       </div>
                     </div>
-                    <span className='text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 shrink-0 font-semibold'>
+                    <span className='text-xs font-mono text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 shrink-0 font-semibold'>
                       {t('profile.verified', 'ĐÃ XÁC THỰC')}
                     </span>
                   </div>
@@ -1164,15 +1164,13 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                     />
                     <div className='flex justify-between items-center mt-1'>
                       {formErrors.username ? (
-                        <span className='text-[11px] text-rose-600 font-medium'>
+                        <span className='text-xs text-rose-600 font-medium'>
                           {formErrors.username}
                         </span>
                       ) : (
-                        <span className='text-[10px] text-[#57534E]'>
-                          {t('profile.fullNameHint')}
-                        </span>
+                        <span className='text-xs text-[#57534E]'>{t('profile.fullNameHint')}</span>
                       )}
-                      <span className='text-[10px] font-mono text-[#57534E] tabular-nums'>
+                      <span className='text-xs font-mono text-[#57534E] tabular-nums'>
                         {editUsername.length}/30
                       </span>
                     </div>
@@ -1204,11 +1202,11 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       }`}
                     />
                     {formErrors.phone ? (
-                      <span className='text-[11px] text-rose-600 font-medium mt-1 block'>
+                      <span className='text-xs text-rose-600 font-medium mt-1 block'>
                         {formErrors.phone}
                       </span>
                     ) : (
-                      <span className='text-[10px] text-[#57534E] mt-1 block'>
+                      <span className='text-xs text-[#57534E] mt-1 block'>
                         {t('profile.phoneHint')}
                       </span>
                     )}
@@ -1246,7 +1244,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       }`}
                     />
                     {formErrors.avatar && (
-                      <span className='text-[11px] text-rose-600 font-medium mt-1 block'>
+                      <span className='text-xs text-rose-600 font-medium mt-1 block'>
                         {formErrors.avatar}
                       </span>
                     )}
@@ -1262,7 +1260,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                             (e.target as HTMLElement).style.opacity = '0.3';
                           }}
                         />
-                        <div className='text-[11px] text-[#57534E] truncate'>
+                        <div className='text-xs text-[#57534E] truncate'>
                           <span className='font-semibold text-[#44403C] block'>
                             {t('profile.previewImage', 'Xem trước ảnh')}
                           </span>
@@ -1286,7 +1284,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       />
                       <Lock className='w-4 h-4 text-[#57534E] absolute right-3.5 top-1/2 -translate-y-1/2' />
                     </div>
-                    <span className='text-[10px] text-[#57534E] mt-1 block'>
+                    <span className='text-xs text-[#57534E] mt-1 block'>
                       {t('profile.emailHint')}
                     </span>
                   </div>
@@ -1342,16 +1340,16 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                     {t('profile.twoFactorTitle', 'Xác Thực 2 Bước (2FA)')}
                   </span>
                   {is2faActive ? (
-                    <span className='text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold'>
+                    <span className='text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold'>
                       {t('profile.twoFactorActive', 'BẢO VỆ')}
                     </span>
                   ) : (
-                    <span className='text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold'>
+                    <span className='text-xs font-mono px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold'>
                       {t('profile.twoFactorInactive', 'CHƯA BẬT')}
                     </span>
                   )}
                 </div>
-                <p className='text-[11px] text-[#57534E] leading-relaxed'>
+                <p className='text-xs text-[#57534E] leading-relaxed'>
                   {t('profile.twoFactorDesc')}
                 </p>
                 <button
@@ -1429,7 +1427,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                 <p className='text-xs font-semibold text-[#44403C]'>
                   {t('profile.noWorkspaces', 'Bạn chưa tham gia xưởng truyện tranh nào.')}
                 </p>
-                <p className='text-[11px] text-[#57534E] max-w-sm mx-auto'>
+                <p className='text-xs text-[#57534E] max-w-sm mx-auto'>
                   {t('profile.noWorkspacesDesc')}
                 </p>
                 <button
@@ -1459,12 +1457,12 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                             {ws.name}
                           </span>
                           {ws.isOwner && (
-                            <span className='text-[9px] font-mono font-bold bg-[#EAE5DC] text-[#44403C] px-1.5 py-0.2 rounded'>
+                            <span className='text-xs font-mono font-bold bg-[#EAE5DC] text-[#44403C] px-1.5 py-0.2 rounded'>
                               {t('profile.studioOwner', 'CHỦ STUDIO')}
                             </span>
                           )}
                         </div>
-                        <div className='flex items-center gap-2 text-[11px] text-[#57534E] font-mono tabular-nums'>
+                        <div className='flex items-center gap-2 text-xs text-[#57534E] font-mono tabular-nums'>
                           <span>
                             {t('profile.membersCount', '{count} thành viên').replace(
                               '{count}',
@@ -1483,7 +1481,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
 
                       <div className='flex items-center gap-3 shrink-0 self-start sm:self-auto'>
                         <span
-                          className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full font-semibold border ${roleBadge.bg} ${roleBadge.text} ${roleBadge.border}`}
+                          className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-semibold border ${roleBadge.bg} ${roleBadge.text} ${roleBadge.border}`}
                         >
                           {t(`workspace.roles.${roleKey.toLowerCase()}`)}
                         </span>
@@ -1548,7 +1546,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                     alt={preset.name}
                     className='w-full aspect-square rounded-xl object-cover border border-[#D8D2C5] bg-[#FAF8F5]'
                   />
-                  <span className='text-[11px] font-semibold text-[#44403C] text-center'>
+                  <span className='text-xs font-semibold text-[#44403C] text-center'>
                     {preset.name}
                   </span>
                 </button>

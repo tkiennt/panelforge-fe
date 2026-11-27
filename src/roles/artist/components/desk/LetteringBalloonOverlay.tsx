@@ -325,7 +325,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
             {keepOutCollision && (
               <span
                 data-testid={`keepout-collision-badge-${b.elementId}`}
-                className='absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-30 px-1.5 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold flex items-center gap-0.5 shadow-sm whitespace-nowrap pointer-events-none'
+                className='absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-30 px-1.5 py-0.5 rounded bg-red-600 text-white text-xs font-bold flex items-center gap-0.5 shadow-sm whitespace-nowrap pointer-events-none'
                 title={t('balloonOverlay.keepOutTitle', {
                   label: keepOutCollision.label || t('balloonOverlay.keepOutDefaultLabel'),
                 })}

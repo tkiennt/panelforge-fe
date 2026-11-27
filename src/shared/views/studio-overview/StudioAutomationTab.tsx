@@ -524,7 +524,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                     <p className='text-xs text-stone-600 leading-relaxed'>
                       {t('workspace.automationTab.autoNextStageDesc')}
                     </p>
-                    <p className='text-[11px] text-stone-500 italic bg-stone-50 border border-stone-100 rounded-lg px-2.5 py-1.5'>
+                    <p className='text-xs text-stone-500 italic bg-stone-50 border border-stone-100 rounded-lg px-2.5 py-1.5'>
                       {t('workspace.automationTab.autoNextStageExample')}
                     </p>
                   </div>
@@ -551,7 +551,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                       {t('workspace.automationTab.assignModeLabel')}
                     </div>
                     {!autoNextStage && (
-                      <span className='inline-flex items-center rounded-full bg-stone-100 border border-stone-200 px-2.5 py-0.5 text-[11px] font-medium text-stone-600'>
+                      <span className='inline-flex items-center rounded-full bg-stone-100 border border-stone-200 px-2.5 py-0.5 text-xs font-medium text-stone-600'>
                         {t('workspace.automationTab.assignModeInactiveHint')}
                       </span>
                     )}
@@ -629,7 +629,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                     <p className='text-xs text-stone-600 leading-relaxed'>
                       {t('workspace.automationTab.autoRouteReviewDesc')}
                     </p>
-                    <p className='text-[11px] text-stone-500 italic bg-stone-50 border border-stone-100 rounded-lg px-2.5 py-1.5'>
+                    <p className='text-xs text-stone-500 italic bg-stone-50 border border-stone-100 rounded-lg px-2.5 py-1.5'>
                       {t('workspace.automationTab.autoRouteReviewExample')}
                     </p>
                   </div>
@@ -665,7 +665,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                     {leadDurationPreview && (
                       <span
                         data-testid='lead-duration-preview'
-                        className='rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-[11px] font-semibold text-orange-700 tabular-nums'
+                        className='rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-xs font-semibold text-orange-700 tabular-nums'
                       >
                         {leadDurationPreview}
                       </span>
@@ -686,7 +686,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                     className='w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 tabular-nums disabled:bg-stone-100 disabled:text-stone-500 disabled:cursor-not-allowed'
                   />
                   <div className='flex flex-wrap items-center justify-between gap-2'>
-                    <p className='text-[11px] text-stone-500'>
+                    <p className='text-xs text-stone-500'>
                       {t('workspace.automationTab.leadHoursHint')}
                     </p>
                     <div className='flex items-center gap-1'>
@@ -701,7 +701,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                               clearFeedback();
                               setLeadHoursInput(String(h));
                             }}
-                            className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                            className={`rounded-md border px-2 py-0.5 text-xs font-semibold tabular-nums transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                               active
                                 ? 'border-orange-500 bg-orange-50 text-orange-700'
                                 : 'border-stone-200 bg-white hover:bg-stone-100 text-stone-600'
@@ -725,7 +725,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                       <span className='text-xs font-semibold text-stone-900 block'>
                         {t('workspace.automationTab.escalationToggleLabel')}
                       </span>
-                      <p className='text-[11px] text-stone-500 leading-relaxed'>
+                      <p className='text-xs text-stone-500 leading-relaxed'>
                         {t('workspace.automationTab.escalationToggleDesc')}
                       </p>
                     </div>
@@ -758,7 +758,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                       {escalationDurationPreview && (
                         <span
                           data-testid='escalation-duration-preview'
-                          className='rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-[11px] font-semibold text-orange-700 tabular-nums'
+                          className='rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-xs font-semibold text-orange-700 tabular-nums'
                         >
                           {escalationDurationPreview}
                         </span>
@@ -780,7 +780,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                       className='w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 tabular-nums placeholder:text-stone-400 disabled:bg-stone-100 disabled:text-stone-500 disabled:cursor-not-allowed'
                     />
                     <div className='flex flex-wrap items-center justify-between gap-2'>
-                      <p className='text-[11px] text-stone-500'>
+                      <p className='text-xs text-stone-500'>
                         {t('workspace.automationTab.escalationHoursHint')}
                       </p>
                       <div className='flex items-center gap-1'>
@@ -796,7 +796,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                                 clearFeedback();
                                 setEscalationHoursInput(String(h));
                               }}
-                              className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                              className={`rounded-md border px-2 py-0.5 text-xs font-semibold tabular-nums transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                                 active
                                   ? 'border-orange-500 bg-orange-50 text-orange-700'
                                   : 'border-stone-200 bg-white hover:bg-stone-100 text-stone-600'
@@ -880,7 +880,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
               {t('workspace.automationTab.howItWorksFlow')}
             </p>
             <div className='space-y-2 pt-1'>
-              <div className='text-[11px] font-semibold uppercase tracking-wide text-stone-500'>
+              <div className='text-xs font-semibold uppercase tracking-wide text-stone-500'>
                 {t('workspace.automationTab.savedRulesLabel')}
               </div>
               <div className='space-y-1.5'>
@@ -892,7 +892,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                   >
                     <span className='font-medium text-stone-800'>{rule.label}</span>
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0 ${
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0 ${
                         rule.enabled
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : 'bg-stone-100 text-stone-600 border border-stone-200'
@@ -909,7 +909,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                   </div>
                 ))}
               </div>
-              <p className='text-[11px] text-stone-500'>
+              <p className='text-xs text-stone-500'>
                 {t('workspace.automationTab.leadReminderSummary', {
                   hours: savedSettings.leadHours,
                 })}
@@ -940,7 +940,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
 
             {/* Hàng đầu: số đếm 7 ngày */}
             <div className='rounded-lg border border-stone-100 bg-stone-50/80 px-3 py-2.5 space-y-2'>
-              <div className='text-[11px] font-semibold uppercase tracking-wide text-stone-500'>
+              <div className='text-xs font-semibold uppercase tracking-wide text-stone-500'>
                 {t('workspace.automationTab.activityLast7Days')}
               </div>
               <div className='grid grid-cols-3 gap-2 text-xs'>
@@ -1026,9 +1026,7 @@ export const StudioAutomationTab: React.FC<StudioAutomationTabProps> = ({
                             {row.primary}
                           </div>
                           {row.secondary && (
-                            <div className='text-[11px] text-stone-500 truncate'>
-                              {row.secondary}
-                            </div>
+                            <div className='text-xs text-stone-500 truncate'>{row.secondary}</div>
                           )}
                         </div>
                       </div>

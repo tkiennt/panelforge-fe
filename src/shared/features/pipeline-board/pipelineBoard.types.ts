@@ -86,8 +86,8 @@ export const BOARD_COLUMNS: BoardColumnDefinition[] = [
     get description() {
       return translate('pipeline.boardColumns.Assigned.description');
     },
-    badgeClass: 'bg-zinc-100 text-zinc-700 border-zinc-300',
-    headerBgClass: 'bg-zinc-50/80',
+    badgeClass: 'bg-stone-100 text-stone-700 border-stone-300',
+    headerBgClass: 'bg-stone-50/80',
     accentBorderClass: 'border-t-zinc-400',
   },
   {

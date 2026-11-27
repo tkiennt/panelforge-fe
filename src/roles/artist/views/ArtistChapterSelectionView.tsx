@@ -6,7 +6,6 @@ import {
   Lock,
   Clock,
   CheckCircle2,
-  Sparkles,
   ArrowRight,
   Search,
   LayoutGrid,
@@ -20,7 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { PageContainer } from '@/shared/components/PageContainer';
-import { PageHeader } from '@/shared/ui';
+import { PageHeader, StatusBadge } from '@/shared/ui';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { useTranslation } from '@/lib/i18n';
@@ -182,69 +181,43 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
   const seriesTitle = seriesDetail?.title || t('chapterSelection.seriesFallback');
 
   const renderStatusBadge = (chapter: ChapterDto) => {
-    if (String(chapter.status) === 'ChapterApproved') {
+    const status = String(chapter.status);
+    if (status === 'ChapterApproved' || status === 'HandedOffAndPublished') {
       return (
-        <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
-          <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-          <span>{t('chapterSelection.statusApproved')}</span>
-        </span>
-      );
-    }
-    if (String(chapter.status) === 'HandedOffAndPublished') {
-      return (
-        <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
-          <Sparkles className='w-3 h-3 text-purple-600' />
-          <span>{t('chapterSelection.statusPublishedFull')}</span>
-        </span>
+        <StatusBadge
+          kind='chapter'
+          status={status}
+          label={
+            status === 'ChapterApproved'
+              ? t('chapterSelection.statusApproved')
+              : t('chapterSelection.statusPublishedFull')
+          }
+        />
       );
     }
     if (chapter.isScriptFrozen) {
       return (
-        <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0'>
-          <Lock className='w-3 h-3 text-indigo-600' />
-          <span>{t('chapterSelection.statusScriptFrozen')}</span>
-          {chapter.scriptContentHash && (
-            <span
-              className='font-mono text-xs font-semibold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded border border-indigo-200'
-              title={`SHA-256: ${chapter.scriptContentHash}`}
-            >
-              #{chapter.scriptContentHash.slice(0, 8)}
-            </span>
-          )}
-        </span>
+        <StatusBadge
+          kind='script'
+          status='Frozen'
+          label={
+            <>
+              <span>{t('chapterSelection.statusScriptFrozen')}</span>
+              {chapter.scriptContentHash && (
+                <span className='font-mono' title={`SHA-256: ${chapter.scriptContentHash}`}>
+                  #{chapter.scriptContentHash.slice(0, 8)}
+                </span>
+              )}
+            </>
+          }
+        />
       );
     }
-
-    switch (chapter.status) {
-      case 'PreProduction':
-        return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-stone-50 text-stone-700 border border-stone-200 shrink-0'>
-            <Clock className='w-3 h-3 text-stone-500' />
-            <span>{t('chapterSelection.statusPreProduction')}</span>
-          </span>
-        );
-      case 'ChapterApproved':
-        return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
-            <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-            <span>{t('chapterSelection.statusApproved')}</span>
-          </span>
-        );
-      case 'HandedOffAndPublished':
-        return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
-            <Sparkles className='w-3 h-3 text-purple-600' />
-            <span>{t('chapterSelection.statusPublishedShort')}</span>
-          </span>
-        );
-      default:
-        return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0'>
-            <Clock className='w-3 h-3 text-amber-600' />
-            <span>{t('chapterSelection.statusInProduction')}</span>
-          </span>
-        );
-    }
+    const label =
+      status === 'PreProduction'
+        ? t('chapterSelection.statusPreProduction')
+        : t('chapterSelection.statusInProduction');
+    return <StatusBadge kind='chapter' status={status || 'InProduction'} label={label} />;
   };
 
   return (

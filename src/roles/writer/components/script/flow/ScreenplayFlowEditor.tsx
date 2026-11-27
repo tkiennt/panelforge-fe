@@ -140,6 +140,10 @@ const SHEET_CSS = `
 .gn-sheet .gn-action { margin-top: .5rem; color: #18181B; }
 .gn-sheet .gn-action.is-empty::before { content: attr(data-placeholder); color: #a8a29e; pointer-events: none; font-style: italic; float: left; height: 0; }
 .gn-sheet .gn-character { float: left; clear: both; width: 10rem; margin-top: .5rem; text-transform: uppercase; font-weight: 700; color: #18181B; }
+.gn-sheet .gn-character.gn-char-tone-approved_artwork { color: #15803d !important; }
+.gn-sheet .gn-character.gn-char-tone-defined_no_artwork { color: #b45309 !important; }
+.gn-sheet .gn-character.gn-char-tone-undefined_no_artwork { color: #c2410c !important; }
+.gn-sheet .gn-character.gn-char-tone-crowd { color: #78716c !important; opacity: 0.85; }
 .gn-sheet .gn-dialogue { clear: none; margin-left: 11rem; color: #18181B; }
 .gn-sheet .gn-parens { clear: none; margin-left: 14rem; font-style: italic; color: #57534E; }
 .gn-sheet .gn-parens::before { content: '('; }
@@ -353,7 +357,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         ScriptDocument,
         BibleRefMark,
         ScriptLineBlockNode,
-        ScriptTypingBehavior.configure({ labels, bibleSpeakers }),
+        ScriptTypingBehavior.configure({ labels, bibleSpeakers, bibleEntries: allBibleEntries }),
         Extension.create({
           name: 'scriptCommentHighlights',
           addProseMirrorPlugins() {

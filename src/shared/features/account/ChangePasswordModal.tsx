@@ -205,7 +205,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                 required
                 disabled={isLoading}
               />
-              <p className='text-[10px] text-[#777777] mt-1'>
+              <p className='text-xs text-[#777777] mt-1'>
                 Minimum 6 characters, at least 1 uppercase letter and 1 special character (!@#$...).
               </p>
             </div>
@@ -236,7 +236,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                   type='button'
                   onClick={handleSendEmailOtp}
                   disabled={isSendingOtp || countdown > 0 || isLoading}
-                  className='text-[11px] font-semibold text-[#F97316] hover:text-[#EA580C] disabled:text-[#999999] disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer transition-colors'
+                  className='text-xs font-semibold text-[#F97316] hover:text-[#EA580C] disabled:text-[#999999] disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer transition-colors'
                 >
                   {isSendingOtp ? (
                     <>
@@ -255,7 +255,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               </div>
 
               {otpSentMessage && (
-                <div className='p-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-[11px] flex items-center gap-1.5'>
+                <div className='p-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs flex items-center gap-1.5'>
                   <CheckCircle2 className='w-3.5 h-3.5 text-amber-600 shrink-0' />
                   <span>{otpSentMessage}</span>
                 </div>

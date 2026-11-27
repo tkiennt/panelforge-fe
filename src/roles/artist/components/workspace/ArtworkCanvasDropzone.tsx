@@ -183,17 +183,17 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                 {/* Top-Left Header Badges: Panel Number & Reading Order */}
                 <div className='absolute top-2 left-2 flex items-center gap-1 z-30 pointer-events-none'>
                   <span
-                    className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shadow-2xs ${
+                    className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded shadow-2xs ${
                       isSelected ? 'bg-orange-500 text-white' : 'bg-stone-900 text-white'
                     }`}
                   >
                     #{panel.panelNumber}
                   </span>
-                  <span className='text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-white/90 text-stone-800 border border-stone-200 shadow-2xs'>
+                  <span className='text-xs font-mono font-medium px-1.5 py-0.5 rounded bg-white/90 text-stone-800 border border-stone-200 shadow-2xs'>
                     {t('artworkDropzone.readingOrder', { order: panel.readingOrder })}
                   </span>
                   {panel.cameraAngle && (
-                    <span className='text-[9px] font-mono px-1 py-0.5 rounded bg-stone-100/90 text-stone-600 border border-stone-200 uppercase'>
+                    <span className='text-xs font-mono px-1 py-0.5 rounded bg-stone-100/90 text-stone-600 border border-stone-200 uppercase'>
                       {panel.cameraAngle}
                     </span>
                   )}
@@ -211,7 +211,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
 
                     {/* Version Badge */}
                     <div className='absolute bottom-2 left-2 z-20'>
-                      <span className='text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-stone-900/80 text-white backdrop-blur-xs'>
+                      <span className='text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-stone-900/80 text-white backdrop-blur-xs'>
                         {panel.imageVersion || 'v1.0'}
                       </span>
                     </div>
@@ -272,10 +272,10 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                         </div>
 
                         <div className='space-y-0.5'>
-                          <p className='text-[11px] font-semibold text-stone-700'>
+                          <p className='text-xs font-semibold text-stone-700'>
                             {t('artworkDropzone.dragDropHere')}
                           </p>
-                          <p className='text-[9px] text-stone-400'>
+                          <p className='text-xs text-stone-400'>
                             {t('artworkDropzone.supportedFormats')}
                           </p>
                         </div>
@@ -287,7 +287,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                               e.stopPropagation();
                               triggerFileInput(panel.id);
                             }}
-                            className='px-2 py-1 text-[10px] font-bold rounded bg-stone-900 hover:bg-orange-600 text-white transition-colors cursor-pointer shadow-2xs flex items-center gap-1'
+                            className='px-2 py-1 text-xs font-bold rounded bg-stone-900 hover:bg-orange-600 text-white transition-colors cursor-pointer shadow-2xs flex items-center gap-1'
                           >
                             <Upload className='w-3 h-3' />
                             <span>{t('artworkDropzone.uploadArtwork')}</span>
@@ -300,7 +300,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
                               onSelectPanel(panel.id);
                             }}
                             title={t('artworkDropzone.pasteTitle')}
-                            className='px-2 py-1 text-[10px] font-medium rounded bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 transition-colors cursor-pointer shadow-2xs flex items-center gap-1'
+                            className='px-2 py-1 text-xs font-medium rounded bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 transition-colors cursor-pointer shadow-2xs flex items-center gap-1'
                           >
                             <Clipboard className='w-3 h-3' />
                             <span>{t('artworkDropzone.pasteButton')}</span>
@@ -317,7 +317,7 @@ export const ArtworkCanvasDropzone: React.FC<ArtworkCanvasDropzoneProps> = ({
 
         {/* Page Footer Note */}
         <div className='text-center pt-2 border-t border-stone-100'>
-          <span className='text-[9px] font-mono text-stone-400 uppercase tracking-widest'>
+          <span className='text-xs font-mono text-stone-400 uppercase tracking-widest'>
             {t('artworkDropzone.footerNote', { pageNumber })}
           </span>
         </div>

@@ -6,7 +6,6 @@ import {
   Plus,
   Lock,
   Calendar,
-  Sparkles,
   Clock,
   CheckCircle2,
   X,
@@ -23,7 +22,7 @@ import {
 import { ChapterDto, CreateChapterRequest } from '@/services/chapter.service';
 import { SeriesDetailDto } from '@/services/series.service';
 import { formatChapterOption } from '@/roles/writer/utils/chapterFormat';
-import { Modal, PageHeader } from '@/shared/ui';
+import { Modal, PageHeader, StatusBadge } from '@/shared/ui';
 import { formatSeriesFormat } from '@/shared/utils/seriesFormat';
 import { useTranslation } from '@/lib/i18n';
 
@@ -202,52 +201,36 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
   const getStatusBadge = (chapter: ChapterDto) => {
     if (chapter.isScriptFrozen) {
       return (
-        <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0'>
-          <Lock className='w-3 h-3' />
-          <span>{t('chapterSelectionView.statusFrozen')}</span>
-          {chapter.scriptContentHash && (
-            <span
-              className='font-mono text-xs font-semibold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded border border-indigo-200'
-              title={`SHA-256: ${chapter.scriptContentHash}`}
-              data-testid={`chapter-hash-${chapter.chapterNumber}`}
-            >
-              #{chapter.scriptContentHash.slice(0, 8)}
-            </span>
-          )}
-        </span>
+        <StatusBadge
+          kind='script'
+          status='Frozen'
+          label={
+            <>
+              <span>{t('chapterSelectionView.statusFrozen')}</span>
+              {chapter.scriptContentHash && (
+                <span
+                  className='font-mono'
+                  title={`SHA-256: ${chapter.scriptContentHash}`}
+                  data-testid={`chapter-hash-${chapter.chapterNumber}`}
+                >
+                  #{chapter.scriptContentHash.slice(0, 8)}
+                </span>
+              )}
+            </>
+          }
+        />
       );
     }
-
-    switch (chapter.status) {
-      case 'PreProduction':
-        return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-stone-50 text-stone-700 border border-stone-200 shrink-0'>
-            <Clock className='w-3 h-3 text-stone-500' />
-            <span>{t('chapterSelectionView.statusPreProduction')}</span>
-          </span>
-        );
-      case 'ChapterApproved':
-        return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0'>
-            <CheckCircle2 className='w-3 h-3' />
-            <span>{t('chapterSelectionView.statusApproved')}</span>
-          </span>
-        );
-      case 'HandedOffAndPublished':
-        return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0'>
-            <Sparkles className='w-3 h-3' />
-            <span>{t('chapterSelectionView.statusPublished')}</span>
-          </span>
-        );
-      default:
-        return (
-          <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0'>
-            <Clock className='w-3 h-3' />
-            <span>{t('chapterSelectionView.statusInProgress')}</span>
-          </span>
-        );
-    }
+    const status = String(chapter.status);
+    const label =
+      status === 'ChapterApproved'
+        ? t('chapterSelectionView.statusApproved')
+        : status === 'HandedOffAndPublished'
+          ? t('chapterSelectionView.statusPublished')
+          : status === 'PreProduction'
+            ? t('chapterSelectionView.statusPreProduction')
+            : t('chapterSelectionView.statusInProgress');
+    return <StatusBadge kind='chapter' status={status || 'InProduction'} label={label} />;
   };
 
   const seriesTitle = seriesDetail?.title || '—';

@@ -416,7 +416,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                     <span>{t('chapterOverview.pageTitle', { number: page.pageNumber })}</span>
                     <span
                       data-testid={`summary-text-${page.id}`}
-                      className='text-[10px] font-mono font-medium text-stone-500'
+                      className='text-xs font-mono font-medium text-stone-500'
                     >
                       {liveSummaryText}
                     </span>
@@ -425,7 +425,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                   {/* Thumbnail: TRANG THÀNH PHẨM COMPOSITE */}
                   <div className='mt-2 w-full h-36 bg-stone-100 rounded-lg overflow-hidden flex items-center justify-center border border-stone-200/80 relative'>
                     {loadingComposite ? (
-                      <div className='flex flex-col items-center gap-1.5 text-stone-400 text-[10px]'>
+                      <div className='flex flex-col items-center gap-1.5 text-stone-400 text-xs'>
                         <Loader2 className='w-5 h-5 animate-spin text-[#F97316]' />
                         <span>{t('chapterOverview.buildingComposite')}</span>
                       </div>
@@ -445,7 +445,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
 
                         {/* Hover overlay hint */}
                         <div className='absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none'>
-                          <span className='px-2 py-1 rounded bg-black/70 text-white text-[10px] font-medium flex items-center gap-1'>
+                          <span className='px-2 py-1 rounded bg-black/70 text-white text-xs font-medium flex items-center gap-1'>
                             <ZoomIn className='w-3 h-3' />
                             {t('chapterOverview.zoomIn')}
                           </span>
@@ -455,7 +455,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                         {!hasText && (
                           <span
                             data-testid='badge-no-lettering'
-                            className='absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-amber-500 text-white font-medium text-[9px] shadow-sm'
+                            className='absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-amber-500 text-white font-medium text-xs shadow-sm'
                           >
                             {t('chapterOverview.noLettering')}
                           </span>
@@ -463,7 +463,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
 
                         {/* Phiên bản artwork nền */}
                         {baseStageName && (
-                          <span className='absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/70 text-white font-mono text-[9px] font-semibold'>
+                          <span className='absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/70 text-white font-mono text-xs font-semibold'>
                             {baseStageName} v{baseVersion}
                           </span>
                         )}
@@ -471,7 +471,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                     ) : (
                       <div
                         data-testid={`no-artwork-${page.id}`}
-                        className='flex flex-col items-center gap-1 text-stone-400 text-[11px]'
+                        className='flex flex-col items-center gap-1 text-stone-400 text-xs'
                       >
                         <ImageIcon className='w-6 h-6 stroke-1 text-stone-300' />
                         <span>{t('chapterOverview.noArtwork')}</span>
@@ -482,7 +482,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
 
                 {/* 2. Dải tiến độ đủ 1 → 7 của từng trang */}
                 <div className='space-y-1.5 pt-1'>
-                  <div className='text-[10px] text-stone-500 font-medium flex items-center justify-between'>
+                  <div className='text-xs text-stone-500 font-medium flex items-center justify-between'>
                     <span>{t('chapterOverview.stageProgressLabel', { count: stages.length })}</span>
                   </div>
 
@@ -499,7 +499,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                           title={`${stage.stageOrder}. ${stage.name}: ${statusLabel}`}
                           className={`px-1 py-1 rounded border flex flex-col items-center justify-center text-center transition-all ${style.badgeClass}`}
                         >
-                          <span className='text-[9px] font-bold truncate max-w-full leading-tight'>
+                          <span className='text-xs font-bold truncate max-w-full leading-tight'>
                             {stage.name}
                           </span>
                           <div className='flex items-center gap-1 mt-0.5'>
@@ -556,12 +556,12 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                 )
               </span>
               {!activeLightboxPage.hasText && (
-                <span className='px-2 py-0.5 rounded bg-amber-500 text-white text-[10px] font-medium'>
+                <span className='px-2 py-0.5 rounded bg-amber-500 text-white text-xs font-medium'>
                   {t('chapterOverview.noLettering')}
                 </span>
               )}
               {activeLightboxPage.baseStageName && (
-                <span className='px-2 py-0.5 rounded bg-stone-700 text-stone-200 font-mono text-[10px]'>
+                <span className='px-2 py-0.5 rounded bg-stone-700 text-stone-200 font-mono text-xs'>
                   {t('chapterOverview.lightboxBase', {
                     stage: activeLightboxPage.baseStageName,
                     version: activeLightboxPage.baseVersion ?? 1,

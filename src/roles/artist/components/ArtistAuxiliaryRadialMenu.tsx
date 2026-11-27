@@ -353,7 +353,7 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           onClick={(e) => e.stopPropagation()}
         >
           <Eye className='w-3.5 h-3.5 text-orange-600 shrink-0' />
-          <span className='text-[11px] font-bold text-stone-700 whitespace-nowrap'>
+          <span className='text-xs font-bold text-stone-700 whitespace-nowrap'>
             {t('radialMenu.opacityLabel')}
           </span>
           <input
@@ -365,7 +365,7 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
             onChange={(e) => onStoryboardOpacityChange(Number(e.target.value))}
             className='w-20 accent-orange-600 h-1 bg-stone-300 rounded cursor-pointer'
           />
-          <span className='text-[10px] font-mono font-bold text-stone-600 min-w-[2rem] text-right'>
+          <span className='text-xs font-mono font-bold text-stone-600 min-w-[2rem] text-right'>
             {storyboardOpacity}%
           </span>
         </div>
@@ -380,13 +380,13 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           className='absolute bottom-full right-0 mb-3 w-64 bg-white border border-stone-200 rounded-xl shadow-2xl p-2.5 z-50 space-y-1.5'
           onClick={(e) => e.stopPropagation()}
         >
-          <div className='text-[10px] font-bold text-stone-400 uppercase px-1 pb-1 border-b border-stone-100 flex items-center justify-between'>
+          <div className='text-xs font-bold text-stone-400 uppercase px-1 pb-1 border-b border-stone-100 flex items-center justify-between'>
             <span>{t('radialMenu.modelSheetHeader')}</span>
             {selectedBibleEntryId && (
               <button
                 type='button'
                 onClick={() => onSelectBibleEntry(null)}
-                className='text-orange-600 hover:underline text-[10px] cursor-pointer'
+                className='text-orange-600 hover:underline text-xs cursor-pointer'
               >
                 {t('radialMenu.unpin')}
               </button>

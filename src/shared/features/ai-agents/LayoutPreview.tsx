@@ -98,7 +98,7 @@ export const LayoutPreview: React.FC<{
             );
           })}
         </svg>
-        <div className='mt-1 text-center text-[11px] font-semibold text-[#525252]'>
+        <div className='mt-1 text-center text-xs font-semibold text-[#525252]'>
           {t('aiAgents.layoutPreview.readingDirectionLabel', { direction: directionLabel })}
         </div>
       </div>
@@ -118,14 +118,14 @@ export const LayoutPreview: React.FC<{
               }`}
             >
               <div className='flex flex-wrap items-center gap-2'>
-                <span className='flex h-5 w-5 items-center justify-center rounded-full bg-[#171717] text-[11px] font-bold text-white'>
+                <span className='flex h-5 w-5 items-center justify-center rounded-full bg-[#171717] text-xs font-bold text-white'>
                   {p.readingOrder}
                 </span>
                 <span className='font-semibold'>Panel {p.panelNumber}</span>
-                <span className='rounded bg-[#EAE6DF] px-1.5 py-0.5 text-[10px] font-semibold'>
+                <span className='rounded bg-[#EAE6DF] px-1.5 py-0.5 text-xs font-semibold'>
                   {p.camera}
                 </span>
-                <span className='font-mono text-[10px] text-[#737373]'>
+                <span className='font-mono text-xs text-[#737373]'>
                   bbox {p.bbox.x.toFixed(2)}, {p.bbox.y.toFixed(2)}, {p.bbox.w.toFixed(2)}×
                   {p.bbox.h.toFixed(2)}
                 </span>
@@ -136,7 +136,7 @@ export const LayoutPreview: React.FC<{
                   <span
                     key={id}
                     title={lines[id]?.text}
-                    className='rounded border border-[#FDBA74] bg-[#FFF7ED] px-1 text-[10px] text-[#C2410C]'
+                    className='rounded border border-[#FDBA74] bg-[#FFF7ED] px-1 text-xs text-[#C2410C]'
                   >
                     {t('aiAgents.layoutPreview.lineOrder', { order: lines[id]?.order ?? '?' })}
                   </span>
@@ -144,7 +144,7 @@ export const LayoutPreview: React.FC<{
                 {(p.characterIds || []).map((id) => (
                   <span
                     key={id}
-                    className='rounded border border-[#DDD6FE] bg-[#F5F3FF] px-1 text-[10px] text-[#6D28D9]'
+                    className='rounded border border-[#DDD6FE] bg-[#F5F3FF] px-1 text-xs text-[#6D28D9]'
                   >
                     {nameById[id] ?? t('aiAgents.layoutPreview.characterFallback')}
                   </span>

@@ -30,7 +30,7 @@ export const BalloonTextEditor: React.FC<{
       <label className='text-xs font-semibold text-stone-800 flex items-center justify-between'>
         <span>{t('lettering.textEditor.displayContent', { lang: langLabel })}</span>
         {lockedByScript && (
-          <span className='text-[10px] font-normal text-stone-500'>
+          <span className='text-xs font-normal text-stone-500'>
             {t('lettering.textEditor.fromScript')}
           </span>
         )}
@@ -38,7 +38,7 @@ export const BalloonTextEditor: React.FC<{
       {!isOriginal && (
         <p
           data-testid='lettering-original-reference'
-          className='text-[11px] text-stone-500 bg-stone-50 border border-stone-200 rounded-md px-2 py-1'
+          className='text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-md px-2 py-1'
         >
           {t('lettering.textEditor.originalPrefix', {
             text: original || t('lettering.textEditor.empty'),

@@ -11,8 +11,13 @@ import {
   type ScriptVersionRow,
 } from '@/services/chapter.service';
 import { seriesService, type SeriesDetailDto } from '@/services/series.service';
+import { bibleService, type BibleEntryDto } from '@/services/bible.service';
 import { chapterCastService, type ChapterCastDto } from '@/services/chapterCast.service';
 import { assignmentService } from '@/services/assignment.service';
+import {
+  getBibleArtworkStatus,
+  BIBLE_STATUS_STYLES,
+} from '@/shared/lib/bibleColoring';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { ProducerSharedHeader } from '@/shared/features/production-workspace/ProducerSharedHeader';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
@@ -92,6 +97,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const [busy, setBusy] = useState<string | null>(null);
   const [startOpen, setStartOpen] = useState(false);
   const [series, setSeries] = useState<SeriesDetailDto | null>(null);
+  const [seriesBibleEntries, setSeriesBibleEntries] = useState<BibleEntryDto[]>([]);
   const [fetchedChapters, setFetchedChapters] = useState<ChapterDto[]>([]);
   const [entityFilter, setEntityFilter] = useState<'main' | 'crowd'>('main');
 
@@ -104,12 +110,16 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     setLoading(true);
     setLoadError(null);
     try {
-      const [chapterData, castData, findingList, commentList] = await Promise.all([
+      const [chapterData, castData, findingList, commentList, bibleData] = await Promise.all([
         chapterService.getChapterById(chapterId),
         chapterCastService.getChapterCast(chapterId).catch(() => null),
         assignmentService.getConsistencyFindings(chapterId).catch(() => []),
         chapterService.getScriptComments(chapterId).catch(() => []),
+        seriesId ? bibleService.getSeriesBible(seriesId).catch(() => null) : Promise.resolve(null),
       ]);
+      if (bibleData?.entries) {
+        setSeriesBibleEntries(bibleData.entries);
+      }
       let pushedVersion = chapterData.lastSubmittedVersionId
         ? await chapterService
             .getScriptVersion(chapterId, chapterData.lastSubmittedVersionId)
@@ -476,6 +486,13 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               onStartComment={setComposer}
               onSaveComment={handleSaveComment}
               onCancelComment={() => setComposer(null)}
+              writerName={
+                pushed?.version?.authorName ||
+                chapter?.createdBy ||
+                t('scriptReview.manuscript.defaultWriter', 'Writer')
+              }
+              cast={cast}
+              bibleEntries={seriesBibleEntries}
             />
           ) : (
             <p className='mx-auto mt-6 max-w-3xl px-4 text-sm text-stone-500'>
@@ -611,27 +628,17 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                           </div>
 
                           <div className='flex items-center gap-1.5 shrink-0'>
-                            {isLocked ? (
-                              <span className='bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusLocked', 'Đã khóa chuẩn')}
-                              </span>
-                            ) : isApproved ? (
-                              <span className='bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusApproved', 'Đã duyệt thiết kế')}
-                              </span>
-                            ) : isInRev ? (
-                              <span className='bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusInReview', 'Chờ duyệt vẽ')}
-                              </span>
-                            ) : isCrowd ? (
-                              <span className='bg-stone-100 text-stone-600 border border-stone-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusExempt', 'Miễn trừ')}
-                              </span>
-                            ) : (
-                              <span className='bg-rose-50 text-rose-700 border border-rose-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusMissing', 'Chưa có bản vẽ')}
-                              </span>
-                            )}
+                            {(() => {
+                              const tone = getBibleArtworkStatus(item);
+                              const style = BIBLE_STATUS_STYLES[tone];
+                              return (
+                                <span
+                                  className={`text-xs px-2.5 py-0.5 rounded-full font-medium border ${style.bg} ${style.text} ${style.border}`}
+                                >
+                                  {style.label}
+                                </span>
+                              );
+                            })()}
                             <span
                               className={`text-xs px-1.5 py-0.5 rounded border font-medium ${
                                 isCrowd

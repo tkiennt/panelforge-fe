@@ -94,7 +94,7 @@ export const BibleStubAiDraftSection: React.FC<BibleStubAiDraftSectionProps> = (
       className='rounded-xl border border-orange-200/80 bg-[#FAF8F5] p-2.5 space-y-2'
     >
       <div className='flex items-center justify-between gap-2 flex-wrap'>
-        <span className='text-[11px] text-stone-600'>
+        <span className='text-xs text-stone-600'>
           {t('bible.defineStub.aiHint', 'Tổng hợp đặc tả kèm trích dẫn nguyên văn từ kịch bản')}
         </span>
         <button

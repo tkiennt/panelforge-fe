@@ -849,7 +849,7 @@ export const AiAssistPanel: React.FC<Props> = ({
           type='button'
           onClick={onClose}
           aria-label={tf('aiAgents.assist.closeAria')}
-          className='rounded p-1 text-zinc-400 hover:text-zinc-700'
+          className='rounded p-1 text-stone-400 hover:text-stone-700'
         >
           <X className='h-4 w-4' />
         </button>
@@ -863,7 +863,7 @@ export const AiAssistPanel: React.FC<Props> = ({
           >
             <div className='flex items-start justify-between gap-2'>
               <div className='min-w-0'>
-                <div className='flex items-center gap-1.5 text-[11px] font-semibold text-[#525252]'>
+                <div className='flex items-center gap-1.5 text-xs font-semibold text-[#525252]'>
                   <Clapperboard className='h-3.5 w-3.5 shrink-0 text-orange-600' />
                   <span className='truncate'>
                     {t('scriptStudio.aiPanel.writingFor')}:{' '}
@@ -871,7 +871,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                   </span>
                 </div>
                 {scriptContext.sceneSummary?.trim() && (
-                  <p className='mt-1 line-clamp-2 text-[11px] leading-relaxed text-[#525252]'>
+                  <p className='mt-1 line-clamp-2 text-xs leading-relaxed text-[#525252]'>
                     {scriptContext.sceneSummary.trim()}
                   </p>
                 )}
@@ -881,7 +881,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                   type='button'
                   data-testid='ai-open-scenes-btn'
                   onClick={scriptContext.onOpenScenes}
-                  className='shrink-0 rounded-lg border border-[#E7E7E7] bg-white px-2 py-1 text-[11px] font-semibold text-[#171717] hover:bg-stone-50'
+                  className='shrink-0 rounded-lg border border-[#E7E7E7] bg-white px-2 py-1 text-xs font-semibold text-[#171717] hover:bg-stone-50'
                 >
                   {t('scriptStudio.aiPanel.changeScene')}
                 </button>
@@ -899,19 +899,19 @@ export const AiAssistPanel: React.FC<Props> = ({
               type='button'
               onClick={() => setShowContext((v) => !v)}
               aria-expanded={showContext}
-              className='flex w-full items-center justify-between text-[11px] font-semibold text-[#525252] hover:text-[#171717]'
+              className='flex w-full items-center justify-between text-xs font-semibold text-[#525252] hover:text-[#171717]'
             >
               <span>{t('scriptStudio.aiPanel.basedOn')}</span>
               {showContext ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
             </button>
             {showContext && (
-              <ul className='mt-2 space-y-1.5 text-[11px]'>
+              <ul className='mt-2 space-y-1.5 text-xs'>
                 {scriptContext.hasStoryArc !== undefined && (
                   <li className='flex items-center justify-between gap-2'>
                     <span className='text-[#525252]'>{t('scriptStudio.aiPanel.storyArc')}</span>
                     <div className='flex items-center gap-1.5'>
                       <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                        className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
                           scriptContext.hasStoryArc
                             ? 'bg-emerald-50 text-emerald-700'
                             : 'bg-amber-50 text-amber-800'
@@ -925,7 +925,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                         <button
                           type='button'
                           onClick={() => scriptContext.onOpenNarrative?.('storyArc')}
-                          className='text-[10px] font-semibold text-orange-600 hover:underline'
+                          className='text-xs font-semibold text-orange-600 hover:underline'
                         >
                           {t('scriptStudio.aiPanel.openNarrative')}
                         </button>
@@ -941,7 +941,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                     </span>
                     <div className='flex items-center gap-1.5'>
                       <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                        className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
                           scriptContext.hasChapterOutline
                             ? 'bg-emerald-50 text-emerald-700'
                             : 'bg-amber-50 text-amber-800'
@@ -955,7 +955,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                         <button
                           type='button'
                           onClick={() => scriptContext.onOpenNarrative?.('outline')}
-                          className='text-[10px] font-semibold text-orange-600 hover:underline'
+                          className='text-xs font-semibold text-orange-600 hover:underline'
                         >
                           {t('scriptStudio.aiPanel.openNarrative')}
                         </button>
@@ -969,7 +969,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                     <span className='text-[#525252]'>{t('scriptStudio.aiPanel.bibleEntries')}</span>
                     <div className='flex items-center gap-1.5'>
                       <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                        className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
                           scriptContext.bibleEntryCount > 0
                             ? 'bg-emerald-50 text-emerald-700'
                             : 'bg-amber-50 text-amber-800'
@@ -985,7 +985,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                         <button
                           type='button'
                           onClick={scriptContext.onOpenBible}
-                          className='text-[10px] font-semibold text-orange-600 hover:underline'
+                          className='text-xs font-semibold text-orange-600 hover:underline'
                         >
                           {t('scriptStudio.aiPanel.openBible')}
                         </button>
@@ -997,7 +997,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                 {scriptContext.sceneLineCount !== undefined && (
                   <li className='flex items-center justify-between gap-2'>
                     <span className='text-[#525252]'>{t('scriptStudio.aiPanel.sceneLines')}</span>
-                    <span className='rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold text-[#525252]'>
+                    <span className='rounded bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-[#525252]'>
                       {scriptContext.sceneLineCount > 0
                         ? t('scriptStudio.aiPanel.sceneLinesCount', {
                             count: scriptContext.sceneLineCount,
@@ -1065,7 +1065,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                 <span className='font-semibold text-[#171717]'>
                   {t('scriptStudio.aiPanel.appendScriptLabel')}
                 </span>
-                <p className='text-[11px] leading-relaxed text-[#525252]'>
+                <p className='text-xs leading-relaxed text-[#525252]'>
                   {effectiveAppendScript
                     ? t('scriptStudio.aiPanel.appendScriptActiveDesc')
                     : t('scriptStudio.aiPanel.appendScriptDesc')}
@@ -1108,7 +1108,7 @@ export const AiAssistPanel: React.FC<Props> = ({
             <AlertTriangle className='mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600' />
             <div>
               <p className='font-semibold'>{tf('aiAgents.assist.storyboardHasPanelsTitle')}</p>
-              <p className='mt-0.5 text-[11px] text-amber-800 leading-relaxed'>
+              <p className='mt-0.5 text-xs text-amber-800 leading-relaxed'>
                 {tf('aiAgents.assist.storyboardHasPanelsDescPrefix')}{' '}
                 <strong>{tf('aiAgents.assist.artistDesk')}</strong> {tf('aiAgents.assist.andUse')}{' '}
                 <strong>{tf('aiAgents.assist.autoAllocateScript')}</strong>.
@@ -1129,7 +1129,7 @@ export const AiAssistPanel: React.FC<Props> = ({
 
         <div className='space-y-2.5'>
           <div className='flex items-center justify-between gap-2'>
-            <label htmlFor='ai-brief' className='block text-xs font-semibold text-zinc-700'>
+            <label htmlFor='ai-brief' className='block text-xs font-semibold text-stone-700'>
               {briefLabel}
             </label>
             {isScriptWorkflow && scriptContext && (
@@ -1143,7 +1143,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                     ? t('scriptStudio.aiPanel.fillFromOutline')
                     : t('scriptStudio.aiPanel.fillFromOutlineEmpty')
                 }
-                className='inline-flex items-center gap-1 rounded-lg border border-[#E7E7E7] bg-[#FAF8F5] px-2 py-1 text-[11px] font-semibold text-[#171717] hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50'
+                className='inline-flex items-center gap-1 rounded-lg border border-[#E7E7E7] bg-[#FAF8F5] px-2 py-1 text-xs font-semibold text-[#171717] hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50'
               >
                 <FileText className='h-3 w-3 text-orange-600' />
                 {t('scriptStudio.aiPanel.fillFromOutline')}
@@ -1154,7 +1154,7 @@ export const AiAssistPanel: React.FC<Props> = ({
           {isScriptWorkflow && confirmOutlineOverwrite && (
             <div
               data-testid='ai-confirm-overwrite'
-              className='flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900'
+              className='flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900'
             >
               <span>{t('scriptStudio.aiPanel.confirmOverwritePrompt')}</span>
               <div className='flex items-center gap-1.5'>
@@ -1162,7 +1162,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                   type='button'
                   data-testid='ai-confirm-overwrite-yes'
                   onClick={handleConfirmOverwrite}
-                  className='rounded-md bg-orange-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-orange-700'
+                  className='rounded-md bg-orange-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-orange-700'
                 >
                   {t('scriptStudio.aiPanel.confirmOverwriteYes')}
                 </button>
@@ -1170,7 +1170,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                   type='button'
                   data-testid='ai-confirm-overwrite-cancel'
                   onClick={() => setConfirmOutlineOverwrite(false)}
-                  className='rounded-md border border-[#E7E7E7] bg-white px-2 py-0.5 text-[11px] font-semibold text-[#525252] hover:bg-stone-50'
+                  className='rounded-md border border-[#E7E7E7] bg-white px-2 py-0.5 text-xs font-semibold text-[#525252] hover:bg-stone-50'
                 >
                   {t('scriptStudio.aiPanel.confirmOverwriteCancel')}
                 </button>
@@ -1180,7 +1180,7 @@ export const AiAssistPanel: React.FC<Props> = ({
 
           {isScriptWorkflow && (
             <div data-testid='ai-script-templates' className='flex flex-wrap items-center gap-1.5'>
-              <span className='text-[10px] font-semibold text-[#737373]'>
+              <span className='text-xs font-semibold text-[#737373]'>
                 {t('scriptStudio.aiPanel.templatesLabel')}:
               </span>
               {scriptTemplates.map((tpl) => (
@@ -1190,7 +1190,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                   data-testid={`ai-template-${tpl.id}`}
                   disabled={running}
                   onClick={() => applyTemplate(tpl)}
-                  className='rounded-full border border-[#E7E7E7] bg-[#FAF8F5] px-2 py-0.5 text-[10px] font-medium text-[#525252] transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 disabled:cursor-not-allowed disabled:opacity-50'
+                  className='rounded-full border border-[#E7E7E7] bg-[#FAF8F5] px-2 py-0.5 text-xs font-medium text-[#525252] transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 disabled:cursor-not-allowed disabled:opacity-50'
                 >
                   {tpl.label}
                 </button>
@@ -1211,7 +1211,7 @@ export const AiAssistPanel: React.FC<Props> = ({
             placeholder={briefPlaceholder}
             disabled={running}
             aria-invalid={isBriefTooLong}
-            className='w-full resize-none rounded-xl border border-[#E7E7E7] bg-white px-3 py-2 text-xs outline-none focus:border-orange-500 disabled:bg-zinc-100'
+            className='w-full resize-none rounded-xl border border-[#E7E7E7] bg-white px-3 py-2 text-xs outline-none focus:border-orange-500 disabled:bg-stone-100'
           />
 
           {isScriptWorkflow && (
@@ -1221,13 +1221,13 @@ export const AiAssistPanel: React.FC<Props> = ({
                 data-testid='ai-script-options-toggle'
                 onClick={() => setShowOptions((v) => !v)}
                 aria-expanded={showOptions}
-                className='flex w-full items-center justify-between text-[11px] font-semibold text-[#525252] hover:text-[#171717]'
+                className='flex w-full items-center justify-between text-xs font-semibold text-[#525252] hover:text-[#171717]'
               >
                 <span className='inline-flex items-center gap-1.5'>
                   <SlidersHorizontal className='h-3.5 w-3.5 text-orange-600' />
                   {t('scriptStudio.aiPanel.optionsToggle')}
                   {activeOptionalCount > 0 && (
-                    <span className='rounded-full bg-orange-100 px-1.5 py-0.2 text-[10px] font-bold text-orange-700'>
+                    <span className='rounded-full bg-orange-100 px-1.5 py-0.2 text-xs font-bold text-orange-700'>
                       {t('scriptStudio.aiPanel.optionsActiveCount', {
                         count: activeOptionalCount,
                       })}
@@ -1242,7 +1242,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                   <div>
                     <label
                       htmlFor='ai-script-goal'
-                      className='mb-1 block text-[11px] font-semibold text-[#525252]'
+                      className='mb-1 block text-xs font-semibold text-[#525252]'
                     >
                       {t('scriptStudio.aiPanel.fieldSceneGoal')}
                     </label>
@@ -1254,7 +1254,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                       onKeyDown={handleSingleLineKeyDown}
                       disabled={running}
                       placeholder={t('scriptStudio.aiPanel.fieldSceneGoalPlaceholder')}
-                      className='w-full rounded-lg border border-[#E7E7E7] bg-white px-2.5 py-1.5 text-xs outline-none focus:border-orange-500 disabled:bg-zinc-100'
+                      className='w-full rounded-lg border border-[#E7E7E7] bg-white px-2.5 py-1.5 text-xs outline-none focus:border-orange-500 disabled:bg-stone-100'
                     />
                   </div>
 
@@ -1262,7 +1262,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                     <div>
                       <label
                         htmlFor='ai-script-tone'
-                        className='mb-1 block text-[11px] font-semibold text-[#525252]'
+                        className='mb-1 block text-xs font-semibold text-[#525252]'
                       >
                         {t('scriptStudio.aiPanel.fieldTone')}
                       </label>
@@ -1275,7 +1275,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                         onKeyDown={handleSingleLineKeyDown}
                         disabled={running}
                         placeholder={t('scriptStudio.aiPanel.fieldTonePlaceholder')}
-                        className='w-full rounded-lg border border-[#E7E7E7] bg-white px-2.5 py-1.5 text-xs outline-none focus:border-orange-500 disabled:bg-zinc-100'
+                        className='w-full rounded-lg border border-[#E7E7E7] bg-white px-2.5 py-1.5 text-xs outline-none focus:border-orange-500 disabled:bg-stone-100'
                       />
                       <datalist id='ai-script-tone-presets'>
                         <option value={t('scriptStudio.aiPanel.tonePresets.tense')} />
@@ -1289,7 +1289,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                     <div>
                       <label
                         htmlFor='ai-script-length'
-                        className='mb-1 block text-[11px] font-semibold text-[#525252]'
+                        className='mb-1 block text-xs font-semibold text-[#525252]'
                       >
                         {t('scriptStudio.aiPanel.fieldDesiredLength')}
                       </label>
@@ -1298,7 +1298,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                         value={desiredLength}
                         onChange={(e) => setDesiredLength(e.target.value)}
                         disabled={running}
-                        className='w-full rounded-lg border border-[#E7E7E7] bg-white px-2 py-1.5 text-xs outline-none focus:border-orange-500 disabled:bg-zinc-100'
+                        className='w-full rounded-lg border border-[#E7E7E7] bg-white px-2 py-1.5 text-xs outline-none focus:border-orange-500 disabled:bg-stone-100'
                       >
                         <option value=''>{t('scriptStudio.aiPanel.lengthOptions.default')}</option>
                         <option value='short'>
@@ -1313,7 +1313,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                   </div>
 
                   <fieldset>
-                    <legend className='mb-1 text-[11px] font-semibold text-[#525252]'>
+                    <legend className='mb-1 text-xs font-semibold text-[#525252]'>
                       {t('scriptStudio.aiPanel.fieldCharacters')}
                     </legend>
                     {scriptContext?.bibleCharacters && scriptContext.bibleCharacters.length > 0 ? (
@@ -1323,7 +1323,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                           return (
                             <label
                               key={char.id}
-                              className={`inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+                              className={`inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors ${
                                 checked
                                   ? 'border-orange-400 bg-orange-50 font-semibold text-orange-800'
                                   : 'border-[#E7E7E7] bg-[#FAF8F5] text-[#525252] hover:bg-stone-100'
@@ -1342,7 +1342,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                         })}
                       </div>
                     ) : (
-                      <div className='flex items-center justify-between rounded-lg border border-dashed border-[#E7E7E7] bg-white px-2.5 py-1.5 text-[11px] text-[#737373]'>
+                      <div className='flex items-center justify-between rounded-lg border border-dashed border-[#E7E7E7] bg-white px-2.5 py-1.5 text-xs text-[#737373]'>
                         <span>{t('scriptStudio.aiPanel.fieldCharactersEmpty')}</span>
                         {scriptContext?.onOpenBible && (
                           <button
@@ -1360,7 +1360,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                   <div>
                     <label
                       htmlFor='ai-script-must-include'
-                      className='mb-1 block text-[11px] font-semibold text-[#525252]'
+                      className='mb-1 block text-xs font-semibold text-[#525252]'
                     >
                       {t('scriptStudio.aiPanel.fieldMustInclude')}
                     </label>
@@ -1372,14 +1372,14 @@ export const AiAssistPanel: React.FC<Props> = ({
                       onKeyDown={handleSingleLineKeyDown}
                       disabled={running}
                       placeholder={t('scriptStudio.aiPanel.fieldMustIncludePlaceholder')}
-                      className='w-full rounded-lg border border-[#E7E7E7] bg-white px-2.5 py-1.5 text-xs outline-none focus:border-orange-500 disabled:bg-zinc-100'
+                      className='w-full rounded-lg border border-[#E7E7E7] bg-white px-2.5 py-1.5 text-xs outline-none focus:border-orange-500 disabled:bg-stone-100'
                     />
                   </div>
 
                   <div>
                     <label
                       htmlFor='ai-script-must-avoid'
-                      className='mb-1 block text-[11px] font-semibold text-[#525252]'
+                      className='mb-1 block text-xs font-semibold text-[#525252]'
                     >
                       {t('scriptStudio.aiPanel.fieldMustAvoid')}
                     </label>
@@ -1391,7 +1391,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                       onKeyDown={handleSingleLineKeyDown}
                       disabled={running}
                       placeholder={t('scriptStudio.aiPanel.fieldMustAvoidPlaceholder')}
-                      className='w-full rounded-lg border border-[#E7E7E7] bg-white px-2.5 py-1.5 text-xs outline-none focus:border-orange-500 disabled:bg-zinc-100'
+                      className='w-full rounded-lg border border-[#E7E7E7] bg-white px-2.5 py-1.5 text-xs outline-none focus:border-orange-500 disabled:bg-stone-100'
                     />
                   </div>
                 </div>
@@ -1403,7 +1403,7 @@ export const AiAssistPanel: React.FC<Props> = ({
             <div
               role='alert'
               data-testid='ai-brief-overflow'
-              className='flex items-start gap-2 rounded-lg border border-rose-300 bg-rose-50 p-2 text-[11px] text-rose-800'
+              className='flex items-start gap-2 rounded-lg border border-rose-300 bg-rose-50 p-2 text-xs text-rose-800'
             >
               <AlertTriangle className='mt-0.5 h-3.5 w-3.5 shrink-0' />
               <span>
@@ -1418,8 +1418,8 @@ export const AiAssistPanel: React.FC<Props> = ({
           <div className='mt-1 flex items-center justify-between gap-2'>
             <span
               data-testid='ai-brief-counter'
-              className={`font-mono text-[10px] ${
-                isBriefTooLong ? 'font-semibold text-rose-600' : 'text-zinc-400'
+              className={`font-mono text-xs ${
+                isBriefTooLong ? 'font-semibold text-rose-600' : 'text-stone-400'
               }`}
             >
               {briefCount}/{BRIEF_MAX_LENGTH}
@@ -1465,7 +1465,7 @@ export const AiAssistPanel: React.FC<Props> = ({
               data-testid='ai-status'
               className='rounded-lg border border-sky-200 bg-sky-50 p-2.5 text-xs text-sky-900'
             >
-              <ol data-testid='ai-script-progress' className='grid grid-cols-3 gap-1.5 text-[11px]'>
+              <ol data-testid='ai-script-progress' className='grid grid-cols-3 gap-1.5 text-xs'>
                 {(
                   [
                     {
@@ -1509,7 +1509,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                 ))}
               </ol>
               {run?.status === 'Queued' && (
-                <div className='mt-1.5 text-[10px] text-sky-700'>
+                <div className='mt-1.5 text-xs text-sky-700'>
                   {t('scriptStudio.aiPanel.progress.queued')}
                 </div>
               )}
@@ -1524,7 +1524,7 @@ export const AiAssistPanel: React.FC<Props> = ({
                 <span className='whitespace-pre-line'>{status.text}</span>
               </div>
               {isScriptWorkflow && run?.status === 'Completed' && runHasPending && (
-                <span className='shrink-0 rounded-full border border-emerald-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-700'>
+                <span className='shrink-0 rounded-full border border-emerald-300 bg-white px-2 py-0.5 text-xs font-semibold text-emerald-700'>
                   {t('scriptStudio.aiPanel.progress.readyForReview')}
                 </span>
               )}
@@ -1540,7 +1540,7 @@ export const AiAssistPanel: React.FC<Props> = ({
               <CheckCircle2 className='h-4 w-4 shrink-0 text-emerald-600' />
               <span>{t('scriptStudio.aiPanel.nextStepTitle')}</span>
             </div>
-            <p className='mt-1 text-[11px] leading-relaxed text-emerald-800'>
+            <p className='mt-1 text-xs leading-relaxed text-emerald-800'>
               {t('scriptStudio.aiPanel.nextStepDesc')}
             </p>
             <button
@@ -1557,7 +1557,7 @@ export const AiAssistPanel: React.FC<Props> = ({
 
         {draftStep && (
           <section data-testid='ai-draft'>
-            <h3 className='mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
+            <h3 className='mb-1.5 text-xs font-bold uppercase tracking-wide text-[#737373]'>
               {tf('aiAgents.assist.draftSection')}
             </h3>
             <StepOutputView step={draftStep} allSteps={steps} nameById={nameById} lines={lines} />
@@ -1566,7 +1566,7 @@ export const AiAssistPanel: React.FC<Props> = ({
 
         {continuityStep && (
           <section data-testid='ai-continuity'>
-            <h3 className='mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
+            <h3 className='mb-1.5 text-xs font-bold uppercase tracking-wide text-[#737373]'>
               {tf('aiAgents.assist.continuitySection')}
             </h3>
             <StepOutputView
@@ -1580,7 +1580,7 @@ export const AiAssistPanel: React.FC<Props> = ({
 
         {storyboardStep && (
           <section data-testid='ai-storyboard'>
-            <h3 className='mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
+            <h3 className='mb-1.5 text-xs font-bold uppercase tracking-wide text-[#737373]'>
               {tf('aiAgents.assist.storyboardSection')}
             </h3>
             <StepOutputView
@@ -1594,7 +1594,7 @@ export const AiAssistPanel: React.FC<Props> = ({
 
         {suggestions.length > 0 && (
           <section data-testid='ai-suggestions' className='space-y-2'>
-            <h3 className='text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
+            <h3 className='text-xs font-bold uppercase tracking-wide text-[#737373]'>
               {tf('aiAgents.assist.suggestionsSection')}
             </h3>
             {suggestions.map((s) => (
@@ -1622,7 +1622,7 @@ export const AiAssistPanel: React.FC<Props> = ({
             <button
               type='button'
               onClick={toggleTech}
-              className='flex items-center gap-1 text-[11px] font-semibold text-[#525252] hover:text-[#171717]'
+              className='flex items-center gap-1 text-xs font-semibold text-[#525252] hover:text-[#171717]'
             >
               {showTech ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               {tf('aiAgents.assist.techDetails')}
@@ -1630,7 +1630,7 @@ export const AiAssistPanel: React.FC<Props> = ({
             {showTech && (
               <ul
                 data-testid='ai-tech-details'
-                className='mt-1.5 space-y-1 rounded-lg bg-[#FAF8F5] p-2 font-mono text-[10px] text-[#525252]'
+                className='mt-1.5 space-y-1 rounded-lg bg-[#FAF8F5] p-2 font-mono text-xs text-[#525252]'
               >
                 {steps.map((s) => (
                   <li key={s.id}>

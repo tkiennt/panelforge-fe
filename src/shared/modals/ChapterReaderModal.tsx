@@ -184,7 +184,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                 <h2 className='text-sm font-bold text-white truncate'>
                   {data?.seriesTitle || t('common.modals.chapterReader.loadingSeries')}
                 </h2>
-                <span className='shrink-0 px-1.5 py-0.5 rounded bg-orange-950/60 text-orange-400 border border-orange-800 text-[10px] font-mono'>
+                <span className='shrink-0 px-1.5 py-0.5 rounded bg-orange-950/60 text-orange-400 border border-orange-800 text-xs font-mono'>
                   {data?.readingDirection === 'RightToLeft'
                     ? 'Manga (RTL)'
                     : data?.readingDirection === 'Vertical'
@@ -192,7 +192,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                       : 'Comic (LTR)'}
                 </span>
               </div>
-              <p className='text-[11px] text-neutral-400 font-mono truncate'>
+              <p className='text-xs text-neutral-400 font-mono truncate'>
                 {t('common.modals.chapterReader.chapterLabel', {
                   number: data ? data.chapterNumber : (chapterNumber ?? ''),
                 })}
@@ -361,7 +361,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
 
                     {/* Zoom badge and reset button */}
                     {state.scale !== 1 && (
-                      <div className='absolute bottom-3 right-3 z-30 flex items-center gap-2 bg-neutral-900/90 text-white border border-neutral-700 px-2 py-1 rounded-md text-[11px] font-mono shadow-lg backdrop-blur-xs'>
+                      <div className='absolute bottom-3 right-3 z-30 flex items-center gap-2 bg-neutral-900/90 text-white border border-neutral-700 px-2 py-1 rounded-md text-xs font-mono shadow-lg backdrop-blur-xs'>
                         <span>{Math.round(state.scale * 100)}%</span>
                         <button
                           type='button'
@@ -460,7 +460,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                     ) : (
                       <span className='w-full h-full bg-neutral-800 block' />
                     )}
-                    <span className='absolute bottom-0 inset-x-0 bg-black/70 text-[9px] font-mono text-center'>
+                    <span className='absolute bottom-0 inset-x-0 bg-black/70 text-xs font-mono text-center'>
                       {p.pageNumber}
                     </span>
                   </button>
@@ -468,7 +468,7 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
               })}
             </div>
           </div>
-          <span className='hidden md:block shrink-0 text-[11px] text-neutral-500 font-mono w-40 text-right'>
+          <span className='hidden md:block shrink-0 text-xs text-neutral-500 font-mono w-40 text-right'>
             {isRTL
               ? t('common.modals.chapterReader.nextPageRtl')
               : t('common.modals.chapterReader.nextPageLtr')}

@@ -44,7 +44,7 @@ import { StudioAuditTab } from './studio-overview/StudioAuditTab';
 import { StudioAutomationTab } from './studio-overview/StudioAutomationTab';
 import { MemberSeriesPortal } from './studio-overview/MemberSeriesPortal';
 import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
-import { Alert } from '@/shared/ui';
+import { Alert, StatKpiCard } from '@/shared/ui';
 import {
   CoverPickerModal,
   CreateSeriesModal,
@@ -879,112 +879,89 @@ export const StudioOverviewView: React.FC = () => {
         id='studio-metrics-strip'
         aria-label={t('workspace.studioHub.metrics.ariaLabel')}
       >
-        <div className='bg-white border border-stone-200/80 rounded-xl p-6 flex flex-col shadow-xs'>
-          <div className='flex items-start justify-between gap-2'>
-            <div className='flex items-center gap-2.5'>
-              <Layers className='w-5 h-5 text-orange-600' />
-              <span className='font-semibold text-stone-900'>
-                {t('workspace.studioHub.metrics.seriesTitle')}
+        <StatKpiCard
+          title={t('workspace.studioHub.metrics.seriesTitle')}
+          icon={<Layers />}
+          value={seriesList.length}
+          valueSuffix={t('workspace.studioHub.metrics.seriesChapters', {
+            count: seriesList.reduce((acc, s) => acc + (s.chaptersCount ?? 0), 0),
+          })}
+          badge={t('workspace.studioHub.metrics.seriesRunning', { count: runningSeries })}
+          badgeTone='brand'
+          footer={
+            <div className='flex items-center gap-2 text-sm text-stone-600'>
+              <span className='size-2 rounded-full bg-emerald-600' aria-hidden />
+              <span>
+                {t('workspace.studioHub.metrics.seriesSplit', {
+                  running: runningSeries,
+                  done: completedSeries,
+                })}
               </span>
             </div>
-            <span className='px-2 py-0.5 rounded-md bg-orange-50 font-semibold text-xs text-orange-700'>
-              {t('workspace.studioHub.metrics.seriesRunning', { count: runningSeries })}
-            </span>
-          </div>
-          <div className='mt-4 flex items-baseline gap-1.5'>
-            <span className='text-4xl font-bold text-stone-900 tracking-tight'>
-              {seriesList.length}
-            </span>
-            <span className='text-stone-500'>
-              {t('workspace.studioHub.metrics.seriesChapters', {
-                count: seriesList.reduce((acc, s) => acc + (s.chaptersCount ?? 0), 0),
-              })}
-            </span>
-          </div>
-          <div className='mt-auto pt-4 flex items-center gap-2 text-sm text-stone-600'>
-            <span className='w-2 h-2 rounded-full bg-emerald-600' aria-hidden />
-            <span>
-              {t('workspace.studioHub.metrics.seriesSplit', {
-                running: runningSeries,
-                done: completedSeries,
-              })}
-            </span>
-          </div>
-        </div>
+          }
+        />
 
-        <div className='bg-white border border-stone-200/80 rounded-xl p-6 flex flex-col shadow-xs'>
-          <div className='flex items-start justify-between gap-2'>
-            <div className='flex items-center gap-2.5'>
-              <HardDrive className='w-5 h-5 text-orange-600' />
-              <span className='font-semibold text-stone-900'>
-                {t('workspace.studioHub.metrics.storageTitle')}
-              </span>
-            </div>
-            <span className='px-2 py-0.5 rounded-md bg-stone-100 font-semibold text-xs text-stone-700'>
-              {storageQuota > 0 ? `${storagePct}%` : t('workspace.studioHub.metrics.unlimited')}
-            </span>
-          </div>
-          <div className='mt-4 flex items-baseline gap-1.5'>
-            <span className='text-4xl font-bold text-stone-900 tracking-tight'>
-              {formatBytes(storageUsed)}
-            </span>
-            <span className='text-stone-500'>
+        <StatKpiCard
+          title={t('workspace.studioHub.metrics.storageTitle')}
+          icon={<HardDrive />}
+          value={formatBytes(storageUsed)}
+          valueSuffix={
+            <>
               /{' '}
               {storageQuota > 0
                 ? formatBytes(storageQuota)
                 : t('workspace.studioHub.metrics.unlimited')}
-            </span>
-          </div>
-          <div className='w-full bg-stone-100 h-2 rounded-full overflow-hidden mt-3'>
-            <div
-              className='bg-orange-500 h-full rounded-full'
-              style={{ width: `${storagePct}%` }}
-            />
-          </div>
-          <div className='mt-auto pt-4 flex items-center gap-2 text-sm text-stone-600'>
-            <FileText className='w-4 h-4 text-stone-400' />
-            <span className='truncate'>{t('workspace.studioHub.metrics.storageFootnote')}</span>
-          </div>
-        </div>
-
-        <div className='bg-white border border-stone-200/80 rounded-xl p-6 flex flex-col shadow-xs'>
-          <div className='flex items-start justify-between gap-2'>
-            <div className='flex items-center gap-2.5'>
-              <Users className='w-5 h-5 text-orange-600' />
-              <span className='font-semibold text-stone-900'>
-                {t('workspace.studioHub.metrics.crewTitle')}
-              </span>
+            </>
+          }
+          badge={storageQuota > 0 ? `${storagePct}%` : t('workspace.studioHub.metrics.unlimited')}
+          footer={
+            <div className='space-y-4'>
+              <div
+                className='h-2 w-full overflow-hidden rounded-full bg-stone-100'
+                role='progressbar'
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={storagePct}
+              >
+                <div
+                  className='h-full rounded-full bg-orange-500'
+                  style={{ width: `${storagePct}%` }}
+                />
+              </div>
+              <div className='flex items-center gap-2 text-sm text-stone-600'>
+                <FileText className='size-4 text-stone-500' />
+                <span className='truncate'>{t('workspace.studioHub.metrics.storageFootnote')}</span>
+              </div>
             </div>
-            <span className='px-2 py-0.5 rounded-md bg-emerald-50 font-semibold text-xs text-emerald-700 flex items-center gap-1.5'>
-              <span className='w-1.5 h-1.5 rounded-full bg-emerald-600' aria-hidden />
-              {t('workspace.studioHub.metrics.crewActive', { count: activeMembers })}
-            </span>
-          </div>
-          <div className='mt-4 flex items-baseline gap-1.5'>
-            <span className='text-4xl font-bold text-stone-900 tracking-tight'>
-              {members.length}
-            </span>
-            <span className='text-stone-500'>{t('workspace.studioHub.metrics.crewMembers')}</span>
-          </div>
-          <p className='text-sm text-stone-500 mt-1'>
-            {t('workspace.studioHub.metrics.crewBreakdown', {
-              writers: tabCounts.WRITER,
-              artists: tabCounts.ARTIST,
-              letterers: studioMembers.filter((m) =>
-                (m.role || '').toLowerCase().includes('letterer'),
-              ).length,
-              editors: tabCounts.EDITOR,
-            })}
-          </p>
-          <button
-            type='button'
-            onClick={() => setActiveTab('members')}
-            className='mt-auto pt-4 border-t border-stone-100 flex items-center justify-between text-left text-sm text-orange-600 hover:text-orange-700 font-semibold transition-colors cursor-pointer'
-          >
-            <span>{t('workspace.studioHub.metrics.crewManage')}</span>
-            <ArrowRight className='w-4 h-4' />
-          </button>
-        </div>
+          }
+        />
+
+        <StatKpiCard
+          title={t('workspace.studioHub.metrics.crewTitle')}
+          icon={<Users />}
+          value={members.length}
+          valueSuffix={t('workspace.studioHub.metrics.crewMembers')}
+          badge={t('workspace.studioHub.metrics.crewActive', { count: activeMembers })}
+          badgeTone='success'
+          description={t('workspace.studioHub.metrics.crewBreakdown', {
+            writers: tabCounts.WRITER,
+            artists: tabCounts.ARTIST,
+            letterers: studioMembers.filter((m) =>
+              (m.role || '').toLowerCase().includes('letterer'),
+            ).length,
+            editors: tabCounts.EDITOR,
+          })}
+          footer={
+            <button
+              type='button'
+              onClick={() => setActiveTab('members')}
+              className='flex w-full cursor-pointer items-center justify-between border-t border-stone-100 pt-4 text-left text-sm font-semibold text-orange-700 transition-colors hover:text-orange-800'
+            >
+              <span>{t('workspace.studioHub.metrics.crewManage')}</span>
+              <ArrowRight className='size-4' />
+            </button>
+          }
+        />
       </section>
 
       <div className='space-y-6'>

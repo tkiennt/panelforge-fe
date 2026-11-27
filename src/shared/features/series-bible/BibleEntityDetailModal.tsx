@@ -1663,7 +1663,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   aria-current={current ? 'step' : undefined}
                 >
                   <span
-                    className={`w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center ${
+                    className={`w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center ${
                       done
                         ? 'bg-emerald-600 text-white'
                         : rework
@@ -1749,13 +1749,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   <span>{vLabel}</span>
 
                   {variant.isLocked ? (
-                    <span className='flex items-center gap-0.5 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700'>
+                    <span className='flex items-center gap-0.5 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-xs font-bold text-emerald-700'>
                       <Lock className='w-2.5 h-2.5' />
                       {t('bible.detailModal.officialBadge', 'Đã khóa chuẩn')}
                     </span>
                   ) : (
                     <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded font-medium border ${
+                      className={`text-xs px-1.5 py-0.2 rounded font-medium border ${
                         isActive
                           ? 'bg-stone-800 text-stone-300 border-stone-700'
                           : 'bg-stone-100 text-stone-600 border-stone-200'
@@ -1768,7 +1768,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   {pendingDraftRev && (
                     <span
                       title={`Có bản nháp v${pendingDraftRev.versionNumber || 2}`}
-                      className='inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800'
+                      className='inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-xs font-bold text-amber-800'
                     >
                       <span className='w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse' />
                       <span>Có bản nháp v{pendingDraftRev.versionNumber || 2}</span>
@@ -1931,7 +1931,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                       : t('bible.detailModal.draftBadge', 'Bản nháp')}
                             </span>
                             {(rev.currentConceptVersionNumber || 0) > 1 && (
-                              <span className='text-[10px] px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 border border-stone-200'>
+                              <span className='text-xs px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 border border-stone-200'>
                                 Bản vẽ lần {rev.currentConceptVersionNumber}
                               </span>
                             )}
@@ -2263,7 +2263,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                                     key={`${item.label}-${item.value}`}
                                                     className='min-w-0 border-b border-stone-100 bg-white px-3 py-3 last:border-b-0 sm:border-b-0'
                                                   >
-                                                    <dt className='text-[11px] font-semibold uppercase tracking-wide text-stone-500'>
+                                                    <dt className='text-xs font-semibold uppercase tracking-wide text-stone-500'>
                                                       {item.label}
                                                     </dt>
                                                     <dd className='mt-1 break-words text-sm font-medium leading-relaxed text-stone-900'>
@@ -2468,7 +2468,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           >
                             <MessageSquare className='h-3.5 w-3.5' />
                             {t('bible.detailModal.conceptCommentsTitle', 'Nhận xét')}
-                            <span className='rounded-full bg-white px-1.5 py-0.5 text-[10px] leading-none'>
+                            <span className='rounded-full bg-white px-1.5 py-0.5 text-xs leading-none'>
                               {conceptComments.length}
                             </span>
                           </button>
@@ -2534,7 +2534,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               </span>
                               {activeRevision &&
                                 (activeRevision.currentConceptVersionNumber || 0) > 1 && (
-                                  <span className='px-1.5 py-0.5 rounded text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200 shrink-0'>
+                                  <span className='px-1.5 py-0.5 rounded text-xs font-semibold bg-stone-100 text-stone-600 border border-stone-200 shrink-0'>
                                     {t('bible.detailModal.conceptIteration', {
                                       n: activeRevision.currentConceptVersionNumber,
                                       defaultValue: `Bản vẽ lần ${activeRevision.currentConceptVersionNumber}`,
@@ -3056,7 +3056,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                           {authorName}
                                         </span>
                                         {authorRole && (
-                                          <span className='whitespace-nowrap rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold text-stone-600'>
+                                          <span className='whitespace-nowrap rounded-full bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-600'>
                                             {authorRole === 'WRITER'
                                               ? t('bible.detailModal.roleWriter')
                                               : authorRole === 'ARTIST'

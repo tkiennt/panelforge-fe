@@ -183,7 +183,7 @@ export const ArtworkNotesTab: React.FC<{
             </h3>
             <span
               id='selected-panel-badge'
-              className='text-[11px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'
+              className='text-xs font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'
             >
               {t('artworkReview.notes.selectedPanelBadge', { number: 1 })}
             </span>

@@ -193,7 +193,7 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
                 <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' />
                 <span>{t('scheduleModal.publishNow')}</span>
               </div>
-              <span className='text-[10px] text-[#57534E] leading-relaxed'>
+              <span className='text-xs text-[#57534E] leading-relaxed'>
                 {t('scheduleModal.publishNowDesc')}
               </span>
             </button>
@@ -211,7 +211,7 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
                 <Calendar className='w-3.5 h-3.5 text-[#C2410C]' />
                 <span>{t('scheduleModal.scheduleRelease')}</span>
               </div>
-              <span className='text-[10px] text-[#57534E] leading-relaxed'>
+              <span className='text-xs text-[#57534E] leading-relaxed'>
                 {t('scheduleModal.scheduleReleaseDesc')}
               </span>
             </button>
@@ -231,7 +231,7 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
               onChange={(e) => setScheduleDate(e.target.value)}
               className='w-full px-3 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg text-xs font-mono text-[#1C1917] focus:outline-none focus:border-[#F97316]'
             />
-            <p className='text-[10px] text-[#57534E] mt-1'>{t('scheduleModal.utcNotice')}</p>
+            <p className='text-xs text-[#57534E] mt-1'>{t('scheduleModal.utcNotice')}</p>
           </div>
         )}
 
@@ -276,7 +276,7 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
                 </div>
                 {priceType === 'paid' && (
                   <div className='grid grid-cols-2 gap-2.5'>
-                    <label className='flex flex-col gap-1 text-[11px] text-[#57534E]'>
+                    <label className='flex flex-col gap-1 text-xs text-[#57534E]'>
                       {t('scheduleModal.priceLabel')}
                       <input
                         type='number'
@@ -289,7 +289,7 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
                         className='px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] text-xs font-mono'
                       />
                     </label>
-                    <label className='flex flex-col gap-1 text-[11px] text-[#57534E]'>
+                    <label className='flex flex-col gap-1 text-xs text-[#57534E]'>
                       {t('scheduleModal.previewLabel', { total: pageCount })}
                       <input
                         type='number'
@@ -309,7 +309,7 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
           </div>
         )}
 
-        <div className='p-3 bg-amber-50/60 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed'>
+        <div className='p-3 bg-amber-50/60 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed'>
           <strong>{t('scheduleModal.importantNoteLabel')}</strong>{' '}
           {t('scheduleModal.importantNoteBefore')} <code>Published</code>{' '}
           {t('scheduleModal.importantNoteAfter')}

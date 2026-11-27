@@ -104,7 +104,7 @@ export const PublisherChapterManageView: React.FC = () => {
         <nav aria-label={t('manage.sidebarManage')} className='md:w-56 shrink-0 space-y-4'>
           {nav.map((g) => (
             <div key={g.group}>
-              <div className='px-2 mb-1 text-[11px] font-bold uppercase tracking-wider text-[#A3A3A3]'>
+              <div className='px-2 mb-1 text-xs font-bold uppercase tracking-wider text-[#A3A3A3]'>
                 {g.group}
               </div>
               <ul className='space-y-0.5'>
@@ -436,7 +436,7 @@ const EditionsSection: React.FC<{
                     key={preset}
                     type='button'
                     onClick={() => setDraft((d) => ({ ...d, price: String(preset) }))}
-                    className={`px-2 py-1 rounded-md border text-[11px] font-mono cursor-pointer ${
+                    className={`px-2 py-1 rounded-md border text-xs font-mono cursor-pointer ${
                       priceNumber === preset
                         ? 'border-[#F97316] bg-[#F97316]/10 text-[#C2410C] font-bold'
                         : 'border-[#E7E7E7] bg-[#FAF8F4] text-[#555555] hover:bg-white'
@@ -595,14 +595,14 @@ const PreviewGrid: React.FC<{
                       className={`w-full h-full object-cover ${locked ? 'blur-[2px] opacity-60' : ''}`}
                     />
                   ) : (
-                    <span className='w-full h-full flex flex-col items-center justify-center gap-1 text-[#A3A3A3] text-[10px]'>
+                    <span className='w-full h-full flex flex-col items-center justify-center gap-1 text-[#A3A3A3] text-xs'>
                       <ImageOff className='w-4 h-4' />
                       {t('manage.noImage')}
                     </span>
                   )}
                   {isPaid && (
                     <span
-                      className={`absolute top-1 right-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white ${
+                      className={`absolute top-1 right-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-bold text-white ${
                         isPreview ? 'bg-emerald-600' : 'bg-[#F97316]'
                       }`}
                     >
@@ -611,7 +611,7 @@ const PreviewGrid: React.FC<{
                     </span>
                   )}
                 </button>
-                <span className='text-[11px] font-medium text-[#555555]'>{p.pageNumber}</span>
+                <span className='text-xs font-medium text-[#555555]'>{p.pageNumber}</span>
               </li>
             );
           })}

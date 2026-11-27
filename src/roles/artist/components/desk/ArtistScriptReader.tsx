@@ -173,10 +173,15 @@ const ScriptLine: React.FC<{ line: ScriptLineItem; fontSize: number }> = ({ line
           <div className='mb-1 flex flex-wrap items-center gap-1.5'>
             {line.characterName && (
               <span
-                className='rounded-full border border-[var(--sb-border)] bg-[var(--sb-surface)] px-2 py-0.5 text-xs font-bold uppercase tracking-wide'
+                className='rounded-full border border-[var(--sb-border)] bg-[var(--sb-surface)] px-2 py-0.5 text-xs font-bold uppercase tracking-wide inline-flex items-center gap-1.5'
                 style={{ color: line.characterColor || 'var(--sb-accent)' }}
               >
-                {line.characterName}
+                <span
+                  className='w-1.5 h-1.5 rounded-full shrink-0'
+                  style={{ backgroundColor: line.characterColor || 'var(--sb-accent)' }}
+                  aria-hidden='true'
+                />
+                <span>{line.characterName}</span>
               </span>
             )}
             {narrationMode && (

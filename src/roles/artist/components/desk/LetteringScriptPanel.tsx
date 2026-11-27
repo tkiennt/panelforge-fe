@@ -770,7 +770,9 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                   >
                     <span>Panel {p.panelNumber || 1}</span>
                     <span className='text-3xs text-stone-400 truncate max-w-[140px]'>
-                      {p.direction ? p.direction : t('artist.letteringScript.visualOnly', 'Chỉ có hình ảnh')}
+                      {p.direction
+                        ? p.direction
+                        : t('artist.letteringScript.visualOnly', 'Chỉ có hình ảnh')}
                     </span>
                   </div>
                 ))}
@@ -851,7 +853,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                         {el.isStale && (
                           <span
                             data-testid='text-stale-badge'
-                            className='px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 text-[10px] font-semibold'
+                            className='px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 text-xs font-semibold'
                           >
                             Thoại lỗi thời
                           </span>

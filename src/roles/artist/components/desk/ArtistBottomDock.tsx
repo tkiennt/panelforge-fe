@@ -282,11 +282,11 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
 
           {/* Chọn Layer Ảnh hiển thị */}
           <label
-            className='flex items-center gap-1 text-[11px] font-medium text-stone-600 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8] h-7 cursor-pointer'
+            className='flex items-center gap-1 text-xs font-medium text-stone-600 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8] h-7 cursor-pointer'
             title={t('bottomDock.viewLayerTitle')}
           >
             <Eye className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
-            <span className='hidden 2xl:inline whitespace-nowrap text-[11px] font-medium'>
+            <span className='hidden 2xl:inline whitespace-nowrap text-xs font-medium'>
               {t('bottomDock.viewLayerLabel')}
             </span>
             <select
@@ -389,7 +389,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
                       />
                       <span className='min-w-0'>
                         <span className='block font-semibold text-[#1C1917]'>{o.title}</span>
-                        <span className='block text-[11px] text-[#57534E]'>{o.hint}</span>
+                        <span className='block text-xs text-[#57534E]'>{o.hint}</span>
                       </span>
                     </button>
                   ))}
@@ -517,7 +517,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
             <button
               type='button'
               onClick={handleResetZoom}
-              className='hidden 2xl:block px-1 text-[11px] font-mono font-bold text-[#1C1917] rounded hover:bg-[#FCFBF8] cursor-pointer min-w-[2.5rem] focus-visible:outline-2 focus-visible:outline-[#F97316]'
+              className='hidden 2xl:block px-1 text-xs font-mono font-bold text-[#1C1917] rounded hover:bg-[#FCFBF8] cursor-pointer min-w-[2.5rem] focus-visible:outline-2 focus-visible:outline-[#F97316]'
               title={t('bottomDock.zoomReset')}
               aria-label={t('bottomDock.zoomResetAriaLabel', {
                 percent: Math.round(zoomScale * 100),
@@ -540,7 +540,7 @@ export const ArtistBottomDock: React.FC<ArtistBottomDockProps> = ({
               onClick={handleFitToScreen}
               data-testid='zoom-fit-btn'
               aria-pressed={isFitMode}
-              className={`px-1.5 py-0.5 text-[11px] font-semibold rounded cursor-pointer whitespace-nowrap focus-visible:outline-2 focus-visible:outline-[#F97316] ${
+              className={`px-1.5 py-0.5 text-xs font-semibold rounded cursor-pointer whitespace-nowrap focus-visible:outline-2 focus-visible:outline-[#F97316] ${
                 isFitMode
                   ? 'bg-white text-[#C2410C] shadow-2xs'
                   : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8]'

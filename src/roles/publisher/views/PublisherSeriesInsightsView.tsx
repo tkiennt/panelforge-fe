@@ -176,7 +176,7 @@ export const PublisherSeriesInsightsView: React.FC = () => {
                                 <span className='font-normal text-[#555555]'> · {c.title}</span>
                               )}
                             </div>
-                            <div className='flex gap-1.5 mt-0.5 text-[10px]'>
+                            <div className='flex gap-1.5 mt-0.5 text-xs'>
                               <span
                                 className={`px-1.5 py-0.5 rounded ${
                                   c.isLocked
