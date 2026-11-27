@@ -1,6 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Lock, Play, MapPin, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  ExternalLink,
+  Lock,
+  MapPin,
+  PanelRightClose,
+  PanelRightOpen,
+  Play,
+  Users,
+} from 'lucide-react';
+import { buildBibleUrl } from '@/app/routePaths';
+import { Badge } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
 import {
   chapterService,
@@ -123,6 +134,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const [seriesBibleEntries, setSeriesBibleEntries] = useState<BibleEntryDto[]>([]);
   const [fetchedChapters, setFetchedChapters] = useState<ChapterDto[]>([]);
   const [entityFilter, setEntityFilter] = useState<'main' | 'crowd'>('main');
+  const [sidePanelCollapsed, setSidePanelCollapsed] = useState(false);
 
   const role = (workspaceRole ?? '').toLowerCase();
   const isProducer = ['producer', 'owner'].includes(role);
@@ -441,6 +453,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         seriesTitle={series?.title}
         seriesFormat={series?.format}
         currentChapter={chapter}
+        hideBackLink={isProducer}
         subtitle={
           (pushed
             ? t('scriptReview.pushed.version', {
@@ -491,10 +504,37 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         {t(`scriptReview.lifecycle.status.${scriptStatus}`)}
       </span>
 
-      <div className='flex min-h-0 flex-1 flex-col lg:flex-row'>
+      <div className='flex min-h-0 flex-1 flex-col lg:flex-row relative'>
         <main className='min-h-0 min-w-0 flex-1 overflow-y-auto'>
-          <div className='mx-auto mt-4 max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5'>
-            <p className='text-xs leading-normal text-amber-900'>{notice}</p>
+          <div className='mx-auto mt-4 max-w-4xl px-4 sm:px-6 flex items-center justify-between gap-2'>
+            <div className='flex-1 min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2'>
+              <p className='text-xs leading-normal text-amber-900'>{notice}</p>
+            </div>
+            <button
+              type='button'
+              onClick={() => setSidePanelCollapsed((v) => !v)}
+              aria-label={
+                sidePanelCollapsed
+                  ? t('scriptReview.sidePanel.expand')
+                  : t('scriptReview.sidePanel.collapse')
+              }
+              title={
+                sidePanelCollapsed
+                  ? t('scriptReview.sidePanel.expand')
+                  : t('scriptReview.sidePanel.collapse')
+              }
+              data-testid='toggle-script-sidepanel-btn'
+              className='hidden lg:inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 shrink-0 cursor-pointer transition-colors'
+            >
+              {sidePanelCollapsed ? (
+                <>
+                  <PanelRightOpen className='w-4 h-4 text-accent-dark' aria-hidden='true' />
+                  <span>{t('scriptReview.sidePanel.toggleLabel')}</span>
+                </>
+              ) : (
+                <PanelRightClose className='w-4 h-4 text-stone-500' aria-hidden='true' />
+              )}
+            </button>
           </div>
           {pushed ? (
             <SubmittedScriptPane
@@ -524,25 +564,26 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
           )}
         </main>
 
-        <aside className='flex max-h-[45vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-[28rem] lg:border-l lg:border-t-0'>
-          <div role='tablist' className='flex shrink-0 border-b border-stone-200 px-2'>
-            {(['entities', 'comments', 'changes', 'checks'] as const).map((key) => (
-              <button
-                key={key}
-                type='button'
-                role='tab'
-                aria-selected={tab === key}
-                onClick={() => setTab(key)}
-                className={`-mb-px border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors duration-150 ${
-                  tab === key
-                    ? 'border-orange-500 text-orange-800'
-                    : 'border-transparent text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                {tabLabel(key)}
-              </button>
-            ))}
-          </div>
+        {!sidePanelCollapsed && (
+          <aside className='flex max-h-[45vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-[25rem] xl:w-[27rem] lg:min-w-[320px] lg:max-w-[440px] lg:border-l lg:border-t-0 min-w-0'>
+            <div role='tablist' className='flex shrink-0 border-b border-head-line bg-head-wash px-2 overflow-x-auto'>
+              {(['entities', 'comments', 'changes', 'checks'] as const).map((key) => (
+                <button
+                  key={key}
+                  type='button'
+                  role='tab'
+                  aria-selected={tab === key}
+                  onClick={() => setTab(key)}
+                  className={`-mb-px border-b-2 px-3 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors duration-150 cursor-pointer ${
+                    tab === key
+                      ? 'border-accent text-accent-dark'
+                      : 'border-transparent text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  {tabLabel(key)}
+                </button>
+              ))}
+            </div>
 
           <div className='flex min-h-0 flex-1 flex-col overflow-y-auto'>
             {tab === 'entities' ? (
@@ -664,7 +705,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                                       : item.category}
                                 </span>
                                 {item.boundRevision?.versionNumber && (
-                                  <span className='font-mono text-[11px] text-stone-400'>
+                                  <span className='font-mono text-xs text-stone-500'>
                                     v{item.boundRevision.versionNumber}
                                   </span>
                                 )}
@@ -674,37 +715,39 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
 
                           <div className='flex items-center gap-1.5 shrink-0'>
                             {isCrowd ? (
-                              <span className='bg-stone-100 text-stone-600 border border-stone-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                              <Badge tone='neutral'>
                                 {t('scriptReview.entities.statusExempt', 'Miễn trừ')}
-                              </span>
+                              </Badge>
                             ) : isLocked ? (
-                              <span className='bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusLocked', 'Đã khóa chuẩn')}
-                              </span>
+                              <Badge tone='success'>
+                                {t('scriptReview.entities.statusLocked', 'Đã chốt thiết kế')}
+                              </Badge>
                             ) : isPendingConfirm ? (
-                              <span className='bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                              <Badge tone='warning'>
                                 {t('scriptReview.entities.statusInReview', 'Chờ duyệt vẽ')}
-                              </span>
+                              </Badge>
                             ) : isRework ? (
-                              <span className='bg-rose-50 text-rose-700 border border-rose-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                              <Badge tone='danger'>
                                 {t('scriptReview.entities.statusRework', 'Cần vẽ lại')}
-                              </span>
+                              </Badge>
                             ) : (
-                              <span className='bg-rose-50 text-rose-700 border border-rose-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                              <Badge tone='danger'>
                                 {t('scriptReview.entities.statusMissing', 'Chưa có bản vẽ')}
-                              </span>
+                              </Badge>
                             )}
-                            <span
-                              className={`text-xs px-1.5 py-0.5 rounded border font-medium ${
-                                isCrowd
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : 'bg-white text-stone-500 border-stone-200'
-                              }`}
-                            >
-                              {isCrowd
-                                ? t('scriptReview.entities.typeCrowd', 'Quần chúng')
-                                : t('scriptReview.entities.typeMain', 'Chính')}
-                            </span>
+                            {workspaceId && seriesId && (
+                              <button
+                                type='button'
+                                onClick={() =>
+                                  navigate(buildBibleUrl(workspaceId, seriesId, item.bibleEntryId))
+                                }
+                                title={t('scriptReview.entities.openDesignSheet', 'Mở hồ sơ thiết kế')}
+                                aria-label={t('scriptReview.entities.openDesignSheet', 'Mở hồ sơ thiết kế')}
+                                className='p-1 rounded-md text-stone-500 hover:text-stone-900 hover:bg-stone-200/70 transition-colors cursor-pointer'
+                              >
+                                <ExternalLink className='w-3.5 h-3.5' aria-hidden='true' />
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -804,6 +847,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 onTriage={handleTriage}
                 onFindingToComment={handleFindingToComment}
                 openComments={openComments}
+                onOpenEntities={() => setTab('entities')}
                 onFreeze={handleStartProduction}
                 onUnfreeze={(reason) =>
                   chapterAction('freeze', () => chapterService.unfreezeScript(chapterId, reason))
@@ -812,6 +856,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
             )}
           </div>
         </aside>
+        )}
       </div>
       {startOpen && chapter && chapter.status === 'InProduction' && (
         <RefreezeScriptModal

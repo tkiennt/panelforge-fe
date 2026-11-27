@@ -627,7 +627,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         >
           <div className='px-2.5 py-2 border-b border-[var(--sb-border)] mb-1'>
             <p className='pf-sb-text text-xs font-semibold truncate'>{currentUser.name}</p>
-            <p className='pf-sb-muted text-[11px] truncate'>{userRoleDisplay}</p>
+            <p className='pf-sb-muted text-xs truncate'>{userRoleDisplay}</p>
           </div>
 
           <button
@@ -648,7 +648,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
             <>
               <hr className='my-1.5 border-[var(--sb-border)]' />
               <div role='group' aria-label={themeLabel}>
-                <div className='pf-sb-muted px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider'>
+                <div className='pf-sb-muted px-2.5 py-1 text-xs font-semibold uppercase tracking-wider'>
                   {themeLabel}
                 </div>
                 {SIDEBAR_THEMES.map((opt) => {
@@ -832,7 +832,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 <div className='mt-1.5 flex items-center'>
                   <span
                     data-testid='sidebar-series-status-badge'
-                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium ${seriesStatusMeta.className}`}
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium ${seriesStatusMeta.className}`}
                   >
                     {seriesStatusMeta.dotClass && (
                       <span
