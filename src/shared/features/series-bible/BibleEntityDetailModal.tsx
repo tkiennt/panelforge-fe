@@ -1904,7 +1904,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 <div className='flex items-center justify-between gap-2 rounded-t-xl border-b border-head-line bg-head-wash px-4 py-3'>
                   <div className='font-bold text-sm text-stone-900 flex items-center gap-1.5 min-w-0'>
                     <History className='w-4 h-4 text-accent-dark shrink-0' />
-                    <span className='truncate'>{t('bible.detailModal.versionsAndAudit', 'Phiên bản & Nhật ký')}</span>
+                    <span className='truncate'>
+                      {t('bible.detailModal.versionsAndAudit', 'Phiên bản & Nhật ký')}
+                    </span>
                   </div>
                   <button
                     type='button'

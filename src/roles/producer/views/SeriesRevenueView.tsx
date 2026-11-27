@@ -109,7 +109,9 @@ export const SeriesRevenueView: React.FC<SeriesRevenueViewProps> = () => {
               <option value='all'>{t('revenueView.filterStatusAll')}</option>
               <option value='PreProduction'>{t('workbench.chapterStatus.PreProduction')}</option>
               <option value='InProduction'>{t('workbench.chapterStatus.InProduction')}</option>
-              <option value='ChapterApproved'>{t('workbench.chapterStatus.ChapterApproved')}</option>
+              <option value='ChapterApproved'>
+                {t('workbench.chapterStatus.ChapterApproved')}
+              </option>
               <option value='HandedOffAndPublished'>
                 {t('workbench.chapterStatus.HandedOffAndPublished')}
               </option>

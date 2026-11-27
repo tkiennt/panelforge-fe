@@ -41,7 +41,10 @@ const FORMATS: { code: ExportPresetCode; icon: typeof FileText }[] = [
   { code: 'OPEN_JSON', icon: FileJson },
 ];
 
-const STATUS_TONE: Record<ExportJobDto['status'], 'warning' | 'info' | 'success' | 'danger' | 'neutral'> = {
+const STATUS_TONE: Record<
+  ExportJobDto['status'],
+  'warning' | 'info' | 'success' | 'danger' | 'neutral'
+> = {
   Queued: 'warning',
   Processing: 'info',
   Completed: 'success',
@@ -269,19 +272,19 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
           {/* Internal Tabs: Bàn giao vs Kiểm duyệt & Đọc thử */}
           <div className='flex flex-wrap items-center justify-between gap-3'>
             <Tabs
-              ariaLabel={t('producer.exportView.tabsAria')}
+              aria-label={t('producer.exportView.tabsAria')}
               value={activeTab}
               onChange={(v) => setActiveTab(v as 'handoff' | 'review')}
               items={[
                 {
                   id: 'handoff',
                   label: t('producer.exportView.tabHandoff'),
-                  badge: chapters.length,
+                  count: chapters.length,
                 },
                 {
                   id: 'review',
                   label: t('producer.exportView.tabReview'),
-                  badge: allChapters.length,
+                  count: allChapters.length,
                 },
               ]}
             />
@@ -342,9 +345,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                                   {t('producer.exportView.handedOffShort')}
                                 </Badge>
                               ) : chap.status === 'ChapterApproved' ? (
-                                <Badge tone='info'>
-                                  {t('producer.exportView.readyToHandOff')}
-                                </Badge>
+                                <Badge tone='info'>{t('producer.exportView.readyToHandOff')}</Badge>
                               ) : (
                                 <span className='text-stone-500'>
                                   {t('producer.exportView.notEligibleHandoff')}
@@ -596,8 +597,12 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                           <table className='w-full text-left text-xs'>
                             <thead className='bg-head-wash border-b border-head-line text-kraft-ink font-semibold uppercase tracking-wide'>
                               <tr>
-                                <th className='py-2.5 px-3'>{t('producer.exportView.colFormat')}</th>
-                                <th className='py-2.5 px-3'>{t('producer.exportView.colStatus')}</th>
+                                <th className='py-2.5 px-3'>
+                                  {t('producer.exportView.colFormat')}
+                                </th>
+                                <th className='py-2.5 px-3'>
+                                  {t('producer.exportView.colStatus')}
+                                </th>
                                 <th className='py-2.5 px-3'>{t('producer.exportView.colPages')}</th>
                                 <th className='py-2.5 px-3'>{t('producer.exportView.colSize')}</th>
                                 <th className='py-2.5 px-3'>

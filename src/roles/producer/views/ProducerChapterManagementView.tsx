@@ -160,7 +160,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   const [formOutline, setFormOutline] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
 
-  const isProducer = !workspaceRole || workspaceRole.toUpperCase() === 'PRODUCER' || workspaceRole.toUpperCase() === 'OWNER';
+  const isProducer =
+    !workspaceRole ||
+    workspaceRole.toUpperCase() === 'PRODUCER' ||
+    workspaceRole.toUpperCase() === 'OWNER';
 
   // ── Load Series & Chapters List ──
   const loadSeriesAndChapters = useCallback(async () => {
@@ -283,7 +286,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         message: 'Kịch bản đang ở trạng thái Draft, chưa được Writer gửi duyệt.',
         resourceType: 'script',
         resourceId: chapter.id,
-        resolutionTarget: { workspace: 'pre-production', section: 'script', resourceId: chapter.id },
+        resolutionTarget: {
+          workspace: 'pre-production',
+          section: 'script',
+          resourceId: chapter.id,
+        },
       });
     }
     if (!isStarted && !bibleReady) {
@@ -312,7 +319,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         passed: scriptSubmitted,
         mandatory: true,
         statusText: scriptSubmitted ? 'Đã gửi duyệt' : 'Đang soạn (Draft)',
-        resolutionTarget: { workspace: 'pre-production', section: 'script', resourceId: chapter.id },
+        resolutionTarget: {
+          workspace: 'pre-production',
+          section: 'script',
+          resourceId: chapter.id,
+        },
       },
       {
         code: 'BIBLE_CANON_LOCKED',
@@ -321,8 +332,14 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         passed: bibleReady,
         mandatory: true,
         statusText:
-          required.length === 0 ? 'Không có thực thể bắt buộc' : `${ready.length}/${required.length} đã sẵn sàng`,
-        resolutionTarget: { workspace: 'pre-production', section: 'entities', resourceId: chapter.id },
+          required.length === 0
+            ? 'Không có thực thể bắt buộc'
+            : `${ready.length}/${required.length} đã sẵn sàng`,
+        resolutionTarget: {
+          workspace: 'pre-production',
+          section: 'entities',
+          resourceId: chapter.id,
+        },
       },
       {
         code: 'CHAPTER_PAGES_READY',
@@ -331,7 +348,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         passed: hasPages,
         mandatory: true,
         statusText: `${pages.length || chapter.pagesCount || 0} trang`,
-        resolutionTarget: { workspace: 'pre-production', section: 'script', resourceId: chapter.id },
+        resolutionTarget: {
+          workspace: 'pre-production',
+          section: 'script',
+          resourceId: chapter.id,
+        },
       },
     ];
 
@@ -346,7 +367,8 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       chapterStatus: chapter.status || 'PreProduction',
       targetReleaseDate: chapter.targetReleaseDate,
       isHandedOff: Boolean(chapter.isHandedOff),
-      evaluatedScriptVersionId: chapter.frozenScriptVersionId ?? chapter.lastSubmittedVersionId ?? null,
+      evaluatedScriptVersionId:
+        chapter.frozenScriptVersionId ?? chapter.lastSubmittedVersionId ?? null,
       status: isStarted ? 'STARTED' : canStart ? 'READY' : 'NOT_READY',
       canStartProduction: canStart,
       checks,
@@ -378,9 +400,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       bible: {
         requiredTotal: required.length,
         readyCount: ready.length,
-        missingDefinitionCount: required.filter((e) => e.bibleStatus === 'WaitingForDefinition').length,
+        missingDefinitionCount: required.filter((e) => e.bibleStatus === 'WaitingForDefinition')
+          .length,
         missingArtCount: required.filter((e) => e.bibleStatus === 'WaitingForArtist').length,
-        pendingApprovalCount: required.filter((e) => e.bibleStatus === 'WaitingForConfirmation').length,
+        pendingApprovalCount: required.filter((e) => e.bibleStatus === 'WaitingForConfirmation')
+          .length,
         reworkCount: required.filter((e) => e.bibleStatus === 'ReworkRequired').length,
         crowdOptionalCount: entities.filter((e) => e.isCrowd).length,
         nonVisualReadyCount: 0,
@@ -411,7 +435,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   const isPreProduction = chapterStatus === 'PreProduction';
   const isInProduction = chapterStatus === 'InProduction';
   const isApproved = chapterStatus === 'ChapterApproved' || chapterStatus === 'Approved';
-  const isDelivered = chapterStatus === 'HandedOffAndPublished' || chapterStatus === 'Published' || Boolean(readiness?.isHandedOff);
+  const isDelivered =
+    chapterStatus === 'HandedOffAndPublished' ||
+    chapterStatus === 'Published' ||
+    Boolean(readiness?.isHandedOff);
   const canStartProduction = Boolean(readiness?.canStartProduction);
 
   const { steps: lifecycleSteps } = useMemo(
@@ -430,8 +457,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 
   // ── Chapter CRUD & Lifecycle Handlers ──
   const openCreateModal = () => {
-    const nextNum =
-      chapters.length > 0 ? Math.max(...chapters.map((c) => c.chapterNumber)) + 1 : 1;
+    const nextNum = chapters.length > 0 ? Math.max(...chapters.map((c) => c.chapterNumber)) + 1 : 1;
     setFormChapterNumber(nextNum);
     setFormTitle('');
     setFormTargetReleaseDate('');
@@ -514,7 +540,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       setUnfreezeBusy(true);
       await chapterService.unfreezeScript(chapter.id, reason);
       setShowUnfreezeDialog(false);
-      onShowToast?.('Đã mở khóa kịch bản', 'Writer có thể chỉnh sửa kịch bản; cần Refreeze sau khi xong.');
+      onShowToast?.(
+        'Đã mở khóa kịch bản',
+        'Writer có thể chỉnh sửa kịch bản; cần Refreeze sau khi xong.',
+      );
       await refreshAll();
     } catch (err: any) {
       onShowToast?.('Lỗi mở khóa kịch bản', err?.message || 'Không thể mở khóa kịch bản.');
@@ -623,11 +652,24 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       >
         <AlertCircle className='w-3.5 h-3.5' />
         <span>
-          {firstBlocker ? `Xử lý ${readiness?.blockers.length} điểm chặn` : 'Tiếp tục Tiền sản xuất'}
+          {firstBlocker
+            ? `Xử lý ${readiness?.blockers.length} điểm chặn`
+            : 'Tiếp tục Tiền sản xuất'}
         </span>
       </button>
     );
-  }, [chapter, workspaceId, seriesId, isDelivered, isApproved, isInProduction, canStartProduction, isProducer, readiness, navigate]);
+  }, [
+    chapter,
+    workspaceId,
+    seriesId,
+    isDelivered,
+    isApproved,
+    isInProduction,
+    canStartProduction,
+    isProducer,
+    readiness,
+    navigate,
+  ]);
 
   if (loading && chapters.length === 0) {
     return (
@@ -705,11 +747,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 
   // Reusable Production Progress Section (placed high when InProduction, lower when PreProduction)
   const productionProgressSection = (
-    <Card
-      as='section'
-      featured={!isPreProduction}
-      data-testid='overview-production-progress'
-    >
+    <Card as='section' featured={!isPreProduction} data-testid='overview-production-progress'>
       <CardHeader
         icon={<LayoutGrid aria-hidden='true' />}
         title={
@@ -924,168 +962,167 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   );
 
   // Reusable Pre-production Readiness Center (featured when PreProduction, collapsible summary when InProduction)
-  const readinessCenterSection = !isPreProduction && !gateExpanded ? (
-    <section
-      data-testid='overview-readiness-center'
-      className='rounded-xl border border-stone-200/90 bg-white px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-2xs'
-    >
-      <div className='flex flex-wrap items-center gap-2.5 min-w-0'>
-        <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' aria-hidden='true' />
-        <span className='text-sm font-bold text-stone-900'>
-          {t('producer.chapterManagement.overview.gateTitle')}
-        </span>
-        <Badge data-testid='readiness-status-badge' tone='success'>
-          {t('producer.chapterManagement.overview.productionStartedBadge')}
-        </Badge>
-        <span className='text-xs text-stone-500 font-mono'>
-          {t('producer.chapterManagement.overview.gatePassedSummary', {
-            passed: readiness?.summary.passed ?? 0,
-            required: readiness?.summary.required ?? 0,
-          })}
-        </span>
-      </div>
-      <Button
-        variant='ghost'
-        size='sm'
-        trailingIcon={<ChevronDown aria-hidden='true' />}
-        onClick={() => setGateExpanded(true)}
+  const readinessCenterSection =
+    !isPreProduction && !gateExpanded ? (
+      <section
+        data-testid='overview-readiness-center'
+        className='rounded-xl border border-stone-200/90 bg-white px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-2xs'
       >
-        {t('producer.chapterManagement.overview.viewDetails')}
-      </Button>
-    </section>
-  ) : (
-    <Card
-      as='section'
-      featured={isPreProduction}
-      tone={canStartProduction ? 'success' : 'brand'}
-      data-testid='overview-readiness-center'
-    >
-      <CardHeader
-        icon={<ShieldAlert aria-hidden='true' />}
-        title={
-          <span className='inline-flex flex-wrap items-center gap-2'>
-            <span>{t('producer.chapterManagement.overview.gateTitle')}</span>
-            <Badge
-              data-testid='readiness-status-badge'
-              tone={
-                !isPreProduction ? 'neutral' : canStartProduction ? 'success' : 'warning'
-              }
-            >
-              {!isPreProduction
-                ? t('producer.chapterManagement.overview.productionStartedBadge')
-                : canStartProduction
-                  ? t('producer.chapterManagement.overview.readyToStartBadge')
-                  : t('producer.chapterManagement.overview.remainingChecksBadge', {
-                      count: readiness?.summary.remaining ?? 0,
-                    })}
-            </Badge>
+        <div className='flex flex-wrap items-center gap-2.5 min-w-0'>
+          <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' aria-hidden='true' />
+          <span className='text-sm font-bold text-stone-900'>
+            {t('producer.chapterManagement.overview.gateTitle')}
           </span>
-        }
-        subtitle={t('producer.chapterManagement.overview.gateSubtitle')}
-        actions={
-          <div className='flex flex-wrap items-center gap-2'>
-            {!isPreProduction && (
-              <Button variant='ghost' size='sm' onClick={() => setGateExpanded(false)}>
-                {t('producer.chapterManagement.overview.collapseBtn')}
-              </Button>
-            )}
-            {isPreProduction && isProducer && (
-              <Button
-                variant='primary'
-                size='sm'
-                data-testid='overview-start-production-btn'
-                disabled={!canStartProduction}
-                leadingIcon={<Rocket aria-hidden='true' />}
-                onClick={() => setStartProductionOpen(true)}
-              >
-                {t('producer.chapterManagement.overview.startProductionBtn')}
-              </Button>
-            )}
-          </div>
-        }
-      />
-
-      <CardBody className='space-y-4'>
-        {isPreProduction && isProducer && !canStartProduction && (
-          <Alert tone='warning' data-testid='start-production-disabled-reason'>
-            {readiness?.blockers?.[0]?.message ||
-              t('producer.chapterManagement.overview.startDisabledFallback')}
-          </Alert>
-        )}
-
-        {/* Overall Readiness Progress Bar */}
-        <div className='space-y-1.5'>
-          <div className='flex items-center justify-between text-xs'>
-            <span className='font-semibold text-stone-700'>
-              {t('producer.chapterManagement.overview.mandatoryPassedLabel', {
-                passed: readiness?.summary.passed ?? 0,
-                required: readiness?.summary.required ?? 0,
-              })}
-            </span>
-            <span className='font-mono font-bold text-stone-900 tabular-nums'>
-              {readinessPercent}%
-            </span>
-          </div>
-          <ProgressBar
-            value={readiness?.summary.passed ?? 0}
-            max={readiness?.summary.required ?? 0}
-            tone={canStartProduction || !isPreProduction ? 'success' : 'brand'}
-            label={t('producer.chapterManagement.overview.gateTitle')}
-          />
+          <Badge data-testid='readiness-status-badge' tone='success'>
+            {t('producer.chapterManagement.overview.productionStartedBadge')}
+          </Badge>
+          <span className='text-xs text-stone-500 font-mono'>
+            {t('producer.chapterManagement.overview.gatePassedSummary', {
+              passed: readiness?.summary.passed ?? 0,
+              required: readiness?.summary.required ?? 0,
+            })}
+          </span>
         </div>
-
-        {/* Mandatory Checks List */}
-        {(readiness?.checks?.length ?? 0) > 0 && (
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-2.5'>
-            {(readiness?.checks ?? []).map((chk) => (
-              <div
-                key={chk.code}
-                data-testid={`readiness-check-${chk.code}`}
-                className={`rounded-lg border px-3.5 py-2.5 flex items-start justify-between gap-3 ${
-                  chk.passed
-                    ? 'border-emerald-200/70 bg-emerald-50/40'
-                    : 'border-amber-200/80 bg-amber-50/40'
-                }`}
+        <Button
+          variant='ghost'
+          size='sm'
+          trailingIcon={<ChevronDown aria-hidden='true' />}
+          onClick={() => setGateExpanded(true)}
+        >
+          {t('producer.chapterManagement.overview.viewDetails')}
+        </Button>
+      </section>
+    ) : (
+      <Card
+        as='section'
+        featured={isPreProduction}
+        tone={canStartProduction ? 'success' : 'brand'}
+        data-testid='overview-readiness-center'
+      >
+        <CardHeader
+          icon={<ShieldAlert aria-hidden='true' />}
+          title={
+            <span className='inline-flex flex-wrap items-center gap-2'>
+              <span>{t('producer.chapterManagement.overview.gateTitle')}</span>
+              <Badge
+                data-testid='readiness-status-badge'
+                tone={!isPreProduction ? 'neutral' : canStartProduction ? 'success' : 'warning'}
               >
-                <div className='flex items-start gap-2.5 min-w-0'>
-                  {chk.passed ? (
-                    <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0 mt-0.5' />
-                  ) : (
-                    <AlertCircle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
-                  )}
-                  <div className='min-w-0'>
-                    <div className='text-xs font-semibold text-stone-900'>{chk.label}</div>
-                    <div className='text-xs text-stone-600 mt-0.5'>
-                      {chk.statusText}
-                      {chk.reason ? ` — ${chk.reason}` : ''}
+                {!isPreProduction
+                  ? t('producer.chapterManagement.overview.productionStartedBadge')
+                  : canStartProduction
+                    ? t('producer.chapterManagement.overview.readyToStartBadge')
+                    : t('producer.chapterManagement.overview.remainingChecksBadge', {
+                        count: readiness?.summary.remaining ?? 0,
+                      })}
+              </Badge>
+            </span>
+          }
+          subtitle={t('producer.chapterManagement.overview.gateSubtitle')}
+          actions={
+            <div className='flex flex-wrap items-center gap-2'>
+              {!isPreProduction && (
+                <Button variant='ghost' size='sm' onClick={() => setGateExpanded(false)}>
+                  {t('producer.chapterManagement.overview.collapseBtn')}
+                </Button>
+              )}
+              {isPreProduction && isProducer && (
+                <Button
+                  variant='primary'
+                  size='sm'
+                  data-testid='overview-start-production-btn'
+                  disabled={!canStartProduction}
+                  leadingIcon={<Rocket aria-hidden='true' />}
+                  onClick={() => setStartProductionOpen(true)}
+                >
+                  {t('producer.chapterManagement.overview.startProductionBtn')}
+                </Button>
+              )}
+            </div>
+          }
+        />
+
+        <CardBody className='space-y-4'>
+          {isPreProduction && isProducer && !canStartProduction && (
+            <Alert tone='warning' data-testid='start-production-disabled-reason'>
+              {readiness?.blockers?.[0]?.message ||
+                t('producer.chapterManagement.overview.startDisabledFallback')}
+            </Alert>
+          )}
+
+          {/* Overall Readiness Progress Bar */}
+          <div className='space-y-1.5'>
+            <div className='flex items-center justify-between text-xs'>
+              <span className='font-semibold text-stone-700'>
+                {t('producer.chapterManagement.overview.mandatoryPassedLabel', {
+                  passed: readiness?.summary.passed ?? 0,
+                  required: readiness?.summary.required ?? 0,
+                })}
+              </span>
+              <span className='font-mono font-bold text-stone-900 tabular-nums'>
+                {readinessPercent}%
+              </span>
+            </div>
+            <ProgressBar
+              value={readiness?.summary.passed ?? 0}
+              max={readiness?.summary.required ?? 0}
+              tone={canStartProduction || !isPreProduction ? 'success' : 'brand'}
+              label={t('producer.chapterManagement.overview.gateTitle')}
+            />
+          </div>
+
+          {/* Mandatory Checks List */}
+          {(readiness?.checks?.length ?? 0) > 0 && (
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-2.5'>
+              {(readiness?.checks ?? []).map((chk) => (
+                <div
+                  key={chk.code}
+                  data-testid={`readiness-check-${chk.code}`}
+                  className={`rounded-lg border px-3.5 py-2.5 flex items-start justify-between gap-3 ${
+                    chk.passed
+                      ? 'border-emerald-200/70 bg-emerald-50/40'
+                      : 'border-amber-200/80 bg-amber-50/40'
+                  }`}
+                >
+                  <div className='flex items-start gap-2.5 min-w-0'>
+                    {chk.passed ? (
+                      <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0 mt-0.5' />
+                    ) : (
+                      <AlertCircle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
+                    )}
+                    <div className='min-w-0'>
+                      <div className='text-xs font-semibold text-stone-900'>{chk.label}</div>
+                      <div className='text-xs text-stone-600 mt-0.5'>
+                        {chk.statusText}
+                        {chk.reason ? ` — ${chk.reason}` : ''}
+                      </div>
                     </div>
                   </div>
+                  {!chk.passed && chapter && (
+                    <button
+                      type='button'
+                      onClick={() =>
+                        navigate(
+                          buildReadinessResolutionUrl(
+                            workspaceId,
+                            seriesId,
+                            chapter.id,
+                            chk.resolutionTarget,
+                          ),
+                        )
+                      }
+                      className='text-xs font-semibold text-accent-dark hover:underline whitespace-nowrap shrink-0 cursor-pointer'
+                    >
+                      {t('producer.chapterManagement.overview.resolveLink')}
+                    </button>
+                  )}
                 </div>
-                {!chk.passed && chapter && (
-                  <button
-                    type='button'
-                    onClick={() =>
-                      navigate(
-                        buildReadinessResolutionUrl(
-                          workspaceId,
-                          seriesId,
-                          chapter.id,
-                          chk.resolutionTarget,
-                        ),
-                      )
-                    }
-                    className='text-xs font-semibold text-accent-dark hover:underline whitespace-nowrap shrink-0 cursor-pointer'
-                  >
-                    {t('producer.chapterManagement.overview.resolveLink')}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </CardBody>
-    </Card>
-  );
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+    );
 
   // Action Center (Blockers + Warnings, deduplicated; compact confirmation when empty)
   const blockerCount = readiness?.blockers.length ?? 0;
@@ -1332,7 +1369,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             {lifecycleSteps.map((step, idx) => (
               <React.Fragment key={step.id}>
                 {idx > 0 && (
-                  <ChevronRight className='w-3.5 h-3.5 text-stone-300 shrink-0' aria-hidden='true' />
+                  <ChevronRight
+                    className='w-3.5 h-3.5 text-stone-300 shrink-0'
+                    aria-hidden='true'
+                  />
                 )}
                 <li
                   data-testid={`lifecycle-step-${step.id}`}
@@ -1357,10 +1397,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             onClick={() => void refreshAll()}
             disabled={loadingReadiness}
             leadingIcon={
-              <RefreshCw
-                className={loadingReadiness ? 'animate-spin' : ''}
-                aria-hidden='true'
-              />
+              <RefreshCw className={loadingReadiness ? 'animate-spin' : ''} aria-hidden='true' />
             }
           >
             {t('producer.chapterManagement.overview.refreshBtn')}
@@ -1480,7 +1517,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     size='sm'
                     data-testid='open-script-workspace-btn'
                     trailingIcon={<ArrowRight aria-hidden='true' />}
-                    onClick={() => navigate(buildScriptReviewUrl(workspaceId, seriesId, chapter.id))}
+                    onClick={() =>
+                      navigate(buildScriptReviewUrl(workspaceId, seriesId, chapter.id))
+                    }
                   >
                     {t('producer.chapterManagement.overview.openScriptBtn')}
                   </Button>
@@ -1734,7 +1773,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               />
             </div>
             <div>
-              <label className='block font-semibold text-stone-700 mb-1'>Hạn phát hành dự kiến</label>
+              <label className='block font-semibold text-stone-700 mb-1'>
+                Hạn phát hành dự kiến
+              </label>
               <input
                 type='date'
                 value={formTargetReleaseDate}
@@ -1780,7 +1821,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               />
             </div>
             <div>
-              <label className='block font-semibold text-stone-700 mb-1'>Hạn phát hành dự kiến</label>
+              <label className='block font-semibold text-stone-700 mb-1'>
+                Hạn phát hành dự kiến
+              </label>
               <input
                 type='date'
                 value={formTargetReleaseDate}

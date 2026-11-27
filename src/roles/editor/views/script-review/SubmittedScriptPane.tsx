@@ -17,10 +17,7 @@ import {
 import type { ChapterCastDto } from '@/services/chapterCast.service';
 import type { BibleEntryDto } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
-import {
-  getCharacterStatusTone,
-  BIBLE_STATUS_STYLES,
-} from '@/shared/lib/bibleColoring';
+import { getCharacterStatusTone, BIBLE_STATUS_STYLES } from '@/shared/lib/bibleColoring';
 
 /**
  * Hiển thị nội dung lời thoại/SFX không lặp lại tiền tố tên nhân vật ("GOKU: GOKU: ...")
@@ -31,7 +28,10 @@ function stripDuplicatePrefix(rendered: string, row: ScriptVersionRow): string {
   if (row.type === 'Dialogue' || row.type === 'Thought') {
     if (!row.label) return rendered;
     const escapedLabel = row.label.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const stripped = rendered.replace(new RegExp(`^${escapedLabel}(?:\\s*\\([^)]*\\))?\\s*:\\s*`, 'i'), '');
+    const stripped = rendered.replace(
+      new RegExp(`^${escapedLabel}(?:\\s*\\([^)]*\\))?\\s*:\\s*`, 'i'),
+      '',
+    );
     // Guard against double prefix inside rendered text itself
     const doubleStripped = stripped.replace(new RegExp(`^${escapedLabel}\\s*:\\s*`, 'i'), '');
     return doubleStripped || rawBody;
@@ -179,16 +179,20 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
           </div>
           <div className='flex flex-wrap items-center gap-2 text-xs'>
             <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded border border-emerald-300 bg-emerald-50 text-emerald-800 font-medium'>
-              <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' aria-hidden='true' /> Đã chốt artwork
+              <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' aria-hidden='true' /> Đã
+              chốt artwork
             </span>
             <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded border border-amber-300 bg-amber-50 text-amber-800 font-medium'>
-              <span className='w-1.5 h-1.5 rounded-full bg-amber-500' aria-hidden='true' /> Chưa có artwork
+              <span className='w-1.5 h-1.5 rounded-full bg-amber-500' aria-hidden='true' /> Chưa có
+              artwork
             </span>
             <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded border border-orange-300 bg-orange-50 text-orange-800 font-medium'>
-              <span className='w-1.5 h-1.5 rounded-full bg-orange-500' aria-hidden='true' /> Chưa định nghĩa
+              <span className='w-1.5 h-1.5 rounded-full bg-orange-500' aria-hidden='true' /> Chưa
+              định nghĩa
             </span>
             <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded border border-stone-200 bg-stone-100 text-stone-600 font-medium'>
-              <span className='w-1.5 h-1.5 rounded-full bg-stone-400' aria-hidden='true' /> Quần chúng
+              <span className='w-1.5 h-1.5 rounded-full bg-stone-400' aria-hidden='true' /> Quần
+              chúng
             </span>
           </div>
         </div>
@@ -251,39 +255,51 @@ export const SubmittedScriptPane: React.FC<SubmittedScriptPaneProps> = ({
                           <div className='min-w-0 flex-1 text-sm leading-relaxed'>
                             {isDialogue ? (
                               <p className='text-stone-900'>
-                                {row.label && (() => {
-                                  const tone = getCharacterStatusTone(row.label, bibleEntries, cast);
-                                  const style = BIBLE_STATUS_STYLES[tone];
-                                  const matchedEntry = bibleEntries?.find(
-                                    (b) => b.name?.trim().toLowerCase() === row.label?.trim().toLowerCase(),
-                                  );
-                                  const thumbUrl =
-                                    matchedEntry?.effectiveRevision?.conceptImageUrl ||
-                                    matchedEntry?.effectiveRevision?.referenceImageUrl ||
-                                    null;
-                                  return (
-                                    <span
-                                      className={`inline-flex items-center gap-1.5 font-semibold px-2 py-0.5 rounded mr-2 text-xs align-middle ${style.bg} ${style.text} border ${style.border}`}
-                                      title={`${row.label} — ${style.label}`}
-                                    >
-                                      {thumbUrl ? (
-                                        <span className='w-4 h-4 rounded-full overflow-hidden shrink-0 border border-stone-200 bg-white'>
-                                          <AuthenticatedImage
-                                            src={thumbUrl}
-                                            alt=''
-                                            className='w-full h-full object-cover'
+                                {row.label &&
+                                  (() => {
+                                    const tone = getCharacterStatusTone(
+                                      row.label,
+                                      bibleEntries,
+                                      cast,
+                                    );
+                                    const style = BIBLE_STATUS_STYLES[tone];
+                                    const matchedEntry = bibleEntries?.find(
+                                      (b) =>
+                                        b.name?.trim().toLowerCase() ===
+                                        row.label?.trim().toLowerCase(),
+                                    );
+                                    const thumbUrl =
+                                      matchedEntry?.effectiveRevision?.conceptImageUrl ||
+                                      matchedEntry?.effectiveRevision?.referenceImageUrl ||
+                                      null;
+                                    return (
+                                      <span
+                                        className={`inline-flex items-center gap-1.5 font-semibold px-2 py-0.5 rounded mr-2 text-xs align-middle ${style.bg} ${style.text} border ${style.border}`}
+                                        title={`${row.label} — ${style.label}`}
+                                      >
+                                        {thumbUrl ? (
+                                          <span className='w-4 h-4 rounded-full overflow-hidden shrink-0 border border-stone-200 bg-white'>
+                                            <AuthenticatedImage
+                                              src={thumbUrl}
+                                              alt=''
+                                              className='w-full h-full object-cover'
+                                            />
+                                          </span>
+                                        ) : (
+                                          <span
+                                            className={`w-1.5 h-1.5 rounded-full ${style.dot}`}
+                                            aria-hidden='true'
                                           />
-                                        </span>
-                                      ) : (
-                                        <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} aria-hidden='true' />
-                                      )}
-                                      <span>{row.label}</span>
-                                      {row.type === 'Thought' && (
-                                        <span className='font-normal opacity-75'>({t('scriptReview.manuscript.thoughtTag', 'nghĩ')})</span>
-                                      )}
-                                    </span>
-                                  );
-                                })()}
+                                        )}
+                                        <span>{row.label}</span>
+                                        {row.type === 'Thought' && (
+                                          <span className='font-normal opacity-75'>
+                                            ({t('scriptReview.manuscript.thoughtTag', 'nghĩ')})
+                                          </span>
+                                        )}
+                                      </span>
+                                    );
+                                  })()}
                                 {renderQuotedHighlight(
                                   stripDuplicatePrefix(text, row),
                                   (composer && composer.scriptLineId === lineId

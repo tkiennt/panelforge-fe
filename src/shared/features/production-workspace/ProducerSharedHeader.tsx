@@ -142,7 +142,10 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
         navigate(buildSeriesExportUrl(workspaceId, seriesId, nextId));
       } else if (location.pathname.endsWith('/workspace')) {
         navigate(
-          buildProductionWorkspaceUrl(workspaceId, seriesId, { chapterId: nextId, tab: 'progress' }),
+          buildProductionWorkspaceUrl(workspaceId, seriesId, {
+            chapterId: nextId,
+            tab: 'progress',
+          }),
         );
       } else {
         navigate(buildChapterManagementUrl(workspaceId, seriesId, nextId));
@@ -198,10 +201,7 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
                     {currentChapterFormattedTitle}
                   </h2>
                   {statusMeta && (
-                    <Badge
-                      data-testid='header-chapter-lifecycle-badge'
-                      tone={statusMeta.tone}
-                    >
+                    <Badge data-testid='header-chapter-lifecycle-badge' tone={statusMeta.tone}>
                       {statusMeta.label}
                     </Badge>
                   )}
@@ -216,11 +216,7 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
                             : 'warning'
                       }
                       icon={
-                        isScriptFrozen ? (
-                          <Lock aria-hidden='true' />
-                        ) : (
-                          <Unlock aria-hidden='true' />
-                        )
+                        isScriptFrozen ? <Lock aria-hidden='true' /> : <Unlock aria-hidden='true' />
                       }
                       title={
                         isScriptFrozen

@@ -2295,20 +2295,20 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     [activeTasks],
   );
   const drawerTask = useMemo(
-    () => (drawerTaskId && grid ? grid.tasks.find((t) => t.id === drawerTaskId) ?? null : null),
+    () => (drawerTaskId && grid ? (grid.tasks.find((t) => t.id === drawerTaskId) ?? null) : null),
     [drawerTaskId, grid],
   );
   const drawerStage = useMemo(
     () =>
       drawerTask && grid
-        ? grid.stages.find((s) => s.id === drawerTask.pipelineStageId) ?? null
+        ? (grid.stages.find((s) => s.id === drawerTask.pipelineStageId) ?? null)
         : null,
     [drawerTask, grid],
   );
   const drawerPage = useMemo(
     () =>
       drawerTask?.pageId && grid
-        ? grid.pages.find((p) => p.id === drawerTask.pageId) ?? null
+        ? (grid.pages.find((p) => p.id === drawerTask.pageId) ?? null)
         : null,
     [drawerTask, grid],
   );
@@ -2729,93 +2729,93 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           </button>
           {lotsExpanded && (
             <div className='flex flex-wrap gap-2'>
-            {grid.lots
-              .filter((l) => l.status !== 'Closed')
-              .map((lot) => {
-                const stg = grid.stages.find((s) => s.id === lot.pipelineStageId);
-                const isLotStageDisabled =
-                  stg?.isEnabled === false || !enabledStageIds.has(lot.pipelineStageId);
-                const lotCells = grid.tasks.filter(
-                  (t) => t.lotId === lot.id && t.status !== 'Cancelled',
-                );
-                const lotPageNums = lotCells
-                  .map((t) => sortedPages.find((p) => p.id === t.pageId)?.pageNumber)
-                  .filter((n): n is number => n !== undefined)
-                  .sort((a, b) => a - b);
-                const lotScopeText =
-                  lotCells.length > 0 && lotCells.every((t) => !t.pageId)
-                    ? t('taskGridV3.wholeChapter')
-                    : lotPageNums.length > 0
-                      ? formatPageRangeLabel(lotPageNums)
-                      : null;
-                return (
-                  <div
-                    key={lot.id}
-                    data-testid={`grid-lot-pill-${lot.id}`}
-                    className={`rounded-lg border px-2.5 py-1.5 text-xs flex items-center gap-2 ${
-                      isLotStageDisabled
-                        ? 'border-dashed border-stone-300 bg-stone-100/60 text-stone-400 opacity-50'
-                        : lot.isOverdue
-                          ? 'border-rose-300 bg-rose-50 text-rose-900'
-                          : lot.status === 'Completed'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                            : 'border-stone-200 bg-stone-50 text-stone-700'
-                    }`}
-                  >
-                    <span className='font-bold'>{stg?.name || 'Stage'}</span>
-                    {lot.isAutoAssigned && (
-                      <span
-                        data-testid={`lot-auto-badge-${lot.id}`}
-                        title={lot.autoAssignReason || undefined}
-                        className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-xs font-semibold text-[#C2410C]'
-                      >
-                        {t('taskGridV3.autoAssignedBadge')}
+              {grid.lots
+                .filter((l) => l.status !== 'Closed')
+                .map((lot) => {
+                  const stg = grid.stages.find((s) => s.id === lot.pipelineStageId);
+                  const isLotStageDisabled =
+                    stg?.isEnabled === false || !enabledStageIds.has(lot.pipelineStageId);
+                  const lotCells = grid.tasks.filter(
+                    (t) => t.lotId === lot.id && t.status !== 'Cancelled',
+                  );
+                  const lotPageNums = lotCells
+                    .map((t) => sortedPages.find((p) => p.id === t.pageId)?.pageNumber)
+                    .filter((n): n is number => n !== undefined)
+                    .sort((a, b) => a - b);
+                  const lotScopeText =
+                    lotCells.length > 0 && lotCells.every((t) => !t.pageId)
+                      ? t('taskGridV3.wholeChapter')
+                      : lotPageNums.length > 0
+                        ? formatPageRangeLabel(lotPageNums)
+                        : null;
+                  return (
+                    <div
+                      key={lot.id}
+                      data-testid={`grid-lot-pill-${lot.id}`}
+                      className={`rounded-lg border px-2.5 py-1.5 text-xs flex items-center gap-2 ${
+                        isLotStageDisabled
+                          ? 'border-dashed border-stone-300 bg-stone-100/60 text-stone-400 opacity-50'
+                          : lot.isOverdue
+                            ? 'border-rose-300 bg-rose-50 text-rose-900'
+                            : lot.status === 'Completed'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                              : 'border-stone-200 bg-stone-50 text-stone-700'
+                      }`}
+                    >
+                      <span className='font-bold'>{stg?.name || 'Stage'}</span>
+                      {lot.isAutoAssigned && (
+                        <span
+                          data-testid={`lot-auto-badge-${lot.id}`}
+                          title={lot.autoAssignReason || undefined}
+                          className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-xs font-semibold text-[#C2410C]'
+                        >
+                          {t('taskGridV3.autoAssignedBadge')}
+                        </span>
+                      )}
+                      {isLotStageDisabled && (
+                        <span className='rounded bg-stone-200 px-1 py-0.2 text-xs font-mono text-stone-600'>
+                          {t('taskGridV3.stageDisabledBadge')}
+                        </span>
+                      )}
+                      <span>•</span>
+                      <span>{getMemberName(lot.assigneeUserId)}</span>
+                      {lotScopeText && <span className='font-medium'>{`• ${lotScopeText}`}</span>}
+                      <span className='font-mono font-semibold'>
+                        ({lot.approvedCount}/{lot.taskCount})
                       </span>
-                    )}
-                    {isLotStageDisabled && (
-                      <span className='rounded bg-stone-200 px-1 py-0.2 text-xs font-mono text-stone-600'>
-                        {t('taskGridV3.stageDisabledBadge')}
-                      </span>
-                    )}
-                    <span>•</span>
-                    <span>{getMemberName(lot.assigneeUserId)}</span>
-                    {lotScopeText && <span className='font-medium'>{`• ${lotScopeText}`}</span>}
-                    <span className='font-mono font-semibold'>
-                      ({lot.approvedCount}/{lot.taskCount})
-                    </span>
-                    {lot.dueDate && (
-                      <span className='inline-flex items-center gap-0.5 text-xs text-stone-500'>
-                        <Clock className='h-3 w-3' />
-                        {new Date(lot.dueDate).toLocaleDateString(
-                          lang === 'en' ? 'en-US' : 'vi-VN',
-                        )}
-                      </span>
-                    )}
-                    {lot.brief && (
-                      <span
-                        className='max-w-[160px] truncate text-xs italic text-stone-500'
-                        title={lot.brief}
-                      >
-                        “{lot.brief}”
-                      </span>
-                    )}
-                    {canCoordinateAssign && lot.status !== 'Closed' && (
-                      <button
-                        type='button'
-                        data-testid={`edit-lot-btn-${lot.id}`}
-                        onClick={() =>
-                          editingLotId === lot.id ? setEditingLotId(null) : openEditLotForm(lot)
-                        }
-                        title={t('taskGridV3.editLotTooltip')}
-                        className='inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-700 cursor-pointer'
-                      >
-                        <Pencil className='h-2.5 w-2.5' />
-                        <span>{t('taskGridV3.editLotBtn')}</span>
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                      {lot.dueDate && (
+                        <span className='inline-flex items-center gap-0.5 text-xs text-stone-500'>
+                          <Clock className='h-3 w-3' />
+                          {new Date(lot.dueDate).toLocaleDateString(
+                            lang === 'en' ? 'en-US' : 'vi-VN',
+                          )}
+                        </span>
+                      )}
+                      {lot.brief && (
+                        <span
+                          className='max-w-[160px] truncate text-xs italic text-stone-500'
+                          title={lot.brief}
+                        >
+                          “{lot.brief}”
+                        </span>
+                      )}
+                      {canCoordinateAssign && lot.status !== 'Closed' && (
+                        <button
+                          type='button'
+                          data-testid={`edit-lot-btn-${lot.id}`}
+                          onClick={() =>
+                            editingLotId === lot.id ? setEditingLotId(null) : openEditLotForm(lot)
+                          }
+                          title={t('taskGridV3.editLotTooltip')}
+                          className='inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-700 cursor-pointer'
+                        >
+                          <Pencil className='h-2.5 w-2.5' />
+                          <span>{t('taskGridV3.editLotBtn')}</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           )}
 
@@ -3083,9 +3083,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               {drawerTask.lotId && lotById.get(drawerTask.lotId)?.brief && (
                 <div className='col-span-2'>
                   <dt className='text-stone-500'>{t('taskGridV3.drawerLotBriefLabel')}</dt>
-                  <dd className='text-stone-800 mt-0.5'>
-                    {lotById.get(drawerTask.lotId)!.brief}
-                  </dd>
+                  <dd className='text-stone-800 mt-0.5'>{lotById.get(drawerTask.lotId)!.brief}</dd>
                 </div>
               )}
             </dl>
@@ -3122,11 +3120,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             <div className='space-y-2'>
               <div className='flex items-center justify-between'>
                 <h3 className='font-bold text-stone-900'>{t('taskGridV3.historyTitle')}</h3>
-                <Button
-                  variant='ghost'
-                  size='sm'
-                  onClick={() => void loadSubmissions(drawerTask)}
-                >
+                <Button variant='ghost' size='sm' onClick={() => void loadSubmissions(drawerTask)}>
                   {t('taskGridV3.reloadBtn')}
                 </Button>
               </div>

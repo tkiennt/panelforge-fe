@@ -41,10 +41,7 @@ import { Badge, Button, Card, CardHeader, ProgressBar } from '@/shared/ui';
 import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
 import { formatDate } from '@/lib/format';
 import { ProducerSharedHeader } from './ProducerSharedHeader';
-import {
-  notifyChapterHubChanged,
-  useChapterReadiness,
-} from './useChapterProductionHub';
+import { notifyChapterHubChanged, useChapterReadiness } from './useChapterProductionHub';
 import {
   buildChapterManagementUrl,
   buildChapterReaderUrl,
@@ -285,8 +282,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     );
   }, [currentChapter, tf]);
 
-  const { readiness: chapterReadiness, refetch: refetchReadiness } =
-    useChapterReadiness(currentChapterId || null);
+  const { readiness: chapterReadiness, refetch: refetchReadiness } = useChapterReadiness(
+    currentChapterId || null,
+  );
 
   const canRefreezeScript = useMemo(() => {
     if (!currentChapter) return false;
@@ -510,7 +508,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                     data-testid='readiness-script-status'
                     className={`px-2 py-0.5 rounded-full font-semibold border ${
                       (chapterReadiness?.script.isScriptFrozen ?? currentChapter?.isScriptFrozen) ||
-                      (chapterReadiness?.script.scriptStatus ?? currentChapter?.scriptStatus) === 'Frozen'
+                      (chapterReadiness?.script.scriptStatus ?? currentChapter?.scriptStatus) ===
+                        'Frozen'
                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                         : 'bg-amber-50 text-amber-800 border-amber-200'
                     }`}
@@ -535,7 +534,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </button>
                 </div>
 
-                <span className='hidden sm:inline text-stone-200' aria-hidden='true'>|</span>
+                <span className='hidden sm:inline text-stone-200' aria-hidden='true'>
+                  |
+                </span>
 
                 {/* Chapter Bible snapshot */}
                 <div className='flex items-center gap-2'>
