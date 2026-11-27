@@ -41,10 +41,7 @@ import {
   MultilingualPublishingMatrix,
   type SeriesPublishingTab,
 } from '../components/MultilingualPublishingMatrix';
-import {
-  formatContentLanguageName,
-  orderReleaseLanguages,
-} from '../components/multilingual';
+import { formatContentLanguageName, orderReleaseLanguages } from '../components/multilingual';
 import { PublishScheduleModal } from '../modals/PublishScheduleModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
@@ -103,7 +100,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
         seriesService.getSeriesById(seriesId).catch(() => null),
       ]);
       setDetail(data);
-      const orig = ((seriesMeta?.originalLanguage || 'vi').toLowerCase() as ContentLanguage);
+      const orig = (seriesMeta?.originalLanguage || 'vi').toLowerCase() as ContentLanguage;
       setOriginalLanguage(orig);
       const rel = orderReleaseLanguages(
         seriesMeta?.releaseLanguages?.length ? seriesMeta.releaseLanguages : [...CONTENT_LANGUAGES],
@@ -472,7 +469,9 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
                 {approvedCount > 0 && (
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      activeTab === 'approved' ? 'bg-white text-[#EA580C]' : 'bg-[#EA580C] text-white'
+                      activeTab === 'approved'
+                        ? 'bg-white text-[#EA580C]'
+                        : 'bg-[#EA580C] text-white'
                     }`}
                   >
                     {approvedCount}
@@ -537,8 +536,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
               setWorkspaceTab('matrix');
             }}
           />
-        ) : (
-        /* Danh Sách Từng Chương */
+        ) : /* Danh Sách Từng Chương */
         filteredChapters.length === 0 ? (
           <div className='py-12 text-center text-stone-500 space-y-2'>
             <BookOpen className='w-8 h-8 text-stone-300 mx-auto' />
@@ -735,7 +733,7 @@ export const PublisherSeriesDetailView: React.FC<PublisherSeriesDetailViewProps>
               );
             })}
           </div>
-        ))}
+        )}
       </div>
 
       {/* MODAL 2: Series Bible Modal */}

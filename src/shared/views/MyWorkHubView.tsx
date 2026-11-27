@@ -35,49 +35,49 @@ const roleKey = (role: unknown) => String(role ?? '').toUpperCase();
 /** Bàn làm việc đúng vai trò của lô (Writer → kịch bản, Artist/Letterer → bàn vẽ, Editor → bàn duyệt). */
 export const lotHref = (workspaceId: string, lot: MyTaskLotDto): string => {
   const role = roleKey(lot.assignedRole);
-  if (role === 'WRITER') return buildScriptEditorUrl(workspaceId, lot.seriesId, { chapterId: lot.chapterId });
+  if (role === 'WRITER')
+    return buildScriptEditorUrl(workspaceId, lot.seriesId, { chapterId: lot.chapterId });
   if (role === 'EDITOR' || role === 'PRODUCER')
     return buildEditorDeskUrl(workspaceId, lot.seriesId, { chapterId: lot.chapterId });
   const firstPage = lot.tasks.find((c) => c.pageNumber != null)?.pageNumber ?? undefined;
-  return buildArtistDeskUrl(workspaceId, lot.seriesId, { chapterId: lot.chapterId, page: firstPage });
+  return buildArtistDeskUrl(workspaceId, lot.seriesId, {
+    chapterId: lot.chapterId,
+    page: firstPage,
+  });
 };
 
 /** Gom việc của mọi Studio thành danh sách phẳng, chia nhóm Đang làm / Cần sửa / Chờ duyệt. */
 export const flattenMyWork = (studios: MyWorkStudioDto[]): WorkItem[] =>
   studios.flatMap((s) => [
-    ...s.lots.map(
-      (lot): WorkItem => ({
-        key: `lot-${lot.id}`,
-        bucket: lot.tasks.some((c) => c.status === 'ReworkRequired') ? 'rework' : 'inProgress',
-        workspaceId: s.workspaceId,
-        workspaceName: s.workspaceName,
-        role: roleKey(lot.assignedRole),
-        seriesTitle: lot.seriesTitle,
-        chapterNumber: lot.chapterNumber,
-        chapterTitle: lot.chapterTitle,
-        stageName: lot.stageName,
-        dueDate: lot.dueDate,
-        isOverdue: lot.isOverdue,
-        pages: lot.tasks.map((c) => c.pageNumber).filter((n): n is number => n != null),
-        href: lotHref(s.workspaceId, lot),
-      }),
-    ),
-    ...s.reviewQueue.map(
-      (item: TaskGridReviewItemDto): WorkItem => ({
-        key: `review-${item.taskId}`,
-        bucket: 'toReview',
-        workspaceId: s.workspaceId,
-        workspaceName: s.workspaceName,
-        role: 'EDITOR',
-        seriesTitle: item.seriesTitle,
-        chapterNumber: item.chapterNumber,
-        chapterTitle: item.chapterTitle,
-        stageName: item.stageName,
-        isOverdue: false,
-        pages: item.pageNumber != null ? [item.pageNumber] : [],
-        href: buildTaskReviewUrl(s.workspaceId, item.seriesId, item.taskId, item.chapterId),
-      }),
-    ),
+    ...s.lots.map((lot): WorkItem => ({
+      key: `lot-${lot.id}`,
+      bucket: lot.tasks.some((c) => c.status === 'ReworkRequired') ? 'rework' : 'inProgress',
+      workspaceId: s.workspaceId,
+      workspaceName: s.workspaceName,
+      role: roleKey(lot.assignedRole),
+      seriesTitle: lot.seriesTitle,
+      chapterNumber: lot.chapterNumber,
+      chapterTitle: lot.chapterTitle,
+      stageName: lot.stageName,
+      dueDate: lot.dueDate,
+      isOverdue: lot.isOverdue,
+      pages: lot.tasks.map((c) => c.pageNumber).filter((n): n is number => n != null),
+      href: lotHref(s.workspaceId, lot),
+    })),
+    ...s.reviewQueue.map((item: TaskGridReviewItemDto): WorkItem => ({
+      key: `review-${item.taskId}`,
+      bucket: 'toReview',
+      workspaceId: s.workspaceId,
+      workspaceName: s.workspaceName,
+      role: 'EDITOR',
+      seriesTitle: item.seriesTitle,
+      chapterNumber: item.chapterNumber,
+      chapterTitle: item.chapterTitle,
+      stageName: item.stageName,
+      isOverdue: false,
+      pages: item.pageNumber != null ? [item.pageNumber] : [],
+      href: buildTaskReviewUrl(s.workspaceId, item.seriesId, item.taskId, item.chapterId),
+    })),
   ]);
 
 /** UIQ-11q: "Việc của tôi" xuyên mọi Studio cho Writer / Artist / Letterer / Editor. */
@@ -114,7 +114,11 @@ export const MyWorkHubView: React.FC = () => {
   };
   const shown = visible
     .filter((i) => i.bucket === bucket)
-    .sort((a, b) => Number(b.isOverdue) - Number(a.isOverdue) || (a.dueDate ?? '9').localeCompare(b.dueDate ?? '9'));
+    .sort(
+      (a, b) =>
+        Number(b.isOverdue) - Number(a.isOverdue) ||
+        (a.dueDate ?? '9').localeCompare(b.dueDate ?? '9'),
+    );
 
   const selectClass =
     'h-8 rounded-lg border border-stone-200 bg-white px-2 text-xs font-semibold text-stone-800';
@@ -205,7 +209,8 @@ export const MyWorkHubView: React.FC = () => {
                 >
                   <div className='min-w-0 flex-1'>
                     <p className='truncate text-sm font-bold text-stone-900'>
-                      {item.seriesTitle} · {t('workspace.myWorkHub.chapter', { n: item.chapterNumber })}
+                      {item.seriesTitle} ·{' '}
+                      {t('workspace.myWorkHub.chapter', { n: item.chapterNumber })}
                       {item.chapterTitle ? `: ${item.chapterTitle}` : ''}
                     </p>
                     <p className='text-xs text-stone-500'>
@@ -220,7 +225,9 @@ export const MyWorkHubView: React.FC = () => {
                     <Badge tone='danger'>{t('workspace.myWorkHub.overdue')}</Badge>
                   ) : item.dueDate ? (
                     <span className='text-xs text-stone-500'>
-                      {t('workspace.myWorkHub.due', { date: new Date(item.dueDate).toLocaleDateString() })}
+                      {t('workspace.myWorkHub.due', {
+                        date: new Date(item.dueDate).toLocaleDateString(),
+                      })}
                     </span>
                   ) : null}
                 </Card>

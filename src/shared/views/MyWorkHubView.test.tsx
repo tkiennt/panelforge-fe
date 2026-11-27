@@ -37,7 +37,12 @@ const studios = [
       },
     ],
   },
-  { workspaceId: 'w2', workspaceName: 'Moonlight', lots: [lot('c', 'WRITER', ['Assigned'])], reviewQueue: [] },
+  {
+    workspaceId: 'w2',
+    workspaceName: 'Moonlight',
+    lots: [lot('c', 'WRITER', ['Assigned'])],
+    reviewQueue: [],
+  },
 ] as any;
 
 describe('MyWorkHubView helpers', () => {
@@ -52,8 +57,12 @@ describe('MyWorkHubView helpers', () => {
   });
 
   it('opens the desk that matches the role', () => {
-    expect(lotHref('w1', lot('a', 'ARTIST', ['InProgress']))).toContain('/workspaces/w1/series/s1/artist/desk');
-    expect(lotHref('w2', lot('c', 'WRITER', ['Assigned']))).toContain('/workspaces/w2/series/s1/script/editor');
+    expect(lotHref('w1', lot('a', 'ARTIST', ['InProgress']))).toContain(
+      '/workspaces/w1/series/s1/artist/desk',
+    );
+    expect(lotHref('w2', lot('c', 'WRITER', ['Assigned']))).toContain(
+      '/workspaces/w2/series/s1/script/editor',
+    );
   });
 });
 

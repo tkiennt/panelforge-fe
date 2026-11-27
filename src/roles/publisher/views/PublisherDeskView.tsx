@@ -27,15 +27,9 @@ import {
   PublisherSeriesDto,
   PublisherWorkspaceDto,
 } from '@/services/publisher.service';
-import {
-  chapterEditionService,
-  type ChapterEditionDto,
-} from '@/services/chapter-edition.service';
+import { chapterEditionService, type ChapterEditionDto } from '@/services/chapter-edition.service';
 import { CONTENT_LANGUAGES } from '@/services/payment.service';
-import {
-  formatContentLanguageName,
-  getEditionStatusDisplay,
-} from '../components/multilingual';
+import { formatContentLanguageName, getEditionStatusDisplay } from '../components/multilingual';
 import { PublishScheduleModal } from '../modals/PublishScheduleModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
@@ -286,7 +280,9 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           <div className='flex items-center gap-1.5'>
             <Languages className='w-4 h-4 text-[#C2410C] shrink-0' />
             <select
-              aria-label={lang === 'en' ? 'Filter by content language' : 'Lọc theo ngôn ngữ nội dung'}
+              aria-label={
+                lang === 'en' ? 'Filter by content language' : 'Lọc theo ngôn ngữ nội dung'
+              }
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
               className='text-xs font-medium bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl px-3 py-2 text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#F97316]/30 cursor-pointer min-w-[160px]'
@@ -314,7 +310,10 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
             />
           </div>
 
-          {(selectedWorkspaceId || selectedSeriesId || selectedLanguage !== 'all' || searchQuery) && (
+          {(selectedWorkspaceId ||
+            selectedSeriesId ||
+            selectedLanguage !== 'all' ||
+            searchQuery) && (
             <button
               type='button'
               onClick={clearFilters}

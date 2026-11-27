@@ -64,7 +64,9 @@ export const PublisherRevenueView: React.FC = () => {
             <CreditCard className='w-6 h-6' />
           </div>
           <div>
-            <h1 className='text-xl font-bold text-[#171717] tracking-tight'>{t('revenue.title')}</h1>
+            <h1 className='text-xl font-bold text-[#171717] tracking-tight'>
+              {t('revenue.title')}
+            </h1>
             <p className='text-xs text-[#737373] mt-0.5'>{t('revenue.subtitle')}</p>
           </div>
         </div>

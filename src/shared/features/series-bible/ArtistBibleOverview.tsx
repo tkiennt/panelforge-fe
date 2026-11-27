@@ -71,12 +71,11 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
   return (
     <div className='space-y-6' data-testid={`${role}-bible-overview`}>
       {role === 'artist' ? (
-        <section
-          className='grid grid-cols-1 gap-3 sm:grid-cols-3'
-          aria-label={copy('summaryAria')}
-        >
+        <section className='grid grid-cols-1 gap-3 sm:grid-cols-3' aria-label={copy('summaryAria')}>
           <div className='rounded-lg border border-stone-200 bg-white px-4 py-3'>
-            <div className='text-xl font-bold tabular-nums text-stone-900'>{designQueue.length}</div>
+            <div className='text-xl font-bold tabular-nums text-stone-900'>
+              {designQueue.length}
+            </div>
             <div className='mt-1 text-xs font-medium text-stone-600'>{copy('todoMetric')}</div>
           </div>
           <div className='rounded-lg border border-stone-200 bg-white px-4 py-3'>

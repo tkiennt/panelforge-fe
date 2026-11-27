@@ -713,7 +713,11 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
               } else if (el === 'character') {
                 const name = node.textContent.replace(/:+$/, '').trim();
                 if (name) {
-                  const tone = getCharacterStatusTone(name, options.bibleEntries, options.chapterCast);
+                  const tone = getCharacterStatusTone(
+                    name,
+                    options.bibleEntries,
+                    options.chapterCast,
+                  );
                   decos.push(
                     Decoration.node(offset, offset + node.nodeSize, {
                       class: `gn-char-tone-${tone}`,

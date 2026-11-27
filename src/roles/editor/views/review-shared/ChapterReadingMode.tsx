@@ -86,7 +86,9 @@ export const ChapterReadingMode: React.FC<ChapterReadingModeProps> = ({
             elements: snapshot.elements ?? [],
             drawText: true,
             getAccessUrl: async (assetRefId) =>
-              resolveArtworkUrl((await artworkService.getArtworkAccessLink(chapterId, assetRefId)).url),
+              resolveArtworkUrl(
+                (await artworkService.getArtworkAccessLink(chapterId, assetRefId)).url,
+              ),
           });
           dataUrl = rendered.dataUrl;
         }
@@ -131,7 +133,10 @@ export const ChapterReadingMode: React.FC<ChapterReadingModeProps> = ({
       >
         {src === undefined ? (
           <div className='flex aspect-[2/3] items-center justify-center text-stone-400'>
-            <Loader2 className='h-5 w-5 animate-spin' aria-label={t('readerView.readingModeLoading')} />
+            <Loader2
+              className='h-5 w-5 animate-spin'
+              aria-label={t('readerView.readingModeLoading')}
+            />
           </div>
         ) : src ? (
           <img
@@ -189,7 +194,9 @@ export const ChapterReadingMode: React.FC<ChapterReadingModeProps> = ({
             type='button'
             onClick={() => setIndex((i) => i + leftStep)}
             disabled={leftStep === 1 ? !canForward : !canBack}
-            aria-label={leftStep === 1 ? t('readerView.readingModeNext') : t('readerView.readingModePrev')}
+            aria-label={
+              leftStep === 1 ? t('readerView.readingModeNext') : t('readerView.readingModePrev')
+            }
             data-testid='reading-left'
             className='rounded-full p-2 text-stone-100 hover:bg-white/10 disabled:opacity-30 cursor-pointer'
           >
@@ -202,7 +209,9 @@ export const ChapterReadingMode: React.FC<ChapterReadingModeProps> = ({
             type='button'
             onClick={() => setIndex((i) => i - leftStep)}
             disabled={leftStep === 1 ? !canBack : !canForward}
-            aria-label={leftStep === 1 ? t('readerView.readingModePrev') : t('readerView.readingModeNext')}
+            aria-label={
+              leftStep === 1 ? t('readerView.readingModePrev') : t('readerView.readingModeNext')
+            }
             data-testid='reading-right'
             className='rounded-full p-2 text-stone-100 hover:bg-white/10 disabled:opacity-30 cursor-pointer'
           >

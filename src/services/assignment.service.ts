@@ -1189,7 +1189,9 @@ export const assignmentService = {
       const response = await axiosClient.get('/me/work');
       return response.data || [];
     } catch (error: any) {
-      throw new Error(extractError(error, translate('errors.services.assignment.getMyTaskLotsFailed')));
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.getMyTaskLotsFailed')),
+      );
     }
   },
 

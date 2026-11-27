@@ -450,9 +450,7 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
             <div className='text-[11px] text-[#57534E]'>
               {lang === 'en' ? 'Also publishing translations:' : 'Phát hành kèm bản dịch:'}{' '}
               <strong>
-                {translationsToPublish
-                  .map((c) => `${langName(c)} (${c.toUpperCase()})`)
-                  .join(', ')}
+                {translationsToPublish.map((c) => `${langName(c)} (${c.toUpperCase()})`).join(', ')}
               </strong>
             </div>
           )}

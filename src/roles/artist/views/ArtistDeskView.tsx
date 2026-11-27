@@ -1650,11 +1650,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         ? speaker || undefined
         : speaker || t('artist.deskView.narratorFallback');
       const resolvedCharColor = resolvedCharName
-        ? (rawBibleEntries.length > 0
-            ? BIBLE_STATUS_STYLES[getCharacterStatusTone(resolvedCharName, rawBibleEntries, null)].textColor
-            : line.characterColor ||
-              (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.color) ||
-              getDeterministicColor(resolvedCharName))
+        ? rawBibleEntries.length > 0
+          ? BIBLE_STATUS_STYLES[getCharacterStatusTone(resolvedCharName, rawBibleEntries, null)]
+              .textColor
+          : line.characterColor ||
+            (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.color) ||
+            getDeterministicColor(resolvedCharName)
         : undefined;
 
       const resolvedStageDirection =
