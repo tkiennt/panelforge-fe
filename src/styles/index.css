@@ -1071,3 +1071,63 @@ body {
 .ProseMirror .script-line-label::after {
   content: ':';
 }
+
+/* Native Popover API menus for AppShellSidebar (CSS Anchor Positioning + @supports guard). */
+.pf-sb-popover-menu:is(:popover-open, .\:popover-open) {
+  display: block;
+}
+
+@supports (position-area: block-end) {
+  .pf-sb-popover-menu {
+    inset: auto;
+    margin: 0;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
+    margin-block-start: 6px;
+  }
+  .pf-sb-popover-menu[data-placement='top'] {
+    position-area: block-start span-inline-start;
+    margin-block-start: 0;
+    margin-block-end: 10px;
+  }
+  .pf-sb-popover-menu[data-placement='right-start'] {
+    position-area: inline-end span-block-end;
+    margin-block-start: 0;
+    margin-inline-start: 10px;
+  }
+  .pf-sb-popover-menu[data-placement='right-end'] {
+    position-area: inline-end span-block-start;
+    margin-block-start: 0;
+    margin-inline-start: 10px;
+  }
+}
+
+@supports not (position-area: block-end) {
+  .pf-sb-popover-menu {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pf-sb-popover-menu {
+    opacity: 0;
+    translate: 0 0.2rem;
+    transition: opacity, translate, display, overlay;
+    transition-duration: 0.14s;
+    transition-behavior: allow-discrete;
+  }
+  .pf-sb-popover-menu:popover-open {
+    opacity: 1;
+    translate: 0 0;
+    transition-duration: 0.1s;
+    @starting-style {
+      opacity: 0;
+      translate: 0 0.2rem;
+    }
+  }
+}

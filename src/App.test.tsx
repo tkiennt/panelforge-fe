@@ -125,9 +125,9 @@ describe('App Integration Smoke Test', () => {
       { timeout: 10000 },
     );
 
-    // 6. User bấm nút "Workspaces" trên breadcrumb để rời khỏi Workspace
-    const backBtn = screen.getByTestId('back-to-workspaces-breadcrumb');
-    fireEvent.click(backBtn);
+    // 6. User mở Studio Switcher và chọn "Xem tất cả Studio" để rời khỏi Workspace
+    fireEvent.click(screen.getByTestId('studio-switcher-trigger'));
+    fireEvent.click(await screen.findByTestId('studio-switcher-view-all-btn'));
 
     // 7. Xác nhận đã quay lại WorkspaceListView và currentWorkspaceRole đã được reset
     await waitFor(
