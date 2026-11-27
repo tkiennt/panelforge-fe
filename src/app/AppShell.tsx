@@ -417,6 +417,11 @@ export function AppShell({
             section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
             items: [
               {
+                icon: BookOpen,
+                label: t('navigation.menu.readSeries', 'Đọc bộ truyện'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/read`,
+              },
+              {
                 icon: BookMarked,
                 label: t('navigation.menu.seriesBibleLibrary', 'Series Bible / Thư viện'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,

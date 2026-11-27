@@ -116,7 +116,9 @@ describe('ProducerChapterManagementView (Unified Chapter Production Hub)', () =>
 
   const renderHub = (chapterId = 'chap-1') =>
     render(
-      <MemoryRouter initialEntries={[`/workspaces/ws-1/series/series-1/chapters?chapterId=${chapterId}`]}>
+      <MemoryRouter
+        initialEntries={[`/workspaces/ws-1/series/series-1/chapters?chapterId=${chapterId}`]}
+      >
         <Routes>
           <Route
             path='/workspaces/:workspaceId/series/:seriesId/chapters'
@@ -186,7 +188,11 @@ describe('ProducerChapterManagementView (Unified Chapter Production Hub)', () =>
           mandatory: true,
           statusText: '2/3 đã sẵn sàng',
           reason: 'Còn 1 tài nguyên chưa khóa chuẩn Canon.',
-          resolutionTarget: { workspace: 'pre-production', section: 'entities', resourceId: 'ent-3' },
+          resolutionTarget: {
+            workspace: 'pre-production',
+            section: 'entities',
+            resourceId: 'ent-3',
+          },
         },
       ],
       blockers: [
@@ -196,7 +202,11 @@ describe('ProducerChapterManagementView (Unified Chapter Production Hub)', () =>
           message: 'Vegeta: Bản Mặc định v1 chưa được khoá Canon (chờ Artist vẽ).',
           resourceType: 'bible_entry',
           resourceId: 'ent-3',
-          resolutionTarget: { workspace: 'pre-production', section: 'entities', resourceId: 'ent-3' },
+          resolutionTarget: {
+            workspace: 'pre-production',
+            section: 'entities',
+            resourceId: 'ent-3',
+          },
         },
       ],
       warnings: [],
@@ -278,7 +288,14 @@ describe('ProducerChapterManagementView (Unified Chapter Production Hub)', () =>
       status: 'READY',
       canStartProduction: true,
       checks: [
-        { code: 'SCRIPT_SUBMITTED', group: 'SCRIPT', label: 'Kịch bản đã gửi duyệt', passed: true, mandatory: true, statusText: 'Đã nộp v3' },
+        {
+          code: 'SCRIPT_SUBMITTED',
+          group: 'SCRIPT',
+          label: 'Kịch bản đã gửi duyệt',
+          passed: true,
+          mandatory: true,
+          statusText: 'Đã nộp v3',
+        },
       ],
       blockers: [],
       warnings: [
@@ -419,7 +436,9 @@ describe('ProducerChapterManagementView (Unified Chapter Production Hub)', () =>
     renderHub('chap-2');
 
     await waitFor(() => {
-      expect(screen.getByTestId('header-chapter-lifecycle-badge')).toHaveTextContent('Đang sản xuất');
+      expect(screen.getByTestId('header-chapter-lifecycle-badge')).toHaveTextContent(
+        'Đang sản xuất',
+      );
       expect(screen.getByTestId('header-script-lock-badge')).toHaveTextContent('Kịch bản: Đã khóa');
       expect(screen.getByTestId('metric-task-progress')).toHaveTextContent('4/9 (44%)');
       expect(screen.getByTestId('metric-page-progress')).toHaveTextContent('1/3 (33%)');
@@ -429,5 +448,159 @@ describe('ProducerChapterManagementView (Unified Chapter Production Hub)', () =>
     expect(screen.getByTestId('overview-script-summary')).toHaveTextContent('v5');
     expect(screen.getByTestId('overview-script-summary')).toHaveTextContent('v4');
     expect(screen.getByTestId('hub-primary-action')).toHaveTextContent('Mở Bảng sản xuất');
+  });
+
+  it('P1-2: Action Center lists unassigned, pending review, rework, and overdue production tasks with link to Production Board', async () => {
+    (chapterService.getChapterById as any).mockResolvedValue(mockChapters[1]);
+    (chapterService.getChapterReadiness as any).mockResolvedValue({
+      chapterId: 'chap-2',
+      seriesId: 'series-1',
+      chapterNumber: 2,
+      chapterTitle: 'Đêm định mệnh',
+      chapterStatus: 'InProduction',
+      isHandedOff: false,
+      status: 'STARTED',
+      canStartProduction: false,
+      checks: [],
+      blockers: [],
+      warnings: [],
+      summary: { required: 3, passed: 3, remaining: 0 },
+      script: {
+        latestVersionNumber: 5,
+        approvedVersionNumber: 5,
+        productionVersionNumber: 5,
+        scriptStatus: 'Frozen',
+        isScriptFrozen: true,
+        hasUnpushedDraftChanges: false,
+        sceneCount: 3,
+        pageCount: 18,
+        panelCount: 60,
+        lineCount: 95,
+        unresolvedCommentsCount: 0,
+        openFindingsCount: 0,
+      },
+      bible: {
+        requiredTotal: 2,
+        readyCount: 2,
+        missingDefinitionCount: 0,
+        missingArtCount: 0,
+        pendingApprovalCount: 0,
+        reworkCount: 0,
+        crowdOptionalCount: 0,
+        nonVisualReadyCount: 0,
+        byCategory: [],
+      },
+      production: {
+        totalTasks: 9,
+        approvedTasks: 2,
+        submittedTasks: 1,
+        inProgressTasks: 1,
+        reworkTasks: 1,
+        unassignedTasks: 4,
+        overdueTasks: 1,
+        taskProgressPercent: 22,
+        totalPages: 3,
+        completedPages: 0,
+        pageProgressPercent: 0,
+        totalPanels: 12,
+        approvedPanels: 0,
+        panelProgressPercent: 0,
+        stages: [],
+      },
+      evaluatedAt: '2026-11-27T05:00:00Z',
+    });
+
+    renderHub('chap-2');
+
+    expect(await screen.findByTestId('action-production-overdue')).toBeInTheDocument();
+    expect(screen.getByTestId('action-production-rework')).toBeInTheDocument();
+    expect(screen.getByTestId('action-production-submitted')).toBeInTheDocument();
+    expect(screen.getByTestId('action-production-unassigned')).toBeInTheDocument();
+    expect(screen.queryByText('Không có việc cần xử lý ngay.')).not.toBeInTheDocument();
+  });
+
+  it('P1-4: shows descriptive empty state instead of 0/0 (0%) and 0/0 bắt buộc when totals are zero', async () => {
+    (chapterService.getChapterById as any).mockResolvedValue(mockChapters[1]);
+    (chapterService.getChapterReadiness as any).mockResolvedValue({
+      chapterId: 'chap-2',
+      seriesId: 'series-1',
+      chapterNumber: 2,
+      chapterTitle: 'Đêm định mệnh',
+      chapterStatus: 'HandedOffAndPublished',
+      isHandedOff: true,
+      status: 'STARTED',
+      canStartProduction: false,
+      checks: [],
+      blockers: [],
+      warnings: [],
+      summary: { required: 0, passed: 0, remaining: 0 },
+      script: {
+        latestVersionNumber: 1,
+        approvedVersionNumber: 1,
+        productionVersionNumber: 1,
+        scriptStatus: 'Frozen',
+        isScriptFrozen: true,
+        hasUnpushedDraftChanges: false,
+        sceneCount: 0,
+        pageCount: 0,
+        panelCount: 0,
+        lineCount: 0,
+        unresolvedCommentsCount: 0,
+        openFindingsCount: 0,
+      },
+      bible: {
+        requiredTotal: 0,
+        readyCount: 0,
+        missingDefinitionCount: 0,
+        missingArtCount: 0,
+        pendingApprovalCount: 0,
+        reworkCount: 0,
+        crowdOptionalCount: 0,
+        nonVisualReadyCount: 0,
+        byCategory: [],
+      },
+      production: {
+        totalTasks: 0,
+        approvedTasks: 0,
+        submittedTasks: 0,
+        inProgressTasks: 0,
+        reworkTasks: 0,
+        unassignedTasks: 0,
+        overdueTasks: 0,
+        taskProgressPercent: 0,
+        totalPages: 0,
+        completedPages: 0,
+        pageProgressPercent: 0,
+        totalPanels: 0,
+        approvedPanels: 0,
+        panelProgressPercent: 0,
+        stages: [
+          {
+            stageId: 'st-1',
+            stageName: 'Pencil',
+            stageOrder: 1,
+            totalTasks: 0,
+            approvedTasks: 0,
+            submittedTasks: 0,
+            inProgressTasks: 0,
+            reworkTasks: 0,
+            unassignedTasks: 0,
+          },
+        ],
+      },
+      evaluatedAt: '2026-11-27T05:00:00Z',
+    });
+
+    renderHub('chap-2');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('metric-task-progress')).toHaveTextContent('Chưa có công việc');
+      expect(screen.getByTestId('metric-page-progress')).toHaveTextContent('Chưa có trang');
+      expect(screen.getByTestId('metric-panel-progress')).toHaveTextContent('Chưa có khung tranh');
+      expect(screen.getByTestId('overview-bible-summary')).toHaveTextContent(
+        'Không có tài liệu bắt buộc',
+      );
+    });
+    expect(screen.queryByText(/0\/0/)).not.toBeInTheDocument();
   });
 });

@@ -32,6 +32,7 @@ export interface ChapterReaderViewProps {
 
 export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
   currentUserId,
+  workspaceRole,
   onShowToast,
 }) => {
   const {
@@ -271,6 +272,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
         seriesTitle={series?.title}
         seriesFormat={series?.format}
         currentChapter={chapter}
+        hideBackLink={['producer', 'owner'].includes((workspaceRole ?? '').toLowerCase())}
         onChapterChange={(nextId) => {
           navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${nextId}/reader`);
         }}
