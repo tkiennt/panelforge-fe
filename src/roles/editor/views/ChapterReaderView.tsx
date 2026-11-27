@@ -14,6 +14,7 @@ import {
   History,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { ChapterReadingMode } from './review-shared/ChapterReadingMode';
 import { ProducerSharedHeader } from '@/shared/features/production-workspace/ProducerSharedHeader';
 import { chapterService, ChapterDto, ScriptVersionRow } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
@@ -58,6 +59,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
 
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
+  const [readingMode, setReadingMode] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [zoomScale, setZoomScale] = useState(1);
   const [activeTool, setActiveTool] = useState<'pan' | 'crop'>('crop');
@@ -273,6 +275,35 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
           navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${nextId}/reader`);
         }}
       />
+
+      {!loading && pages.length > 0 && (
+        <div className='flex justify-end px-4 sm:px-6 pt-3 max-w-[1720px] mx-auto w-full'>
+          <button
+            type='button'
+            onClick={() => setReadingMode(true)}
+            data-testid='open-reading-mode'
+            className='inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800 hover:border-orange-300 hover:bg-orange-50 cursor-pointer'
+          >
+            <BookOpen className='h-4 w-4 text-orange-600' aria-hidden='true' />
+            {t('readerView.readingModeBtn')}
+          </button>
+        </div>
+      )}
+
+      {readingMode && chapterId && seriesId && (
+        <ChapterReadingMode
+          chapterId={chapterId}
+          seriesId={seriesId}
+          readingDirection={series?.readingDirection}
+          pages={pages}
+          initialPageId={currentPageId}
+          onClose={() => setReadingMode(false)}
+          onReviewPage={(pageId) => {
+            setCurrentPageId(pageId);
+            setReadingMode(false);
+          }}
+        />
+      )}
 
       {loading && (
         <div className='flex flex-1 items-center justify-center py-24 text-stone-500'>
