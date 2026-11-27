@@ -1466,6 +1466,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       withdrawDisabledReason: t('artist.deskView.withdrawDisabledTooltip'),
       isWithdrawingStage,
       withdrawButtonLabel: t('artist.deskView.withdrawButtonLabel'),
+      readerUrl:
+        workspaceId && seriesId && currentChapterId
+          ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${currentChapterId}/reader`
+          : undefined,
     });
   }, [
     focusHeader,
@@ -1483,6 +1487,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     withdrawableCell,
     handleWithdrawStage,
     isWithdrawingStage,
+    workspaceId,
+    seriesId,
   ]);
 
   useEffect(() => {
@@ -2978,6 +2984,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             withdrawDisabledReason: t('artist.deskView.withdrawDisabledTooltip'),
             isWithdrawingStage,
             withdrawButtonLabel: t('artist.deskView.withdrawButtonLabel'),
+            readerUrl:
+              workspaceId && seriesId && currentChapterId
+                ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${currentChapterId}/reader`
+                : undefined,
           }}
           showFocusControls={false}
         />
@@ -3417,6 +3427,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             isFullscreen={isFullscreen}
             onToggleFullscreen={handleToggleFullscreen}
             canEdit={!isPageReadOnly}
+            onOpenReader={
+              workspaceId && seriesId && currentChapterId
+                ? () =>
+                    navigate(
+                      `/workspaces/${workspaceId}/series/${seriesId}/chapters/${currentChapterId}/reader`,
+                    )
+                : undefined
+            }
           />
         </div>
       </div>

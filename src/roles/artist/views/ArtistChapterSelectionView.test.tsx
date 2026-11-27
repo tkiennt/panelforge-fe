@@ -213,4 +213,17 @@ describe('ArtistChapterSelectionView Component', () => {
     });
     expect(screen.getByText('Chưa có chương')).toBeInTheDocument();
   });
+
+  it('navigates to chapter reader when clicking read demo button', async () => {
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('artist-read-chapter-btn-1')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('artist-read-chapter-btn-1'));
+    expect(mockedNavigate).toHaveBeenCalledWith(
+      '/workspaces/ws-1/series/ser-1/chapters/chap-1/reader',
+    );
+  });
 });
