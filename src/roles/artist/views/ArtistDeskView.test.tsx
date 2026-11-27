@@ -603,6 +603,15 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
       );
     });
 
+    // Stage status bar is read-only: clicking previous Pencil stage must NOT revert from Ink
+    expect(screen.getByTestId('focus-stage-step-0')).not.toHaveClass('cursor-pointer');
+    fireEvent.click(screen.getByTestId('focus-stage-step-0'));
+    expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute(
+      'data-stage-state',
+      'completed',
+    );
+    expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'current');
+
     // Submit 2: Ink -> Letter
     fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
     await waitFor(() => {

@@ -1433,25 +1433,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     t,
   ]);
 
-  const handleSelectStage = useCallback(
-    (idx: number) => {
-      if (idx < 0 || idx >= artistStages.length) return;
-      if (idx > currentStageIndex) {
-        toast.warning(
-          t('artist.deskView.stageLockedTitle'),
-          t('artist.deskView.stageLockedDesc', {
-            stage:
-              artistStages[currentStageIndex]?.label || t('artist.deskView.currentStageFallback'),
-          }),
-        );
-        return;
-      }
-      setCurrentStageIndex(idx);
-      setIsStageFlowCompleted(false);
-    },
-    [artistStages, currentStageIndex, toast, t],
-  );
-
   const seriesPath = useMemo(() => {
     if (workspaceId && seriesId) {
       return `/workspaces/${workspaceId}/series/${seriesId}/artist`;
@@ -1553,7 +1534,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       isStageFlowCompleted,
       isSubmittingStage,
       onSubmitStage: handleSubmitStage,
-      onSelectStage: handleSelectStage,
       submitButtonLabel: t('artist.deskView.submitButtonLabel'),
       showWithdrawButton: true,
       onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
@@ -1575,7 +1555,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     isStageFlowCompleted,
     isSubmittingStage,
     handleSubmitStage,
-    handleSelectStage,
     withdrawableCell,
     handleWithdrawStage,
     isWithdrawingStage,
@@ -2938,7 +2917,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             isStageFlowCompleted,
             isSubmittingStage,
             onSubmitStage: handleSubmitStage,
-            onSelectStage: handleSelectStage,
             submitButtonLabel: t('artist.deskView.submitButtonLabel'),
             showWithdrawButton: true,
             onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
