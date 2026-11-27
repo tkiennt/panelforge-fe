@@ -74,7 +74,10 @@ export interface EditionStatusDisplay {
  * (no raw enum leakage like 'EditorApproved' or 'InReview').
  */
 export const getEditionStatusDisplay = (
-  ed?: Pick<ChapterLanguageStatusDto, 'editionStatus' | 'isAvailable'> | { status?: EditionStatus | string | null } | null,
+  ed?:
+    | Pick<ChapterLanguageStatusDto, 'editionStatus' | 'isAvailable'>
+    | { status?: EditionStatus | string | null }
+    | null,
   uiLang: string = 'vi',
 ): EditionStatusDisplay => {
   const isEn = uiLang === 'en';
@@ -87,7 +90,10 @@ export const getEditionStatusDisplay = (
     };
   }
 
-  const rawStatus = 'editionStatus' in ed ? ed.editionStatus : ed.status;
+  const rawStatus =
+    'editionStatus' in ed
+      ? (ed as { editionStatus?: string | null }).editionStatus
+      : (ed as { status?: EditionStatus | string | null }).status;
   const isAvailable = 'isAvailable' in ed ? Boolean(ed.isAvailable) : rawStatus === 'Published';
 
   if (isAvailable || rawStatus === 'Published') {
