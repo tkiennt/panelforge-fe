@@ -118,7 +118,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
           </button>
           <button
             type='button'
-            onClick={() => navigate('/publisher/catalog')}
+            onClick={() => navigate('/catalog')}
             className='px-3.5 py-2 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] text-xs font-semibold text-[#57534E] hover:text-[#1C1917] rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
           >
             <BookOpen className='w-3.5 h-3.5 text-stone-500' />

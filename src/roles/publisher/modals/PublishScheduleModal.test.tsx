@@ -9,7 +9,11 @@ vi.mock('@/services/chapter.service', () => ({
   chapterService: { publishChapter: vi.fn() },
 }));
 vi.mock('@/services/payment.service', () => ({
-  monetizationService: { getChapterManage: vi.fn(), setEditionMonetization: vi.fn() },
+  monetizationService: {
+    getChapterManage: vi.fn(),
+    setEditionMonetization: vi.fn(),
+    publishLanguageEdition: vi.fn(),
+  },
 }));
 vi.mock('@/services/series.service', () => ({
   seriesService: { getSeriesById: vi.fn() },
@@ -98,5 +102,85 @@ describe('PublishScheduleModal – giá ấn bản gốc (D4)', () => {
 
     await waitFor(() => expect(chapterService.publishChapter).toHaveBeenCalled());
     expect(monetizationService.setEditionMonetization).not.toHaveBeenCalled();
+  });
+});
+
+const translation = (overrides: Record<string, unknown>) => ({
+  language: 'en',
+  translatedPages: 3,
+  isAvailable: false,
+  editionStatus: 'Approved',
+  isMonetizationConfigured: true,
+  isPaid: false,
+  priceVnd: 0,
+  freePreviewPages: 0,
+  ...overrides,
+});
+
+const withTranslation = (overrides: Record<string, unknown>) => {
+  const m = manage(true);
+  return { ...m, languages: [...m.languages, translation(overrides)] };
+};
+
+describe('PublishScheduleModal – phát hành theo ấn bản ngôn ngữ (D1)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (seriesService.getSeriesById as any).mockResolvedValue({ id: 'ser-1', originalLanguage: 'vi' });
+    (chapterService.publishChapter as any).mockResolvedValue({});
+    (monetizationService.publishLanguageEdition as any).mockResolvedValue(undefined);
+  });
+
+  it('phát hành ngay: chương (ấn bản gốc) rồi tới ấn bản dịch đã nghiệm thu được chọn sẵn', async () => {
+    (monetizationService.getChapterManage as any).mockResolvedValue(withTranslation({}));
+    renderModal();
+
+    const en = await screen.findByTestId('publish-edition-en');
+    expect(en).toBeChecked();
+    fireEvent.click(screen.getByTestId('publish-submit'));
+
+    await waitFor(() =>
+      expect(monetizationService.publishLanguageEdition).toHaveBeenCalledWith('chap-1', 'en'),
+    );
+    expect(chapterService.publishChapter).toHaveBeenCalledWith('chap-1', null);
+  });
+
+  it('bỏ chọn ấn bản dịch thì chỉ phát hành chương', async () => {
+    (monetizationService.getChapterManage as any).mockResolvedValue(withTranslation({}));
+    renderModal();
+
+    fireEvent.click(await screen.findByTestId('publish-edition-en'));
+    fireEvent.click(screen.getByTestId('publish-submit'));
+
+    await waitFor(() => expect(chapterService.publishChapter).toHaveBeenCalled());
+    expect(monetizationService.publishLanguageEdition).not.toHaveBeenCalled();
+  });
+
+  it('hẹn giờ: ấn bản dịch bị khoá, chỉ hẹn giờ chương', async () => {
+    (monetizationService.getChapterManage as any).mockResolvedValue(withTranslation({}));
+    renderModal();
+
+    await screen.findByTestId('publish-edition-en');
+    fireEvent.click(screen.getByText('Lên lịch phát hành'));
+    expect(screen.getByTestId('publish-edition-en')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('publish-submit'));
+
+    await waitFor(() => expect(chapterService.publishChapter).toHaveBeenCalled());
+    expect((chapterService.publishChapter as any).mock.calls[0][1]).toEqual(expect.any(String));
+    expect(monetizationService.publishLanguageEdition).not.toHaveBeenCalled();
+  });
+
+  it('ấn bản dịch chưa đặt giá hoặc chưa nghiệm thu thì không chọn được', async () => {
+    (monetizationService.getChapterManage as any).mockResolvedValue(
+      withTranslation({ isMonetizationConfigured: false }),
+    );
+    const { unmount } = renderModal();
+    expect(await screen.findByTestId('publish-edition-en')).toBeDisabled();
+    unmount();
+
+    (monetizationService.getChapterManage as any).mockResolvedValue(
+      withTranslation({ editionStatus: 'Reviewed' }),
+    );
+    renderModal();
+    expect(await screen.findByTestId('publish-edition-en')).toBeDisabled();
   });
 });

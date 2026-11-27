@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Lock, Play, MapPin, Users } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -79,8 +79,19 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   }>();
   const chapterId = chapterIdProp || routeChapterId || '';
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t, lang } = useTranslation('review');
   const { t: tp } = useTranslation('production');
+
+  const initialTabParam = searchParams.get('tab');
+  const highlightedEntityId = searchParams.get('entityId') || '';
+  const initialTab: Tab =
+    initialTabParam === 'comments' ||
+    initialTabParam === 'changes' ||
+    initialTabParam === 'checks' ||
+    initialTabParam === 'entities'
+      ? initialTabParam
+      : 'entities';
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -93,7 +104,19 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
 
   const [composer, setComposer] = useState<ComposerTarget | null>(null);
   const [activeLineId, setActiveLineId] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('entities');
+  const [tab, setTab] = useState<Tab>(initialTab);
+
+  useEffect(() => {
+    const nextTab = searchParams.get('tab');
+    if (
+      nextTab === 'comments' ||
+      nextTab === 'changes' ||
+      nextTab === 'checks' ||
+      nextTab === 'entities'
+    ) {
+      setTab(nextTab);
+    }
+  }, [searchParams]);
   const [busy, setBusy] = useState<string | null>(null);
   const [startOpen, setStartOpen] = useState(false);
   const [series, setSeries] = useState<SeriesDetailDto | null>(null);
@@ -571,10 +594,24 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                     </p>
                   ) : (
                     filteredEntities.map((item) => {
-                      const isLocked = item.isCanonLocked;
-                      const isApproved = item.boundRevision?.status === 'Approved';
-                      const isInRev = item.boundRevision?.status === 'InReview';
                       const isCrowd = item.isCrowd;
+                      const isLocked =
+                        !isCrowd &&
+                        (Boolean(item.isCanonLocked) ||
+                          Boolean(item.boundRevision?.isCanonLocked) ||
+                          item.boundRevision?.status === 'CanonLocked' ||
+                          item.bibleStatus === 'CanonLocked');
+                      const isPendingConfirm =
+                        !isCrowd &&
+                        !isLocked &&
+                        (item.boundRevision?.status === 'ConceptSubmitted' ||
+                          item.bibleStatus === 'WaitingForConfirmation');
+                      const isRework =
+                        !isCrowd &&
+                        !isLocked &&
+                        (item.boundRevision?.status === 'ReworkRequired' ||
+                          item.bibleStatus === 'ReworkRequired');
+                      const isHighlighted = highlightedEntityId === item.bibleEntryId;
 
                       const initials =
                         item.name
@@ -587,10 +624,13 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                       return (
                         <div
                           key={item.bibleEntryId}
+                          data-testid={`script-entity-card-${item.bibleEntryId}`}
                           className={`p-3 rounded-xl border flex items-center justify-between gap-2 transition-colors ${
-                            !isLocked && !isCrowd && !isApproved
-                              ? 'bg-amber-50/50 border-amber-200'
-                              : 'bg-stone-50/70 border-stone-200 hover:bg-stone-50'
+                            isHighlighted
+                              ? 'ring-2 ring-orange-500 bg-orange-50/50 border-orange-300'
+                              : !isLocked && !isCrowd
+                                ? 'bg-amber-50/50 border-amber-200'
+                                : 'bg-stone-50/70 border-stone-200 hover:bg-stone-50'
                           }`}
                         >
                           <div className='flex items-center gap-2.5 min-w-0'>
@@ -623,22 +663,37 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                                       ? `[${t('scriptReview.defaultVariant')}]`
                                       : item.category}
                                 </span>
+                                {item.boundRevision?.versionNumber && (
+                                  <span className='font-mono text-[11px] text-stone-400'>
+                                    v{item.boundRevision.versionNumber}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
 
                           <div className='flex items-center gap-1.5 shrink-0'>
-                            {(() => {
-                              const tone = getBibleArtworkStatus(item);
-                              const style = BIBLE_STATUS_STYLES[tone];
-                              return (
-                                <span
-                                  className={`text-xs px-2.5 py-0.5 rounded-full font-medium border ${style.bg} ${style.text} ${style.border}`}
-                                >
-                                  {style.label}
-                                </span>
-                              );
-                            })()}
+                            {isCrowd ? (
+                              <span className='bg-stone-100 text-stone-600 border border-stone-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusExempt', 'Miễn trừ')}
+                              </span>
+                            ) : isLocked ? (
+                              <span className='bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusLocked', 'Đã khóa chuẩn')}
+                              </span>
+                            ) : isPendingConfirm ? (
+                              <span className='bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusInReview', 'Chờ duyệt vẽ')}
+                              </span>
+                            ) : isRework ? (
+                              <span className='bg-rose-50 text-rose-700 border border-rose-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusRework', 'Cần vẽ lại')}
+                              </span>
+                            ) : (
+                              <span className='bg-rose-50 text-rose-700 border border-rose-200 text-xs px-2 py-0.5 rounded-full font-medium'>
+                                {t('scriptReview.entities.statusMissing', 'Chưa có bản vẽ')}
+                              </span>
+                            )}
                             <span
                               className={`text-xs px-1.5 py-0.5 rounded border font-medium ${
                                 isCrowd

@@ -58,7 +58,6 @@ export interface FocusHeaderConfig {
   isStageFlowCompleted?: boolean;
   isSubmittingStage?: boolean;
   onSubmitStage?: () => void;
-  onSelectStage?: (stageIndex: number) => void;
   submitButtonLabel?: string;
   onWithdrawStage?: () => void;
   showWithdrawButton?: boolean;
@@ -295,10 +294,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                     data-stage-id={stage.id}
                     data-stage-state={stepState}
                     aria-current={isCurrent ? 'step' : undefined}
-                    onClick={() => headerConfig?.onSelectStage?.(idx)}
-                    className={`flex items-center gap-1 transition-all whitespace-nowrap ${
-                      headerConfig?.onSelectStage ? 'cursor-pointer hover:opacity-90' : ''
-                    } ${
+                    className={`flex items-center gap-1 transition-all whitespace-nowrap select-none ${
                       isCurrent
                         ? 'bg-[#EA580C] text-white px-2 py-0.5 rounded-full font-semibold shadow-2xs'
                         : isCompleted

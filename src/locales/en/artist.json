@@ -45,6 +45,7 @@
     "noBalloons": "Page has no balloons yet.",
     "balloonTitle": "Balloon {order}",
     "linkedToLine": "Linked to line {line}",
+    "saving": "Saving…",
     "unlinked": "Unlinked",
     "addEmptyBalloon": "Add empty balloon"
   },
@@ -505,7 +506,10 @@
     "startingCell": "Starting…",
     "startCellSuccessTitle": "Started",
     "startCellSuccessDesc": "You can now edit the {stage} stage on this page.",
-    "startCellErrorTitle": "Could not start"
+    "startCellErrorTitle": "Could not start",
+    "uploadPendingDesc": "Added {file} to Panel #{panel}. It will be uploaded when you save the layout.",
+    "pendingUploadFailedTitle": "{count} panel image(s) could not be uploaded",
+    "pendingUploadFailedDesc": "The images stay on their panels; add them again to retry the upload."
   },
   "canvaSidebar": {
     "narrationFlashback": "Flashback",
@@ -763,6 +767,7 @@
     "delete": "Delete balloon",
     "labelPrefix": "Balloon {order}",
     "resizeTitle": "Drag to resize",
+    "tailTitle": "Drag to point the tail at the speaker",
     "staleTitle": "Dialogue changed after balloon placement",
     "staleBadge": "Dialogue changed",
     "keepOutTitle": "Balloon covers {label}",

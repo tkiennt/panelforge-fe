@@ -11,6 +11,9 @@ import {
   X,
   RefreshCw,
   ExternalLink,
+  Globe,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import {
   catalogService,
@@ -18,6 +21,8 @@ import {
   PublicSeriesDetailDto,
   resolveCatalogImageUrl,
 } from '@/services/catalog.service';
+import { CONTENT_LANGUAGES } from '@/services/payment.service';
+import { formatContentLanguageName } from '@/roles/publisher/components/multilingual';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
 import { Modal } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
@@ -45,6 +50,16 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [readingChapterId, setReadingChapterId] = useState<string | null>(null);
+  const [selectedContentLang, setSelectedContentLang] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('preferred_reading_language');
+      return saved && CONTENT_LANGUAGES.includes(saved as (typeof CONTENT_LANGUAGES)[number])
+        ? saved
+        : 'vi';
+    } catch {
+      return 'vi';
+    }
+  });
 
   const genres = [
     '',
@@ -86,16 +101,29 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
     fetchCatalog();
   };
 
-  const handleOpenDetail = async (seriesId: string) => {
+  const handleOpenDetail = async (seriesId: string, contentLang?: string) => {
+    const targetLang = contentLang || selectedContentLang;
     setDetailLoading(true);
     setDetailError(null);
     try {
-      const detail = await catalogService.getPublicSeriesDetail(seriesId);
+      const detail = await catalogService.getPublicSeriesDetail(seriesId, targetLang);
       setSelectedSeries(detail);
     } catch (err: any) {
       setDetailError(err.message || t('workspace.reader.catalog.detailLoadError'));
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const handleSelectContentLanguage = (code: string) => {
+    setSelectedContentLang(code);
+    try {
+      localStorage.setItem('preferred_reading_language', code);
+    } catch {
+      // ignore
+    }
+    if (selectedSeries) {
+      handleOpenDetail(selectedSeries.id, code);
     }
   };
 
@@ -340,14 +368,53 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
               {selectedSeries.synopsis || t('workspace.reader.catalog.noSynopsisShort')}
             </p>
 
+            {/* Content Language Selector — independent from UI language */}
+            <div className='flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl bg-[#FCFBF8] border border-[#D8D2C5]'>
+              <span className='inline-flex items-center gap-1.5 text-xs font-medium text-[#57534E]'>
+                <Globe className='w-3.5 h-3.5 text-[#F97316]' />
+                {lang === 'en' ? 'Content language' : 'Ngôn ngữ nội dung'}
+              </span>
+              <div className='flex items-center gap-1.5'>
+                {CONTENT_LANGUAGES.map((code) => {
+                  const active = (selectedSeries.language || selectedContentLang) === code;
+                  return (
+                    <button
+                      key={code}
+                      type='button'
+                      disabled={detailLoading}
+                      onClick={() => handleSelectContentLanguage(code)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                        active
+                          ? 'bg-[#1C1917] text-white'
+                          : 'bg-[#F8F6F0] text-[#57534E] hover:bg-[#EFECE6] border border-[#D8D2C5]'
+                      }`}
+                    >
+                      {formatContentLanguageName(code, lang)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {detailError && (
+              <div className='text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2'>
+                {detailError}
+              </div>
+            )}
+
             <div className='space-y-2 border border-[#D8D2C5] rounded-xl p-3.5 bg-[#F8F6F0]'>
-              <div className='text-xs font-semibold text-[#1C1917] flex items-center gap-1.5'>
-                <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
-                <span>
-                  {t('workspace.reader.catalog.publishedChaptersHeading', {
-                    count: selectedSeries.chapters.length,
-                  })}
+              <div className='text-xs font-semibold text-[#1C1917] flex items-center justify-between gap-2'>
+                <span className='flex items-center gap-1.5'>
+                  <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
+                  <span>
+                    {t('workspace.reader.catalog.publishedChaptersHeading', {
+                      count: selectedSeries.chapters.length,
+                    })}
+                  </span>
                 </span>
+                {detailLoading && (
+                  <RefreshCw className='w-3.5 h-3.5 text-[#F97316] animate-spin' />
+                )}
               </div>
 
               {selectedSeries.chapters.length === 0 ? (
@@ -356,59 +423,102 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                 </div>
               ) : (
                 <div className='space-y-1.5'>
-                  {selectedSeries.chapters.map((chap) => (
-                    <div
-                      key={chap.id}
-                      onClick={() => setReadingChapterId(chap.id)}
-                      className='p-2.5 bg-[#FCFBF8] rounded-lg border border-[#D8D2C5] flex items-center justify-between text-xs hover:border-[#F97316] transition-all cursor-pointer group hover:bg-[#FFF2E6]/30'
-                      title={t('workspace.reader.catalog.readOnlineTitle')}
-                    >
-                      <div className='flex items-center gap-2.5 min-w-0'>
-                        {chap.coverUrl ? (
-                          <img
-                            src={resolveCatalogImageUrl(chap.coverUrl)}
-                            alt={t('workspace.reader.catalog.chapterCoverAlt', {
-                              number: chap.chapterNumber,
-                            })}
-                            className='w-8 h-11 object-cover rounded border border-[#D8D2C5] shadow-2xs shrink-0 bg-stone-100'
-                            loading='lazy'
-                          />
-                        ) : (
-                          <div className='w-8 h-11 rounded bg-[#F0EDE6] border border-[#D8D2C5] flex flex-col items-center justify-center shrink-0 text-center font-mono shadow-2xs'>
-                            <span className='text-[7px] text-stone-400 font-bold uppercase leading-none'>
-                              {t('workspace.reader.catalog.chapterShortBadge')}
-                            </span>
-                            <span className='text-xs font-bold text-[#F97316] leading-none mt-0.5'>
-                              {chap.chapterNumber}
-                            </span>
-                          </div>
-                        )}
-                        <div className='min-w-0'>
-                          <div className='flex items-center gap-1.5 flex-wrap'>
-                            <span className='font-mono font-bold text-[#F97316] shrink-0'>
-                              {t('workspace.reader.catalog.chapterLabel', {
+                  {selectedSeries.chapters.map((chap) => {
+                    const priceVnd = chap.priceVnd ?? 0;
+                    const isPaid = chap.isFree === false || (chap.isLocked && priceVnd > 0) || priceVnd > 0;
+                    const isUnlocked = chap.isUnlocked === true;
+                    const chapLangs = chap.languages ?? [];
+                    return (
+                      <div
+                        key={chap.id}
+                        onClick={() => setReadingChapterId(chap.id)}
+                        className='p-2.5 bg-[#FCFBF8] rounded-lg border border-[#D8D2C5] flex items-center justify-between gap-2 text-xs hover:border-[#F97316] transition-all cursor-pointer group hover:bg-[#FFF2E6]/30'
+                        title={t('workspace.reader.catalog.readOnlineTitle')}
+                      >
+                        <div className='flex items-center gap-2.5 min-w-0'>
+                          {chap.coverUrl ? (
+                            <img
+                              src={resolveCatalogImageUrl(chap.coverUrl)}
+                              alt={t('workspace.reader.catalog.chapterCoverAlt', {
                                 number: chap.chapterNumber,
                               })}
-                            </span>
-                            <span className='font-semibold text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
-                              {chap.title || t('workspace.reader.catalog.untitled')}
-                            </span>
+                              className='w-8 h-11 object-cover rounded border border-[#D8D2C5] shadow-2xs shrink-0 bg-stone-100'
+                              loading='lazy'
+                            />
+                          ) : (
+                            <div className='w-8 h-11 rounded bg-[#F0EDE6] border border-[#D8D2C5] flex flex-col items-center justify-center shrink-0 text-center font-mono shadow-2xs'>
+                              <span className='text-[7px] text-stone-400 font-bold uppercase leading-none'>
+                                {t('workspace.reader.catalog.chapterShortBadge')}
+                              </span>
+                              <span className='text-[11px] font-bold text-[#F97316] leading-none mt-0.5'>
+                                {chap.chapterNumber}
+                              </span>
+                            </div>
+                          )}
+                          <div className='min-w-0 space-y-1'>
+                            <div className='flex items-center gap-1.5 flex-wrap'>
+                              <span className='font-mono font-bold text-[#F97316] shrink-0'>
+                                {t('workspace.reader.catalog.chapterLabel', {
+                                  number: chap.chapterNumber,
+                                })}
+                              </span>
+                              <span className='font-semibold text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
+                                {chap.title || t('workspace.reader.catalog.untitled')}
+                              </span>
+                            </div>
+                            <div className='flex items-center gap-1.5 flex-wrap'>
+                              {chapLangs.length > 0 &&
+                                chapLangs.map((l) => (
+                                  <span
+                                    key={l.language}
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono uppercase border ${
+                                      l.language === (selectedSeries.language || selectedContentLang)
+                                        ? 'bg-[#1C1917] text-white border-[#1C1917]'
+                                        : 'bg-[#F8F6F0] text-[#57534E] border-[#D8D2C5]'
+                                    }`}
+                                  >
+                                    {l.language.toUpperCase()}
+                                  </span>
+                                ))}
+                              <span
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+                                  isPaid
+                                    ? isUnlocked
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                }`}
+                              >
+                                {isPaid ? (
+                                  <>
+                                    {isUnlocked ? (
+                                      <Unlock className='w-2.5 h-2.5' />
+                                    ) : (
+                                      <Lock className='w-2.5 h-2.5' />
+                                    )}
+                                    <span>{`${priceVnd.toLocaleString(dateLocale)} VND`}</span>
+                                  </>
+                                ) : (
+                                  <span>{lang === 'en' ? 'Free' : 'Miễn phí'}</span>
+                                )}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className='flex items-center gap-2'>
-                        {chap.publishedAt && (
-                          <span className='text-xs text-[#57534E]/70 font-mono'>
-                            {new Date(chap.publishedAt).toLocaleDateString(dateLocale)}
+                        <div className='flex items-center gap-2 shrink-0'>
+                          {chap.publishedAt && (
+                            <span className='hidden sm:inline text-[10px] text-[#57534E]/70 font-mono'>
+                              {new Date(chap.publishedAt).toLocaleDateString(dateLocale)}
+                            </span>
+                          )}
+                          <span className='px-2 py-0.5 rounded bg-orange-50 text-orange-600 text-[10px] font-bold border border-orange-200 group-hover:bg-[#F97316] group-hover:text-white transition-colors flex items-center gap-1'>
+                            <span>{t('workspace.reader.catalog.readBtn')}</span>
+                            <span>→</span>
                           </span>
-                        )}
-                        <span className='px-2 py-0.5 rounded bg-orange-50 text-orange-600 text-xs font-bold border border-orange-200 group-hover:bg-[#F97316] group-hover:text-white transition-colors flex items-center gap-1'>
-                          <span>{t('workspace.reader.catalog.readBtn')}</span>
-                          <span>→</span>
-                        </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -421,6 +531,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
         <ChapterReaderModal
           isOpen={!!readingChapterId}
           chapterId={readingChapterId}
+          initialLanguage={selectedSeries?.language || selectedContentLang}
           onClose={() => setReadingChapterId(null)}
         />
       )}

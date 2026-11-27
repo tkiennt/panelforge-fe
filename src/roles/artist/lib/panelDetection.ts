@@ -26,6 +26,8 @@ export interface DetectedPanelBox {
   w: number; // normalized 0..1
   h: number; // normalized 0..1
   borderless?: boolean;
+  /** Khung cắt xéo: các đỉnh 0..1 tính trong hộp (x, y, w, h); không có = hình chữ nhật. */
+  corners?: Array<{ x: number; y: number }>;
 }
 
 export interface PanelDetectionResult {
@@ -79,6 +81,14 @@ const MAX_DEPTH = 8;
 const MAX_SKEW_DEG = 4;
 const SKEW_STEP_DEG = 0.25;
 const MIN_SKEW_DEG = 0.3;
+/** Rãnh chéo: hai đầu đường cắt lệch nhau tối đa tỉ lệ này của chiều dài đường. */
+const SLANT_MAX_SHIFT = 0.6;
+/** Rãnh chéo được phép chạm mực ở tối đa tỉ lệ này số điểm lấy mẫu (nét vắt qua). */
+const SLANT_NOISE = 0.03;
+/** Hai đầu đường cắt (tỉ lệ này mỗi đầu) phải sạch hẳn: không cắt xuyên viền khung. */
+const SLANT_CLEAN_ENDS = 0.04;
+/** Mỗi mảnh của đường cắt chéo phải dày ít nhất ngần này lần kích thước khung tối thiểu. */
+const SLANT_MIN_PIECE_FACTOR = 2;
 
 interface Region {
   x0: number;
@@ -88,6 +98,9 @@ interface Region {
 }
 
 type Axis = 'rows' | 'cols';
+type Pt = { x: number; y: number };
+/** Khung tìm được: chuẩn hoá 0..1 theo ảnh; corners (nếu có) tính trong hộp của khung. */
+export type DetectedBox = { x: number; y: number; w: number; h: number; corners?: Pt[] };
 
 /** Chuyển RGBA sang độ sáng 0..255. */
 export function rgbaToLuminance(rgba: Uint8ClampedArray, pixelCount: number): Uint8Array {
@@ -258,15 +271,18 @@ function findSegments(
   axis: Axis,
   minGutter: number,
   minSegment: number,
-): Array<[number, number]> {
+  allowLoose = true,
+): { segments: Array<[number, number]>; loose: boolean } {
   const counts = project(mask, width, r, axis);
   const framed = framedEnds(mask, width, r, axis);
   const len = counts.length;
   const cross = axis === 'rows' ? r.x1 - r.x0 : r.y1 - r.y0;
   const strictTol = Math.floor(cross * STRICT_GUTTER_NOISE);
   const looseTol = Math.max(1, Math.floor(cross * LOOSE_GUTTER_NOISE));
-  const isClear = (i: number) => counts[i] <= strictTol || (counts[i] <= looseTol && !framed[i]);
+  const isClear = (i: number) =>
+    counts[i] <= strictTol || (allowLoose && counts[i] <= looseTol && !framed[i]);
   const segments: Array<[number, number]> = [];
+  let loose = false;
   let segStart = 0;
   let i = 0;
   while (i < len) {
@@ -276,19 +292,30 @@ function findSegments(
     }
     let j = i;
     while (j < len && isClear(j)) j++;
-    if (i === 0) {
+    // Dải ở đầu/cuối vùng chỉ bỏ khi có một đoạn sạch hẳn ngăn cách (như khoảng trống trước số
+    // trang); dải chỉ có nét viền liền (đáy khung cắt xéo) là một phần của khung, giữ lại.
+    let cleanRun = 0;
+    let separated = false;
+    for (let k = i; k < j && !separated; k++) {
+      cleanRun = counts[k] <= strictTol ? cleanRun + 1 : 0;
+      if (cleanRun >= minGutter) separated = true;
+    }
+    if (i === 0 && separated) {
       segStart = j; // dải gần như trống ở đầu vùng: bỏ
-    } else if (j === len) {
+    } else if (j === len && separated) {
       segments.push([segStart, i]); // dải gần như trống ở cuối vùng: bỏ
       segStart = len;
+    } else if (i === 0 || j === len) {
+      // giữ nguyên trong đoạn hiện tại
     } else if (j - i >= minGutter && i > segStart) {
       segments.push([segStart, i]);
       segStart = j;
+      for (let k = i; k < j && !loose; k++) if (counts[k] > strictTol) loose = true;
     }
     i = j;
   }
   if (segStart < len) segments.push([segStart, len]);
-  return segments.filter(([s, e]) => e - s >= minSegment);
+  return { segments: segments.filter(([s, e]) => e - s >= minSegment), loose };
 }
 
 /**
@@ -352,6 +379,103 @@ function rotateMask(mask: Uint8Array, width: number, height: number, angle: numb
 }
 
 /**
+ * Đường cắt chéo qua vùng: đi từ cạnh này sang cạnh đối diện (axis 'rows' = từ trái sang phải,
+ * chia trên/dưới; 'cols' = từ trên xuống dưới, chia trái/phải). Trả về hai đầu mút (toạ độ ảnh)
+ * của đường có dải rãnh (dày minGutter) ít mực nhất, hoặc null nếu không có rãnh chéo hợp lệ.
+ */
+function findSlantedCut(
+  mask: Uint8Array,
+  width: number,
+  r: Region,
+  axis: Axis,
+  minGutter: number,
+  minPiece: number,
+): { a: Pt; b: Pt; ink: number } | null {
+  const along = axis === 'rows' ? r.x1 - r.x0 : r.y1 - r.y0;
+  const across = axis === 'rows' ? r.y1 - r.y0 : r.x1 - r.x0;
+  if (along < 8 || across < minPiece * 2) return null;
+  const stride = across + 1;
+  const prefix = new Int32Array(along * stride);
+  for (let i = 0; i < along; i++) {
+    let acc = 0;
+    for (let j = 0; j < across; j++) {
+      const x = axis === 'rows' ? r.x0 + i : r.x0 + j;
+      const y = axis === 'rows' ? r.y0 + j : r.y0 + i;
+      acc += mask[y * width + x];
+      prefix[i * stride + j + 1] = acc;
+    }
+  }
+  const half = Math.max(1, Math.floor(minGutter / 2));
+  const step = Math.max(2, Math.round(across / 120));
+  const sampleStep = Math.max(1, Math.round(along / 300));
+  const samples = Math.ceil(along / sampleStep);
+  const budget = Math.floor(samples * SLANT_NOISE);
+  const cleanEnd = Math.max(sampleStep, Math.round(along * SLANT_CLEAN_ENDS));
+  const maxShift = Math.round(along * SLANT_MAX_SHIFT);
+  const minShift = Math.max(minGutter * 2, step);
+  let best: [number, number] | null = null;
+  let bestInk = Infinity;
+  for (let s = minPiece; s <= across - minPiece; s += step) {
+    const eFrom = Math.max(minPiece, s - maxShift);
+    const eTo = Math.min(across - minPiece, s + maxShift);
+    for (let e = eFrom; e <= eTo; e += step) {
+      if (Math.abs(e - s) < minShift) continue; // gần như thẳng: việc của rãnh thẳng
+      let ink = 0;
+      for (let i = 0; i < along; i += sampleStep) {
+        const c = Math.round(s + ((e - s) * i) / (along - 1));
+        const lo = Math.max(0, c - half);
+        const hi = Math.min(across, c + half + 1);
+        if (prefix[i * stride + hi] - prefix[i * stride + lo] === 0) continue;
+        if (i < cleanEnd || i >= along - cleanEnd || ++ink > budget || ink >= bestInk) {
+          ink = Infinity;
+          break;
+        }
+      }
+      if (ink < bestInk) {
+        bestInk = ink;
+        best = [s, e];
+      }
+    }
+  }
+  if (!best) return null;
+  const [s, e] = best;
+  return axis === 'rows'
+    ? { a: { x: r.x0, y: r.y0 + s }, b: { x: r.x1, y: r.y0 + e }, ink: bestInk }
+    : { a: { x: r.x0 + s, y: r.y0 }, b: { x: r.x0 + e, y: r.y1 }, ink: bestInk };
+}
+
+/** < 0: điểm nằm phía trước đường cắt (trên với 'rows', trái với 'cols'). */
+function sideOf(axis: Axis, a: Pt, b: Pt, p: Pt): number {
+  return axis === 'rows'
+    ? p.y - (a.y + ((b.y - a.y) * (p.x - a.x)) / (b.x - a.x))
+    : p.x - (a.x + ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y));
+}
+
+/** Cắt đa giác theo nửa mặt phẳng f(p) <= 0 (Sutherland–Hodgman). */
+function clipPolygon(poly: Pt[], f: (p: Pt) => number): Pt[] {
+  const out: Pt[] = [];
+  for (let i = 0; i < poly.length; i++) {
+    const p = poly[i];
+    const q = poly[(i + 1) % poly.length];
+    const fp = f(p);
+    const fq = f(q);
+    if (fp <= 0) out.push(p);
+    if ((fp < 0 && fq > 0) || (fp > 0 && fq < 0)) {
+      const t = fp / (fp - fq);
+      out.push({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t });
+    }
+  }
+  return out;
+}
+
+const rectPolygon = (r: Region): Pt[] => [
+  { x: r.x0, y: r.y0 },
+  { x: r.x1, y: r.y0 },
+  { x: r.x1, y: r.y1 },
+  { x: r.x0, y: r.y1 },
+];
+
+/**
  * Lõi thuần (không cần canvas): nhận ảnh độ sáng, trả về các khung đã chuẩn hoá 0..1
  * theo thứ tự đọc. Trả về mảng rỗng nếu ảnh trống hoặc gần như toàn mực.
  */
@@ -360,7 +484,7 @@ export function detectPanelsFromLuminance(
   width: number,
   height: number,
   options: { readingDirection?: ReadingDirection } = {},
-): Array<{ x: number; y: number; w: number; h: number }> {
+): DetectedBox[] {
   if (width <= 0 || height <= 0 || lum.length < width * height) return [];
   const rawMask = buildInkMask(lum, width, height);
   let inkCount = 0;
@@ -373,63 +497,130 @@ export function detectPanelsFromLuminance(
   const minGutter = Math.max(3, Math.round(Math.min(width, height) * MIN_GUTTER_RATIO));
   const minPanelW = Math.max(4, Math.round(width * MIN_PANEL_RATIO));
   const minPanelH = Math.max(4, Math.round(height * MIN_PANEL_RATIO));
-  const leaves: Region[] = [];
+  const leaves: Array<{ r: Region; poly: Pt[] | null }> = [];
 
-  const visit = (region: Region, depth: number) => {
-    const r = trimRegion(mask, width, region);
+  // m: mặt nạ của nhánh (sau một đường cắt chéo, phía bên kia đã bị xoá);
+  // poly: hình của nhánh khi đã qua đường cắt chéo, null = hình chữ nhật.
+  const visit = (region: Region, depth: number, m: Uint8Array, poly: Pt[] | null) => {
+    const r = trimRegion(m, width, region);
     if (!r) return;
     if (r.x1 - r.x0 < minPanelW || r.y1 - r.y0 < minPanelH) return; // mảnh nhiễu
 
     if (depth < MAX_DEPTH) {
-      // Ưu tiên rãnh ngang (tầng), sau đó rãnh dọc (cột) trong tầng.
-      const rowSegs = findSegments(mask, width, r, 'rows', minGutter, minPanelH);
-      if (rowSegs.length >= 2 || (rowSegs.length === 1 && isShrunk(rowSegs[0], r.y1 - r.y0))) {
-        for (const [s, e] of rowSegs) visit({ ...r, y0: r.y0 + s, y1: r.y0 + e }, depth + 1);
+      const slantSplit = (axis: Axis, cut: { a: Pt; b: Pt }) => {
+        const before = m.slice();
+        const after = m.slice();
+        for (let y = r.y0; y < r.y1; y++) {
+          for (let x = r.x0; x < r.x1; x++) {
+            if (sideOf(axis, cut.a, cut.b, { x, y }) < 0) after[y * width + x] = 0;
+            else before[y * width + x] = 0;
+          }
+        }
+        const base = poly ?? rectPolygon(r);
+        const pieces = [
+          { mask: before, poly: clipPolygon(base, (p) => sideOf(axis, cut.a, cut.b, p)) },
+          { mask: after, poly: clipPolygon(base, (p) => -sideOf(axis, cut.a, cut.b, p)) },
+        ];
+        if (axis === 'cols' && rtl) pieces.reverse();
+        for (const piece of pieces) visit(r, depth + 1, piece.mask, piece.poly);
+      };
+      const minPiece = (axis: Axis) => (axis === 'rows' ? minPanelH : minPanelW);
+      // Đường chéo dễ tách nhầm dải lề mỏng (nhãn, số trang) nên đòi mảnh dày hơn.
+      const slantMinPiece = (axis: Axis) => minPiece(axis) * SLANT_MIN_PIECE_FACTOR;
+      // Ưu tiên rãnh ngang (tầng), sau đó rãnh dọc (cột) trong tầng. Rãnh thẳng chỉ hợp lệ nhờ
+      // "ít nét vắt qua" có thể là viền chéo của hai khung cắt xéo: khi có rãnh chéo sạch hẳn,
+      // dùng rãnh chéo.
+      for (const axis of ['rows', 'cols'] as const) {
+        // Trong mảnh đã cắt chéo, cạnh hộp không còn là viền khung nên phép thử "hai đầu chạm
+        // viền" vô nghĩa: chỉ nhận rãnh sạch hẳn.
+        const { segments, loose } = findSegments(
+          m,
+          width,
+          r,
+          axis,
+          minGutter,
+          minPiece(axis),
+          poly === null,
+        );
+        const length = axis === 'rows' ? r.y1 - r.y0 : r.x1 - r.x0;
+        if (!(segments.length >= 2 || (segments.length === 1 && isShrunk(segments[0], length))))
+          continue;
+        if (loose) {
+          const cut = findSlantedCut(m, width, r, axis, minGutter, slantMinPiece(axis));
+          if (cut && cut.ink === 0) {
+            slantSplit(axis, cut);
+            return;
+          }
+        }
+        const ordered = axis === 'cols' && rtl ? [...segments].reverse() : segments;
+        for (const [s, e] of ordered) {
+          const child =
+            axis === 'rows'
+              ? { ...r, y0: r.y0 + s, y1: r.y0 + e }
+              : { ...r, x0: r.x0 + s, x1: r.x0 + e };
+          visit(child, depth + 1, m, poly);
+        }
         return;
       }
-      const colSegs = findSegments(mask, width, r, 'cols', minGutter, minPanelW);
-      if (colSegs.length >= 2 || (colSegs.length === 1 && isShrunk(colSegs[0], r.x1 - r.x0))) {
-        const ordered = rtl ? [...colSegs].reverse() : colSegs;
-        for (const [s, e] of ordered) visit({ ...r, x0: r.x0 + s, x1: r.x0 + e }, depth + 1);
+      // Không có rãnh thẳng: thử rãnh chéo (khung cắt xéo).
+      for (const axis of ['rows', 'cols'] as const) {
+        const cut = findSlantedCut(m, width, r, axis, minGutter, slantMinPiece(axis));
+        if (!cut) continue;
+        slantSplit(axis, cut);
         return;
       }
     }
     // Không có rãnh: nếu đây là một khung viền bao nhiều khung con (viền trang, mép tờ giấy),
     // bóc viền và tách bên trong; chỉ nhận khi mọi khung con đều có viền riêng.
     if (depth < MAX_DEPTH) {
-      const inner = innerOfBox(mask, width, r);
+      const inner = innerOfBox(m, width, r);
       if (inner) {
         const before = leaves.length;
-        visit(inner, depth + 1);
+        visit(inner, depth + 1, m, poly);
         const children = leaves.slice(before);
-        if (children.length >= 2 && children.every((c) => innerOfBox(mask, width, c))) return;
+        if (children.length >= 2 && children.every((c) => innerOfBox(m, width, c.r))) return;
         leaves.length = before;
       }
     }
-    leaves.push(r);
+    leaves.push({ r, poly });
   };
 
-  visit({ x0: 0, y0: 0, x1: width, y1: height }, 0);
+  visit({ x0: 0, y0: 0, x1: width, y1: height }, 0, mask, null);
 
   const round4 = (v: number) => Number(v.toFixed(4));
-  return leaves.map((r) => {
-    // Nới 1px để giữ trọn nét khung khi cắt; xoay 4 góc về ảnh gốc rồi lấy khung bao.
-    const corners = [
-      toSource(r.x0 - 1, r.y0 - 1, width, height, angle),
-      toSource(r.x1 + 1, r.y0 - 1, width, height, angle),
-      toSource(r.x0 - 1, r.y1 + 1, width, height, angle),
-      toSource(r.x1 + 1, r.y1 + 1, width, height, angle),
-    ];
-    const x0 = Math.max(0, Math.min(...corners.map((p) => p.x)));
-    const y0 = Math.max(0, Math.min(...corners.map((p) => p.y)));
-    const x1 = Math.min(width, Math.max(...corners.map((p) => p.x)));
-    const y1 = Math.min(height, Math.max(...corners.map((p) => p.y)));
-    return {
+  return leaves.map(({ r, poly }) => {
+    // Nới 1px để giữ trọn nét khung khi cắt; đưa các đỉnh về ảnh gốc (bỏ xoay) rồi lấy khung bao.
+    const padded = { x0: r.x0 - 1, y0: r.y0 - 1, x1: r.x1 + 1, y1: r.y1 + 1 };
+    let shape = rectPolygon(padded);
+    if (poly) {
+      let clipped = poly;
+      clipped = clipPolygon(clipped, (p) => padded.x0 - p.x);
+      clipped = clipPolygon(clipped, (p) => p.x - padded.x1);
+      clipped = clipPolygon(clipped, (p) => padded.y0 - p.y);
+      clipped = clipPolygon(clipped, (p) => p.y - padded.y1);
+      if (clipped.length >= 3) shape = clipped;
+    }
+    const pts = shape.map((p) => toSource(p.x, p.y, width, height, angle));
+    const x0 = Math.max(0, Math.min(...pts.map((p) => p.x)));
+    const y0 = Math.max(0, Math.min(...pts.map((p) => p.y)));
+    const x1 = Math.min(width, Math.max(...pts.map((p) => p.x)));
+    const y1 = Math.min(height, Math.max(...pts.map((p) => p.y)));
+    const box: DetectedBox = {
       x: round4(x0 / width),
       y: round4(y0 / height),
       w: round4((x1 - x0) / width),
       h: round4((y1 - y0) / height),
     };
+    if (poly && x1 > x0 && y1 > y0) {
+      const corners = pts.map((p) => ({
+        x: round4(Math.min(1, Math.max(0, (p.x - x0) / (x1 - x0)))),
+        y: round4(Math.min(1, Math.max(0, (p.y - y0) / (y1 - y0)))),
+      }));
+      // Mọi đỉnh sát góc hộp → thực chất là hình chữ nhật, không cần corners.
+      const nearCorner = (c: Pt) => (c.x <= 0.03 || c.x >= 0.97) && (c.y <= 0.03 || c.y >= 0.97);
+      if (!corners.every(nearCorner)) box.corners = corners;
+    }
+    return box;
   });
 }
 
@@ -583,7 +774,13 @@ function fallbackHeuristicPanels(panelCount: number = 4): PanelDetectionResult {
   };
 }
 
-type NormalizedBox = { x: number; y: number; w: number; h: number };
+type NormalizedBox = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  corners?: Array<{ x: number; y: number }>;
+};
 
 /** Cắt một ô từ ảnh đã tải; trả về Blob PNG (nhẹ hơn chuỗi data URL, không chặn luồng chính). */
 function cropLoadedImage(img: HTMLImageElement, box: NormalizedBox): Promise<Blob> {
@@ -606,6 +803,16 @@ function cropLoadedImage(img: HTMLImageElement, box: NormalizedBox): Promise<Blo
     return Promise.reject(new Error(translate('artist.panelDetection.canvasContextError')));
   }
 
+  // Khung cắt xéo: chỉ giữ phần trong đa giác, ngoài để trong suốt (không dính khung bên cạnh).
+  if (box.corners && box.corners.length >= 3) {
+    ctx.beginPath();
+    box.corners.forEach((c, i) => {
+      if (i === 0) ctx.moveTo(c.x * sw, c.y * sh);
+      else ctx.lineTo(c.x * sw, c.y * sh);
+    });
+    ctx.closePath();
+    ctx.clip();
+  }
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
   return new Promise((resolve, reject) =>
     canvas.toBlob(

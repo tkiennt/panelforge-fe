@@ -228,6 +228,95 @@ export interface TextLayout {
   overflow: boolean;
 }
 
+/** Bóng có viền cong: chữ xếp theo lòng elip (dòng giữa dài, dòng trên/dưới ngắn — "hình thoi"). */
+const ELLIPTIC_SHAPES: readonly BalloonShape[] = ['oval', 'cloud', 'spiky'];
+
+const hasManualBreak = (text: string) => /\r?\n/.test(text);
+
+/** Bán trục vùng chữ bên trong viền cong: chừa lề cho nét viền, mây gợn và răng cưa. */
+function innerEllipse(shape: BalloonShape, w: number, h: number) {
+  const k = shape === 'spiky' ? 0.74 : 0.9;
+  return { rx: Math.max(1, (w / 2) * k - 4), ry: Math.max(1, (h / 2) * k - 4) };
+}
+
+/** Bề rộng dùng được của từng dòng khi `n` dòng cao `lh` xếp giữa elip (rx, ry); 0 = dòng chạm mép trên/dưới. */
+export function ellipseLineWidths(n: number, lh: number, rx: number, ry: number): number[] {
+  return Array.from({ length: n }, (_, i) => {
+    const edge = Math.abs((i - (n - 1) / 2) * lh) + lh / 2;
+    return edge >= ry ? 0 : 2 * rx * Math.sqrt(1 - (edge / ry) ** 2);
+  });
+}
+
+/** Ngắt dòng theo bề rộng riêng của từng dòng; null khi không vừa trong số dòng đó. */
+function wrapToWidths(
+  words: string[],
+  widths: number[],
+  measure: (s: string) => number,
+): string[] | null {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (measure(candidate) <= widths[lines.length]) {
+      line = candidate;
+      continue;
+    }
+    if (!line) return null;
+    lines.push(line);
+    if (lines.length >= widths.length || measure(word) > widths[lines.length]) return null;
+    line = word;
+  }
+  lines.push(line);
+  return lines;
+}
+
+/** Ít dòng nhất mà câu vừa lòng elip (rx, ry), ngắt tham lam theo bề rộng từng dòng; null = không vừa. */
+function wrapInEllipse(
+  words: string[],
+  lh: number,
+  rx: number,
+  ry: number,
+  measure: (s: string) => number,
+): string[] | null {
+  const maxLines = Math.floor((2 * ry) / lh);
+  for (let n = 1; n <= maxLines; n++) {
+    const widths = ellipseLineWidths(n, lh, rx, ry);
+    if (widths.some((x) => x <= 0)) break;
+    const lines = wrapToWidths(words, widths, measure);
+    if (lines) return lines;
+  }
+  return null;
+}
+
+/**
+ * Ngắt dòng "hình thoi": tìm elip nhỏ nhất (cùng tỉ lệ với bóng) còn chứa được câu rồi ngắt theo elip đó,
+ * nên câu ôm sát lòng bóng — dòng giữa dài, dòng trên/dưới ngắn — thay vì dòng nào cũng dài bằng nhau.
+ * null = câu không vừa bóng ở cỡ chữ này.
+ */
+export function wrapDiamond(
+  text: string,
+  lh: number,
+  rx: number,
+  ry: number,
+  measure: (s: string) => number,
+): string[] | null {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [''];
+  let best = wrapInEllipse(words, lh, rx, ry, measure);
+  if (!best) return null;
+  let lo = 0.2;
+  let hi = 1;
+  for (let i = 0; i < 10; i++) {
+    const mid = (lo + hi) / 2;
+    const tighter = wrapInEllipse(words, lh, rx * mid, ry * mid, measure);
+    if (tighter) {
+      best = tighter;
+      hi = mid;
+    } else lo = mid;
+  }
+  return best;
+}
+
 /** Bố trí chữ theo đúng cỡ đã chọn — không tự thu nhỏ; tràn thì báo `overflow`. */
 export function layoutText(
   text: string,
@@ -238,10 +327,40 @@ export function layoutText(
   measure: Measure = defaultMeasure,
   fontSize = style.fontSize,
 ): TextLayout {
-  const area = textSafeArea(shape, w, h);
   const font = canvasFont(style, fontSize);
-  const lines = wrapLines(text, area.w, (s) => measure(s, font));
   const lineHeightPx = fontSize * (style.lineHeight ?? 1.25);
+  const m = (s: string) => measure(s, font);
+
+  // Bóng cong, không xuống dòng tay: xếp theo lòng elip (giữa bóng), rộng hơn hình chữ nhật nội tiếp
+  if (ELLIPTIC_SHAPES.includes(shape) && !hasManualBreak(text)) {
+    const { rx, ry } = innerEllipse(shape, w, h);
+    const lines = wrapDiamond(text, lineHeightPx, rx, ry, m);
+    const area = { x: w / 2 - rx, y: h / 2 - ry, w: rx * 2, h: ry * 2 };
+    if (lines)
+      return {
+        font,
+        fontSize,
+        lineHeightPx,
+        lines,
+        area,
+        textHeight: lines.length * lineHeightPx,
+        overflow: false,
+      };
+    // Không vừa elip: vẫn ngắt theo bề ngang để hiển thị, báo tràn
+    const fallback = wrapLines(text, area.w, m);
+    return {
+      font,
+      fontSize,
+      lineHeightPx,
+      lines: fallback,
+      area,
+      textHeight: fallback.length * lineHeightPx,
+      overflow: true,
+    };
+  }
+
+  const area = textSafeArea(shape, w, h);
+  const lines = wrapLines(text, area.w, m);
   const textHeight = lines.length * lineHeightPx;
   return {
     font,
@@ -274,18 +393,86 @@ export function fitFontSize(
   return lo;
 }
 
-/** "Vừa bóng theo chữ": giữ cỡ chữ và bề rộng, tính bề cao bóng tối thiểu chứa hết chữ. */
-export function fitBoxHeight(
+/**
+ * Bố trí chữ để hiển thị/xuất: dùng cỡ chữ đã chọn; câu tràn (vd. bản dịch dài hơn bản gốc) thì tự thu nhỏ
+ * tới cỡ lớn nhất còn vừa, không bao giờ to hơn cỡ đã chọn. Canvas Letterer và bản xuất cùng gọi hàm này.
+ */
+export function layoutBalloonText(
   text: string,
   style: TextStyleDto,
   shape: BalloonShape,
   w: number,
   h: number,
   measure: Measure = defaultMeasure,
-): number {
-  const { textHeight } = layoutText(text, style, shape, w, h, measure);
-  return Math.ceil((textHeight + shapePad(shape) * 2 + 2) / shapeInset(shape));
+): TextLayout {
+  const layout = layoutText(text, style, shape, w, h, measure);
+  if (!layout.overflow) return layout;
+  const size = Math.min(style.fontSize, fitFontSize(text, style, shape, w, h, measure));
+  return layoutText(text, style, shape, w, h, measure, size);
 }
+
+/** "Vừa bóng theo chữ": giữ cỡ chữ và bề rộng, tìm bề cao bóng nhỏ nhất (≤ maxH) chứa hết chữ. */
+export function fitBoxHeight(
+  text: string,
+  style: TextStyleDto,
+  shape: BalloonShape,
+  w: number,
+  measure: Measure = defaultMeasure,
+  maxH = 4000,
+): number {
+  let lo = 20;
+  let hi = maxH;
+  if (layoutText(text, style, shape, w, hi, measure).overflow) return hi;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (layoutText(text, style, shape, w, mid, measure).overflow) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/**
+ * Kích thước bóng mới vừa câu ở cỡ chữ mặc định: bóng nằm ngang (cao ≤ 0.8 rộng), không nhỏ hơn mức tối thiểu,
+ * không vượt khung. Câu quá dài so với khung thì lấy tối đa — khi hiển thị chữ sẽ tự thu nhỏ.
+ */
+export function fitBalloonSize(
+  text: string,
+  style: TextStyleDto,
+  shape: BalloonShape,
+  bounds: { minW: number; minH: number; maxW: number; maxH: number },
+  measure: Measure = defaultMeasure,
+): { w: number; h: number } {
+  const maxW = Math.max(bounds.minW, Math.round(bounds.maxW));
+  const maxH = Math.max(bounds.minH, Math.round(bounds.maxH));
+  for (let w = bounds.minW; w <= maxW; w += 20) {
+    const h = Math.max(bounds.minH, fitBoxHeight(text, style, shape, w, measure, maxH));
+    if (h < maxH && h <= w * 0.8) return { w, h };
+  }
+  const h = fitBoxHeight(text, style, shape, maxW, measure, maxH);
+  return { w: maxW, h: Math.max(bounds.minH, h) };
+}
+
+/**
+ * Đuôi hướng về `target` (toạ độ trang — vd. tâm khung, nơi nhân vật thường đứng), thò ra khỏi viền tối đa `length` px.
+ * `target` nằm trong bóng thì giữ đuôi mặc định. Kết quả theo toạ độ nội bộ của bóng như `tailX/tailY`.
+ */
+export function tailToward(box: Rect, target: { x: number; y: number }, length = 45): TailPoint {
+  const dx = target.x - (box.x + box.w / 2);
+  const dy = target.y - (box.y + box.h / 2);
+  const d = Math.hypot(dx, dy);
+  if (d < 1) return defaultTail(box.w, box.h);
+  const ux = dx / d;
+  const uy = dy / d;
+  // Khoảng cách tâm → viền elip theo hướng (ux, uy)
+  const r = 1 / Math.sqrt((ux / (box.w / 2)) ** 2 + (uy / (box.h / 2)) ** 2);
+  if (d <= r) return defaultTail(box.w, box.h);
+  const reach = r + Math.min(length, Math.max(20, d - r));
+  return { x: Math.round(box.w / 2 + ux * reach), y: Math.round(box.h / 2 + uy * reach) };
+}
+
+/** Lettering truyện tranh tiếng Anh mặc định in hoa; ngôn ngữ khác giữ nguyên. */
+export const letteringCase = (text: string, lang?: string | null): string =>
+  lang && /^en(-|$)/i.test(lang) ? text.toLocaleUpperCase('en') : text;
 
 // ── Lưu giao diện bóng vào TextStyle của Backend (balloonShape, fillColor, fillOpacity, borderColor, borderWidth, tailX, tailY) ──
 

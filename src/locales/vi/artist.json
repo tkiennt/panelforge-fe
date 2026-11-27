@@ -45,6 +45,7 @@
     "noBalloons": "Trang chưa có bóng thoại.",
     "balloonTitle": "Thoại {order}",
     "linkedToLine": "Đã liên kết với dòng {line}",
+    "saving": "Đang lưu…",
     "unlinked": "Chưa liên kết",
     "addEmptyBalloon": "Thêm bóng trống"
   },
@@ -505,7 +506,10 @@
     "startingCell": "Đang mở…",
     "startCellSuccessTitle": "Đã bắt đầu",
     "startCellSuccessDesc": "Bạn có thể chỉnh sửa công đoạn {stage} ngay trên trang này.",
-    "startCellErrorTitle": "Không bắt đầu được"
+    "startCellErrorTitle": "Không bắt đầu được",
+    "uploadPendingDesc": "Đã nạp {file} vào Khung #{panel}. Ảnh sẽ được tải lên khi lưu bố cục.",
+    "pendingUploadFailedTitle": "{count} ảnh khung chưa tải lên được",
+    "pendingUploadFailedDesc": "Ảnh vẫn ở trên khung; nạp lại ảnh đó để thử tải lên."
   },
   "canvaSidebar": {
     "narrationFlashback": "Hồi tưởng",
@@ -763,6 +767,7 @@
     "delete": "Xóa thoại",
     "labelPrefix": "Thoại {order}",
     "resizeTitle": "Kéo để thay đổi kích thước",
+    "tailTitle": "Kéo để chỉ đuôi bóng về người nói",
     "staleTitle": "Lời thoại đã đổi sau khi đặt bóng",
     "staleBadge": "Lời thoại đã đổi",
     "keepOutTitle": "Bóng thoại đang che {label}",

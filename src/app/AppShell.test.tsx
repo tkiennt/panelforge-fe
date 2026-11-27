@@ -145,16 +145,13 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
-    expect(screen.getByText('Ma trận trang')).toBeInTheDocument();
-    expect(screen.getByText('Tổng quan chương')).toBeInTheDocument();
-    expect(screen.getByText('Quản lý Ê-kíp')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản')).toBeInTheDocument();
-    expect(screen.getByText('Đọc thử & Soát trang')).toBeInTheDocument();
-    expect(screen.getByText('Bàn giao')).toBeInTheDocument();
-    expect(screen.getByText('Kiểm tra & Hiệu đính')).toBeInTheDocument();
-    expect(screen.getByText('Thư viện')).toBeInTheDocument();
+    expect(screen.getByText('Tổng quan')).toBeInTheDocument();
+    expect(screen.getByText('Tiền sản xuất')).toBeInTheDocument();
+    expect(screen.getByText('Sản xuất')).toBeInTheDocument();
+    expect(screen.getByText('Kiểm duyệt & Bàn giao')).toBeInTheDocument();
+    expect(screen.getByText('Series Bible / Thư viện')).toBeInTheDocument();
     expect(screen.getByText('Doanh thu & Lượt đọc')).toBeInTheDocument();
-    // Removed old items:
+    // Removed fragmented / old items:
     expect(screen.queryByText('Tiến độ & Giao việc')).not.toBeInTheDocument();
     expect(screen.queryByText('Kịch bản & Cổng duyệt')).not.toBeInTheDocument();
     expect(screen.queryByText('Đọc duyệt tranh')).not.toBeInTheDocument();
@@ -204,11 +201,23 @@ describe('AppShell Component', () => {
       avatarInitials: 'AD',
     };
 
-    renderInRouter(adminUser, '/admin');
+    renderInRouter(adminUser, '/admin?tab=users');
 
-    expect(screen.getByText('System Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Users & Roles')).toBeInTheDocument();
-    expect(screen.getByText('AI Provider & Quota')).toBeInTheDocument();
+    // Header Admin Portal giống Publisher Portal
+    expect(screen.getByTestId('admin-portal-header')).toHaveTextContent('Cổng Quản Trị');
+    // Đủ các mục quản trị, mục đang mở được đánh dấu
+    for (const label of [
+      'Tổng quan',
+      'Người dùng & quyền',
+      'Cấu hình AI',
+      'Lưu trữ & quota',
+      'Chính sách phiên',
+      'Nhật ký hệ thống',
+      'Thống kê độc giả',
+    ]) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    expect(screen.queryByText('Studio Workspaces')).not.toBeInTheDocument();
   });
 
   it('hỗ trợ mở và đóng sidebar drawer trên màn hình nhỏ (< md) bằng nút hamburger', () => {
@@ -341,7 +350,7 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/workspace');
 
-    const activeLink = screen.getByRole('link', { name: /Ma trận trang/i });
+    const activeLink = screen.getByRole('link', { name: /^Sản xuất$/i });
     expect(activeLink).toBeInTheDocument();
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 

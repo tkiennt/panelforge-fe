@@ -463,6 +463,13 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
             Math.round(p.w * W),
             Math.round(p.h * H),
           ] as [number, number, number, number],
+          polygon: p.corners?.map(
+            (c) =>
+              [Math.round((p.x + c.x * p.w) * W), Math.round((p.y + c.y * p.h) * H)] as [
+                number,
+                number,
+              ],
+          ),
         })),
         bubbles: [],
       });

@@ -49,6 +49,8 @@ export interface LetteringScriptPanelProps {
   /** Bóng chữ của trang đang mở. */
   elements: ElementSnapshotDto[];
   selectedElementId: string | null;
+  /** Bóng đang chờ server lưu: chưa được coi là đã liên kết. */
+  pendingElementIds?: ReadonlySet<string>;
   onSelectElementId?: (id: string | null) => void;
   onAddElement?: (type: BalloonType, scriptLine?: ScriptLineItem) => void;
   /** Callback cập nhật bản dịch bóng thoại (fallback gọi updateElementTranslation). */
@@ -80,6 +82,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   pageId,
   elements,
   selectedElementId,
+  pendingElementIds,
   onSelectElementId,
   onAddElement,
   onUpdateElementTranslation,
@@ -835,6 +838,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
             {shownElements.map((el, idx) => {
               const lineNo = el.scriptLineId ? numberByLineId.get(el.scriptLineId) : undefined;
               const selected = el.elementId === selectedElementId;
+              const pending = pendingElementIds?.has(el.elementId) ?? false;
               return (
                 <li key={el.elementId}>
                   <button
@@ -867,14 +871,28 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                         )}
                       </span>
                       <span
-                        className={`block text-xs ${el.scriptLineId ? 'text-emerald-700' : 'text-stone-500'}`}
+                        className={`block text-xs ${
+                          pending
+                            ? 'text-amber-700'
+                            : el.scriptLineId
+                              ? 'text-emerald-700'
+                              : 'text-stone-500'
+                        }`}
+                        data-testid={pending ? `lettering-item-pending-${el.elementId}` : undefined}
                       >
-                        {el.scriptLineId
-                          ? t('artist.letteringScript.linkedToLine', { line: lineNo ?? '?' })
-                          : t('artist.letteringScript.unlinked')}
+                        {pending
+                          ? t('artist.letteringScript.saving')
+                          : el.scriptLineId
+                            ? t('artist.letteringScript.linkedToLine', { line: lineNo ?? '?' })
+                            : t('artist.letteringScript.unlinked')}
                       </span>
                     </span>
-                    {el.scriptLineId ? (
+                    {pending ? (
+                      <Loader2
+                        className='w-5 h-5 text-amber-600 animate-spin shrink-0'
+                        aria-hidden='true'
+                      />
+                    ) : el.scriptLineId ? (
                       <CheckCircle2
                         className='w-5 h-5 text-emerald-600 shrink-0'
                         aria-hidden='true'

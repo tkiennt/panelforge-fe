@@ -58,15 +58,28 @@ export const PublisherRevenueView: React.FC = () => {
 
   return (
     <div className='p-6 max-w-7xl mx-auto space-y-6'>
-      <div className='flex items-center gap-2.5 pb-5 border-b border-[#E7E7E7]'>
-        <div className='p-2 rounded-xl bg-[#F97316]/10 text-[#F97316]'>
-          <CreditCard className='w-6 h-6' />
+      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 border-b border-[#E7E7E7]'>
+        <div className='flex items-center gap-2.5'>
+          <div className='p-2 rounded-xl bg-[#F97316]/10 text-[#F97316]'>
+            <CreditCard className='w-6 h-6' />
+          </div>
+          <div>
+            <h1 className='text-xl font-bold text-[#171717] tracking-tight'>{t('revenue.title')}</h1>
+            <p className='text-xs text-[#737373] mt-0.5'>{t('revenue.subtitle')}</p>
+          </div>
         </div>
-        <div>
-          <h1 className='text-xl font-bold text-[#171717] tracking-tight'>{t('revenue.title')}</h1>
-          <p className='text-xs text-[#737373] mt-0.5'>{t('revenue.subtitle')}</p>
+        <div className='flex flex-wrap items-center gap-2'>
+          <span className='px-2.5 py-1 rounded-lg bg-[#FAF8F4] border border-[#E7E7E7] text-xs font-mono text-[#525252]'>
+            {lang === 'en' ? 'Currency: VND' : 'Đơn vị tiền tệ: VND'}
+          </span>
         </div>
       </div>
+
+      <p className='text-xs text-[#737373] -mt-2'>
+        {lang === 'en'
+          ? 'Select a series below to inspect revenue, purchases, and reads broken down by language edition (VI / EN).'
+          : 'Chọn một bộ truyện bên dưới để xem chi tiết doanh thu, lượt mua và lượt đọc tách riêng theo từng ấn bản ngôn ngữ (VI / EN).'}
+      </p>
 
       {s && (
         <div className='grid grid-cols-2 lg:grid-cols-4 gap-4'>

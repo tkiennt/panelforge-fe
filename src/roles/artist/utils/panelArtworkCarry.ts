@@ -5,8 +5,9 @@ const byReadingOrder = (panels: PanelDto[]) =>
   [...panels].sort((a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber));
 
 /**
- * Chuyển tranh từ bố cục cũ sang bố cục mới theo thứ tự đọc: tranh thứ N (theo khung cũ)
- * sang khung mới thứ N. Tranh dư được giữ trong lịch sử trang (orphans).
+ * Chuyển tranh từ bố cục cũ sang bố cục mới theo thứ tự đọc: tranh ở khung cũ thứ N sang khung
+ * mới thứ N (giữ vị trí, khung cũ trống thì khung mới cùng vị trí cũng trống). Tranh ở khung cũ
+ * không còn khung mới tương ứng được giữ trong lịch sử trang (orphans).
  */
 export function carryArtworksByReadingOrder(
   oldPanels: PanelDto[],
@@ -14,14 +15,18 @@ export function carryArtworksByReadingOrder(
   artworks: Record<string, PanelArtworkData>,
   existingOrphans: PanelArtworkData[] = [],
 ): { mapped: Record<string, PanelArtworkData>; orphans: PanelArtworkData[] } {
-  const orderedArtworks = byReadingOrder(oldPanels)
-    .map((panel) => artworks[panel.id])
-    .filter((artwork): artwork is PanelArtworkData => Boolean(artwork));
   const orderedTargets = byReadingOrder(newPanels);
   const mapped: Record<string, PanelArtworkData> = {};
+  const orphans = [...existingOrphans];
 
-  orderedArtworks.slice(0, orderedTargets.length).forEach((artwork, index) => {
+  byReadingOrder(oldPanels).forEach((panel, index) => {
+    const artwork = artworks[panel.id];
+    if (!artwork) return;
     const target = orderedTargets[index];
+    if (!target) {
+      orphans.push(artwork);
+      return;
+    }
     mapped[target.id] = {
       ...artwork,
       panelId: target.id,
@@ -29,10 +34,7 @@ export function carryArtworksByReadingOrder(
     };
   });
 
-  return {
-    mapped,
-    orphans: [...existingOrphans, ...orderedArtworks.slice(orderedTargets.length)],
-  };
+  return { mapped, orphans };
 }
 
 /**
