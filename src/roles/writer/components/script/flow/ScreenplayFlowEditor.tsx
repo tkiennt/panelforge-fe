@@ -137,6 +137,7 @@ const SHEET_CSS = `
 .gn-sheet .gn-panel:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .gn-sheet .gn-panel::before { content: attr(data-label) "\\00a0\\00a0"; font-weight: 800; color: #18181B; }
 .gn-sheet .gn-action { margin-top: .5rem; color: #18181B; }
+.gn-sheet .gn-action.is-empty::before { content: attr(data-placeholder); color: #a8a29e; pointer-events: none; font-style: italic; float: left; height: 0; }
 .gn-sheet .gn-character { float: left; clear: both; width: 10rem; margin-top: .5rem; text-transform: uppercase; font-weight: 700; color: #18181B; }
 .gn-sheet .gn-dialogue { clear: none; margin-left: 11rem; color: #18181B; }
 .gn-sheet .gn-parens { clear: none; margin-left: 14rem; font-style: italic; color: #57534E; }

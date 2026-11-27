@@ -3,7 +3,7 @@
  * Editor kịch bản Graphic Novel kiểu WriterSolo: mỗi dòng là một node `scriptLine` mang loại phần tử `el`.
  * Nhãn PAGE/PANEL/CAPTION/SFX không nằm trong dữ liệu mà vẽ bằng decoration, nên chữ người viết luôn sạch.
  */
-import { Extension, Mark, Node, mergeAttributes } from '@tiptap/core';
+import { Extension, InputRule, Mark, Node, mergeAttributes } from '@tiptap/core';
 import type { Editor } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { EditorState, Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
@@ -506,6 +506,44 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
     };
   },
 
+  addInputRules() {
+    return [
+      // Khi gõ "Panel 2: ", "Panel: ", "Khung 1: ", "Khung " ở đầu dòng:
+      // Tự động chuyển node thành el: 'panel', xóa tiền tố đã gõ, giữ con trỏ để gõ tiếp chỉ dẫn khung
+      new InputRule({
+        find: /^(?:panel|khung)\s*\d*[:.\-]?\s$/i,
+        handler: ({ state, range }) => {
+          const $start = state.doc.resolve(range.from);
+          const node = $start.parent;
+          if (node.type.name !== GN_LINE) return;
+          const linePos = $start.before();
+          state.tr.delete(range.from, range.to);
+          state.tr.setNodeMarkup(linePos, undefined, {
+            ...node.attrs,
+            el: 'panel',
+            refId: node.attrs.el === 'panel' ? node.attrs.refId : null,
+          });
+        },
+      }),
+      // Tương tự khi gõ "Page 1: ", "Trang 2: ", "Trang " ở đầu dòng
+      new InputRule({
+        find: /^(?:page|trang)\s*\d*[:.\-]?\s$/i,
+        handler: ({ state, range }) => {
+          const $start = state.doc.resolve(range.from);
+          const node = $start.parent;
+          if (node.type.name !== GN_LINE) return;
+          const linePos = $start.before();
+          state.tr.delete(range.from, range.to);
+          state.tr.setNodeMarkup(linePos, undefined, {
+            ...node.attrs,
+            el: 'page',
+            refId: node.attrs.el === 'page' ? node.attrs.refId : null,
+          });
+        },
+      }),
+    ];
+  },
+
   addKeyboardShortcuts() {
     const shortcuts: Record<string, (props: { editor: Editor }) => boolean> = {
       Enter: ({ editor }) => {
@@ -656,6 +694,16 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
                 decos.push(range(labels.caption));
               } else if (el === 'sfx') {
                 decos.push(range(labels.sfx));
+              } else if (el === 'action' && node.content.size === 0) {
+                decos.push(
+                  Decoration.node(offset, offset + node.nodeSize, {
+                    class: 'is-empty',
+                    'data-placeholder': translate(
+                      'writer.flowEditor.actionPlaceholder',
+                      "Nhập hành động, hoặc gõ 'Panel:' / Ctrl+2 để tách khung...",
+                    ),
+                  }),
+                );
               }
             });
             for (const p of pages) {

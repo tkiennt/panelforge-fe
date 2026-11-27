@@ -44,7 +44,7 @@ import type { BalloonType } from '../../hooks/useLetteringBalloons';
 import { PageHistoryDto } from '@/services/page.service';
 import { ElementSnapshotDto, type TextStyleDto } from '@/services/element.service';
 import { CollapsibleSidebar, SidebarSection } from '@/shared/ui';
-import { ArtistScriptReader } from './ArtistScriptReader';
+import { ArtistScriptReader, ChapterPanelRef } from './ArtistScriptReader';
 
 export type CanvaSidebarTab =
   'pages' | 'script' | 'bible' | 'templates' | 'changes' | 'history' | 'lettering';
@@ -108,6 +108,7 @@ export interface ArtistCanvaSidebarProps {
   onToggleVisibility: (pageId: string) => void;
   // Script props
   scriptLines?: ScriptLineItem[];
+  chapterPanels?: ChapterPanelRef[];
   sceneTitle?: string;
   sceneSlugline?: string;
   chapterTitle?: string;
@@ -900,6 +901,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   onMovePage,
   onToggleVisibility,
   scriptLines = DEFAULT_SCRIPT_LINES,
+  chapterPanels,
   chapterTitle,
   chapters,
   selectedChapterId,
@@ -1741,6 +1743,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         {activeTab === 'script' && (
           <ArtistScriptReader
             scriptLines={scriptLines}
+            chapterPanels={chapterPanels}
             activePageNumber={activePageNumber}
             chapterTitle={chapterTitle}
             chapters={chapters}
@@ -2589,6 +2592,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
           <LetteringScriptPanel
             chapterTitle={chapterTitle}
             scriptLines={scriptLines}
+            chapterPanels={chapterPanels}
             activePageNumber={activePageNumber}
             pageId={selectedPageId}
             elements={letteringElements}

@@ -15,8 +15,17 @@ import type { BibleEntityItem, ScriptLineItem, SidebarChapterOption } from './Ar
 
 type ScriptViewMode = 'current-page' | 'all';
 
-interface ArtistScriptReaderProps {
+export interface ChapterPanelRef {
+  id: string;
+  pageNumber?: number;
+  panelNumber?: number;
+  direction?: string | null;
+  pageId?: string;
+}
+
+export interface ArtistScriptReaderProps {
   scriptLines: ScriptLineItem[];
+  chapterPanels?: ChapterPanelRef[];
   activePageNumber: number;
   chapterTitle?: string;
   chapters?: SidebarChapterOption[];
@@ -35,6 +44,8 @@ interface ArtistScriptReaderProps {
 interface PanelGroup {
   pageNumber: number;
   panelNumber: number;
+  panelId?: string | null;
+  direction?: string | null;
   lines: ScriptLineItem[];
 }
 
@@ -183,6 +194,7 @@ const ScriptLine: React.FC<{ line: ScriptLineItem; fontSize: number }> = ({ line
 
 export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
   scriptLines,
+  chapterPanels,
   activePageNumber,
   chapterTitle,
   chapters,
@@ -211,17 +223,61 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
         (viewMode === 'all' || line.pageNumber === activePageNumber),
     );
     const panelMap = new Map<string, PanelGroup>();
+
+    // 1. Khởi tạo danh sách Panel từ chapterPanels (Left-join mô hình khung xương từ DB)
+    if (chapterPanels && chapterPanels.length > 0) {
+      chapterPanels
+        .filter(
+          (p) =>
+            typeof p.pageNumber === 'number' &&
+            p.pageNumber > 0 &&
+            (viewMode === 'all' || p.pageNumber === activePageNumber),
+        )
+        .forEach((p) => {
+          const pageNumber = p.pageNumber!;
+          const panelNumber = p.panelNumber && p.panelNumber > 0 ? p.panelNumber : 0;
+          const key = `${pageNumber}:${panelNumber}`;
+          panelMap.set(key, {
+            pageNumber,
+            panelNumber,
+            panelId: p.id,
+            direction: p.direction ?? null,
+            lines: [],
+          });
+        });
+    }
+
+    // 2. Điền scriptLines vào từng panel
     visibleLines
       .filter((line) => typeof line.pageNumber === 'number' && line.pageNumber > 0)
       .forEach((line) => {
         const pageNumber = line.pageNumber!;
         const panelNumber = line.panelNumber && line.panelNumber > 0 ? line.panelNumber : 0;
         const key = `${pageNumber}:${panelNumber}`;
-        const group = panelMap.get(key) || { pageNumber, panelNumber, lines: [] };
+        const group = panelMap.get(key) || {
+          pageNumber,
+          panelNumber,
+          panelId: line.panelId ?? null,
+          direction: null,
+          lines: [],
+        };
         group.lines.push(line);
+        if (line.panelId && !group.panelId) group.panelId = line.panelId;
         panelMap.set(key, group);
       });
-    const panels = [...panelMap.values()].sort(
+
+    // Nếu query tìm kiếm đang có, chỉ giữ các panel có dòng khớp hoặc có direction khớp
+    let panelValues = [...panelMap.values()];
+    if (normalizedQuery) {
+      panelValues = panelValues.filter(
+        (g) =>
+          g.lines.length > 0 ||
+          (g.direction &&
+            g.direction.toLocaleLowerCase('vi').includes(normalizedQuery.toLocaleLowerCase('vi'))),
+      );
+    }
+
+    const panels = panelValues.sort(
       (a, b) =>
         a.pageNumber - b.pageNumber ||
         (a.panelNumber === 0 ? 1 : b.panelNumber === 0 ? -1 : a.panelNumber - b.panelNumber),
@@ -230,7 +286,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
       (line) => typeof line.pageNumber !== 'number' || line.pageNumber <= 0,
     );
     return { panels, unpaged: viewMode === 'all' ? unpaged : [] };
-  }, [activePageNumber, query, scriptLines, viewMode]);
+  }, [activePageNumber, chapterPanels, query, scriptLines, viewMode]);
 
   const hasSelectedPanel = selectedPanelId !== null || selectedPanelNumber !== null;
 
@@ -427,7 +483,7 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
           </div>
         ) : (
           groups.panels.map((group, groupIndex) => {
-            const panelId = group.lines.find((line) => line.panelId)?.panelId;
+            const panelId = group.panelId || group.lines.find((line) => line.panelId)?.panelId;
             const isSelected =
               group.pageNumber === activePageNumber &&
               group.panelNumber > 0 &&
@@ -507,11 +563,25 @@ export const ArtistScriptReader: React.FC<ArtistScriptReaderProps> = ({
                   </div>
                 </summary>
                 <div className='space-y-3 border-t border-[var(--sb-border)] px-3 py-3'>
-                  <div className='space-y-3'>
-                    {group.lines.map((line) => (
-                      <ScriptLine key={line.id} line={line} fontSize={FONT_STEPS[fontStep]} />
-                    ))}
-                  </div>
+                  {group.direction && (
+                    <div className='rounded bg-[var(--sb-bg)] p-2 text-xs italic text-[var(--sb-muted)] border border-[var(--sb-border)]'>
+                      <span className='font-semibold not-italic text-[var(--sb-text)] mr-1'>
+                        {t('scriptReader.directionLabel', 'Chỉ dẫn')}:
+                      </span>
+                      {group.direction}
+                    </div>
+                  )}
+                  {group.lines.length > 0 ? (
+                    <div className='space-y-3'>
+                      {group.lines.map((line) => (
+                        <ScriptLine key={line.id} line={line} fontSize={FONT_STEPS[fontStep]} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className='py-2 text-center text-xs italic text-[var(--sb-muted)]'>
+                      {t('scriptReader.emptyPanelNotice', 'Khung trống — chưa có mô tả/thoại')}
+                    </div>
+                  )}
                   {entities.length > 0 && (
                     <div className='flex flex-wrap gap-1.5 border-t border-[var(--sb-border)] pt-2.5'>
                       {entities.map((entity) => (

@@ -722,32 +722,59 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // 4. Tải danh sách Scenes khi currentChapter thay đổi
   // V2.5: Đồng bộ kịch bản từ Screenplay Flow Editor (TipTap) lên Backend khi bấm Lưu (Explicit Commit)
-  const loadPagesAndPanels = useCallback(async (chapId: string): Promise<PanelDto[]> => {
-    try {
-      const pages = await pageService.getPagesByChapter(chapId);
-      setChapterPages(pages || []);
-      if (!pages || pages.length === 0) {
-        setChapterPanels([]);
-        return [];
-      }
-      const panelsByPages = await Promise.all(
-        pages.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
-      );
-      const allPanels: PanelDto[] = [];
-      panelsByPages.forEach((list, idx) => {
-        list.forEach((p) => {
-          (p as any).pageNumber = pages[idx].pageNumber;
-          allPanels.push(p);
+  const fetchPagesAndPanels = useCallback(
+    async (chapId: string): Promise<{ pages: PageDto[]; panels: PanelDto[] }> => {
+      try {
+        const pages = await pageService.getPagesByChapter(chapId);
+        if (!pages || pages.length === 0) {
+          return { pages: [], panels: [] };
+        }
+        const panelsByPages = await Promise.all(
+          pages.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
+        );
+        const allPanels: PanelDto[] = [];
+        panelsByPages.forEach((list, idx) => {
+          list.forEach((p) => {
+            (p as any).pageNumber = pages[idx].pageNumber;
+            allPanels.push(p);
+          });
         });
-      });
-      setChapterPanels(allPanels);
-      return allPanels;
-    } catch {
-      setChapterPages([]);
-      setChapterPanels([]);
-      return [];
-    }
-  }, []);
+        return { pages, panels: allPanels };
+      } catch {
+        return { pages: [], panels: [] };
+      }
+    },
+    [],
+  );
+
+  const fetchScenesAndDetails = useCallback(
+    async (chapId: string): Promise<{ scenes: SceneDto[]; details: SceneDetailDto[] }> => {
+      try {
+        const freshScenes = await scriptLineService.getScenesByChapter(chapId);
+        freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        const details = (
+          await Promise.all(
+            freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
+          )
+        ).filter((d): d is SceneDetailDto => d !== null);
+        details.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        return { scenes: freshScenes, details };
+      } catch {
+        return { scenes: [], details: [] };
+      }
+    },
+    [],
+  );
+
+  const loadPagesAndPanels = useCallback(
+    async (chapId: string): Promise<PanelDto[]> => {
+      const res = await fetchPagesAndPanels(chapId);
+      setChapterPages(res.pages);
+      setChapterPanels(res.panels);
+      return res.panels;
+    },
+    [fetchPagesAndPanels],
+  );
 
   const buildFallbackScriptTree = useCallback((): ChapterScriptBody => {
     const linesByPanel = new Map<string, any[]>();
@@ -840,21 +867,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
         setVersionsTick((n) => n + 1);
 
-        // Nạp lại dữ liệu sau khi lưu
-        await loadPagesAndPanels(chapterId);
+        // Nạp lại dữ liệu sau khi lưu đồng thời bằng Promise.all (tránh desync state giữa panels và scenes)
         try {
-          const freshScenes = await scriptLineService.getScenesByChapter(chapterId);
-          freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
-          setScenes(freshScenes);
-          const details = (
-            await Promise.all(
-              freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-            )
-          ).filter((d): d is SceneDetailDto => d !== null);
-          details.sort((a, b) => a.sceneNumber - b.sceneNumber);
-          setChapterScenesDetail(details);
+          const [freshPagesAndPanels, freshScenesAndDetails] = await Promise.all([
+            fetchPagesAndPanels(chapterId),
+            fetchScenesAndDetails(chapterId),
+          ]);
+          setChapterPages(freshPagesAndPanels.pages);
+          setChapterPanels(freshPagesAndPanels.panels);
+          setScenes(freshScenesAndDetails.scenes);
+          setChapterScenesDetail(freshScenesAndDetails.details);
           if (selectedScene) {
-            setSelectedScene(details.find((d) => d.id === selectedScene.id) ?? details[0] ?? null);
+            setSelectedScene(
+              freshScenesAndDetails.details.find((d) => d.id === selectedScene.id) ??
+                freshScenesAndDetails.details[0] ??
+                null,
+            );
           }
           if (seriesId) {
             const freshBible = await bibleService.getSeriesBible(seriesId);
@@ -1427,20 +1455,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       await applyChapterUpdate(res.chapter);
       setVersionsTick((v) => v + 1);
 
-      await loadPagesAndPanels(currentChapter.id);
       try {
-        const freshScenes = await scriptLineService.getScenesByChapter(currentChapter.id);
-        freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setScenes(freshScenes);
-        const details = (
-          await Promise.all(
-            freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-          )
-        ).filter((d): d is SceneDetailDto => d !== null);
-        details.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setChapterScenesDetail(details);
+        const [freshPagesAndPanels, freshScenesAndDetails] = await Promise.all([
+          fetchPagesAndPanels(currentChapter.id),
+          fetchScenesAndDetails(currentChapter.id),
+        ]);
+        setChapterPages(freshPagesAndPanels.pages);
+        setChapterPanels(freshPagesAndPanels.panels);
+        setScenes(freshScenesAndDetails.scenes);
+        setChapterScenesDetail(freshScenesAndDetails.details);
         if (selectedScene) {
-          setSelectedScene(details.find((d) => d.id === selectedScene.id) ?? details[0] ?? null);
+          setSelectedScene(
+            freshScenesAndDetails.details.find((d) => d.id === selectedScene.id) ??
+              freshScenesAndDetails.details[0] ??
+              null,
+          );
         }
         void loadChapterCast(currentChapter.id);
       } catch (refreshErr) {

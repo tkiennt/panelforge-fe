@@ -1701,6 +1701,30 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return 'pencil';
   }, [isStageFlowCompleted, artistStages, currentStageIndex]);
 
+  // Tổng hợp khung toàn bộ chương từ db.Panels (Left-join SSOT cho ArtistScriptReader và LetteringScriptPanel)
+  const allChapterPanels = useMemo(() => {
+    const result: Array<{
+      id: string;
+      pageNumber?: number;
+      panelNumber?: number;
+      direction?: string | null;
+      pageId?: string;
+    }> = [];
+    pages.forEach((pg) => {
+      const pList = panelsByPageId[pg.id] || [];
+      pList.forEach((p) => {
+        result.push({
+          id: p.id,
+          pageNumber: pg.pageNumber,
+          panelNumber: p.panelNumber || p.readingOrder || 1,
+          direction: (p as any).direction ?? null,
+          pageId: pg.id,
+        });
+      });
+    });
+    return result;
+  }, [pages, panelsByPageId]);
+
   // Thao tác trang: Chọn trang
   const handleSelectPage = (page: PageDto) => {
     setSelectedPageId(page.id);
@@ -1857,6 +1881,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
   // Kiểm tra quyền chỉnh sửa trang và tải artwork trên chương dùng Lưới V3 (mục B & C)
   const { isPageReadOnly, canUploadCurrentPageArtwork } = useMemo(() => {
+    // 0. Khóa quyền tạo/sửa layout ở giai đoạn PreProduction để Writer giữ quyền SSOT tuyệt đối
+    const currentChapter = chapters.find((c) => c.id === currentChapterId);
+    const isPreProduction =
+      currentChapter &&
+      (currentChapter.status === 'PreProduction' ||
+        (currentChapter as any).status === 1 ||
+        (!currentChapter.isScriptFrozen && currentChapter.status !== 'InProduction'));
+    if (isPreProduction) {
+      return { isPageReadOnly: true, canUploadCurrentPageArtwork: false };
+    }
+
     if (gridTasks.length === 0 || !selectedPage) {
       return { isPageReadOnly: false, canUploadCurrentPageArtwork: true };
     }
@@ -1887,7 +1922,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       isPageReadOnly: !holdsOpenPageCell && !isProducerOnUnassignedStage,
       canUploadCurrentPageArtwork: holdsOpenStageCell || isProducerOnUnassignedStage,
     };
-  }, [gridTasks, selectedPage, workspaceRole, currentStage?.id]);
+  }, [chapters, currentChapterId, gridTasks, selectedPage, workspaceRole, currentStage?.id]);
 
   // Ô của công đoạn hiện tại trên trang này đã giao cho mình và đến lượt làm nhưng chưa bấm Bắt đầu
   const startableCurrentCell = useMemo(() => {
@@ -2973,6 +3008,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onToggleVisibility={() => {}}
           hidePagesTab={false}
           scriptLines={resolvedScriptLines}
+          chapterPanels={allChapterPanels}
           sceneTitle={firstSceneMeta.title}
           sceneSlugline={firstSceneMeta.slugline}
           chapterTitle={activeChapterTitle}
