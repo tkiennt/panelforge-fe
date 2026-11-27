@@ -573,12 +573,19 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                       )}
                       <div className='min-w-0 flex-1'>
                         <p
-                          className='text-xs font-bold truncate'
+                          className='text-xs font-bold truncate flex items-center gap-1.5'
                           style={{ color: line.characterColor || '#C2410C' }}
                         >
-                          {isNarration
-                            ? t('artist.letteringScript.narrationSpeaker')
-                            : line.characterName || t('artist.letteringScript.characterFallback')}
+                          <span
+                            className='w-1.5 h-1.5 rounded-full shrink-0'
+                            style={{ backgroundColor: line.characterColor || '#C2410C' }}
+                            aria-hidden='true'
+                          />
+                          <span className='truncate'>
+                            {isNarration
+                              ? t('artist.letteringScript.narrationSpeaker')
+                              : line.characterName || t('artist.letteringScript.characterFallback')}
+                          </span>
                           <span
                             data-testid={`lettering-script-kind-${line.id}`}
                             className='ml-1.5 font-normal text-xs text-stone-400'
