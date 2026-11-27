@@ -414,6 +414,50 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
           </div>
         )}
 
+        {/* Explicit Release Confirmation Summary */}
+        <div
+          data-testid='publish-confirmation-summary'
+          className='p-3 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5] text-xs text-[#1C1917] space-y-1'
+        >
+          <div className='font-bold'>
+            {publishMode === 'now'
+              ? lang === 'en'
+                ? `Publishing Chapter ${chapterNumber} — ${langName(originalLanguage)} (${originalLanguage.toUpperCase()})`
+                : `Xuất bản Chương ${chapterNumber} — ${langName(originalLanguage)} (${originalLanguage.toUpperCase()})`
+              : lang === 'en'
+                ? `Scheduling Chapter ${chapterNumber} — ${langName(originalLanguage)} (${originalLanguage.toUpperCase()})`
+                : `Lên lịch Chương ${chapterNumber} — ${langName(originalLanguage)} (${originalLanguage.toUpperCase()})`}
+            {' — '}
+            <span className='font-mono text-[#C2410C]'>
+              {needsPricing
+                ? priceType === 'paid' && price
+                  ? `${Number(price).toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN')} VND`
+                  : priceType === 'free'
+                    ? lang === 'en'
+                      ? 'Free'
+                      : 'Miễn phí'
+                    : lang === 'en'
+                      ? 'Price not selected'
+                      : 'Chưa chọn giá'
+                : originalEdition?.isPaid
+                  ? `${originalEdition.priceVnd.toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN')} VND`
+                  : lang === 'en'
+                    ? 'Free'
+                    : 'Miễn phí'}
+            </span>
+          </div>
+          {translationsToPublish.length > 0 && (
+            <div className='text-[11px] text-[#57534E]'>
+              {lang === 'en' ? 'Also publishing translations:' : 'Phát hành kèm bản dịch:'}{' '}
+              <strong>
+                {translationsToPublish
+                  .map((c) => `${langName(c)} (${c.toUpperCase()})`)
+                  .join(', ')}
+              </strong>
+            </div>
+          )}
+        </div>
+
         <div className='p-3 bg-amber-50/60 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed'>
           <strong>{t('scheduleModal.importantNoteLabel')}</strong>{' '}
           {t('scheduleModal.importantNoteBefore')} <code>Published</code>{' '}

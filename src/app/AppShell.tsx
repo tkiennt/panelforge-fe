@@ -325,22 +325,37 @@ export function AppShell({
     if (isPublisher || effectiveRole === 'PUBLISHER') {
       return [
         {
-          section: t('navigation.sections.publisherDesk'),
+          section: t('navigation.sections.publisherOverview', 'TỔNG QUAN'),
+          items: [
+            {
+              icon: LayoutDashboard,
+              label: t('navigation.menu.publisherOverview', 'Tổng quan xuất bản'),
+              href: '/publisher/desk',
+            },
+          ],
+        },
+        {
+          section: t('navigation.sections.publisherPublishing', 'XUẤT BẢN'),
           items: [
             {
               icon: BookMarked,
-              label: t('navigation.menu.publisherManagement'),
+              label: t('navigation.menu.publisherManagement', 'Quản lý xuất bản'),
               href: '/publisher/series',
               badge: { type: 'dot', color: 'bg-orange-500' },
             },
             {
               icon: BookOpen,
-              label: t('navigation.menu.publicCatalog'),
+              label: t('navigation.menu.publicCatalog', 'Danh mục công khai'),
               href: '/catalog',
             },
+          ],
+        },
+        {
+          section: t('navigation.sections.publisherBusiness', 'KINH DOANH'),
+          items: [
             {
               icon: CreditCard,
-              label: t('navigation.menu.revenue'),
+              label: t('navigation.menu.revenue', 'Doanh thu & Lượt đọc'),
               href: '/publisher/revenue',
             },
           ],

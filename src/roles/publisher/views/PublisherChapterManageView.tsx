@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   BarChart3,
@@ -25,6 +25,11 @@ import {
 } from '@/services/payment.service';
 import { LanguageFilter, StatCards } from '../components/MonetizationWidgets';
 import { useMoney } from '../components/useMoney';
+import {
+  formatContentLanguageName,
+  formatEditionPricingLabel,
+  getEditionStatusDisplay,
+} from '../components/multilingual';
 
 type Section = 'general' | 'editions';
 
@@ -34,13 +39,39 @@ type Section = 'general' | 'editions';
  * Free hoặc Trả phí trước khi phát hành. Mua ấn bản mở mọi trang của đúng ngôn ngữ đó.
  */
 export const PublisherChapterManageView: React.FC = () => {
-  const { t } = useTranslation('payments');
+  const { t, lang: uiLang } = useTranslation('payments');
   const { seriesId = '', chapterId = '' } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
-  const [section, setSection] = useState<Section>('general');
+  const urlSection = searchParams.get('section');
+  const urlLangParam = searchParams.get('lang');
+  const initialLang: ContentLanguage =
+    urlLangParam === 'en' || urlLangParam === 'vi' ? urlLangParam : 'vi';
+  const [section, setSectionState] = useState<Section>(
+    urlSection === 'editions' ? 'editions' : 'general',
+  );
+  const [selectedLang, setSelectedLangState] = useState<ContentLanguage>(initialLang);
   const [manage, setManage] = useState<ChapterManageDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const setSection = (next: Section) => {
+    setSectionState(next);
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.set('section', next);
+      return p;
+    }, { replace: true });
+  };
+
+  const setSelectedLang = (next: ContentLanguage) => {
+    setSelectedLangState(next);
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.set('lang', next);
+      return p;
+    }, { replace: true });
+  };
 
   const reload = useCallback(async () => {
     try {
@@ -81,13 +112,22 @@ export const PublisherChapterManageView: React.FC = () => {
   return (
     <div className='p-6 max-w-7xl mx-auto space-y-5'>
       <div className='pb-4 border-b border-[#E7E7E7]'>
-        <Link
-          to={`/publisher/revenue/series/${seriesId}`}
-          className='inline-flex items-center gap-1 text-xs text-[#737373] hover:text-[#171717]'
-        >
-          <ArrowLeft className='w-3.5 h-3.5' />
-          {t('manage.backToSeries')}
-        </Link>
+        <div className='flex flex-wrap items-center gap-3'>
+          <Link
+            to={`/publisher/series/${seriesId}`}
+            className='inline-flex items-center gap-1 text-xs font-semibold text-[#C2410C] hover:underline'
+          >
+            <ArrowLeft className='w-3.5 h-3.5' />
+            {uiLang === 'en' ? 'Publishing Matrix' : 'Ma trận xuất bản'}
+          </Link>
+          <span className='text-xs text-[#D4D4D4]'>|</span>
+          <Link
+            to={`/publisher/revenue/series/${seriesId}`}
+            className='inline-flex items-center gap-1 text-xs text-[#737373] hover:text-[#171717]'
+          >
+            {t('manage.backToSeries')}
+          </Link>
+        </div>
         <h1 className='text-xl font-bold text-[#171717] tracking-tight mt-1'>
           {manage ? t('insights.chapterLabel', { number: manage.chapterNumber }) : '…'}
           {manage?.title && <span className='font-normal text-[#555555]'> · {manage.title}</span>}
@@ -145,11 +185,17 @@ export const PublisherChapterManageView: React.FC = () => {
             manage && (
               <>
                 {section === 'general' && (
-                  <GeneralSection seriesId={seriesId} chapterId={chapterId} />
+                  <GeneralSection
+                    seriesId={seriesId}
+                    chapterId={chapterId}
+                    initialLanguage={urlLangParam === 'vi' || urlLangParam === 'en' ? urlLangParam : ''}
+                  />
                 )}
                 {section === 'editions' && (
                   <EditionsSection
                     manage={manage}
+                    language={selectedLang}
+                    onLanguageChange={setSelectedLang}
                     onSaved={onSaved}
                     onError={onError}
                     onReload={reload}
@@ -166,12 +212,13 @@ export const PublisherChapterManageView: React.FC = () => {
 
 // ─── General ──────────────────────────────────────────────────────────────────
 
-const GeneralSection: React.FC<{ seriesId: string; chapterId: string }> = ({
-  seriesId,
-  chapterId,
-}) => {
+const GeneralSection: React.FC<{
+  seriesId: string;
+  chapterId: string;
+  initialLanguage?: ContentLanguage | '';
+}> = ({ seriesId, chapterId, initialLanguage = '' }) => {
   const { t } = useTranslation('payments');
-  const [language, setLanguage] = useState<ContentLanguage | ''>('');
+  const [language, setLanguage] = useState<ContentLanguage | ''>(initialLanguage);
   const [chapter, setChapter] = useState<ChapterInsightDto | null>(null);
   const [rating, setRating] = useState<{ avg: number; count: number }>({ avg: 0, count: 0 });
 
@@ -232,20 +279,25 @@ const PRICE_PRESETS = [5000, 10000, 15000, 20000];
 
 const EditionsSection: React.FC<{
   manage: ChapterManageDto;
+  language: ContentLanguage;
+  onLanguageChange: (lang: ContentLanguage) => void;
   onSaved: (d: ChapterManageDto) => void;
   onError: (e: unknown) => void;
   onReload: () => Promise<void>;
-}> = ({ manage, onSaved, onError, onReload }) => {
-  const { t } = useTranslation('payments');
+}> = ({ manage, language, onLanguageChange, onSaved, onError, onReload }) => {
+  const { t, lang: uiLang } = useTranslation('payments');
   const { vnd } = useMoney();
-  const [language, setLanguage] = useState<ContentLanguage>('vi');
   const edition = manage.languages.find((l) => l.language === language);
   const [draft, setDraft] = useState<Draft>(() => draftOf(edition));
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [confirmPublishOpen, setConfirmPublishOpen] = useState(false);
   const [originalLanguage, setOriginalLanguage] = useState<string | null>(null);
 
-  useEffect(() => setDraft(draftOf(edition)), [edition]);
+  useEffect(() => {
+    setDraft(draftOf(edition));
+    setConfirmPublishOpen(false);
+  }, [edition]);
 
   useEffect(() => {
     let alive = true;
@@ -345,12 +397,17 @@ const EditionsSection: React.FC<{
               type='button'
               role='tab'
               aria-selected={language === l}
-              onClick={() => setLanguage(l)}
+              onClick={() => onLanguageChange(l)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 ${
                 language === l ? 'bg-[#171717] text-white' : 'text-[#555555] hover:bg-[#FAF8F4]'
               }`}
             >
-              {t(`lang.${l}`)}
+              {formatContentLanguageName(l, uiLang)}
+              {l === originalLanguage && (
+                <span className='text-[10px] opacity-75'>
+                  {uiLang === 'en' ? '(Source)' : '(Gốc)'}
+                </span>
+              )}
               {!ed?.isMonetizationConfigured && (
                 <span
                   className='w-1.5 h-1.5 rounded-full bg-amber-500'
@@ -362,11 +419,47 @@ const EditionsSection: React.FC<{
         })}
       </div>
 
+      {/* Active Edition Context Banner — prevents editing the wrong language/currency */}
+      {(() => {
+        const statusInfo = getEditionStatusDisplay(edition, uiLang);
+        const priceInfo = formatEditionPricingLabel(edition, uiLang);
+        return (
+          <div className='px-4 py-2.5 rounded-xl bg-[#FFF8F2] border border-[#FDBA74]/80 flex flex-wrap items-center justify-between gap-2 text-xs'>
+            <div className='flex flex-wrap items-center gap-2'>
+              <span className='font-bold text-[#9A3412]'>
+                {uiLang === 'en' ? 'Active Edition:' : 'Đang cấu hình ấn bản:'}{' '}
+                {t('insights.chapterLabel', { number: manage.chapterNumber })} —{' '}
+                {formatContentLanguageName(language, uiLang)}
+              </span>
+              <span className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${statusInfo.badgeClass}`}>
+                {statusInfo.label}
+              </span>
+            </div>
+            <div className='flex items-center gap-2 text-[#7C2D12] font-mono text-[11px]'>
+              <span>{uiLang === 'en' ? 'Currency: VND' : 'Tiền tệ: VND'}</span>
+              <span>·</span>
+              <span>{priceInfo.label}</span>
+              {language !== originalLanguage && (
+                <>
+                  <span>·</span>
+                  <span>
+                    {edition?.translatedPages ?? 0}/{pageCount}{' '}
+                    {uiLang === 'en' ? 'localized pages' : 'trang bản địa hóa'}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className='p-4 rounded-2xl border border-[#E7E7E7] bg-white space-y-4'>
         <div className='flex flex-wrap items-center gap-2 text-xs'>
-          <span className='font-semibold text-[#171717]'>{t(`lang.${language}`)}</span>
-          <span className='px-2 py-0.5 rounded-full bg-[#FAF8F4] border border-[#E7E7E7] text-[#555555]'>
-            {edition?.editionStatus ?? t('edition.noEdition')}
+          <span className='font-semibold text-[#171717]'>
+            {formatContentLanguageName(language, uiLang)}
+          </span>
+          <span className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${getEditionStatusDisplay(edition, uiLang).badgeClass}`}>
+            {getEditionStatusDisplay(edition, uiLang).label}
           </span>
           {edition?.isAvailable && (
             <span className='text-emerald-700'>{t('manage.available')}</span>
@@ -516,19 +609,48 @@ const EditionsSection: React.FC<{
             </span>
           )}
           {canPublish && (
-            <div className='flex items-center gap-2'>
+            <div className='flex flex-wrap items-center gap-2'>
               {!edition?.isMonetizationConfigured && (
                 <span className='text-xs text-amber-800'>{t('edition.publishBlocked')}</span>
               )}
-              <button
-                type='button'
-                disabled={publishing || !edition?.isMonetizationConfigured}
-                onClick={publish}
-                className='px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5'
-              >
-                {publishing && <Loader2 className='w-4 h-4 animate-spin' />}
-                {t('edition.publish', { lang: language.toUpperCase() })}
-              </button>
+              {confirmPublishOpen ? (
+                <div className='flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900'>
+                  <span className='font-semibold'>
+                    {uiLang === 'en'
+                      ? `Publish Chapter ${manage.chapterNumber} — ${formatContentLanguageName(language, uiLang)} — ${formatEditionPricingLabel(edition, uiLang).label}?`
+                      : `Xuất bản Chương ${manage.chapterNumber} — ${formatContentLanguageName(language, uiLang)} — ${formatEditionPricingLabel(edition, uiLang).label}?`}
+                  </span>
+                  <button
+                    type='button'
+                    disabled={publishing}
+                    onClick={async () => {
+                      await publish();
+                      setConfirmPublishOpen(false);
+                    }}
+                    className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer inline-flex items-center gap-1'
+                  >
+                    {publishing && <Loader2 className='w-3.5 h-3.5 animate-spin' />}
+                    <span>{uiLang === 'en' ? 'Confirm' : 'Xác nhận'}</span>
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => setConfirmPublishOpen(false)}
+                    className='px-2 py-1 rounded-lg border border-emerald-300 text-emerald-800 hover:bg-white cursor-pointer'
+                  >
+                    {uiLang === 'en' ? 'Cancel' : 'Hủy'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type='button'
+                  disabled={publishing || !edition?.isMonetizationConfigured}
+                  onClick={() => setConfirmPublishOpen(true)}
+                  className='px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5'
+                >
+                  {publishing && <Loader2 className='w-4 h-4 animate-spin' />}
+                  {t('edition.publish', { lang: language.toUpperCase() })}
+                </button>
+              )}
             </div>
           )}
         </div>
