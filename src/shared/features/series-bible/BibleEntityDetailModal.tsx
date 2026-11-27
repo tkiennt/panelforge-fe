@@ -30,7 +30,7 @@ import {
   bibleService,
 } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
-import { Alert, CollapsibleSidebar, Modal } from '@/shared/ui';
+import { Alert, Modal } from '@/shared/ui';
 import { translate, useTranslation } from '@/lib/i18n';
 import { BibleStubAiDraftSection } from './BibleStubAiDraftSection';
 import { getCategoryLabel } from './bibleCategory';
@@ -1830,23 +1830,22 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           </section>
         )}
 
-        <div className='grid grid-cols-1 gap-4 items-start'>
+        <div className='grid grid-cols-1 gap-4 items-start min-w-0'>
           {/* ================= SIDEBAR: ngữ cảnh kịch bản · phiên bản ================= */}
           {!isArtistUser && (
-            <CollapsibleSidebar
-              collapsed={false}
-              label={t('bible.detailModal.navSidebarAria', 'Điều hướng mục Series Bible')}
-              className='order-2 grid grid-cols-1 gap-4 lg:grid-cols-2'
+            <aside
+              aria-label={t('bible.detailModal.navSidebarAria', 'Điều hướng mục Series Bible')}
+              className='order-2 w-full min-w-0 grid grid-cols-1 gap-4 lg:grid-cols-2 items-start'
               data-testid='bible-workbench-sidebar'
             >
               {seriesId && (
                 <section
-                  className='overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)]'
+                  className='min-w-0 overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)]'
                   data-testid='bible-usages'
                 >
-                  <div className='flex items-center gap-1.5 rounded-t-xl border-b border-stone-200/80 bg-[#FAF8F5] px-4 py-3.5 text-sm font-bold text-stone-900'>
-                    <FileText className='w-4 h-4 text-stone-500' />
-                    {t('bible.detailModal.scriptAppearances')}
+                  <div className='flex items-center gap-1.5 rounded-t-xl border-b border-head-line bg-head-wash px-4 py-3 text-sm font-bold text-stone-900'>
+                    <FileText className='w-4 h-4 text-accent-dark shrink-0' />
+                    <span className='truncate'>{t('bible.detailModal.scriptAppearances')}</span>
                   </div>
                   <div className='p-4'>
                     {usages === null ? (
@@ -1901,16 +1900,16 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </section>
               )}
               {/* CARD 2: PHIÊN BẢN & NHẬT KÝ SỬA ĐỔI (VERSION & AUDIT TRAIL GỘP CHUNG) */}
-              <div className='overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)]'>
-                <div className='flex items-center justify-between rounded-t-xl border-b border-stone-200/80 bg-[#FAF8F5] px-4 py-3.5'>
-                  <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
-                    <History className='w-4 h-4 text-stone-500' />
-                    <span>{t('bible.detailModal.versionsAndAudit', 'Phiên bản & Nhật ký')}</span>
+              <div className='min-w-0 overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)]'>
+                <div className='flex items-center justify-between gap-2 rounded-t-xl border-b border-head-line bg-head-wash px-4 py-3'>
+                  <div className='font-bold text-sm text-stone-900 flex items-center gap-1.5 min-w-0'>
+                    <History className='w-4 h-4 text-accent-dark shrink-0' />
+                    <span className='truncate'>{t('bible.detailModal.versionsAndAudit', 'Phiên bản & Nhật ký')}</span>
                   </div>
                   <button
                     type='button'
                     onClick={() => onOpenHistory(entity)}
-                    className='whitespace-nowrap text-xs font-semibold text-stone-600 hover:text-stone-900 px-2 py-0.5 rounded-md border border-stone-200 hover:bg-white transition cursor-pointer'
+                    className='whitespace-nowrap shrink-0 text-xs font-semibold text-stone-600 hover:text-stone-900 px-2.5 py-1 rounded-md border border-stone-200 bg-white hover:bg-stone-50 transition cursor-pointer'
                   >
                     {t('bible.detailModal.historyQuickBtn', 'Lịch sử')}
                   </button>
@@ -1918,7 +1917,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
                 <div className='space-y-3 p-4'>
                   {/* Version list */}
-                  <div className='space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-0.5'>
+                  <div className='space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-0.5'>
                     {activeVariant?.revisions && activeVariant.revisions.length > 0 ? (
                       activeVariant.revisions.map((rev) => {
                         const isSelected = rev.id === activeRevision?.id;
@@ -1934,18 +1933,18 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           <div
                             key={rev.id}
                             onClick={() => setSelectedVersionId(rev.id)}
-                            className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-xs ${
+                            className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 text-xs ${
                               isSelected
                                 ? 'bg-stone-100 border-stone-400 shadow-2xs font-semibold'
                                 : 'bg-white border-stone-200 hover:border-stone-300'
                             }`}
                           >
                             <div className='flex items-center gap-1.5 min-w-0 flex-wrap'>
-                              <span className='font-mono font-bold text-stone-800'>
+                              <span className='font-mono font-bold text-stone-800 shrink-0'>
                                 v{rev.versionNumber}
                               </span>
                               <span
-                                className={`text-xs px-1.5 py-0.5 rounded-full border ${
+                                className={`text-xs px-2 py-0.5 rounded-full border whitespace-nowrap ${
                                   isCanon && !isSuperseded
                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold'
                                     : isSuperseded
@@ -1958,7 +1957,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                 }`}
                               >
                                 {isCanon && !isSuperseded
-                                  ? t('bible.detailModal.officialBadge', '🔒 Đã khóa chuẩn')
+                                  ? t('bible.detailModal.officialBadge', 'Đã khóa chuẩn')
                                   : isSuperseded
                                     ? t('bible.detailModal.supersededBadge', 'Đã thay thế')
                                     : rev.reviewStatus === 'ConceptSubmitted'
@@ -1968,19 +1967,19 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                         : t('bible.detailModal.draftBadge', 'Bản nháp')}
                               </span>
                               {(rev.currentConceptVersionNumber || 0) > 1 && (
-                                <span className='text-xs px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 border border-stone-200'>
+                                <span className='text-xs px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 border border-stone-200 whitespace-nowrap'>
                                   Bản vẽ lần {rev.currentConceptVersionNumber}
                                 </span>
                               )}
                             </div>
-                            <span className='text-xs text-stone-400 font-mono'>
+                            <span className='text-xs text-stone-500 font-mono shrink-0 whitespace-nowrap'>
                               {new Date(rev.createdAt).toLocaleDateString(dateLocale)}
                             </span>
                           </div>
                         );
                       })
                     ) : (
-                      <div className='p-2 text-center text-xs text-stone-400 italic'>
+                      <div className='p-2 text-center text-xs text-stone-500 italic'>
                         {t('bible.detailModal.noRevisions')}
                       </div>
                     )}
@@ -2086,7 +2085,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   </div>
                 </div>
               </div>
-            </CollapsibleSidebar>
+            </aside>
           )}
 
           {/* ================= MAIN: trạng thái · Đặc tả | Bản vẽ · Phiên bản ================= */}
@@ -2194,16 +2193,16 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             </div>
 
             <div
-              className={`grid grid-cols-1 gap-4 items-start ${
-                isVisualDesign ? 'lg:grid-cols-[minmax(360px,0.8fr)_minmax(520px,1.2fr)]' : ''
+              className={`grid grid-cols-1 gap-4 items-start min-w-0 ${
+                isVisualDesign ? 'xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]' : ''
               }`}
             >
               <section className='min-w-0 self-start' data-testid='bible-spec-column'>
                 {/* CARD 1: THÔNG TIN ĐẶC TẢ THU GỌN (METADATA SPECS) */}
                 <div className='h-fit rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)]'>
-                  <div className='flex items-center justify-between rounded-t-xl border-b border-stone-200/80 bg-[#FAF8F5] px-5 py-3.5'>
-                    <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
-                      <FileText className='w-4 h-4 text-stone-500' />
+                  <div className='flex items-center justify-between rounded-t-xl border-b border-head-line bg-head-wash px-5 py-3'>
+                    <div className='font-bold text-sm text-stone-900 flex items-center gap-1.5'>
+                      <FileText className='w-4 h-4 text-accent-dark' />
                       <span>{card1Title}</span>
                     </div>
                   </div>

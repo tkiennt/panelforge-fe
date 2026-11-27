@@ -161,6 +161,11 @@
       "changes": "Thay đổi",
       "entities": "Thực thể"
     },
+    "sidePanel": {
+      "expand": "Mở bảng tham chiếu",
+      "collapse": "Thu gọn bảng tham chiếu",
+      "toggleLabel": "Tham chiếu"
+    },
     "composer": {
       "label": "Nhận xét cho Writer",
       "placeholder": "Cần sửa gì ở đây, và vì sao?",
@@ -183,7 +188,8 @@
       "itemCount": "{count} mục",
       "pageNumber": "Trang {page}",
       "panelCode": "Khung {page}.{panel}",
-      "defaultAuthor": "Biên tập viên"
+      "defaultAuthor": "Biên tập viên",
+      "thoughtTag": "nghĩ"
     },
     "location": {
       "line": "Cảnh {scene} · dòng {line}",
@@ -227,6 +233,7 @@
       "bibleUnavailable": "Chưa lấy được kết quả Bible Gate.",
       "biblePassed": "Đạt: {count} mục Bible đã khoá canon",
       "bibleFailed": "Chưa đạt: {count} mục Bible chưa khoá canon",
+      "viewReferences": "Xem danh sách →",
       "notLocked": "Chưa khoá canon tại chương này",
       "consistencyTitle": "Kiểm tra nhất quán",
       "run": "Chạy kiểm tra",
@@ -381,7 +388,8 @@
       "statusMissing": "Chưa có bản vẽ",
       "typeMain": "Chính",
       "typeCrowd": "Quần chúng",
-      "blockerTitle": "Kịch bản đang bị chặn duyệt sản xuất:"
+      "blockerTitle": "Kịch bản đang bị chặn duyệt sản xuất:",
+      "openDesignSheet": "Mở hồ sơ thiết kế"
     },
     "stitch": {
       "readerTitle": "Nội dung kịch bản & Góp ý biên tập",

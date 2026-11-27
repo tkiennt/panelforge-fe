@@ -1,15 +1,10 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Calendar,
-  Lock,
-  Rocket,
-  Unlock,
-} from 'lucide-react';
+import { ArrowLeft, BookOpen, Calendar, Lock, Rocket, Unlock } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { ChapterDto, ChapterReadinessDto } from '@/services/chapter.service';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
+import { Badge, Button, type SurfaceTone } from '@/shared/ui';
 import { daysUntil } from './workspaceMetrics';
 import {
   buildChapterManagementUrl,
@@ -20,6 +15,8 @@ import {
 } from '@/app/routePaths';
 
 export interface ProducerSharedHeaderProps {
+  /** 'chapter' (default) shows chapter selector, status, script lock & deadline; 'series' renders a Series-level header without chapter controls. */
+  mode?: 'chapter' | 'series';
   workspaceId?: string;
   seriesId?: string;
   currentChapterId?: string;
@@ -38,34 +35,35 @@ export interface ProducerSharedHeaderProps {
   showWorkspaceTabs?: boolean;
 }
 
-const CHAPTER_STATUS_META: Record<string, { labelKey: string; cls: string }> = {
+const CHAPTER_STATUS_META: Record<string, { labelKey: string; tone: SurfaceTone }> = {
   PreProduction: {
     labelKey: 'workbench.chapterStatus.PreProduction',
-    cls: 'text-stone-800 bg-stone-100 border-stone-200',
+    tone: 'neutral',
   },
   InProduction: {
     labelKey: 'workbench.chapterStatus.InProduction',
-    cls: 'text-amber-800 bg-amber-50 border-amber-200',
+    tone: 'info',
   },
   ChapterApproved: {
     labelKey: 'workbench.chapterStatus.ChapterApproved',
-    cls: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+    tone: 'success',
   },
   Approved: {
     labelKey: 'workbench.chapterStatus.Approved',
-    cls: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+    tone: 'success',
   },
   HandedOffAndPublished: {
     labelKey: 'workbench.chapterStatus.HandedOffAndPublished',
-    cls: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+    tone: 'success',
   },
   Published: {
     labelKey: 'workbench.chapterStatus.Published',
-    cls: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+    tone: 'success',
   },
 };
 
 export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
+  mode = 'chapter',
   workspaceId,
   seriesId,
   currentChapterId,
@@ -103,16 +101,22 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
     ? (() => {
         const meta = CHAPTER_STATUS_META[resolvedStatus];
         return meta
-          ? { label: t(meta.labelKey), cls: meta.cls }
-          : {
-              label: resolvedStatus,
-              cls: 'text-stone-800 bg-stone-100 border-stone-200',
-            };
+          ? { label: t(meta.labelKey), tone: meta.tone }
+          : { label: resolvedStatus, tone: 'neutral' as SurfaceTone };
       })()
     : null;
 
-  const isScriptFrozen = Boolean(readiness?.script?.isScriptFrozen ?? resolvedChapter?.isScriptFrozen);
-  const scriptStatus = String(readiness?.script?.scriptStatus || resolvedChapter?.scriptStatus || '');
+  const isScriptFrozen = Boolean(
+    readiness?.script?.isScriptFrozen ?? resolvedChapter?.isScriptFrozen,
+  );
+  const scriptStatus = String(
+    readiness?.script?.scriptStatus || resolvedChapter?.scriptStatus || '',
+  );
+  const scriptVersionNum =
+    readiness?.script?.productionVersionNumber ??
+    readiness?.script?.approvedVersionNumber ??
+    readiness?.script?.latestVersionNumber ??
+    null;
   const deadlineStr = readiness?.targetReleaseDate ?? resolvedChapter?.targetReleaseDate;
   const remainingDays = daysUntil(deadlineStr);
 
@@ -137,7 +141,9 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
       } else if (location.pathname.endsWith('/export')) {
         navigate(buildSeriesExportUrl(workspaceId, seriesId, nextId));
       } else if (location.pathname.endsWith('/workspace')) {
-        navigate(buildProductionWorkspaceUrl(workspaceId, seriesId, { chapterId: nextId, tab: 'progress' }));
+        navigate(
+          buildProductionWorkspaceUrl(workspaceId, seriesId, { chapterId: nextId, tab: 'progress' }),
+        );
       } else {
         navigate(buildChapterManagementUrl(workspaceId, seriesId, nextId));
       }
@@ -152,136 +158,151 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
     }
   };
 
+  const isSeriesMode = mode === 'series';
+
   return (
-    <div
+    <header
       data-testid='producer-shared-header'
-      className='w-full bg-white/95 border-b border-stone-200 sticky top-0 z-30 px-4 sm:px-6 lg:px-8 pt-2.5 pb-2 shadow-[inset_0_2px_0_var(--studio-accent)]'
+      className='w-full bg-white/95 backdrop-blur-md border-b border-stone-200 sticky top-0 z-[var(--studio-z-sticky)] px-4 sm:px-6 lg:px-8 py-2.5 shadow-[inset_0_2px_0_var(--studio-accent)]'
     >
-      <div className='max-w-[1640px] mx-auto space-y-2'>
+      <div className='max-w-[1640px] mx-auto'>
         <div className='flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3'>
-          {/* Left: Title, Chapter Lifecycle Badge, Script Lock Badge, Deadline */}
+          {/* Left: Context Title & Metadata Badges */}
           <div className='flex flex-wrap items-center gap-2.5 min-w-0'>
             <div className='min-w-0'>
-              {!hideBackLink && activeHubSection !== 'overview' && (
+              {!isSeriesMode && !hideBackLink && activeHubSection !== 'overview' && (
                 <button
                   type='button'
                   onClick={handleBack}
-                  className='inline-flex items-center gap-1 text-xs font-semibold text-orange-700 hover:text-orange-800 hover:underline mb-0.5 transition-colors cursor-pointer'
+                  className='inline-flex items-center gap-1 text-xs font-semibold text-accent-dark hover:underline mb-0.5 transition-colors cursor-pointer'
                 >
                   <ArrowLeft className='w-3.5 h-3.5' aria-hidden='true' />
-                  <span>{t('workbench.backToChapters', 'Quay lại Tổng quan chương')}</span>
+                  <span>{t('workbench.backToChapters')}</span>
                 </button>
               )}
-              <div className='flex flex-wrap items-center gap-2'>
-                <h2 className='text-base font-bold text-stone-900 leading-tight truncate'>
-                  {seriesTitle ? `${seriesTitle} · ` : ''}
-                  {currentChapterFormattedTitle}
-                </h2>
-                {statusMeta && (
-                  <span
-                    data-testid='header-chapter-lifecycle-badge'
-                    className={`px-2.5 py-0.5 rounded-full border text-[11px] font-semibold whitespace-nowrap ${statusMeta.cls}`}
-                  >
-                    {statusMeta.label}
-                  </span>
-                )}
-                {resolvedChapter && (
-                  <span
-                    data-testid='header-script-lock-badge'
-                    title={
-                      isScriptFrozen
-                        ? 'Kịch bản đã khóa cho sản xuất'
-                        : scriptStatus === 'InReview'
-                          ? 'Kịch bản đã gửi duyệt, chưa khóa sản xuất'
-                          : 'Kịch bản đang mở chỉnh sửa'
-                    }
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium whitespace-nowrap ${
-                      isScriptFrozen
-                        ? 'bg-stone-100 text-stone-700 border-stone-200'
-                        : scriptStatus === 'InReview'
-                          ? 'bg-sky-50 text-sky-700 border-sky-200'
-                          : 'bg-amber-50/70 text-amber-800 border-amber-200'
-                    }`}
-                  >
-                    {isScriptFrozen ? (
-                      <Lock className='w-3 h-3' aria-hidden='true' />
-                    ) : (
-                      <Unlock className='w-3 h-3' aria-hidden='true' />
-                    )}
-                    <span>
+
+              {isSeriesMode ? (
+                <div className='flex flex-wrap items-center gap-2'>
+                  <h2 className='font-serif text-lg font-bold text-stone-900 leading-tight truncate'>
+                    {seriesTitle || t('workbench.seriesFallback')}
+                  </h2>
+                  <Badge tone='neutral' icon={<BookOpen aria-hidden='true' />}>
+                    {t('workbench.header.seriesScopeBadge')}
+                  </Badge>
+                  {seriesFormat && <Badge tone='brand'>{seriesFormat}</Badge>}
+                </div>
+              ) : (
+                <div className='flex flex-wrap items-center gap-2'>
+                  <h2 className='text-base font-bold text-stone-900 leading-tight truncate'>
+                    {seriesTitle ? `${seriesTitle} · ` : ''}
+                    {currentChapterFormattedTitle}
+                  </h2>
+                  {statusMeta && (
+                    <Badge
+                      data-testid='header-chapter-lifecycle-badge'
+                      tone={statusMeta.tone}
+                    >
+                      {statusMeta.label}
+                    </Badge>
+                  )}
+                  {resolvedChapter && (
+                    <Badge
+                      data-testid='header-script-lock-badge'
+                      tone={
+                        isScriptFrozen
+                          ? 'success'
+                          : scriptStatus === 'InReview'
+                            ? 'info'
+                            : 'warning'
+                      }
+                      icon={
+                        isScriptFrozen ? (
+                          <Lock aria-hidden='true' />
+                        ) : (
+                          <Unlock aria-hidden='true' />
+                        )
+                      }
+                      title={
+                        isScriptFrozen
+                          ? t('workbench.header.scriptLockedTitle')
+                          : scriptStatus === 'InReview'
+                            ? t('workbench.header.scriptInReviewTitle')
+                            : t('workbench.header.scriptDraftTitle')
+                      }
+                    >
                       {isScriptFrozen
-                        ? 'Kịch bản: Đã khóa'
+                        ? t('workbench.header.scriptLocked')
                         : scriptStatus === 'InReview'
-                          ? 'Kịch bản: Đã gửi duyệt'
-                          : 'Kịch bản: Bản nháp'}
-                    </span>
-                  </span>
-                )}
-                {deadlineStr && (
-                  <span
-                    className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap ${
-                      remainingDays !== null && remainingDays < 0
-                        ? 'bg-rose-50 text-rose-700 border-rose-200'
-                        : 'bg-stone-50 text-stone-600 border-stone-200'
-                    }`}
-                  >
-                    <Calendar className='w-3 h-3' aria-hidden='true' />
-                    <span>Hạn: {deadlineStr}</span>
-                  </span>
-                )}
-              </div>
-              {subtitle || seriesFormat ? (
-                <p className='text-xs text-stone-500 mt-0.5'>
-                  {subtitle || seriesFormat}
-                </p>
+                          ? t('workbench.header.scriptInReview')
+                          : t('workbench.header.scriptDraft')}
+                      {scriptVersionNum ? ` · v${scriptVersionNum}` : ''}
+                    </Badge>
+                  )}
+                  {deadlineStr && (
+                    <Badge
+                      tone={remainingDays !== null && remainingDays < 0 ? 'danger' : 'neutral'}
+                      icon={<Calendar aria-hidden='true' />}
+                    >
+                      {t('workbench.header.deadline', { date: deadlineStr })}
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {subtitle ? (
+                <p className='text-xs text-stone-500 mt-0.5 truncate'>{subtitle}</p>
+              ) : !isSeriesMode && seriesFormat ? (
+                <p className='text-xs text-stone-500 mt-0.5 truncate'>{seriesFormat}</p>
               ) : null}
             </div>
           </div>
 
-          {/* Right: Chapter Selector + Single Primary Action */}
-          <div className='flex flex-wrap items-center gap-2.5 shrink-0'>
-            <div className='relative flex items-center'>
-              <label htmlFor='producer-chapter-select' className='sr-only'>
-                {t('workbench.chapterSelectLabel')}
-              </label>
-              <select
-                id='producer-chapter-select'
-                aria-label={t('workbench.chapterSelectLabel')}
-                value={effectiveChapterId}
-                onChange={handleSelectChange}
-                disabled={loadingChapters || chapters.length === 0}
-                className='px-3 py-1.5 rounded-lg bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium focus:outline-none focus:border-stone-400 cursor-pointer shadow-2xs'
-              >
-                {chapters.length === 0 ? (
-                  <option value=''>{t('workbench.loadingChapters')}</option>
-                ) : (
-                  chapters.map((chap) => (
-                    <option key={chap.id} value={chap.id}>
-                      {formatChapterLabel(
-                        chap.chapterNumber,
-                        chap.title || t('workbench.draftTitle'),
-                      )}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
+          {/* Right: Chapter Selector (chapter mode only) + Single Primary Action */}
+          <div className='flex flex-wrap items-center gap-2 shrink-0'>
+            {!isSeriesMode && (
+              <div className='relative flex items-center'>
+                <label htmlFor='producer-chapter-select' className='sr-only'>
+                  {t('workbench.chapterSelectLabel')}
+                </label>
+                <select
+                  id='producer-chapter-select'
+                  aria-label={t('workbench.chapterSelectLabel')}
+                  value={effectiveChapterId}
+                  onChange={handleSelectChange}
+                  disabled={loadingChapters || chapters.length === 0}
+                  className='px-3 py-1.5 rounded-lg bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium focus:outline-none focus:border-accent cursor-pointer shadow-2xs max-w-[220px] truncate'
+                >
+                  {chapters.length === 0 ? (
+                    <option value=''>{t('workbench.loadingChapters')}</option>
+                  ) : (
+                    chapters.map((chap) => (
+                      <option key={chap.id} value={chap.id}>
+                        {formatChapterLabel(
+                          chap.chapterNumber,
+                          chap.title || t('workbench.draftTitle'),
+                        )}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            )}
 
             {actionCta !== undefined ? (
               actionCta
-            ) : onStartProduction ? (
-              <button
-                type='button'
+            ) : !isSeriesMode && onStartProduction ? (
+              <Button
+                variant='primary'
+                size='sm'
+                leadingIcon={<Rocket aria-hidden='true' />}
                 onClick={onStartProduction}
-                className='px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer'
               >
-                <Rocket className='w-3.5 h-3.5' />
-                <span>{t('workbench.startProduction', 'Bắt đầu sản xuất')}</span>
-              </button>
+                {t('workbench.startProduction')}
+              </Button>
             ) : null}
           </div>
         </div>
       </div>
-    </div>
+    </header>
   );
 };
