@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useId, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   BookOpen,
@@ -37,6 +37,7 @@ import {
   Box,
   PanelRightOpen,
   Lightbulb,
+  MoreHorizontal,
 } from 'lucide-react';
 import { BibleEntity, MangaProject, normalizeWorkspaceRole } from '@/types';
 import {
@@ -125,6 +126,56 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
   };
 };
 
+const hasNativeInvoker = () =>
+  typeof HTMLButtonElement !== 'undefined' && 'commandForElement' in HTMLButtonElement.prototype;
+
+const supportsAnchorPos = () =>
+  typeof CSS !== 'undefined' &&
+  typeof CSS.supports === 'function' &&
+  CSS.supports('position-area', 'block-end');
+
+const invokerAttrs = (targetId: string) =>
+  ({ commandfor: targetId, command: 'toggle-popover' }) as Record<string, string>;
+
+const positionPopoverFallback = (trigger: HTMLElement | null, menu: HTMLElement | null) => {
+  if (!trigger || !menu || supportsAnchorPos()) return;
+  const r = trigger.getBoundingClientRect();
+  const margin = 8;
+  const width = menu.offsetWidth || 240;
+  const height = menu.offsetHeight || 220;
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+  const left = Math.max(margin, Math.min(r.right - width, vw - width - margin));
+  const top = Math.max(margin, Math.min(r.bottom + 6, vh - height - margin));
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+};
+
+const safeShowPopover = (menu: HTMLElement | null, source?: HTMLElement | null) => {
+  if (!menu) return;
+  try {
+    const fn = (menu as HTMLElement & { showPopover?: (opts?: { source?: HTMLElement }) => void })
+      .showPopover;
+    if (typeof fn === 'function') {
+      fn.call(menu, source ? { source } : undefined);
+    }
+  } catch {
+    // ignore if unsupported in JSDOM
+  }
+};
+
+const safeHidePopover = (menu: HTMLElement | null) => {
+  if (!menu) return;
+  try {
+    if (typeof menu.hidePopover === 'function') {
+      menu.hidePopover();
+    }
+  } catch {
+    // ignore if unsupported in JSDOM
+  }
+};
+
 const readSnapshot = (
   json?: string,
 ): {
@@ -186,6 +237,47 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [defineTarget, setDefineTarget] = useState<BibleEntity | null>(null);
   // Bàn làm việc chi tiết (phiên bản concept, góp ý, đặc tả, vẽ lại) cho mục đang chọn
   const [workbenchOpen, setWorkbenchOpen] = useState(false);
+
+  // Popover API menu cho các thao tác phụ trên header chi tiết thực thể
+  const entityActionsMenuId = useId();
+  const entityMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const entityMenuRef = useRef<HTMLDivElement>(null);
+  const [entityMenuOpen, setEntityMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setEntityMenuOpen(false);
+    const menu = entityMenuRef.current;
+    if (!menu) return;
+    const onToggle = (e: Event) => {
+      const open = (e as ToggleEvent).newState === 'open';
+      setEntityMenuOpen(open);
+      if (open) {
+        positionPopoverFallback(entityMenuTriggerRef.current, menu);
+      }
+    };
+    menu.addEventListener('toggle', onToggle);
+    return () => menu.removeEventListener('toggle', onToggle);
+  }, [selectedEntity?.id]);
+
+  const handleToggleEntityMenuClick = () => {
+    if (hasNativeInvoker()) return;
+    const menu = entityMenuRef.current;
+    const nextOpen = !entityMenuOpen;
+    if (nextOpen) {
+      positionPopoverFallback(entityMenuTriggerRef.current, menu);
+      safeShowPopover(menu, entityMenuTriggerRef.current);
+      setEntityMenuOpen(true);
+    } else {
+      safeHidePopover(menu);
+      setEntityMenuOpen(false);
+    }
+  };
+
+  const runEntityMenuAction = (action: () => void) => {
+    safeHidePopover(entityMenuRef.current);
+    setEntityMenuOpen(false);
+    action();
+  };
 
   // Dynamic Series resolution
   const [availableSeries, setAvailableSeries] = useState<MangaProject[]>([]);
@@ -1550,9 +1642,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             </div>
           )}
 
-          {(isArtist || isWriter) && (
+          {/* UIQ-11o: Editor dùng chung màn tổng quan Series Bible với Writer/Artist */}
+          {(isArtist || isWriter || isEditor) && (
             <ArtistBibleOverview
-              role={isWriter ? 'writer' : 'artist'}
+              role={isWriter ? 'writer' : isEditor ? 'editor' : 'artist'}
               entities={localEntities}
               filteredEntities={filteredEntities}
               rawEntries={rawEntries}
@@ -1566,7 +1659,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           )}
 
           {/* VIEW PANEL: TWO-COLUMN MANGA PAPER & INK WORKSPACE */}
-          {!isArtist && !isWriter && (
+          {!isArtist && !isWriter && !isEditor && (
             <div className='grid grid-cols-1 lg:grid-cols-12 gap-5 items-start font-sans'>
               {/* CỘT TRÁI (35% - lg:col-span-4): Danh sách thực thể */}
               <div className='lg:col-span-4 space-y-2.5'>
@@ -1796,7 +1889,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               </div>
 
               {/* CỘT PHẢI (65% - lg:col-span-8): Chi tiết Inspector Pane */}
-              <div className='lg:col-span-8'>
+              <div className='lg:col-span-8 min-w-0'>
                 {!selectedEntity ? (
                   <div className='bg-white border border-stone-200/80 rounded-xl p-12 text-center text-stone-500 shadow-xs'>
                     <p className='text-sm'>
@@ -1804,10 +1897,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     </p>
                   </div>
                 ) : (
-                  <div className='bg-white border border-stone-200/80 rounded-xl p-6 shadow-xs space-y-6'>
+                  <div className='bg-white border border-stone-200/80 rounded-xl p-6 shadow-xs space-y-6 min-w-0'>
                     {/* Header Chi tiết */}
-                    <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-stone-200/80'>
-                      <div className='flex items-start gap-4'>
+                    <div className='flex flex-wrap items-start justify-between gap-4 pb-5 border-b border-stone-200/80 min-w-0'>
+                      <div className='flex items-start gap-4 min-w-0 flex-1'>
                         <div className='w-14 h-14 rounded-xl bg-stone-900 text-orange-500 font-bold text-lg flex items-center justify-center shrink-0 border border-stone-800 shadow-xs'>
                           {selectedEntity.category === 'characters' ? (
                             <span>
@@ -1827,9 +1920,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           )}
                         </div>
 
-                        <div>
+                        <div className='min-w-0 flex-1'>
                           <div className='flex items-center gap-2.5 flex-wrap'>
-                            <h2 className='text-xl font-bold text-stone-900 leading-tight'>
+                            <h2 className='text-xl font-bold text-stone-900 leading-tight break-words'>
                               {selectedEntity.name}
                             </h2>
 
@@ -1884,90 +1977,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         </div>
                       </div>
 
-                      {/* Top-Right Action Buttons */}
-                      <div className='flex flex-wrap items-center gap-2 shrink-0'>
-                        <button
-                          type='button'
-                          onClick={() => {
-                            if (selectedEntity.imageUrl) {
-                              setSelectedImageZoom({
-                                url: selectedEntity.imageUrl,
-                                title: selectedEntity.name,
-                              });
-                            } else {
-                              onShowToast(
-                                t('bible.view.downloadConcept', 'Tải Concept Art'),
-                                t('bible.view.noDownloadFile', 'Chưa có tệp tải về'),
-                              );
-                            }
-                          }}
-                          className='px-3 py-1.5 rounded-lg bg-white border border-stone-200/80 hover:bg-stone-50 text-stone-700 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer'
-                        >
-                          <Download className='w-3.5 h-3.5' />
-                          <span>
-                            {selectedEntity.category === 'characters'
-                              ? t('bible.view.exportModelSheet', 'Xuất Model Sheet (PDF/ZIP)')
-                              : t('bible.view.downloadConcept', 'Tải Concept Art')}
-                          </span>
-                        </button>
-
-                        <button
-                          type='button'
-                          onClick={() => setWorkbenchOpen(true)}
-                          className='px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer'
-                          data-testid='open-workbench-btn'
-                        >
-                          <PanelRightOpen className='w-3.5 h-3.5' />
-                          <span>{t('bible.view.openWorkbench', 'Bàn làm việc')}</span>
-                        </button>
-
-                        <button
-                          type='button'
-                          onClick={() => void handleOpenHistory(selectedEntity)}
-                          className='px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer'
-                          data-testid='history-modal-btn'
-                        >
-                          <History className='w-3.5 h-3.5' />
-                          <span>{t('bible.view.actionFeedback', 'Góp ý')}</span>
-                        </button>
-
-                        {canCreateDraft && (
-                          <button
-                            type='button'
-                            onClick={() =>
-                              void handleOpenAddRevision(
-                                selectedEntity,
-                                null,
-                                false,
-                                undefined,
-                                false,
-                                true,
-                              )
-                            }
-                            className='px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer'
-                            data-testid='add-new-variant-btn'
-                          >
-                            <Plus className='w-3.5 h-3.5' />
-                            <span>{t('bible.view.addVariantBtn', '+ Biến thể')}</span>
-                          </button>
-                        )}
-
-                        {canRequestRework && activeEffRev?.reviewStatus === 'ConceptSubmitted' && (
-                          <button
-                            type='button'
-                            onClick={() => handleOpenReworkModal(activeEffRev, selectedEntity)}
-                            title={t('bible.view.reworkTitle', 'Yêu cầu Artist vẽ lại concept')}
-                            className='px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer'
-                            data-testid={`btn-request-rework-${activeEffRev.id}`}
-                          >
-                            <RotateCcw className='w-3.5 h-3.5' />
-                            <span>
-                              {t('bible.detailModal.reworkBtn', 'Yêu cầu vẽ lại (Rework)')}
-                            </span>
-                          </button>
-                        )}
-
-                        {canEndorse && activeEffRev?.reviewStatus === 'ConceptSubmitted' && (
+                      {/* Top-Right Action Buttons: 1 nút chính + menu ⋯ (Popover API) cho thao tác phụ */}
+                      <div className='flex flex-wrap items-center gap-2 min-w-0 max-w-full'>
+                        {canEndorse && activeEffRev?.reviewStatus === 'ConceptSubmitted' ? (
                           <button
                             type='button'
                             onClick={() => void handleConfirmCanon(activeEffRev, selectedEntity)}
@@ -1975,33 +1987,172 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               'bible.view.endorseTitle',
                               'Writer/Editor duyệt concept art này',
                             )}
-                            className='px-4 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer'
+                            className='px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer whitespace-nowrap'
                             data-testid={`btn-lock-canon-${activeEffRev.id}`}
                           >
-                            <Lock className='w-3.5 h-3.5' />
+                            <Lock className='w-3.5 h-3.5 shrink-0' />
                             <span>
                               {selectedEntity.category === 'locations'
                                 ? t('bible.view.actionLockLocation', 'Khóa bối cảnh')
                                 : t('bible.view.actionLockCanon', 'Khóa chuẩn (Lock Canon)')}
                             </span>
                           </button>
+                        ) : (
+                          <button
+                            type='button'
+                            onClick={() => setWorkbenchOpen(true)}
+                            className='px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap'
+                            data-testid='open-workbench-btn'
+                          >
+                            <PanelRightOpen className='w-3.5 h-3.5 shrink-0' />
+                            <span>{t('bible.view.openWorkbench', 'Bàn làm việc')}</span>
+                          </button>
                         )}
 
-                        {activeEffRev?.reviewStatus === 'CanonLocked' &&
-                          (isWriter || isProducer) && (
+                        <div className='shrink-0'>
+                          <button
+                            ref={entityMenuTriggerRef}
+                            type='button'
+                            data-testid='bible-entity-actions-menu-btn'
+                            aria-label={t('bible.view.moreActionsAria', 'Thao tác khác')}
+                            aria-expanded={entityMenuOpen}
+                            aria-controls={entityActionsMenuId}
+                            {...invokerAttrs(entityActionsMenuId)}
+                            onClick={handleToggleEntityMenuClick}
+                            className='focus-ring p-1.5 rounded-lg bg-white border border-stone-200/80 hover:bg-stone-50 text-stone-700 transition-colors cursor-pointer min-w-8 min-h-8 flex items-center justify-center'
+                          >
+                            <MoreHorizontal className='w-4 h-4' aria-hidden='true' />
+                          </button>
+
+                          <div
+                            ref={entityMenuRef}
+                            id={entityActionsMenuId}
+                            popover='auto'
+                            data-placement='bottom-end'
+                            data-testid='bible-entity-actions-menu'
+                            aria-label={t('bible.view.moreActionsAria', 'Thao tác khác')}
+                            className={`pf-sb-popover-menu w-60 bg-white rounded-xl shadow-xl border border-stone-200 p-1.5 text-stone-900 ${
+                              !hasNativeInvoker() && !entityMenuOpen ? 'hidden' : ''
+                            }`}
+                          >
+                            {canEndorse && activeEffRev?.reviewStatus === 'ConceptSubmitted' && (
+                              <button
+                                type='button'
+                                onClick={() => runEntityMenuAction(() => setWorkbenchOpen(true))}
+                                className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                                data-testid='open-workbench-btn'
+                              >
+                                <PanelRightOpen className='w-3.5 h-3.5 text-stone-600 shrink-0' />
+                                <span>{t('bible.view.openWorkbench', 'Bàn làm việc')}</span>
+                              </button>
+                            )}
+
                             <button
                               type='button'
                               onClick={() =>
-                                void handleOpenAddRevision(selectedEntity, activeEffRev)
+                                runEntityMenuAction(() => {
+                                  if (selectedEntity.imageUrl) {
+                                    setSelectedImageZoom({
+                                      url: selectedEntity.imageUrl,
+                                      title: selectedEntity.name,
+                                    });
+                                  } else {
+                                    onShowToast(
+                                      t('bible.view.downloadConcept', 'Tải Concept Art'),
+                                      t('bible.view.noDownloadFile', 'Chưa có tệp tải về'),
+                                    );
+                                  }
+                                })
                               }
-                              className='px-4 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-900 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer'
+                              className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                             >
-                              <Lock className='w-3.5 h-3.5' />
+                              <Download className='w-3.5 h-3.5 text-stone-500 shrink-0' />
                               <span>
-                                {t('bible.canonLock.supersedeAction', 'Thay thế bản khoá')}
+                                {selectedEntity.category === 'characters'
+                                  ? t('bible.view.exportModelSheet', 'Xuất Model Sheet (PDF/ZIP)')
+                                  : t('bible.view.downloadConcept', 'Tải Concept Art')}
                               </span>
                             </button>
-                          )}
+
+                            <button
+                              type='button'
+                              onClick={() =>
+                                runEntityMenuAction(() => void handleOpenHistory(selectedEntity))
+                              }
+                              className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                              data-testid='history-modal-btn'
+                            >
+                              <History className='w-3.5 h-3.5 text-stone-500 shrink-0' />
+                              <span>{t('bible.view.actionFeedback', 'Góp ý')}</span>
+                            </button>
+
+                            {canCreateDraft && (
+                              <button
+                                type='button'
+                                onClick={() =>
+                                  runEntityMenuAction(
+                                    () =>
+                                      void handleOpenAddRevision(
+                                        selectedEntity,
+                                        null,
+                                        false,
+                                        undefined,
+                                        false,
+                                        true,
+                                      ),
+                                  )
+                                }
+                                className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                                data-testid='add-new-variant-btn'
+                              >
+                                <Plus className='w-3.5 h-3.5 text-stone-500 shrink-0' />
+                                <span>{t('bible.view.addVariantBtn', '+ Biến thể')}</span>
+                              </button>
+                            )}
+
+                            {canRequestRework &&
+                              activeEffRev?.reviewStatus === 'ConceptSubmitted' && (
+                                <button
+                                  type='button'
+                                  onClick={() =>
+                                    runEntityMenuAction(() =>
+                                      handleOpenReworkModal(activeEffRev, selectedEntity),
+                                    )
+                                  }
+                                  title={t(
+                                    'bible.view.reworkTitle',
+                                    'Yêu cầu Artist vẽ lại concept',
+                                  )}
+                                  className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-rose-700 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer'
+                                  data-testid={`btn-request-rework-${activeEffRev.id}`}
+                                >
+                                  <RotateCcw className='w-3.5 h-3.5 shrink-0' />
+                                  <span>
+                                    {t('bible.detailModal.reworkBtn', 'Yêu cầu vẽ lại (Rework)')}
+                                  </span>
+                                </button>
+                              )}
+
+                            {activeEffRev?.reviewStatus === 'CanonLocked' &&
+                              (isWriter || isProducer) && (
+                                <button
+                                  type='button'
+                                  onClick={() =>
+                                    runEntityMenuAction(
+                                      () =>
+                                        void handleOpenAddRevision(selectedEntity, activeEffRev),
+                                    )
+                                  }
+                                  className='focus-ring w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-stone-800 hover:bg-stone-50 flex items-center gap-2 transition-colors cursor-pointer'
+                                >
+                                  <Lock className='w-3.5 h-3.5 text-stone-600 shrink-0' />
+                                  <span>
+                                    {t('bible.canonLock.supersedeAction', 'Thay thế bản khoá')}
+                                  </span>
+                                </button>
+                              )}
+                          </div>
+                        </div>
                       </div>
                     </div>
 

@@ -63,6 +63,7 @@ import {
   SubmissionPanelDto,
   MyTaskCellDto,
   MyTaskLotDto,
+  MyWorkStudioDto,
   TaskGridReviewItemDto,
   MigrateSkippedDto,
   MigrateAssignmentsResultDto,
@@ -122,6 +123,7 @@ export type {
   SubmissionPanelDto,
   MyTaskCellDto,
   MyTaskLotDto,
+  MyWorkStudioDto,
   TaskGridReviewItemDto,
   MigrateSkippedDto,
   MigrateAssignmentsResultDto,
@@ -1181,6 +1183,16 @@ export const assignmentService = {
   // ==========================================
 
   /** Lấy các lô công việc của người gọi xuyên chương (GET /api/workspaces/{workspaceId}/my-task-lots) */
+  /** UIQ-11q: việc của tôi xuyên mọi Studio. */
+  getMyWork: async (): Promise<MyWorkStudioDto[]> => {
+    try {
+      const response = await axiosClient.get('/me/work');
+      return response.data || [];
+    } catch (error: any) {
+      throw new Error(extractError(error, translate('errors.services.assignment.getMyTaskLotsFailed')));
+    }
+  },
+
   getMyTaskLots: async (
     workspaceId: string,
     params?: { seriesId?: string; includeCompleted?: boolean },

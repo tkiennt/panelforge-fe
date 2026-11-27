@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { chapterCastService, type ChapterCastDto } from '@/services/chapterCast.service';
+import { buildCastVariantLookup } from '@/shared/lib/castVariant';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, Flag, Loader2, RefreshCw, Send, ShieldAlert } from 'lucide-react';
 import { pageService, PageDto, PageHistoryDto, isGuid } from '@/services/page.service';
@@ -1548,6 +1550,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   }, [hasLoadedRealBible, rawBibleEntries, initialBibleEntities]);
 
   // Đồng bộ các dòng kịch bản với Trang, Khung và Tên/Màu nhân vật từ Hồ sơ truyện
+  // UIQ-11n: biến thể tạo hình của nhân vật trong chương, để dòng kịch bản ghi rõ đang dùng biến thể nào
+  const [chapterCast, setChapterCast] = useState<ChapterCastDto | null>(null);
+  useEffect(() => {
+    setChapterCast(null);
+    if (!currentChapterId) return;
+    let active = true;
+    chapterCastService
+      .getChapterCast(currentChapterId)
+      .then((cast) => active && setChapterCast(cast))
+      .catch(() => active && setChapterCast(null));
+    return () => {
+      active = false;
+    };
+  }, [currentChapterId]);
+  const castVariantOf = useMemo(() => buildCastVariantLookup(chapterCast), [chapterCast]);
+
   const resolvedScriptLines = useMemo(() => {
     if (!hasLoadedRealScript && !initialScriptLines) return undefined;
     const source: ScriptLineItem[] | undefined = rawScriptLines || initialScriptLines;
@@ -1661,9 +1679,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         characterAvatarUrl:
           (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.avatarUrl) ||
           undefined,
+        characterVariant: castVariantOf({
+          entryId: line.speakerCharacterId,
+          name: resolvedCharName,
+          panelId: line.panelId,
+        }),
       };
     });
-  }, [hasLoadedRealScript, rawScriptLines, initialScriptLines, pages, panelPageMap, characterById]);
+  }, [
+    hasLoadedRealScript,
+    rawScriptLines,
+    initialScriptLines,
+    pages,
+    panelPageMap,
+    characterById,
+    castVariantOf,
+  ]);
 
   const firstSceneMeta = useMemo(() => {
     const first = resolvedScriptLines?.find((l) => l.sceneTitle || l.sceneSlugline);

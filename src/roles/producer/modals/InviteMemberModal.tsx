@@ -20,26 +20,17 @@ interface RoleOption {
   descKey: string;
 }
 
+// Spec D10: ở cấp Studio chỉ có Thành viên hoặc Producer; Writer/Artist/Letterer/Editor gán khi thêm vào từng Series.
 const ROLE_OPTIONS: RoleOption[] = [
   {
-    value: 'Writer',
-    titleKey: 'members.studioInviteModal.roles.writerTitle',
-    descKey: 'members.studioInviteModal.roles.writerDesc',
+    value: 'Member',
+    titleKey: 'members.studioInviteModal.roles.memberTitle',
+    descKey: 'members.studioInviteModal.roles.memberDesc',
   },
   {
-    value: 'Artist',
-    titleKey: 'members.studioInviteModal.roles.leadArtistTitle',
-    descKey: 'members.studioInviteModal.roles.leadArtistDesc',
-  },
-  {
-    value: 'Letterer',
-    titleKey: 'members.studioInviteModal.roles.lettererTitle',
-    descKey: 'members.studioInviteModal.roles.lettererDesc',
-  },
-  {
-    value: 'Editor',
-    titleKey: 'members.studioInviteModal.roles.editorTitle',
-    descKey: 'members.studioInviteModal.roles.editorDesc',
+    value: 'Producer',
+    titleKey: 'members.studioInviteModal.roles.producerTitle',
+    descKey: 'members.studioInviteModal.roles.producerDesc',
   },
 ] as const;
 
@@ -52,7 +43,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
 }) => {
   const { t } = useTranslation('production');
   const [email, setEmail] = useState('');
-  const [selectedRole, setSelectedRole] = useState('Artist');
+  const [selectedRole, setSelectedRole] = useState('Member');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 

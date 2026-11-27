@@ -34,7 +34,7 @@ describe('WorkspaceListView Component', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(workspaceService, 'getPendingInvitations').mockResolvedValue([]);
-    vi.spyOn(assignmentService, 'getMyAssignments').mockResolvedValue([]);
+    vi.spyOn(assignmentService, 'getMyWork').mockResolvedValue([]);
   });
 
   it('renders loading state initially and then displays real workspace cards', async () => {
@@ -439,38 +439,43 @@ describe('WorkspaceListView Component', () => {
     expect(screen.getByTestId('ws-invitations')).toBeInTheDocument();
   });
 
-  it('shows unfinished tasks across studios, nearest deadline first, only for studios with work', async () => {
+  it('shows unfinished tasks across studios from one my-work call, nearest deadline first', async () => {
     vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([
       ws({ id: 'ws-a', name: 'Alpha Studio', pendingTasks: 2 }),
       ws({ id: 'ws-b', name: 'Idle Studio', pendingTasks: 0 }),
     ] as any);
-    const base = { seriesTitle: 'Mưa', chapterNumber: 3, brief: '', stageOrder: 1 } as any;
-    const mine = vi.spyOn(assignmentService, 'getMyAssignments').mockResolvedValue([
+    const lot = (id: string, stageName: string, dueDate: string | null) => ({
+      id,
+      seriesId: 's1',
+      seriesTitle: 'Mưa',
+      chapterId: 'c1',
+      chapterNumber: 3,
+      stageName,
+      assignedRole: 'ARTIST',
+      isOverdue: false,
+      dueDate,
+      tasks: [{ id: `${id}-t`, pageNumber: 1, status: 'InProgress' }],
+    });
+    // UIQ-11q: một lần gọi /api/me/work thay cho my-assignments từng Studio
+    const mine = vi.spyOn(assignmentService, 'getMyWork').mockResolvedValue([
       {
-        ...base,
-        id: 'a1',
-        stageName: 'Ink',
-        status: 'InProgress',
-        dueDate: '2099-01-01T00:00:00Z',
+        workspaceId: 'ws-a',
+        workspaceName: 'Alpha Studio',
+        lots: [lot('a1', 'Ink', '2099-01-01T00:00:00Z'), lot('a2', 'Pencil', '2000-01-01T00:00:00Z')],
+        reviewQueue: [
+          { taskId: 'r1', seriesId: 's1', seriesTitle: 'Mưa', chapterId: 'c1', chapterNumber: 3, stageName: 'Color', pageNumber: 2, status: 'Submitted' },
+        ],
       },
-      {
-        ...base,
-        id: 'a2',
-        stageName: 'Pencil',
-        status: 'Assigned',
-        dueDate: '2000-01-01T00:00:00Z',
-      },
-      { ...base, id: 'a3', stageName: 'Letter', status: 'Approved', dueDate: null },
-    ]);
+    ] as any);
     renderView();
 
     const today = await screen.findByTestId('ws-today');
     expect(mine).toHaveBeenCalledTimes(1);
-    expect(mine).toHaveBeenCalledWith('ws-a');
     const rows = today.querySelectorAll('li');
-    expect(rows).toHaveLength(2); // việc đã duyệt bị loại
+    expect(rows).toHaveLength(3);
     expect(rows[0].textContent).toContain('Pencil');
     expect(rows[0].textContent).toMatch(/Quá hạn|Overdue/);
+    expect(today.textContent).toContain('Color');
   });
 
   it('shows series, storage (owner only) and latest activity on the card', async () => {

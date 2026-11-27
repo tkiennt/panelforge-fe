@@ -33,9 +33,12 @@ const job = (id: string, status: ExportJobDto['status'], format = 'PDF'): Export
   downloadCount: 0,
 });
 
-const renderView = (onShowToast = vi.fn()) =>
+const renderView = (
+  onShowToast = vi.fn(),
+  initialUrl = '/workspaces/ws-1/series/series-1/export',
+) =>
   render(
-    <MemoryRouter initialEntries={['/workspaces/ws-1/series/series-1/export']}>
+    <MemoryRouter initialEntries={[initialUrl]}>
       <Routes>
         <Route
           path='/workspaces/:workspaceId/series/:seriesId/export'
@@ -58,13 +61,13 @@ describe('ExportView (UC-12)', () => {
     (exportService.getExports as any).mockResolvedValue([]);
   });
 
-  it('chỉ cho chọn chương Approved/Published và xếp hàng mỗi định dạng đã chọn', async () => {
+  it('liệt kê mọi chương trong bộ chọn, mặc định chọn chương sẵn sàng đầu tiên và xếp hàng mỗi định dạng đã chọn', async () => {
     (exportService.createExport as any).mockResolvedValue(job('j-1', 'Queued'));
 
     renderView();
 
     const select = await screen.findByTestId('export-chapter-select');
-    await waitFor(() => expect(select.querySelectorAll('option')).toHaveLength(2));
+    await waitFor(() => expect(select.querySelectorAll('option')).toHaveLength(3));
     expect(select).toHaveValue('chap-2');
 
     fireEvent.click(screen.getByTestId('export-format-CBZ'));
@@ -74,6 +77,18 @@ describe('ExportView (UC-12)', () => {
       expect(exportService.createExport).toHaveBeenCalledWith('chap-2', 'PDF');
       expect(exportService.createExport).toHaveBeenCalledWith('chap-2', 'CBZ');
     });
+  });
+
+  it('P1-3: tôn trọng chapterId trên URL ngay cả khi chương đang InProduction, hiện lý do và vô hiệu nút tạo gói', async () => {
+    renderView(vi.fn(), '/workspaces/ws-1/series/series-1/export?chapterId=chap-1');
+
+    expect(await screen.findByTestId('export-no-chapter')).toBeInTheDocument();
+    expect(screen.getByTestId('export-chapter-select')).toHaveValue('chap-1');
+    expect(screen.getByTestId('export-not-eligible-reason')).toBeInTheDocument();
+    expect(screen.getByTestId('export-goto-overview')).toBeInTheDocument();
+    expect(screen.getByTestId('export-goto-board')).toBeInTheDocument();
+    expect(screen.getByTestId('export-submit')).toBeDisabled();
+    expect(exportService.getExports).not.toHaveBeenCalled();
   });
 
   it('hiện trạng thái, lỗi; tải bản xong và huỷ bản đang chờ', async () => {

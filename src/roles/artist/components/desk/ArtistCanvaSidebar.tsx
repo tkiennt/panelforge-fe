@@ -65,6 +65,8 @@ export interface ScriptLineItem {
   characterName?: string;
   characterColor?: string;
   characterAvatarUrl?: string;
+  /** Biến thể tạo hình đang dùng ở chương/panel (BR-15), vd "Lúc nhỏ". */
+  characterVariant?: string;
   dialogueText?: string;
   stageDirection?: string;
   narrationMode?: string;

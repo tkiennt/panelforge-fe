@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import {
   Building2,
@@ -62,6 +63,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
 }) => {
   const confirm = useConfirm();
   const { t, lang } = useTranslation();
+  const navigate = useNavigate();
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -153,36 +155,64 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   // Việc của bạn trong Studio
   const [todayTasks, setTodayTasks] = useState<TodayTask[]>([]);
   const [todayError, setTodayError] = useState(false);
+  // UIQ-11q: một lần gọi /api/me/work cho mọi Studio (lô Task Grid + hàng chờ duyệt của Editor)
   useEffect(() => {
-    const withWork = workspaces.filter((w) => (w.pendingTasks ?? 0) > 0);
-    if (withWork.length === 0) {
+    if (isAdmin || workspaces.length === 0) {
       setTodayTasks([]);
       setTodayError(false);
       return;
     }
     let active = true;
-    Promise.allSettled(
-      withWork.map((w) =>
-        assignmentService
-          .getMyAssignments(w.id)
-          .then((list) =>
-            list
-              .filter((a) => a.status !== 'Approved')
-              .map((a): TodayTask => ({ workspace: w, assignment: a })),
-          ),
-      ),
-    ).then((results) => {
-      if (!active) return;
-      const loaded = results.filter(
-        (r): r is PromiseFulfilledResult<TodayTask[]> => r.status === 'fulfilled',
-      );
-      setTodayError(loaded.length === 0);
-      setTodayTasks(sortByDue(loaded.flatMap((r) => r.value)));
-    });
+    const pages = (nums: (number | null | undefined)[]) => {
+      const list = nums.filter((n): n is number => n != null);
+      return list.length ? `${t('workspace.shelf.today.pageShort')} ${list.join(', ')}` : null;
+    };
+    assignmentService
+      .getMyWork()
+      .then((studios) => {
+        if (!active) return;
+        const byId = new Map(workspaces.map((w) => [w.id, w]));
+        const tasks = studios.flatMap((s) => {
+          const workspace = byId.get(s.workspaceId);
+          if (!workspace) return [];
+          return [
+            ...s.lots.map(
+              (lot): TodayTask => ({
+                workspace,
+                assignment: {
+                  id: lot.id,
+                  stageName: lot.stageName,
+                  seriesTitle: lot.seriesTitle,
+                  chapterNumber: lot.chapterNumber,
+                  scopeLabel: pages(lot.tasks.map((c) => c.pageNumber)),
+                  brief: lot.brief,
+                  dueDate: lot.dueDate,
+                },
+              }),
+            ),
+            ...s.reviewQueue.map(
+              (item): TodayTask => ({
+                workspace,
+                assignment: {
+                  id: item.taskId,
+                  stageName: `${t('workspace.myWorkHub.bucket.toReview')} · ${item.stageName}`,
+                  seriesTitle: item.seriesTitle,
+                  chapterNumber: item.chapterNumber,
+                  scopeLabel: pages([item.pageNumber]),
+                  dueDate: null,
+                },
+              }),
+            ),
+          ];
+        });
+        setTodayError(false);
+        setTodayTasks(sortByDue(tasks));
+      })
+      .catch(() => active && setTodayError(true));
     return () => {
       active = false;
     };
-  }, [workspaces]);
+  }, [workspaces, isAdmin, t]);
 
   const handleOpenCreate = async () => {
     if (isAdmin) {
@@ -548,16 +578,27 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   </div>
                 }
                 actions={
-                  canCreate && (
+                  <div className='flex items-center gap-2 shrink-0 self-start md:self-auto'>
+                    {/* UIQ-11q: việc xuyên mọi Studio */}
                     <button
                       type='button'
-                      onClick={handleOpenCreate}
-                      className='bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs shrink-0 self-start md:self-auto'
+                      onClick={() => navigate('/my-work')}
+                      data-testid='open-my-work-hub'
+                      className='bg-white hover:bg-orange-50 border border-stone-200 text-stone-800 font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer'
                     >
-                      <Plus className='w-4 h-4' />
-                      <span>{t('workspace.studioHub.directory.createStudioBtn')}</span>
+                      {t('workspace.myWorkHub.openMyWork')}
                     </button>
-                  )
+                    {canCreate && (
+                      <button
+                        type='button'
+                        onClick={handleOpenCreate}
+                        className='bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs'
+                      >
+                        <Plus className='w-4 h-4' />
+                        <span>{t('workspace.studioHub.directory.createStudioBtn')}</span>
+                      </button>
+                    )}
+                  </div>
                 }
               />
 

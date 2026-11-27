@@ -417,6 +417,11 @@ export function AppShell({
             section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
             items: [
               {
+                icon: BookOpen,
+                label: t('navigation.menu.readSeries', 'Đọc bộ truyện'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/read`,
+              },
+              {
                 icon: BookMarked,
                 label: t('navigation.menu.seriesBibleLibrary', 'Series Bible / Thư viện'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
@@ -987,7 +992,7 @@ export function AppShell({
             isStudioHome ? 'shadow-[inset_0_2px_0_var(--studio-accent)]' : ''
           }`}
         >
-          <div className={`flex items-center gap-2 ${isStudioHome ? 'shrink-0' : 'min-w-0'}`}>
+          <div className='flex items-center gap-2 min-w-0'>
             {isStudioHome && (
               <div className='flex items-center shrink-0'>
                 <button

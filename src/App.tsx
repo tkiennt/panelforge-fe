@@ -508,6 +508,30 @@ function AppContent() {
     };
   }, [location.pathname, currentUserInfo?.id]);
 
+  // Spec D10: trong một Series, vai trò hiệu lực là vai trò Series (Studio chỉ có Producer / Thành viên)
+  const seriesIdInPath = location.pathname.match(/\/workspaces\/[^/]+\/series\/([^/]+)/)?.[1];
+  useEffect(() => {
+    if (!seriesIdInPath || currentRole === 'ADMINISTRATOR') return;
+    let cancelled = false;
+    seriesService
+      .getSeriesById(seriesIdInPath)
+      .then((detail) => {
+        const seriesRole = normalizeWorkspaceRole(detail?.currentUserRole);
+        if (cancelled || !seriesRole) return;
+        setCurrentWorkspaceRole(seriesRole);
+        setActiveProjectRoles([seriesRole]);
+        try {
+          localStorage.setItem('workspaceRole', seriesRole);
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch((err) => console.warn('Failed to load series role:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [seriesIdInPath, currentRole]);
+
   const [cards, setCards] = useState<KanbanCard[]>([]);
   const [entities, setEntities] = useState<BibleEntity[]>([]);
   const [members, setMembers] = useState<StudioMember[]>([]);

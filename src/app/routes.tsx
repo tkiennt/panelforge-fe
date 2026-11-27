@@ -87,6 +87,11 @@ const ScriptReviewView = lazy(() =>
 const ChapterReaderView = lazy(() =>
   import('@/roles/editor/views/ChapterReaderView').then((m) => ({ default: m.ChapterReaderView })),
 );
+const SeriesReaderView = lazy(() =>
+  import('@/shared/features/series-reader/SeriesReaderView').then((m) => ({
+    default: m.SeriesReaderView,
+  })),
+);
 const SeriesRevenueView = lazy(() =>
   import('@/roles/producer/views/SeriesRevenueView').then((m) => ({
     default: m.SeriesRevenueView,
@@ -104,6 +109,9 @@ const PublicPreviewView = lazy(() =>
   import('@/roles/reader/views/PublicPreviewView').then((m) => ({ default: m.PublicPreviewView })),
 );
 import { LandingPageView } from '@/roles/guest/views/LandingPageView';
+const MyWorkHubView = lazy(() =>
+  import('@/shared/views/MyWorkHubView').then((m) => ({ default: m.MyWorkHubView })),
+);
 const WorkspaceListView = lazy(() =>
   import('@/shared/views/WorkspaceListView').then((m) => ({ default: m.WorkspaceListView })),
 );
@@ -415,6 +423,9 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             }
           />
 
+          {/* UIQ-11q: việc của tôi xuyên mọi Studio */}
+          <Route path='my-work' element={<MyWorkHubView />} />
+
           <Route
             element={
               <AppShell
@@ -683,6 +694,22 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     >
                       <ScriptReviewView
                         currentUserId={currentUserInfo?.id}
+                        workspaceRole={currentWorkspaceRole}
+                        onShowToast={showToast}
+                      />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
+                  path='read'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER', 'EDITOR', 'ADMINISTRATOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <SeriesReaderView
                         workspaceRole={currentWorkspaceRole}
                         onShowToast={showToast}
                       />

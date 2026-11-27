@@ -1,10 +1,16 @@
 import type { WorkspaceDto } from '@/types';
 import type { WorkspaceAssignmentDto } from '@/types/pipeline';
 
+/** Phần việc đủ để hiển thị một dòng "Việc của bạn" (lô Task Grid hoặc ô chờ duyệt, UIQ-11q). */
+export type TodayTaskItem = Pick<
+  WorkspaceAssignmentDto,
+  'id' | 'stageName' | 'seriesTitle' | 'chapterNumber' | 'scopeLabel' | 'dueDate'
+> & { brief?: string | null };
+
 /** Một việc chưa xong của người dùng, kèm studio chứa nó (dải "Việc của bạn" ở /workspaces). */
 export interface TodayTask {
   workspace: WorkspaceDto;
-  assignment: WorkspaceAssignmentDto;
+  assignment: TodayTaskItem;
 }
 
 const DAY = 86400000;

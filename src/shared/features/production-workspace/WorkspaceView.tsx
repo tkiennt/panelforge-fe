@@ -44,7 +44,7 @@ import { ProducerSharedHeader } from './ProducerSharedHeader';
 import { notifyChapterHubChanged, useChapterReadiness } from './useChapterProductionHub';
 import {
   buildChapterManagementUrl,
-  buildChapterReaderUrl,
+  buildSeriesReaderUrl,
   buildScriptReviewUrl,
 } from '@/app/routePaths';
 import {
@@ -974,7 +974,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                         onClick={() =>
                           workspaceId &&
                           seriesId &&
-                          navigate(buildChapterReaderUrl(workspaceId, seriesId, chap.id))
+                          navigate(
+                            buildSeriesReaderUrl(workspaceId, seriesId, { chapterId: chap.id }),
+                          )
                         }
                         className='w-full py-2 rounded-lg bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer'
                       >
@@ -1091,7 +1093,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs space-y-2'>
                 <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>
                   <span>
-                    {t('workbench.crewOverview.kpiWorkload', 'Khối lượng công việc (Cap)')}
+                    {t('workbench.crewOverview.kpiWorkload', 'Việc đang mở (mọi chương)')}
                   </span>
                   <Clock className='w-4 h-4 text-stone-400' />
                 </div>
@@ -1115,7 +1117,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs space-y-2'>
                 <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>
                   <span>
-                    {t('workbench.crewOverview.kpiWeeklyTasks', 'Nhiệm vụ tuần hoàn tất')}
+                    {t(
+                      'workbench.crewOverview.kpiWeeklyTasks',
+                      'Lượt giao việc hoàn tất (mọi chương)',
+                    )}
                   </span>
                   <Check className='w-4 h-4 text-stone-400' />
                 </div>

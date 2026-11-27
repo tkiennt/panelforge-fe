@@ -38,6 +38,8 @@ export interface SeriesDto {
 }
 
 export interface SeriesDetailDto extends SeriesDto {
+  /** Spec D10: vai trò của người gọi trong Series (null = chưa được gán). */
+  currentUserRole?: string | number | null;
   bibleId?: string | null;
   chapters: Array<{
     id: string;
