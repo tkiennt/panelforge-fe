@@ -6,10 +6,13 @@ import {
   AlertTriangle,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   Clock,
   Eye,
   Grid,
   History,
+  Info,
   Loader2,
   Lock,
   Pencil,
@@ -27,6 +30,7 @@ import {
   Wand2,
   XCircle,
 } from 'lucide-react';
+import { Badge, Button, Drawer, ProgressBar, StatusBadge } from '@/shared/ui';
 import {
   assignmentService,
   type AssignStageTaskLotsRequest,
@@ -171,6 +175,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   const [replayingSubmissionId, setReplayingSubmissionId] = useState<string | null>(null);
   const [replaySlides, setReplaySlides] = useState<ImageViewerSlide[]>([]);
   const [replayOpen, setReplayOpen] = useState(false);
+
+  // Task Detail Drawer (mở chi tiết công việc & bài nộp mà không làm phình ô Task Grid)
+  const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
+  const [lotsExpanded, setLotsExpanded] = useState(true);
 
   useEffect(() => {
     setScriptVersionMap({});
@@ -1150,39 +1158,46 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     }
   };
 
+  const loadSubmissions = useCallback(
+    async (task: StageTaskDto) => {
+      setLoadingHistoryTaskId(task.id);
+      try {
+        const list = await assignmentService.getStageTaskSubmissions(chapterId, task.id);
+        setSubmissionsByTaskId((prev) => ({ ...prev, [task.id]: list }));
+        const latestComment = pickLatestDecisionComment(list);
+        if (latestComment) {
+          setReworkCommentsByTask((prev) => ({ ...prev, [task.id]: latestComment }));
+        }
+        if (
+          list.some((s) => Boolean(s.scriptVersionId)) &&
+          scriptVersionsLoadedForRef.current !== chapterId
+        ) {
+          scriptVersionsLoadedForRef.current = chapterId;
+          const versions = await chapterService.getScriptVersions(chapterId).catch(() => []);
+          const map: Record<string, number> = {};
+          for (const v of versions) {
+            if (v?.id && typeof v.versionNumber === 'number') {
+              map[v.id] = v.versionNumber;
+            }
+          }
+          setScriptVersionMap(map);
+        }
+      } catch (err: any) {
+        setError(err.message || t('taskGridV3.loadHistoryError'));
+      } finally {
+        setLoadingHistoryTaskId(null);
+      }
+    },
+    [chapterId, t],
+  );
+
   const handleToggleSubmissions = async (task: StageTaskDto) => {
     if (historyTaskId === task.id) {
       setHistoryTaskId(null);
       return;
     }
     setHistoryTaskId(task.id);
-    setLoadingHistoryTaskId(task.id);
-    try {
-      const list = await assignmentService.getStageTaskSubmissions(chapterId, task.id);
-      setSubmissionsByTaskId((prev) => ({ ...prev, [task.id]: list }));
-      const latestComment = pickLatestDecisionComment(list);
-      if (latestComment) {
-        setReworkCommentsByTask((prev) => ({ ...prev, [task.id]: latestComment }));
-      }
-      if (
-        list.some((s) => Boolean(s.scriptVersionId)) &&
-        scriptVersionsLoadedForRef.current !== chapterId
-      ) {
-        scriptVersionsLoadedForRef.current = chapterId;
-        const versions = await chapterService.getScriptVersions(chapterId).catch(() => []);
-        const map: Record<string, number> = {};
-        for (const v of versions) {
-          if (v?.id && typeof v.versionNumber === 'number') {
-            map[v.id] = v.versionNumber;
-          }
-        }
-        setScriptVersionMap(map);
-      }
-    } catch (err: any) {
-      setError(err.message || t('taskGridV3.loadHistoryError'));
-    } finally {
-      setLoadingHistoryTaskId(null);
-    }
+    await loadSubmissions(task);
   };
 
   const handleReplaySubmission = async (task: StageTaskDto, sub: StageTaskSubmissionDto) => {
@@ -1535,11 +1550,6 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     const canSelectForApprove =
       !isChapterLocked && canReview && !task.isInputOutdated && !isLockedByOtherReviewer;
     const isSelectedForApprove = canSelectForApprove && selectedApproveIds.has(task.id);
-    const hasOpenInlineForm =
-      requestingChangesTaskId === task.id ||
-      reopeningTaskId === task.id ||
-      reassigningTaskId === task.id ||
-      Boolean(impactSuggestion);
     const attemptCount = task.attemptCount ?? 0;
     const taskLot = task.lotId ? lotById.get(task.lotId) : undefined;
     const reworkDisplay = resolveReworkReasonDisplay(
@@ -1556,11 +1566,9 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       <div
         data-testid={`task-cell-${stage.id}-${pageId ?? 'chapter'}`}
         title={reworkTooltip}
-        className={`w-full min-w-0 box-border p-2.5 rounded-lg border text-xs flex flex-col gap-1.5 transition-all ${
-          hasOpenInlineForm ? 'min-w-[230px]' : ''
-        } ${
+        className={`w-full min-w-0 box-border p-2 rounded-lg border text-xs flex flex-col gap-1 transition-colors ${
           isSelectedForLot || isSelectedForSubmit || isSelectedForUnassign || isSelectedForApprove
-            ? 'ring-2 ring-[#F97316] border-[#F97316] bg-[#FFF7ED]'
+            ? 'ring-2 ring-accent border-accent bg-accent-soft/50'
             : 'bg-white border-stone-200 hover:border-stone-300'
         }`}
       >
@@ -1903,10 +1911,29 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-600'
               }`}
             >
-              <History className='h-2.5 w-2.5' />
+              <History className='h-3 w-3' />
               <span>{t('taskGridV3.historyBtn')}</span>
             </button>
           ) : null}
+
+          <button
+            type='button'
+            data-testid={`open-task-detail-${task.id}`}
+            onClick={() => {
+              setDrawerTaskId(task.id);
+              if (
+                ((task.status !== 'Unassigned' && task.status !== 'Assigned') || task.startedAt) &&
+                !submissionsByTaskId[task.id]
+              ) {
+                void loadSubmissions(task);
+              }
+            }}
+            title={t('taskGridV3.detailBtnTooltip')}
+            aria-label={t('taskGridV3.detailBtnTooltip')}
+            className='inline-flex items-center gap-1 rounded border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 px-1.5 py-1 text-xs font-semibold cursor-pointer'
+          >
+            <Info className='h-3 w-3' aria-hidden='true' />
+          </button>
         </div>
 
         {/* Form nhập nhận xét Yêu cầu sửa (Editor/Producer - BR-06) — chiếm toàn chiều rộng ô, nút tự xuống dòng không bị cắt */}
@@ -2251,9 +2278,39 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     () => activeTasks.filter((t) => t.status === 'Approved').length,
     [activeTasks],
   );
+  const inProgressCount = useMemo(
+    () => activeTasks.filter((t) => t.status === 'InProgress').length,
+    [activeTasks],
+  );
+  const reviewCount = useMemo(
+    () => activeTasks.filter((t) => t.status === 'Submitted' || t.status === 'UnderReview').length,
+    [activeTasks],
+  );
+  const unassignedCountTotal = useMemo(
+    () => activeTasks.filter((t) => t.status === 'Unassigned').length,
+    [activeTasks],
+  );
   const outdatedCount = useMemo(
     () => activeTasks.filter((t) => t.isInputOutdated).length,
     [activeTasks],
+  );
+  const drawerTask = useMemo(
+    () => (drawerTaskId && grid ? (grid.tasks.find((t) => t.id === drawerTaskId) ?? null) : null),
+    [drawerTaskId, grid],
+  );
+  const drawerStage = useMemo(
+    () =>
+      drawerTask && grid
+        ? (grid.stages.find((s) => s.id === drawerTask.pipelineStageId) ?? null)
+        : null,
+    [drawerTask, grid],
+  );
+  const drawerPage = useMemo(
+    () =>
+      drawerTask?.pageId && grid
+        ? (grid.pages.find((p) => p.id === drawerTask.pageId) ?? null)
+        : null,
+    [drawerTask, grid],
   );
   const selectedApprovableIds = useMemo(() => {
     if (!effectiveIsReviewer || isChapterLocked || selectedApproveIds.size === 0) return [];
@@ -2279,19 +2336,45 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   return (
     <div className='space-y-4' data-testid='task-grid-board'>
       {/* Thanh công cụ trên cùng */}
-      <div className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 bg-[#FCFBF8] p-3.5 shadow-2xs'>
-        <div className='flex flex-wrap items-center gap-3'>
+      <div className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-head-line bg-head-wash px-4 py-3 shadow-2xs'>
+        <div className='flex flex-wrap items-center gap-2.5 min-w-0'>
           <div className='flex items-center gap-2'>
-            <Grid className='h-4 w-4 text-[#F97316]' />
+            <Grid className='h-4 w-4 text-accent-dark shrink-0' />
             <span className='font-bold text-sm text-stone-900'>{t('taskGridV3.boardTitle')}</span>
           </div>
           {grid && (
-            <span className='rounded-lg bg-stone-100 border border-stone-200 px-2.5 py-1 text-xs font-mono font-semibold text-stone-700'>
-              {t('taskGridV3.approvedSummary', {
-                approved: approvedCount,
-                total: activeTasks.length,
-              })}
-            </span>
+            <div className='flex flex-wrap items-center gap-1.5 text-xs'>
+              <span className='rounded-full bg-kraft px-2.5 py-0.5 font-mono font-semibold text-kraft-ink tabular-nums'>
+                {t('taskGridV3.approvedSummary', {
+                  approved: approvedCount,
+                  total: activeTasks.length,
+                })}
+              </span>
+              <div className='w-20 hidden sm:block'>
+                <ProgressBar
+                  value={approvedCount}
+                  max={activeTasks.length}
+                  tone='brand'
+                  label={t('taskGridV3.boardTitle')}
+                  className='h-1.5'
+                />
+              </div>
+              {inProgressCount > 0 && (
+                <Badge tone='info'>
+                  {t('taskGridV3.inProgressCountBadge', { count: inProgressCount })}
+                </Badge>
+              )}
+              {reviewCount > 0 && (
+                <Badge tone='warning'>
+                  {t('taskGridV3.reviewCountBadge', { count: reviewCount })}
+                </Badge>
+              )}
+              {unassignedCountTotal > 0 && (
+                <Badge tone='neutral'>
+                  {t('taskGridV3.unassignedCountBadge', { count: unassignedCountTotal })}
+                </Badge>
+              )}
+            </div>
           )}
           {automationChipModel &&
             (inRouter ? (
@@ -2621,101 +2704,120 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
       {/* Lô Closed (mọi ô đã bỏ gán / huỷ) không còn việc gì: ẩn khỏi danh sách */}
       {grid && grid.lots.some((l) => l.status !== 'Closed') && (
-        <div className='rounded-xl border border-stone-200 bg-white p-3.5 space-y-2'>
-          <div className='text-xs font-bold text-stone-800'>
-            {t('taskGridV3.assignedLotsTitle', {
-              count: grid.lots.filter((l) => l.status !== 'Closed').length,
-            })}
-          </div>
-          <div className='flex flex-wrap gap-2'>
-            {grid.lots
-              .filter((l) => l.status !== 'Closed')
-              .map((lot) => {
-                const stg = grid.stages.find((s) => s.id === lot.pipelineStageId);
-                const isLotStageDisabled =
-                  stg?.isEnabled === false || !enabledStageIds.has(lot.pipelineStageId);
-                const lotCells = grid.tasks.filter(
-                  (t) => t.lotId === lot.id && t.status !== 'Cancelled',
-                );
-                const lotPageNums = lotCells
-                  .map((t) => sortedPages.find((p) => p.id === t.pageId)?.pageNumber)
-                  .filter((n): n is number => n !== undefined)
-                  .sort((a, b) => a - b);
-                const lotScopeText =
-                  lotCells.length > 0 && lotCells.every((t) => !t.pageId)
-                    ? t('taskGridV3.wholeChapter')
-                    : lotPageNums.length > 0
-                      ? formatPageRangeLabel(lotPageNums)
-                      : null;
-                return (
-                  <div
-                    key={lot.id}
-                    data-testid={`grid-lot-pill-${lot.id}`}
-                    className={`rounded-lg border px-2.5 py-1.5 text-xs flex items-center gap-2 ${
-                      isLotStageDisabled
-                        ? 'border-dashed border-stone-300 bg-stone-100/60 text-stone-400 opacity-50'
-                        : lot.isOverdue
-                          ? 'border-rose-300 bg-rose-50 text-rose-900'
-                          : lot.status === 'Completed'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                            : 'border-stone-200 bg-stone-50 text-stone-700'
-                    }`}
-                  >
-                    <span className='font-bold'>{stg?.name || 'Stage'}</span>
-                    {lot.isAutoAssigned && (
-                      <span
-                        data-testid={`lot-auto-badge-${lot.id}`}
-                        title={lot.autoAssignReason || undefined}
-                        className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-xs font-semibold text-[#C2410C]'
-                      >
-                        {t('taskGridV3.autoAssignedBadge')}
+        <div className='rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 space-y-2'>
+          <button
+            type='button'
+            onClick={() => setLotsExpanded((v) => !v)}
+            aria-expanded={lotsExpanded}
+            className='w-full flex items-center justify-between gap-2 text-xs font-bold text-stone-800 cursor-pointer'
+          >
+            <span className='inline-flex items-center gap-1.5'>
+              {lotsExpanded ? (
+                <ChevronDown className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
+              ) : (
+                <ChevronRight className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
+              )}
+              <span>
+                {t('taskGridV3.assignedLotsTitle', {
+                  count: grid.lots.filter((l) => l.status !== 'Closed').length,
+                })}
+              </span>
+            </span>
+            <span className='text-xs font-normal text-stone-500'>
+              {lotsExpanded ? t('taskGridV3.collapseLots') : t('taskGridV3.expandLots')}
+            </span>
+          </button>
+          {lotsExpanded && (
+            <div className='flex flex-wrap gap-2'>
+              {grid.lots
+                .filter((l) => l.status !== 'Closed')
+                .map((lot) => {
+                  const stg = grid.stages.find((s) => s.id === lot.pipelineStageId);
+                  const isLotStageDisabled =
+                    stg?.isEnabled === false || !enabledStageIds.has(lot.pipelineStageId);
+                  const lotCells = grid.tasks.filter(
+                    (t) => t.lotId === lot.id && t.status !== 'Cancelled',
+                  );
+                  const lotPageNums = lotCells
+                    .map((t) => sortedPages.find((p) => p.id === t.pageId)?.pageNumber)
+                    .filter((n): n is number => n !== undefined)
+                    .sort((a, b) => a - b);
+                  const lotScopeText =
+                    lotCells.length > 0 && lotCells.every((t) => !t.pageId)
+                      ? t('taskGridV3.wholeChapter')
+                      : lotPageNums.length > 0
+                        ? formatPageRangeLabel(lotPageNums)
+                        : null;
+                  return (
+                    <div
+                      key={lot.id}
+                      data-testid={`grid-lot-pill-${lot.id}`}
+                      className={`rounded-lg border px-2.5 py-1.5 text-xs flex items-center gap-2 ${
+                        isLotStageDisabled
+                          ? 'border-dashed border-stone-300 bg-stone-100/60 text-stone-400 opacity-50'
+                          : lot.isOverdue
+                            ? 'border-rose-300 bg-rose-50 text-rose-900'
+                            : lot.status === 'Completed'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                              : 'border-stone-200 bg-stone-50 text-stone-700'
+                      }`}
+                    >
+                      <span className='font-bold'>{stg?.name || 'Stage'}</span>
+                      {lot.isAutoAssigned && (
+                        <span
+                          data-testid={`lot-auto-badge-${lot.id}`}
+                          title={lot.autoAssignReason || undefined}
+                          className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-xs font-semibold text-[#C2410C]'
+                        >
+                          {t('taskGridV3.autoAssignedBadge')}
+                        </span>
+                      )}
+                      {isLotStageDisabled && (
+                        <span className='rounded bg-stone-200 px-1 py-0.2 text-xs font-mono text-stone-600'>
+                          {t('taskGridV3.stageDisabledBadge')}
+                        </span>
+                      )}
+                      <span>•</span>
+                      <span>{getMemberName(lot.assigneeUserId)}</span>
+                      {lotScopeText && <span className='font-medium'>{`• ${lotScopeText}`}</span>}
+                      <span className='font-mono font-semibold'>
+                        ({lot.approvedCount}/{lot.taskCount})
                       </span>
-                    )}
-                    {isLotStageDisabled && (
-                      <span className='rounded bg-stone-200 px-1 py-0.2 text-xs font-mono text-stone-600'>
-                        {t('taskGridV3.stageDisabledBadge')}
-                      </span>
-                    )}
-                    <span>•</span>
-                    <span>{getMemberName(lot.assigneeUserId)}</span>
-                    {lotScopeText && <span className='font-medium'>{`• ${lotScopeText}`}</span>}
-                    <span className='font-mono font-semibold'>
-                      ({lot.approvedCount}/{lot.taskCount})
-                    </span>
-                    {lot.dueDate && (
-                      <span className='inline-flex items-center gap-0.5 text-xs text-stone-500'>
-                        <Clock className='h-3 w-3' />
-                        {new Date(lot.dueDate).toLocaleDateString(
-                          lang === 'en' ? 'en-US' : 'vi-VN',
-                        )}
-                      </span>
-                    )}
-                    {lot.brief && (
-                      <span
-                        className='max-w-[160px] truncate text-xs italic text-stone-500'
-                        title={lot.brief}
-                      >
-                        “{lot.brief}”
-                      </span>
-                    )}
-                    {canCoordinateAssign && lot.status !== 'Closed' && (
-                      <button
-                        type='button'
-                        data-testid={`edit-lot-btn-${lot.id}`}
-                        onClick={() =>
-                          editingLotId === lot.id ? setEditingLotId(null) : openEditLotForm(lot)
-                        }
-                        title={t('taskGridV3.editLotTooltip')}
-                        className='inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-700 cursor-pointer'
-                      >
-                        <Pencil className='h-2.5 w-2.5' />
-                        <span>{t('taskGridV3.editLotBtn')}</span>
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-          </div>
+                      {lot.dueDate && (
+                        <span className='inline-flex items-center gap-0.5 text-xs text-stone-500'>
+                          <Clock className='h-3 w-3' />
+                          {new Date(lot.dueDate).toLocaleDateString(
+                            lang === 'en' ? 'en-US' : 'vi-VN',
+                          )}
+                        </span>
+                      )}
+                      {lot.brief && (
+                        <span
+                          className='max-w-[160px] truncate text-xs italic text-stone-500'
+                          title={lot.brief}
+                        >
+                          “{lot.brief}”
+                        </span>
+                      )}
+                      {canCoordinateAssign && lot.status !== 'Closed' && (
+                        <button
+                          type='button'
+                          data-testid={`edit-lot-btn-${lot.id}`}
+                          onClick={() =>
+                            editingLotId === lot.id ? setEditingLotId(null) : openEditLotForm(lot)
+                          }
+                          title={t('taskGridV3.editLotTooltip')}
+                          className='inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-700 cursor-pointer'
+                        >
+                          <Pencil className='h-2.5 w-2.5' />
+                          <span>{t('taskGridV3.editLotBtn')}</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          )}
 
           {canCoordinateAssign &&
             editingLotId &&
@@ -2812,11 +2914,11 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           </p>
         </div>
       ) : (
-        <div className='overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-2xs'>
+        <div className='overflow-auto max-h-[72vh] rounded-xl border border-stone-200 bg-white shadow-2xs min-w-0'>
           <table className='w-full border-collapse text-left text-xs'>
-            <thead>
-              <tr className='border-b border-stone-200 bg-[#FAF8F5]'>
-                <th className='sticky left-0 z-10 bg-[#FAF8F5] px-3 py-2.5 font-bold text-stone-700 border-r border-stone-200 min-w-[110px]'>
+            <thead className='sticky top-0 z-20'>
+              <tr className='border-b border-head-line bg-head-wash'>
+                <th className='sticky left-0 top-0 z-30 bg-head-wash px-3 py-2.5 font-bold text-kraft-ink border-r border-head-line w-[116px] min-w-[104px] max-w-[132px]'>
                   {t('taskGridV3.scopeColumnHeader')}
                 </th>
                 {visibleStages.map((stage) => {
@@ -2826,7 +2928,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   return (
                     <th
                       key={stage.id}
-                      className='px-3 py-2.5 border-r border-stone-200 min-w-[190px] align-top'
+                      className='px-2.5 py-2.5 border-r border-head-line w-[176px] min-w-[160px] max-w-[200px] align-top bg-head-wash'
                     >
                       <div className='flex items-center justify-between gap-1'>
                         <span className='font-bold text-stone-900'>
@@ -2930,6 +3032,158 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         onClose={() => setReplayOpen(false)}
         slides={replaySlides}
       />
+
+      {/* Task Detail Drawer: xem đầy đủ thông tin, bài nộp & artwork mà không làm giãn ô Task Grid */}
+      <Drawer
+        isOpen={Boolean(drawerTask)}
+        onClose={() => setDrawerTaskId(null)}
+        size='md'
+        closeLabel={t('taskGridV3.closeBtn')}
+        data-testid='task-detail-drawer'
+        title={
+          drawerTask
+            ? `${drawerPage ? t('taskGridV3.pageRowLabel', { number: drawerPage.pageNumber }) : t('taskGridV3.wholeChapter')} · ${drawerStage?.name ?? ''}`
+            : ''
+        }
+      >
+        {drawerTask && drawerStage && (
+          <div className='p-5 space-y-4 text-xs'>
+            <div className='flex flex-wrap items-center justify-between gap-2'>
+              <StatusBadge kind='stageTask' status={drawerTask.status} />
+              {(drawerTask.attemptCount ?? 0) > 0 && (
+                <Badge tone='neutral'>
+                  {t('taskGridV3.attemptBadge', { count: drawerTask.attemptCount ?? 0 })}
+                </Badge>
+              )}
+            </div>
+
+            <dl className='grid grid-cols-2 gap-3 rounded-xl border border-stone-200/80 bg-[#FAF9F5] p-3.5'>
+              <div>
+                <dt className='text-stone-500'>{t('taskGridV3.drawerStageLabel')}</dt>
+                <dd className='font-semibold text-stone-900 mt-0.5'>{drawerStage.name}</dd>
+              </div>
+              <div>
+                <dt className='text-stone-500'>{t('taskGridV3.drawerAssigneeLabel')}</dt>
+                <dd className='font-semibold text-stone-900 mt-0.5 truncate'>
+                  {drawerTask.assigneeUserId
+                    ? getMemberName(drawerTask.assigneeUserId)
+                    : t('taskGridV3.status.Unassigned')}
+                </dd>
+              </div>
+              {drawerTask.lotId && lotById.get(drawerTask.lotId)?.dueDate && (
+                <div>
+                  <dt className='text-stone-500'>{t('taskGridV3.drawerDueDateLabel')}</dt>
+                  <dd className='font-mono font-semibold text-stone-900 mt-0.5'>
+                    {new Date(lotById.get(drawerTask.lotId)!.dueDate!).toLocaleDateString(
+                      lang === 'en' ? 'en-US' : 'vi-VN',
+                    )}
+                  </dd>
+                </div>
+              )}
+              {drawerTask.lotId && lotById.get(drawerTask.lotId)?.brief && (
+                <div className='col-span-2'>
+                  <dt className='text-stone-500'>{t('taskGridV3.drawerLotBriefLabel')}</dt>
+                  <dd className='text-stone-800 mt-0.5'>{lotById.get(drawerTask.lotId)!.brief}</dd>
+                </div>
+              )}
+            </dl>
+
+            {drawerTask.isInputOutdated && (
+              <div className='rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 space-y-1'>
+                <div className='font-semibold flex items-center gap-1.5'>
+                  <AlertTriangle className='w-4 h-4 text-amber-700 shrink-0' />
+                  <span>{t('taskGridV3.inputOutdatedTitle')}</span>
+                </div>
+                {drawerTask.outdatedReason && <p>{drawerTask.outdatedReason}</p>}
+              </div>
+            )}
+
+            {(() => {
+              const drawerRework = resolveReworkReasonDisplay(
+                drawerTask,
+                reworkCommentsByTask[drawerTask.id] ||
+                  pickLatestDecisionComment(submissionsByTaskId[drawerTask.id]),
+              );
+              if (!drawerRework) return null;
+              return (
+                <div className='rounded-lg border border-rose-200 bg-rose-50 p-3 text-rose-900 space-y-1'>
+                  <div className='font-semibold'>
+                    {drawerRework.kind === 'reopen'
+                      ? t('taskGridV3.reopenReasonPrefix')
+                      : t('taskGridV3.lastDecisionLabel')}
+                  </div>
+                  <p>{drawerRework.text}</p>
+                </div>
+              );
+            })()}
+
+            <div className='space-y-2'>
+              <div className='flex items-center justify-between'>
+                <h3 className='font-bold text-stone-900'>{t('taskGridV3.historyTitle')}</h3>
+                <Button variant='ghost' size='sm' onClick={() => void loadSubmissions(drawerTask)}>
+                  {t('taskGridV3.reloadBtn')}
+                </Button>
+              </div>
+              {loadingHistoryTaskId === drawerTask.id ? (
+                <div className='flex items-center gap-1.5 text-stone-500 py-3'>
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                  <span>{t('taskGridV3.historyLoading')}</span>
+                </div>
+              ) : (submissionsByTaskId[drawerTask.id] || []).length === 0 ? (
+                <p className='text-stone-500 italic py-2'>{t('taskGridV3.historyEmpty')}</p>
+              ) : (
+                <div className='space-y-2'>
+                  {(submissionsByTaskId[drawerTask.id] || []).map((sub) => {
+                    const parsedCanvasVersions = parseStageTaskCanvasVersions(
+                      sub.canvasVersionsJson,
+                    );
+                    const canReplay =
+                      (sub.artworkReferenceIds?.length ?? 0) > 0 ||
+                      Object.keys(parsedCanvasVersions).length > 0;
+                    return (
+                      <div
+                        key={sub.id}
+                        className='rounded-xl border border-stone-200 bg-white p-3 space-y-1.5'
+                      >
+                        <div className='flex items-center justify-between gap-2'>
+                          <span className='font-bold text-stone-900'>
+                            {t('taskGridV3.attemptShort', { count: sub.attemptNumber })}
+                          </span>
+                          <StatusBadge kind='artworkReview' status={sub.status} />
+                        </div>
+                        <div className='text-stone-500'>
+                          {t('taskGridV3.submittedByWithImages', {
+                            name: getMemberName(sub.submittedByUserId),
+                            count: sub.artworkReferenceIds?.length ?? 0,
+                          })}
+                        </div>
+                        {sub.decisionComment && (
+                          <p className='rounded bg-rose-50 px-2 py-1 text-rose-800'>
+                            {sub.decisionComment}
+                          </p>
+                        )}
+                        {canReplay && (
+                          <div className='pt-1'>
+                            <Button
+                              variant='secondary'
+                              size='sm'
+                              loading={replayingSubmissionId === sub.id}
+                              leadingIcon={<Eye aria-hidden='true' />}
+                              onClick={() => void handleReplaySubmission(drawerTask, sub)}
+                            >
+                              {t('taskGridV3.replayBtn')}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 };

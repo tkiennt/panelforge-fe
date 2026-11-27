@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from '@/shared/ui';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Alert, Badge, Button, IconButton, PageHeader } from '@/shared/ui';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   BookOpen,
   ChevronDown,
@@ -31,7 +31,6 @@ import {
   type BibleDesignQueueItemDto,
   type BibleEntryDto,
 } from '@/services/bible.service';
-import { formatSeriesFormat } from '@/shared/utils/seriesFormat';
 import { scriptLineService, type SceneDto } from '@/services/scriptLine.service';
 import { pageService, type PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
@@ -54,7 +53,17 @@ import {
   type WorkOrderContext,
 } from './collaborationRules';
 import { PageContainer } from '@/shared/components/PageContainer';
-import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
+import {
+  ContinueCard,
+  DesignStatus,
+  DesignThumb,
+  OverviewEmpty,
+  OverviewLinkButton,
+  OverviewList,
+  OverviewMetrics,
+  OverviewPanel,
+  OverviewRow,
+} from './WorkspaceOverview';
 import { useTranslation } from '@/lib/i18n';
 
 interface MyWorkViewProps {
@@ -75,9 +84,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   onShowToast,
 }) => {
   const { workspaceId, seriesId } = useParams();
-  const { t } = useTranslation('collaboration');
+  const { t, lang: locale } = useTranslation('collaboration');
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const reviewer = isReviewerRole(workspaceRole);
   const normalizedRole = String(workspaceRole || '').toUpperCase();
   const isWriter = normalizedRole === 'WRITER';
@@ -87,7 +95,6 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [stages, setStages] = useState<PipelineStageDto[]>([]);
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
-  const [seriesFormat, setSeriesFormat] = useState('');
   const [seriesTitle, setSeriesTitle] = useState('');
   const [writerBibleEntries, setWriterBibleEntries] = useState<BibleEntryDto[]>([]);
   const [writerDesignQueue, setWriterDesignQueue] = useState<BibleDesignQueueItemDto[]>([]);
@@ -119,11 +126,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     seriesService
       .getSeriesById(seriesId)
       .then((s) => {
-        setSeriesFormat(s?.format ?? '');
         setSeriesTitle(s?.title ?? '');
       })
       .catch(() => {
-        setSeriesFormat('');
         setSeriesTitle('');
       });
   }, [seriesId]);
@@ -823,6 +828,13 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       artistDesignReworks.length,
   };
 
+  const scrollToSection = (id: string) => {
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    document
+      .getElementById(id)
+      ?.scrollIntoView?.({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  };
+
   const writerActiveChapter = useMemo(
     () =>
       [...chapters]
@@ -899,374 +911,526 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     const feedbackCount = writerReworkCells.length + writerBibleRework.length;
     const lastEdited = writerActiveChapter?.updatedAt || writerActiveChapter?.createdAt;
 
+    const scriptListHref = `/workspaces/${workspaceId}/series/${seriesId}/script`;
+    const writerPendingCount = writerCharactersMissingNotes.length + feedbackCount;
+
     return (
       <PageContainer
         className='space-y-5 py-6 text-stone-900 font-sans'
         data-testid='writer-workspace-overview'
       >
-        <header className='border-b border-head-line pb-4 relative'>
-          <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
-            <div className='flex items-start gap-3 min-w-0'>
-              <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-dark'>
-                <PenLine className='h-5 w-5' aria-hidden='true' />
-              </div>
-              <div className='min-w-0'>
-                <p className='text-xs font-semibold uppercase tracking-wider text-sienna'>
-                  {t('writerStudio.workspaceEyebrow', {
-                    series: seriesTitle || t('myWork.currentSeries'),
-                  })}
-                </p>
-                <h1 className='mt-1 text-2xl font-serif font-bold text-stone-900'>
-                  {t('writerStudio.creativeWorkspace')}
-                </h1>
-                <p className='mt-1 text-sm text-stone-600'>
-                  {t('writerStudio.workspaceGreeting', { name: currentMemberName })}
-                </p>
-              </div>
-            </div>
-            <button
-              type='button'
+        <PageHeader
+          icon={<PenLine aria-hidden='true' />}
+          eyebrow={t('writerStudio.workspaceEyebrow', {
+            series: seriesTitle || t('myWork.currentSeries'),
+          })}
+          title={t('writerStudio.creativeWorkspace')}
+          description={t('myWork.greeting', { name: currentMemberName })}
+          actions={
+            <Button
+              size='sm'
+              variant='secondary'
               onClick={() => void loadWork()}
-              aria-label={t('myWork.reload')}
-              className='inline-flex h-9 items-center justify-center gap-2 self-start rounded-lg border border-stone-300 bg-white px-3 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
+              loading={loadingWork}
+              leadingIcon={<RefreshCw aria-hidden='true' />}
             >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${loadingWork ? 'animate-spin text-orange-600' : ''}`}
-                aria-hidden='true'
-              />
               {t('myWork.reload')}
-            </button>
-          </div>
-          <span className='absolute -bottom-0.5 left-0 h-[3px] w-12 rounded-full bg-accent' />
-        </header>
+            </Button>
+          }
+        />
 
-        <section
-          className='grid grid-cols-2 gap-3 lg:grid-cols-4'
-          aria-label={t('writerStudio.summaryAria')}
-        >
-          {[
+        <OverviewMetrics
+          ariaLabel={t('writerStudio.summaryAria')}
+          items={[
             {
+              key: 'assigned',
               value: writerAssignedChapterCount,
               label: t('writerStudio.assignedChapters'),
+              icon: <ClipboardList />,
+              to: scriptListHref,
               testId: 'writer-metric-assigned',
             },
             {
+              key: 'writing',
               value: writerWritingCount,
               label: t('writerStudio.currentlyWriting'),
+              icon: <PenLine />,
+              to: activeChapterHref,
               testId: 'writer-metric-writing',
             },
             {
+              key: 'collaborating',
               value: writerDesignQueue.length,
               label: t('writerStudio.collaborating'),
+              icon: <Palette />,
+              tone: 'info',
+              onClick: () => scrollToSection('writer-collaboration'),
               testId: 'writer-metric-collaborating',
             },
             {
+              key: 'review',
               value: writerWaitingReviewCount,
               label: t('writerStudio.awaitingReview'),
+              icon: <CheckCircle2 />,
+              tone: 'warning',
+              attention: true,
+              to: scriptListHref,
               testId: 'writer-metric-review',
             },
-          ].map((metric) => (
-            <div
-              key={metric.label}
-              data-testid={metric.testId}
-              className='rounded-xl border border-stone-200/80 bg-white p-4'
-            >
-              <p className='font-mono text-2xl font-bold text-orange-700'>{metric.value}</p>
-              <p className='mt-1 text-xs font-medium text-stone-600'>{metric.label}</p>
-            </div>
-          ))}
-        </section>
+          ]}
+        />
 
-        <article className='overflow-hidden rounded-xl border border-stone-200/80 border-t-[3px] border-t-accent bg-white shadow-sm'>
-          <header className='flex flex-wrap items-center justify-between gap-3 border-b border-head-line bg-head-wash px-4 py-3'>
-            <div>
-              <p className='text-xs font-semibold uppercase tracking-wide text-sienna'>
-                {t('writerStudio.continueSection')}
-              </p>
-              <h2 className='mt-1 font-serif text-lg font-bold text-stone-900'>
-                {writerActiveChapter
-                  ? t('writerStudio.chapterTitle', {
-                      number: writerActiveChapter.chapterNumber,
-                      title: writerActiveChapter.title || t('writerStudio.untitledChapter'),
-                    })
-                  : t('writerStudio.noActiveChapter')}
-              </h2>
-            </div>
-            {writerActiveChapter && (
-              <span className='rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-800'>
+        <ContinueCard
+          eyebrow={t('writerStudio.continueSection')}
+          title={
+            writerActiveChapter
+              ? t('writerStudio.chapterTitle', {
+                  number: writerActiveChapter.chapterNumber,
+                  title: writerActiveChapter.title || t('writerStudio.untitledChapter'),
+                })
+              : t('writerStudio.noActiveChapter')
+          }
+          badge={
+            writerActiveChapter && (
+              <Badge tone='brand'>
                 {t('writerStudio.writingVersion', {
                   version: writerActiveChapter.versionVector || 1,
                 })}
-              </span>
-            )}
-          </header>
-          <div className='space-y-4 p-4'>
-            {writerActiveChapter ? (
-              <>
-                <p className='max-w-3xl text-sm leading-relaxed text-stone-700'>
-                  {writerActiveChapter.outline || t('myWork.noOutline')}
-                </p>
-                <dl className='flex flex-wrap gap-x-5 gap-y-2 text-xs text-stone-600'>
+              </Badge>
+            )
+          }
+          action={
+            <OverviewLinkButton
+              to={activeChapterHref}
+              trailingIcon={<ChevronRight aria-hidden='true' />}
+            >
+              {writerActiveChapter
+                ? t('writerStudio.continueAction')
+                : t('writerStudio.openScripts')}
+            </OverviewLinkButton>
+          }
+        >
+          {writerActiveChapter ? (
+            <>
+              <p className='max-w-3xl text-sm leading-relaxed text-stone-700'>
+                {writerActiveChapter.outline || t('myWork.noOutline')}
+              </p>
+              <dl className='flex flex-wrap gap-x-5 gap-y-2 text-xs text-stone-600'>
+                <div className='flex items-center gap-1.5'>
+                  <Film className='h-3.5 w-3.5 text-accent-dark' aria-hidden='true' />
+                  <dt className='sr-only'>{t('writerStudio.scenesMetric')}</dt>
+                  <dd>
+                    {t('writerStudio.scenesCount', {
+                      count: writerActiveChapter.scenesCount || 0,
+                    })}
+                  </dd>
+                </div>
+                <div className='flex items-center gap-1.5'>
+                  <BookOpen className='h-3.5 w-3.5 text-accent-dark' aria-hidden='true' />
+                  <dt className='sr-only'>{t('writerStudio.pagesMetric')}</dt>
+                  <dd>{t('myWork.pagesCount', { count: writerActiveChapter.pagesCount || 0 })}</dd>
+                </div>
+                {lastEdited && (
                   <div className='flex items-center gap-1.5'>
-                    <Film className='h-3.5 w-3.5 text-orange-700' aria-hidden='true' />
-                    <dt className='sr-only'>{t('writerStudio.scenesMetric')}</dt>
+                    <CalendarClock className='h-3.5 w-3.5 text-accent-dark' aria-hidden='true' />
+                    <dt>{t('writerStudio.lastEdited')}</dt>
                     <dd>
-                      {t('writerStudio.scenesCount', {
-                        count: writerActiveChapter.scenesCount || 0,
-                      })}
-                    </dd>
-                  </div>
-                  <div className='flex items-center gap-1.5'>
-                    <BookOpen className='h-3.5 w-3.5 text-orange-700' aria-hidden='true' />
-                    <dt className='sr-only'>{t('writerStudio.pagesMetric')}</dt>
-                    <dd>
-                      {t('myWork.pagesCount', { count: writerActiveChapter.pagesCount || 0 })}
-                    </dd>
-                  </div>
-                  {lastEdited && (
-                    <div className='flex items-center gap-1.5'>
-                      <CalendarClock className='h-3.5 w-3.5 text-orange-700' aria-hidden='true' />
-                      <dt>{t('writerStudio.lastEdited')}</dt>
-                      <dd>
-                        {new Intl.DateTimeFormat(undefined, {
+                      <time dateTime={lastEdited}>
+                        {new Intl.DateTimeFormat(locale, {
                           dateStyle: 'medium',
                           timeStyle: 'short',
                         }).format(new Date(lastEdited))}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-              </>
-            ) : (
-              <p className='text-sm text-stone-600'>{t('writerStudio.noActiveChapterDesc')}</p>
-            )}
-            <footer className='flex justify-end border-t border-stone-200/80 pt-3'>
-              <Link
-                to={activeChapterHref}
-                className='inline-flex min-h-9 items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-orange-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700 active:scale-[0.98]'
-              >
-                {writerActiveChapter
-                  ? t('writerStudio.continueAction')
-                  : t('writerStudio.openScripts')}
-                <ChevronRight className='h-4 w-4' aria-hidden='true' />
-              </Link>
-            </footer>
-          </div>
-        </article>
-
-        <div className='grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]'>
-          <section
-            id='writer-action-center'
-            className={`rounded-xl border bg-white shadow-sm ${
-              isFeedbackView ? 'border-orange-400 ring-2 ring-orange-200' : 'border-stone-200/80'
-            }`}
-            aria-labelledby='writer-action-center-title'
-          >
-            <header className='flex items-center justify-between border-b border-head-line bg-head-wash px-4 py-3'>
-              <div className='flex items-center gap-2'>
-                <div className='flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-dark'>
-                  <ClipboardList className='h-4 w-4' aria-hidden='true' />
-                </div>
-                <h2 id='writer-action-center-title' className='text-sm font-bold text-stone-900'>
-                  {t('writerStudio.actionCenter')}
-                </h2>
-              </div>
-              <span className='rounded-full bg-kraft px-2 py-0.5 font-mono text-xs font-semibold text-kraft-ink'>
-                {writerCharactersMissingNotes.length + feedbackCount}
-              </span>
-            </header>
-            <div className='divide-y divide-stone-200/80 px-4'>
-              <Link
-                to={bibleHref}
-                className='flex items-center gap-3 py-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
-              >
-                <PenLine className='h-4 w-4 shrink-0 text-orange-700' aria-hidden='true' />
-                <span className='min-w-0 flex-1'>
-                  <span className='block text-sm font-semibold text-stone-900'>
-                    {t('writerStudio.completeCharacterNotes')}
-                  </span>
-                  <span className='mt-0.5 block text-xs text-stone-600'>
-                    {t('writerStudio.charactersNeedNotes', {
-                      count: writerCharactersMissingNotes.length,
-                    })}
-                  </span>
-                </span>
-                <ChevronRight className='h-4 w-4 shrink-0 text-stone-500' aria-hidden='true' />
-              </Link>
-              <Link
-                to={activeChapterHref}
-                className='flex items-center gap-3 py-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
-              >
-                <BookOpen className='h-4 w-4 shrink-0 text-orange-700' aria-hidden='true' />
-                <span className='min-w-0 flex-1'>
-                  <span className='block text-sm font-semibold text-stone-900'>
-                    {t('writerStudio.checkScriptReadiness')}
-                  </span>
-                  <span className='mt-0.5 block text-xs text-stone-600'>
-                    {t('writerStudio.scriptReadinessDesc', {
-                      chapter: writerActiveChapter?.chapterNumber ?? '—',
-                    })}
-                  </span>
-                </span>
-                <ChevronRight className='h-4 w-4 shrink-0 text-stone-500' aria-hidden='true' />
-              </Link>
-              {feedbackCount > 0 && (
-                <div className='flex items-start gap-3 py-4'>
-                  <MessageSquare
-                    className='mt-0.5 h-4 w-4 shrink-0 text-rose-700'
-                    aria-hidden='true'
-                  />
-                  <div className='min-w-0 flex-1'>
-                    <p className='text-sm font-semibold text-stone-900'>
-                      {t('writerStudio.feedbackNeedsAction')}
-                    </p>
-                    <p className='mt-0.5 text-xs text-stone-600'>
-                      {t('writerStudio.feedbackNeedsActionDesc', { count: feedbackCount })}
-                    </p>
-                    {writerBibleRework.slice(0, 3).map((item) => (
-                      <Link
-                        key={item.revisionId}
-                        to={`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(item.name)}`}
-                        className='mt-2 flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-900 hover:bg-rose-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700'
-                      >
-                        <span className='truncate'>{item.name}</span>
-                        <ChevronRight className='h-3.5 w-3.5 shrink-0' aria-hidden='true' />
-                      </Link>
-                    ))}
+                      </time>
+                    </dd>
                   </div>
-                </div>
-              )}
-            </div>
-          </section>
+                )}
+              </dl>
+            </>
+          ) : (
+            <p className='text-sm text-stone-600'>{t('writerStudio.noActiveChapterDesc')}</p>
+          )}
+        </ContinueCard>
 
-          <section
-            className='rounded-xl border border-stone-200/80 bg-white shadow-sm'
-            aria-labelledby='writer-collaboration-title'
+        <div className='grid grid-cols-1 gap-5 xl:grid-cols-2'>
+          <OverviewPanel
+            id='writer-action-center'
+            icon={<ClipboardList />}
+            title={t('writerStudio.actionCenter')}
+            count={writerPendingCount}
+            emphasized={isFeedbackView}
           >
-            <header className='flex items-center justify-between border-b border-head-line bg-head-wash px-4 py-3'>
-              <div className='flex items-center gap-2'>
-                <div className='flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-dark'>
-                  <Palette className='h-4 w-4' aria-hidden='true' />
-                </div>
-                <h2 id='writer-collaboration-title' className='text-sm font-bold text-stone-900'>
-                  {t('writerStudio.artistCollaboration')}
-                </h2>
-              </div>
-              <span className='rounded-full bg-kraft px-2 py-0.5 font-mono text-xs font-semibold text-kraft-ink'>
-                {writerDesignQueue.length}
-              </span>
-            </header>
+            <OverviewList>
+              {writerCharactersMissingNotes.length > 0 && (
+                <OverviewRow
+                  to={bibleHref}
+                  leading={<PenLine className='text-accent-dark' aria-hidden='true' />}
+                  title={t('writerStudio.completeCharacterNotes')}
+                  meta={t('writerStudio.charactersNeedNotes', {
+                    count: writerCharactersMissingNotes.length,
+                  })}
+                />
+              )}
+              <OverviewRow
+                to={activeChapterHref}
+                leading={<BookOpen className='text-accent-dark' aria-hidden='true' />}
+                title={t('writerStudio.checkScriptReadiness')}
+                meta={t('writerStudio.scriptReadinessDesc', {
+                  chapter: writerActiveChapter?.chapterNumber ?? '—',
+                })}
+              />
+              {writerBibleRework.slice(0, 3).map((item) => (
+                <OverviewRow
+                  key={item.revisionId}
+                  tone='danger'
+                  to={`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(item.name)}`}
+                  leading={<MessageSquare className='text-rose-700' aria-hidden='true' />}
+                  title={item.name}
+                  meta={item.reworkFeedback || t('writerStudio.feedbackNeedsAction')}
+                  status={
+                    <span className='text-rose-700'>
+                      {t('writerStudio.designStatus.ReworkRequired')}
+                    </span>
+                  }
+                />
+              ))}
+              {writerReworkCells.length > 0 && (
+                <OverviewRow
+                  tone='danger'
+                  to={activeChapterHref}
+                  leading={<MessageSquare className='text-rose-700' aria-hidden='true' />}
+                  title={t('writerStudio.feedbackNeedsAction')}
+                  meta={t('writerStudio.feedbackNeedsActionDesc', {
+                    count: writerReworkCells.length,
+                  })}
+                />
+              )}
+            </OverviewList>
+          </OverviewPanel>
+
+          <OverviewPanel
+            id='writer-collaboration'
+            icon={<Palette />}
+            tone='info'
+            title={t('writerStudio.artistCollaboration')}
+            count={writerDesignQueue.length}
+          >
             {writerDesignQueue.length > 0 ? (
-              <ul className='divide-y divide-stone-200/80 px-4'>
+              <OverviewList>
                 {writerDesignQueue.slice(0, 5).map((item) => (
-                  <li key={item.revisionId}>
-                    <Link
-                      to={`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(item.name)}`}
-                      className='flex items-center gap-3 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
-                    >
-                      <span className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100 font-mono text-xs font-bold text-stone-700'>
-                        {item.name.trim().charAt(0).toUpperCase() || '?'}
-                      </span>
-                      <span className='min-w-0 flex-1'>
-                        <span className='block truncate text-sm font-semibold text-stone-900'>
-                          {item.name}
-                        </span>
-                        <span className='block truncate text-xs text-stone-600'>
-                          {item.variantLabel || t('writerStudio.defaultVariant')} · v
-                          {item.versionNumber || 1}
-                        </span>
-                      </span>
-                      <span
-                        className={`shrink-0 text-xs font-semibold ${
-                          item.reviewStatus === 'ReworkRequired'
-                            ? 'text-rose-700'
-                            : item.reviewStatus === 'ConceptSubmitted'
-                              ? 'text-amber-800'
-                              : 'text-blue-700'
-                        }`}
-                      >
-                        {t(`writerStudio.designStatus.${item.reviewStatus}`)}
-                      </span>
-                      <ChevronRight
-                        className='h-4 w-4 shrink-0 text-stone-500'
-                        aria-hidden='true'
-                      />
-                    </Link>
-                  </li>
+                  <OverviewRow
+                    key={item.revisionId}
+                    to={`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(item.name)}`}
+                    leading={<DesignThumb item={item} />}
+                    title={item.name}
+                    meta={`${item.variantLabel || t('writerStudio.defaultVariant')} · v${item.versionNumber || 1}`}
+                    status={<DesignStatus status={item.reviewStatus} />}
+                  />
                 ))}
-              </ul>
+              </OverviewList>
             ) : (
-              <p className='p-6 text-center text-sm text-stone-600'>
+              <OverviewEmpty
+                icon={<Palette className='h-5 w-5 text-stone-400' aria-hidden='true' />}
+              >
                 {t('writerStudio.noArtistCollaboration')}
-              </p>
+              </OverviewEmpty>
             )}
-          </section>
+          </OverviewPanel>
         </div>
       </PageContainer>
     );
   }
 
-  return (
-    <PageContainer className='space-y-6 py-6 text-[#1C1917] font-sans' data-testid='my-work-view'>
-      {/* Stitch Manga Production Workspace Banner */}
-      <header className='relative bg-white rounded-xl p-6 sm:p-8 shadow-sm overflow-hidden border border-stone-200/80'>
-        <div className='relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6'>
-          <div>
-            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#18181B] tracking-tight'>
-              {isWriter
-                ? `${t('writerStudio.workbenchTitle')} — ${currentMemberName}`
-                : isArtist
-                  ? `${t('myWork.artistOverview.title')} — ${currentMemberName}`
-                  : `${t('myWork.title')} — ${currentMemberName}`}
-            </h1>
-            <p className='text-sm text-stone-500 mt-1'>
-              {isArtist ? t('myWork.artistOverview.desc') : t('myWork.desc')}
-            </p>
-          </div>
+  const deskHref = `/workspaces/${workspaceId}/series/${seriesId}/artist`;
+  const bibleListHref = `/workspaces/${workspaceId}/series/${seriesId}/bible`;
+  const artistActiveStageIndex = artistPrimaryLot
+    ? stages.findIndex((stage) => stage.id === artistPrimaryLot.pipelineStageId)
+    : -1;
+  const showTaskList = (nextTab: Tab) => {
+    setTab(nextTab);
+    scrollToSection('my-work-list');
+  };
 
-          <div className='flex items-center gap-2.5 flex-wrap'>
-            {isWriter &&
-              chapters.length > 0 &&
-              workspaceId &&
-              seriesId &&
-              (() => {
-                const activeChapter = chapters.find((c) => !c.isScriptFrozen) || chapters[0];
-                return (
-                  <Link
-                    to={`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${activeChapter.id}`}
-                    className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs transition-colors shadow-xs'
-                  >
-                    <BookOpen className='w-4 h-4' />
-                    <span>
-                      {t('writerStudio.continueWriting', { chapter: activeChapter.chapterNumber })}
-                    </span>
-                  </Link>
-                );
-              })()}
-            {isArtist && workspaceId && seriesId && (
-              <>
-                <Link
-                  to={`/workspaces/${workspaceId}/series/${seriesId}/artist`}
-                  className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs transition-colors shadow-xs'
+  return (
+    <PageContainer className='space-y-5 py-6 text-stone-900 font-sans' data-testid='my-work-view'>
+      <PageHeader
+        icon={isArtist ? <Palette aria-hidden='true' /> : <Layers aria-hidden='true' />}
+        eyebrow={
+          isArtist
+            ? t('myWork.artistOverview.workspaceEyebrow', {
+                series: seriesTitle || t('myWork.currentSeries'),
+              })
+            : seriesTitle || t('myWork.currentSeries')
+        }
+        title={isArtist ? t('myWork.artistOverview.title') : t('myWork.title')}
+        description={
+          isArtist ? t('myWork.greeting', { name: currentMemberName }) : t('myWork.desc')
+        }
+        actions={
+          isArtist && workspaceId && seriesId ? (
+            <div className='flex flex-wrap items-center gap-2'>
+              <OverviewLinkButton
+                to={bibleListHref}
+                variant='secondary'
+                icon={<BookOpen aria-hidden='true' />}
+              >
+                {t('myWork.artistOverview.openDesignRequests')}
+              </OverviewLinkButton>
+              <OverviewLinkButton to={deskHref} icon={<Palette aria-hidden='true' />}>
+                {t('myWork.artistOverview.openDesk')}
+              </OverviewLinkButton>
+            </div>
+          ) : undefined
+        }
+      />
+
+      {isArtist && (
+        <OverviewMetrics
+          ariaLabel={t('myWork.artistOverview.summaryAria')}
+          items={[
+            {
+              key: 'assigned',
+              value: artistSummary.assigned,
+              label: t('myWork.artistOverview.assigned'),
+              icon: <ClipboardList />,
+              onClick: () => showTaskList('mine'),
+              testId: 'artist-metric-assigned',
+            },
+            {
+              key: 'design',
+              value: artistDesignQueue.length,
+              label: t('myWork.artistOverview.designRequests'),
+              icon: <Palette />,
+              tone: 'info',
+              onClick: () => scrollToSection('artist-design-requests'),
+              testId: 'artist-metric-design',
+            },
+            {
+              key: 'pending',
+              value: artistSummary.pendingReview,
+              label: t('myWork.artistOverview.pendingReview'),
+              icon: <CheckCircle2 />,
+              tone: 'warning',
+              onClick: () => showTaskList('mine'),
+              testId: 'artist-metric-pending',
+            },
+            {
+              key: 'revisions',
+              value: artistSummary.revisions,
+              label: t('myWork.artistOverview.revisions'),
+              icon: <RotateCcw />,
+              tone: 'danger',
+              attention: true,
+              onClick: () => scrollToSection('artist-revisions'),
+              testId: 'artist-metric-revisions',
+            },
+          ]}
+        />
+      )}
+
+      {isArtist && workspaceId && seriesId && (
+        <ContinueCard
+          testId='artist-continue-production'
+          eyebrow={t('myWork.artistOverview.continueProduction')}
+          title={
+            artistPrimaryLot
+              ? t('myWork.artistOverview.chapterTitle', {
+                  number: artistPrimaryLot.chapterNumber,
+                  title: artistPrimaryLot.chapterTitle || t('writerStudio.untitledChapter'),
+                })
+              : t('myWork.artistOverview.noActiveProduction')
+          }
+          badge={artistPrimaryLot && <Badge tone='brand'>{artistPrimaryLot.stageName}</Badge>}
+          action={
+            <OverviewLinkButton
+              to={
+                artistPrimaryLot
+                  ? `${deskHref}?chapterId=${encodeURIComponent(artistPrimaryLot.chapterId)}`
+                  : deskHref
+              }
+              trailingIcon={<ChevronRight aria-hidden='true' />}
+            >
+              {t('myWork.artistOverview.openDesk')}
+            </OverviewLinkButton>
+          }
+        >
+          {artistPrimaryLot ? (
+            <>
+              <p className='max-w-3xl text-sm leading-relaxed text-stone-700'>
+                {artistPrimaryLot.brief || t('myWork.artistOverview.checkAssignment')}
+              </p>
+              <dl className='flex flex-wrap gap-x-5 gap-y-2 text-xs text-stone-600'>
+                <div className='flex items-center gap-1.5'>
+                  <BookOpen className='h-3.5 w-3.5 text-accent-dark' aria-hidden='true' />
+                  <dt className='sr-only'>{t('writerStudio.pagesMetric')}</dt>
+                  <dd>
+                    {t('myWork.artistOverview.productionScope', {
+                      pages:
+                        artistPrimaryLot.tasks
+                          .map((task) => task.pageNumber)
+                          .filter((page): page is number => page != null)
+                          .join(', ') || '—',
+                      stage: artistPrimaryLot.stageName,
+                    })}
+                  </dd>
+                </div>
+                <div className='flex items-center gap-1.5'>
+                  <ClipboardList className='h-3.5 w-3.5 text-accent-dark' aria-hidden='true' />
+                  <dt className='sr-only'>{t('myWork.artistOverview.assigned')}</dt>
+                  <dd>{t('myWork.tasksCount', { count: artistPrimaryLot.tasks.length })}</dd>
+                </div>
+              </dl>
+              {stages.length > 0 && (
+                <ol
+                  className='flex flex-wrap items-center gap-1.5'
+                  aria-label={t('myWork.artistOverview.stageAria')}
                 >
-                  <Palette className='w-4 h-4' aria-hidden='true' />
-                  <span>{t('myWork.artistOverview.openDesk')}</span>
-                </Link>
-                <Link
-                  to={`/workspaces/${workspaceId}/series/${seriesId}/bible`}
-                  className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 font-semibold text-xs transition-colors'
-                >
-                  <BookOpen className='w-4 h-4' aria-hidden='true' />
-                  <span>{t('myWork.artistOverview.openDesignRequests')}</span>
-                </Link>
-              </>
+                  {stages.map((stage, index) => {
+                    const state =
+                      index === artistActiveStageIndex
+                        ? 'active'
+                        : artistActiveStageIndex >= 0 && index < artistActiveStageIndex
+                          ? 'done'
+                          : 'upcoming';
+                    return (
+                      <li key={stage.id} className='flex items-center gap-1.5'>
+                        <span
+                          aria-current={state === 'active' ? 'step' : undefined}
+                          className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                            state === 'active'
+                              ? 'border-accent bg-accent-soft text-accent-dark'
+                              : state === 'done'
+                                ? 'border-stone-200 bg-white text-stone-600'
+                                : 'border-stone-200 bg-stone-50 text-stone-500'
+                          }`}
+                        >
+                          {state === 'done' && (
+                            <CheckCircle2 className='h-3 w-3 text-emerald-600' aria-hidden='true' />
+                          )}
+                          {stage.name}
+                        </span>
+                        {index < stages.length - 1 && (
+                          <ChevronRight className='h-3 w-3 text-stone-300' aria-hidden='true' />
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </>
+          ) : (
+            <p className='text-sm text-stone-600'>
+              {t('myWork.artistOverview.noActiveProductionDesc')}
+            </p>
+          )}
+        </ContinueCard>
+      )}
+
+      {isArtist && workspaceId && seriesId && (
+        <div className='grid grid-cols-1 gap-5 xl:grid-cols-2'>
+          <OverviewPanel
+            id='artist-revisions'
+            icon={<RotateCcw />}
+            tone={artistSummary.revisions > 0 ? 'danger' : 'brand'}
+            title={t('myWork.artistOverview.revisionSectionTitle')}
+            count={artistProductionReworks.length + artistDesignReworks.length}
+            emphasized={isFeedbackView}
+          >
+            {artistProductionReworks.length + artistDesignReworks.length === 0 ? (
+              <OverviewEmpty
+                icon={<CheckCircle2 className='h-5 w-5 text-emerald-600' aria-hidden='true' />}
+              >
+                {t('myWork.artistOverview.noRevisions')}
+              </OverviewEmpty>
+            ) : (
+              <OverviewList>
+                {artistProductionReworks.map(({ lot, cell }) => (
+                  <OverviewRow
+                    key={cell.id}
+                    tone='danger'
+                    to={`${deskHref}?chapterId=${encodeURIComponent(lot.chapterId)}&taskId=${encodeURIComponent(cell.id)}`}
+                    leading={<Film className='text-rose-700' aria-hidden='true' />}
+                    title={t('myWork.artistOverview.revisionProductionTitle', {
+                      chapter: lot.chapterNumber,
+                      page: cell.pageNumber ?? '—',
+                    })}
+                    meta={cell.lastDecisionComment || lot.stageName}
+                  />
+                ))}
+                {artistDesignReworks.map((item) => (
+                  <OverviewRow
+                    key={item.revisionId || item.entryId}
+                    tone='danger'
+                    to={`${bibleListHref}?entityId=${encodeURIComponent(item.entryId)}`}
+                    leading={<DesignThumb item={item} />}
+                    title={item.name}
+                    meta={item.reworkFeedback || t('myWork.artistOverview.designRevisionFallback')}
+                    status={<DesignStatus status={item.reviewStatus} />}
+                  />
+                ))}
+              </OverviewList>
             )}
+          </OverviewPanel>
+
+          <OverviewPanel
+            id='artist-design-requests'
+            icon={<Palette />}
+            tone='info'
+            title={t('myWork.artistOverview.designSectionTitle')}
+            count={artistDesignQueue.length}
+            action={
+              artistDesignQueue.length > 0 ? (
+                <Link
+                  to={bibleListHref}
+                  className='text-xs font-semibold text-accent-dark hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-dark'
+                >
+                  {t('myWork.artistOverview.viewAllDesignRequests')}
+                </Link>
+              ) : undefined
+            }
+          >
+            {artistDesignQueue.length > 0 ? (
+              <OverviewList>
+                {artistDesignQueue.slice(0, 5).map((item) => (
+                  <OverviewRow
+                    key={item.revisionId || item.entryId}
+                    to={`${bibleListHref}?entityId=${encodeURIComponent(item.entryId)}`}
+                    leading={<DesignThumb item={item} />}
+                    title={item.name}
+                    meta={t('myWork.artistOverview.designRequestMeta', {
+                      variant: item.variantLabel || t('myWork.artistOverview.defaultVariant'),
+                      chapters: item.waitingChapterNumbers?.join(', ') || '—',
+                    })}
+                    status={<DesignStatus status={item.reviewStatus} />}
+                  />
+                ))}
+              </OverviewList>
+            ) : (
+              <OverviewEmpty
+                icon={<Palette className='h-5 w-5 text-stone-400' aria-hidden='true' />}
+              >
+                {t('myWork.artistOverview.noDesignRequests')}
+              </OverviewEmpty>
+            )}
+          </OverviewPanel>
+        </div>
+      )}
+
+      <section
+        id='my-work-list'
+        className='scroll-mt-6 space-y-3'
+        aria-labelledby='my-work-list-title'
+      >
+        <div className='flex flex-col gap-3 border-b border-head-line pb-3 sm:flex-row sm:items-center sm:justify-between'>
+          <h2 id='my-work-list-title' className='font-serif text-lg font-bold text-stone-900'>
+            {t('myWork.taskListTitle')}
+          </h2>
+          <div className='flex items-center gap-2'>
             <select
               value={chapterId}
               onChange={(e) => selectChapter(e.target.value)}
               aria-label={t('collaboration.myWork.selectChapterAria')}
               disabled={loadingChapters && chapters.length === 0}
-              className='px-4 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] shadow-xs focus:outline-none focus:border-[#F97316] cursor-pointer'
+              className='h-9 min-w-0 max-w-full cursor-pointer rounded-lg border border-stone-300 bg-white px-3 text-xs font-semibold text-stone-900 focus:border-accent focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-dark'
             >
               <option value='ALL_STUDIO'>{t('collaboration.myWork.allStudioOption')}</option>
               {chapters.map((c) => (
@@ -1276,425 +1440,60 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 </option>
               ))}
             </select>
-            <button
-              type='button'
-              onClick={() => void (isStudioTab ? loadStudioWork() : loadWork())}
+            <IconButton
+              size='sm'
+              variant='secondary'
               aria-label={t('collaboration.myWork.reload')}
-              className='p-2.5 rounded-xl border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] shadow-xs cursor-pointer transition-colors text-[#1C1917]'
-            >
-              <RefreshCw
-                className={`w-3.5 h-3.5 ${(isStudioTab ? loadingStudio : loadingWork) ? 'animate-spin text-[#F97316]' : ''}`}
-              />
-            </button>
+              onClick={() => void (isStudioTab ? loadStudioWork() : loadWork())}
+              icon={
+                <RefreshCw
+                  aria-hidden='true'
+                  className={(isStudioTab ? loadingStudio : loadingWork) ? 'animate-spin' : ''}
+                />
+              }
+            />
           </div>
         </div>
 
-        {isWriter && (
-          <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-stone-200/80'>
-            <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
-              <div className='w-10 h-10 rounded-lg bg-[#EA580C]/10 flex items-center justify-center text-[#EA580C] shrink-0'>
-                <BookOpen className='w-5 h-5' />
-              </div>
-              <div>
-                <div className='font-bold text-[#18181B] text-sm sm:text-base'>
-                  {counts.mine > 0
-                    ? t('writerStudio.scriptsInProgress', { count: counts.mine })
-                    : chapters.length > 0
-                      ? t('writerStudio.scriptsInProgress', { count: chapters.length })
-                      : '—'}
-                </div>
-                <div className='text-xs text-stone-500'>
-                  {t('writerStudio.scriptsInProgressDesc')}
-                </div>
-              </div>
-            </div>
-            <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
-              <div className='w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0'>
-                <User className='w-5 h-5' />
-              </div>
-              <div>
-                <div className='font-bold text-[#18181B] text-sm sm:text-base'>—</div>
-                <div className='text-xs text-stone-500'>{t('myWork.characterProfiles')}</div>
-              </div>
-            </div>
-            <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
-              <div className='w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0'>
-                <CheckCircle2 className='w-5 h-5' />
-              </div>
-              <div>
-                <div className='font-bold text-[#18181B] text-sm sm:text-base'>—</div>
-                <div className='text-xs text-stone-500'>Model Sheet</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isArtist && (
-          <div className='grid grid-cols-2 xl:grid-cols-4 gap-3 mt-6 pt-5 border-t border-stone-200/80'>
-            <div className='rounded-lg border border-stone-200 bg-[#FAF9F5] px-3.5 py-3'>
-              <div className='flex items-center gap-2 text-xs font-semibold text-stone-600'>
-                <ClipboardList className='h-4 w-4 text-orange-600' aria-hidden='true' />
-                {t('myWork.artistOverview.assigned')}
-              </div>
-              <div className='mt-1 text-xl font-bold tabular-nums text-stone-900'>
-                {artistSummary.assigned}
-              </div>
-            </div>
-            <div className='rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-3'>
-              <div className='flex items-center gap-2 text-xs font-semibold text-blue-800'>
-                <Palette className='h-4 w-4' aria-hidden='true' />
-                {t('myWork.artistOverview.designRequests')}
-              </div>
-              <div className='mt-1 text-xl font-bold tabular-nums text-blue-950'>
-                {artistDesignQueue.length}
-              </div>
-            </div>
-            <div className='rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3'>
-              <div className='flex items-center gap-2 text-xs font-semibold text-amber-800'>
-                <CheckCircle2 className='h-4 w-4' aria-hidden='true' />
-                {t('myWork.artistOverview.pendingReview')}
-              </div>
-              <div className='mt-1 text-xl font-bold tabular-nums text-amber-950'>
-                {artistSummary.pendingReview}
-              </div>
-            </div>
-            <div className='rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3'>
-              <div className='flex items-center gap-2 text-xs font-semibold text-rose-800'>
-                <RotateCcw className='h-4 w-4' aria-hidden='true' />
-                {t('myWork.artistOverview.revisions')}
-              </div>
-              <div className='mt-1 text-xl font-bold tabular-nums text-rose-950'>
-                {artistSummary.revisions}
-              </div>
-            </div>
-          </div>
-        )}
-      </header>
-
-      {isArtist && artistPrimaryLot && workspaceId && seriesId && (
-        <section className='space-y-3' aria-labelledby='artist-continue-production'>
-          <h2 id='artist-continue-production' className='text-sm font-bold text-stone-900'>
-            {t('myWork.artistOverview.continueProduction')}
-          </h2>
-          <div className='rounded-xl border border-stone-200 bg-white p-4 shadow-xs'>
-            <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
-              <div className='min-w-0 space-y-2'>
-                <div>
-                  <h3 className='text-base font-bold text-stone-900'>
-                    {t('myWork.artistOverview.chapterTitle', {
-                      number: artistPrimaryLot.chapterNumber,
-                      title: artistPrimaryLot.chapterTitle || '',
-                    })}
-                  </h3>
-                  <p className='mt-0.5 text-xs text-stone-500'>
-                    {t('myWork.artistOverview.productionScope', {
-                      pages:
-                        artistPrimaryLot.tasks
-                          .map((task) => task.pageNumber)
-                          .filter((page): page is number => page != null)
-                          .join(', ') || '—',
-                      stage: artistPrimaryLot.stageName,
-                    })}
-                  </p>
-                </div>
-                <div
-                  className='flex flex-wrap gap-1.5'
-                  aria-label={t('myWork.artistOverview.stageAria')}
-                >
-                  {stages.map((stage) => {
-                    const active = stage.id === artistPrimaryLot.pipelineStageId;
-                    return (
-                      <span
-                        key={stage.id}
-                        className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
-                          active
-                            ? 'border-orange-300 bg-orange-50 text-orange-800'
-                            : 'border-stone-200 bg-stone-50 text-stone-500'
-                        }`}
-                      >
-                        {stage.name}
-                      </span>
-                    );
-                  })}
-                </div>
-                <p className='text-xs text-stone-600'>
-                  {artistPrimaryLot.brief || t('myWork.artistOverview.checkAssignment')}
-                </p>
-              </div>
-              <Link
-                to={`/workspaces/${workspaceId}/series/${seriesId}/artist?chapterId=${encodeURIComponent(artistPrimaryLot.chapterId)}`}
-                className='inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-orange-700'
-              >
-                {t('myWork.artistOverview.openDesk')}
-                <ChevronRight className='h-4 w-4' aria-hidden='true' />
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {isArtist && workspaceId && seriesId && artistDesignQueue.length > 0 && (
-        <section className='space-y-3' aria-labelledby='artist-design-requests'>
-          <div className='flex items-center justify-between gap-3'>
-            <h2 id='artist-design-requests' className='text-sm font-bold text-stone-900'>
-              {t('myWork.artistOverview.designSectionTitle')}
-            </h2>
-            <Link
-              to={`/workspaces/${workspaceId}/series/${seriesId}/bible`}
-              className='text-xs font-semibold text-orange-700 hover:underline'
-            >
-              {t('myWork.artistOverview.viewAllDesignRequests')}
-            </Link>
-          </div>
-          <div className='divide-y divide-stone-200 rounded-xl border border-stone-200 bg-white px-4 shadow-xs'>
-            {artistDesignQueue.slice(0, 3).map((item) => (
-              <Link
-                key={item.revisionId || item.entryId}
-                to={`/workspaces/${workspaceId}/series/${seriesId}/bible?entityId=${encodeURIComponent(item.entryId)}`}
-                className='flex items-center gap-3 py-3 transition-colors hover:bg-stone-50'
-              >
-                <div className='flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-stone-100 text-stone-500'>
-                  {item.referenceImageUrl ? (
-                    <AuthenticatedImage
-                      src={item.referenceImageUrl}
-                      alt={item.name}
-                      className='h-full w-full object-cover'
-                    />
-                  ) : (
-                    <User className='h-4 w-4' aria-hidden='true' />
-                  )}
-                </div>
-                <div className='min-w-0 flex-1'>
-                  <h3 className='truncate text-xs font-bold text-stone-900'>{item.name}</h3>
-                  <p className='truncate text-xs text-stone-500'>
-                    {t('myWork.artistOverview.designRequestMeta', {
-                      variant: item.variantLabel || t('myWork.artistOverview.defaultVariant'),
-                      chapters: item.waitingChapterNumbers?.join(', ') || '—',
-                    })}
-                  </p>
-                </div>
-                <span className='shrink-0 text-xs font-semibold text-orange-700'>
-                  {t('myWork.artistOverview.viewRequest')}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {isArtist && (
-        <section
-          className='space-y-3 border-t border-stone-200 pt-5'
-          aria-labelledby='artist-revisions'
-        >
-          <h2 id='artist-revisions' className='text-sm font-bold text-stone-900'>
-            {t('myWork.artistOverview.revisionSectionTitle')}
-          </h2>
-          {artistSummary.revisions === 0 ? (
-            <div className='flex flex-col items-center justify-center rounded-xl border border-dashed border-stone-300 bg-white px-5 py-8 text-center'>
-              <CheckCircle2 className='h-5 w-5 text-emerald-600' aria-hidden='true' />
-              <p className='mt-2 text-xs text-stone-500'>
-                {t('myWork.artistOverview.noRevisions')}
-              </p>
-            </div>
-          ) : (
-            <div className='divide-y divide-rose-200 rounded-xl border border-rose-200 bg-white px-4'>
-              {artistProductionReworks.map(({ lot, cell }) => (
-                <Link
-                  key={cell.id}
-                  to={`/workspaces/${workspaceId}/series/${seriesId}/artist?chapterId=${encodeURIComponent(lot.chapterId)}&taskId=${encodeURIComponent(cell.id)}`}
-                  className='flex items-center justify-between gap-3 py-3 text-sm hover:bg-rose-50'
-                >
-                  <span className='min-w-0'>
-                    <strong className='block truncate text-stone-900'>
-                      {t('myWork.artistOverview.revisionProductionTitle', {
-                        chapter: lot.chapterNumber,
-                        page: cell.pageNumber ?? '—',
-                      })}
-                    </strong>
-                    <span className='line-clamp-1 text-xs text-rose-700'>
-                      {cell.lastDecisionComment || lot.stageName}
-                    </span>
-                  </span>
-                  <ChevronRight className='h-4 w-4 shrink-0 text-rose-700' aria-hidden='true' />
-                </Link>
-              ))}
-              {artistDesignReworks.map((item) => (
-                <Link
-                  key={item.revisionId || item.entryId}
-                  to={`/workspaces/${workspaceId}/series/${seriesId}/bible?entityId=${encodeURIComponent(item.entryId)}`}
-                  className='flex items-center justify-between gap-3 py-3 text-sm hover:bg-rose-50'
-                >
-                  <span className='min-w-0'>
-                    <strong className='block truncate text-stone-900'>{item.name}</strong>
-                    <span className='line-clamp-1 text-xs text-rose-700'>
-                      {item.reworkFeedback || t('myWork.artistOverview.designRevisionFallback')}
-                    </span>
-                  </span>
-                  <ChevronRight className='h-4 w-4 shrink-0 text-rose-700' aria-hidden='true' />
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Kịch bản Chương đang thực hiện (Stitch tab-tasks view) */}
-      {isWriter && chapters.length > 0 && workspaceId && seriesId && (
-        <section className='space-y-3.5'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-2'>
-              <Film className='w-5 h-5 text-[#EA580C]' />
-              <h2 className='text-lg font-serif font-bold text-[#18181B]'>
-                {t('writerStudio.chaptersInProgressTitle')}
-              </h2>
-            </div>
-            <span className='text-xs text-stone-500'>
-              {t('myWork.chaptersInSeries', { count: chapters.length })}
-            </span>
-          </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            {chapters.slice(0, 4).map((c) => {
-              const isActive = !c.isScriptFrozen;
-              return (
-                <div
-                  key={c.id}
-                  onClick={() => {
-                    if (workspaceId && seriesId) {
-                      navigate(
-                        `/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${c.id}`,
-                      );
-                    }
-                  }}
-                  className='bg-white rounded-xl p-5 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden group border border-stone-200/80 flex flex-col justify-between space-y-4 cursor-pointer'
-                >
-                  <div
-                    className={`absolute top-0 left-0 w-1.5 h-full ${
-                      isActive ? 'bg-[#EA580C]' : 'bg-stone-200'
-                    }`}
-                  />
-                  <div className='flex items-start justify-between gap-4'>
-                    <div className='space-y-1.5 min-w-0'>
-                      <div className='flex items-center gap-2 flex-wrap'>
-                        {seriesFormat && (
-                          <span className='px-2 py-0.5 rounded bg-stone-100 text-[#EA580C] text-xs font-semibold'>
-                            {formatSeriesFormat(seriesFormat)}
-                          </span>
-                        )}
-                        <span className='px-2 py-0.5 rounded bg-stone-100 text-stone-600 text-xs'>
-                          {c.isScriptFrozen
-                            ? t('myWork.scriptLocked')
-                            : t('writerStudio.writingVersion', { version: c.versionVector || 1 })}
-                        </span>
-                        {isActive && (
-                          <span className='inline-flex items-center gap-1.5 text-xs text-amber-800 font-medium'>
-                            <span className='w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping' />
-                            {t('writerStudio.activeStatus')}
-                          </span>
-                        )}
-                      </div>
-                      <h3 className='text-base font-serif font-bold text-[#18181B] group-hover:text-[#EA580C] transition-colors truncate'>
-                        {t('myWork.chapterOption', { number: c.chapterNumber })}
-                        {c.title ? `: ${c.title}` : ''}
-                      </h3>
-                      <p className='text-xs text-stone-500 line-clamp-2 leading-relaxed'>
-                        {c.outline || t('myWork.noOutline')}
-                      </p>
-                    </div>
-                    <ChevronRight className='w-5 h-5 text-stone-400 group-hover:text-[#EA580C] transition-colors shrink-0' />
-                  </div>
-
-                  <div className='space-y-1.5 pt-1'>
-                    <div className='flex justify-between text-xs'>
-                      <span className='text-stone-500'>{t('writerStudio.draftProgress')}</span>
-                      <span className='font-semibold font-mono text-[#18181B]'>
-                        {t('myWork.pagesCount', { count: c.pagesCount ?? 0 })}
-                      </span>
-                    </div>
-                    <div className='w-full h-2 rounded-full bg-stone-100 overflow-hidden'>
-                      <div
-                        className='h-full bg-[#EA580C] rounded-full transition-all duration-500'
-                        style={{
-                          width: c.isScriptFrozen
-                            ? '100%'
-                            : (c.pagesCount ?? 0) > 0
-                              ? '60%'
-                              : '15%',
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className='pt-3 border-t border-stone-200/80 flex items-center justify-between text-xs text-stone-500'>
-                    <span className='font-mono'>
-                      {c.updatedAt
-                        ? new Intl.DateTimeFormat(undefined, {
-                            day: '2-digit',
-                            month: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          }).format(new Date(c.updatedAt))
-                        : '—'}
-                    </span>
-                    <Link
-                      to={`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${c.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className='inline-flex items-center gap-1 font-semibold text-[#EA580C] hover:underline'
-                    >
-                      <span>
-                        {t('writerStudio.openScriptChapter', { chapter: c.chapterNumber })}
-                      </span>
-                      <ChevronRight className='w-4 h-4' />
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      <nav className='flex flex-wrap gap-2' aria-label={t('myWork.filterAria')}>
-        {tabs.map((tabItem) => (
-          <button
-            key={tabItem.key}
-            type='button'
-            onClick={() => setTab(tabItem.key)}
-            title={tabItem.tooltip}
-            aria-pressed={tab === tabItem.key}
-            className={`h-9 px-3.5 rounded-lg text-xs font-semibold border cursor-pointer inline-flex items-center gap-2 transition-all shadow-xs ${
-              tab === tabItem.key
-                ? 'bg-[#FFF2E6] text-[#1C1917] border-[#C2410C]'
-                : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
-            }`}
-          >
-            <span className={tab === tabItem.key ? 'text-[#C2410C]' : 'text-[#78716C]'}>
-              {tabItem.icon}
-            </span>
-            <span>{tabItem.label}</span>
-            <span
-              className={`px-2 py-0.5 rounded-full text-xs font-mono font-medium leading-none ${
-                tabItem.badgeAlert
-                  ? tab === tabItem.key
-                    ? 'bg-[#F97316] text-white font-bold'
-                    : 'bg-amber-100 text-amber-900 font-bold border border-amber-300'
-                  : tab === tabItem.key
-                    ? 'bg-[#F97316]/20 text-[#C2410C] font-semibold'
-                    : 'bg-[#F3F0E9] text-[#78716C]'
+        <nav className='flex flex-wrap gap-2' aria-label={t('myWork.filterAria')}>
+          {tabs.map((tabItem) => (
+            <button
+              key={tabItem.key}
+              type='button'
+              onClick={() => setTab(tabItem.key)}
+              title={tabItem.tooltip}
+              aria-pressed={tab === tabItem.key}
+              className={`inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border px-3.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-dark ${
+                tab === tabItem.key
+                  ? 'border-accent bg-accent-soft text-stone-900'
+                  : 'border-stone-200 bg-white text-stone-600 hover:bg-head-wash hover:text-stone-900'
               }`}
             >
-              {counts[tabItem.key]}
-            </span>
-          </button>
-        ))}
-      </nav>
+              <span className={tab === tabItem.key ? 'text-accent-dark' : 'text-stone-500'}>
+                {tabItem.icon}
+              </span>
+              <span>{tabItem.label}</span>
+              <span
+                className={`rounded-full px-2 py-0.5 font-mono text-xs font-semibold leading-none ${
+                  tabItem.badgeAlert
+                    ? 'bg-amber-100 text-amber-900'
+                    : tab === tabItem.key
+                      ? 'bg-accent text-white'
+                      : 'bg-kraft text-kraft-ink'
+                }`}
+              >
+                {counts[tabItem.key]}
+              </span>
+            </button>
+          ))}
+        </nav>
+      </section>
 
       {/* Lọc theo Phân cảnh trong Chương (CF2 & CF3) */}
       {chapterId !== 'ALL_STUDIO' && scenes.length > 0 && !isStudioTab && (
-        <div className='flex items-center gap-2 overflow-x-auto pb-1.5 pt-1 text-xs border-t border-[#D8D2C5]/60'>
-          <span className='flex items-center gap-1 font-bold text-[#57534E] whitespace-nowrap text-xs uppercase tracking-wider shrink-0'>
-            <Clapperboard className='w-3.5 h-3.5 text-[#F97316]' />
+        <div className='flex items-center gap-2 overflow-x-auto pb-1.5 pt-1 text-xs border-t border-stone-200'>
+          <span className='flex items-center gap-1 font-bold text-stone-600 whitespace-nowrap text-xs uppercase tracking-wider shrink-0'>
+            <Clapperboard className='w-3.5 h-3.5 text-accent' />
             {t('myWork.scenesLabel')}
           </span>
           <button
@@ -1702,16 +1501,16 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             onClick={() => setSelectedSceneId('ALL')}
             className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
               selectedSceneId === 'ALL'
-                ? 'bg-[#FFF2E6] border-[#C2410C] text-[#1C1917] font-bold shadow-xs'
-                : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
+                ? 'bg-accent-soft border-accent text-stone-900 font-bold shadow-xs'
+                : 'bg-white text-stone-600 border-stone-200 hover:bg-head-wash hover:text-stone-900'
             }`}
           >
             <span>{t('myWork.allScenes')}</span>
             <span
               className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                 selectedSceneId === 'ALL'
-                  ? 'bg-[#F97316]/20 text-[#C2410C] font-bold'
-                  : 'bg-[#F3F0E9] text-[#78716C]'
+                  ? 'bg-accent/20 text-accent-dark font-bold'
+                  : 'bg-kraft text-stone-500'
               }`}
             >
               {visible.length}
@@ -1730,8 +1529,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   onClick={() => setSelectedSceneId(s.id)}
                   className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-[#FFF2E6] border-[#C2410C] text-[#1C1917] font-bold shadow-xs'
-                      : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
+                      ? 'bg-accent-soft border-accent text-stone-900 font-bold shadow-xs'
+                      : 'bg-white text-stone-600 border-stone-200 hover:bg-head-wash hover:text-stone-900'
                   }`}
                 >
                   <span>
@@ -1741,8 +1540,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   <span
                     className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                       isSelected
-                        ? 'bg-[#F97316]/20 text-[#C2410C] font-bold'
-                        : 'bg-[#F3F0E9] text-[#78716C]'
+                        ? 'bg-accent/20 text-accent-dark font-bold'
+                        : 'bg-kraft text-stone-500'
                     }`}
                   >
                     {count}
@@ -1756,16 +1555,16 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               onClick={() => setSelectedSceneId('UNASSIGNED')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
                 selectedSceneId === 'UNASSIGNED'
-                  ? 'bg-[#FFF2E6] border-[#C2410C] text-[#1C1917] font-bold shadow-xs'
-                  : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
+                  ? 'bg-accent-soft border-accent text-stone-900 font-bold shadow-xs'
+                  : 'bg-white text-stone-600 border-stone-200 hover:bg-head-wash hover:text-stone-900'
               }`}
             >
               <span>{t('myWork.wholeChapter')}</span>
               <span
                 className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                   selectedSceneId === 'UNASSIGNED'
-                    ? 'bg-[#F97316]/20 text-[#C2410C] font-bold'
-                    : 'bg-[#F3F0E9] text-[#78716C]'
+                    ? 'bg-accent/20 text-accent-dark font-bold'
+                    : 'bg-kraft text-stone-500'
                 }`}
               >
                 {sceneFilterCounts['UNASSIGNED']}
@@ -1799,7 +1598,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             </span>
             <Link
               to={`/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${encodeURIComponent(chapterId)}&board=grid-v3`}
-              className='px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold shrink-0'
+              className='px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold shrink-0'
             >
               {t('myWork.openGridV3Arrow')}
             </Link>
@@ -1808,13 +1607,13 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
 
       {isStudioTab ? (
         loadingStudio ? (
-          <div className='py-12 text-center text-[#888888] text-xs'>
-            <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
+          <div className='py-12 text-center text-stone-500 text-xs'>
+            <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-accent' />
             {t('myWork.loadingStudio')}
           </div>
         ) : studioLots.length === 0 && studioWork.length === 0 ? (
           <div
-            className='py-12 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E]'
+            className='py-12 text-center border border-dashed border-stone-200 bg-white rounded-xl text-xs text-stone-600'
             data-testid='studio-work-empty'
           >
             {t('myWork.studioEmpty')}
@@ -1836,7 +1635,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             ))}
             {sortedStudioWork.map((a) => (
               <div key={a.id} className='space-y-1'>
-                <p className='text-xs font-semibold text-[#57534E]'>
+                <p className='text-xs font-semibold text-stone-600'>
                   Series: {a.seriesTitle} | {t('myWork.chapterOption', { number: a.chapterNumber })}
                   {a.scopeLabel ? ` | ${a.scopeLabel}` : ''}
                 </p>
@@ -1857,15 +1656,15 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           </div>
         )
       ) : loadingChapters || loadingWork ? (
-        <div className='py-12 text-center text-[#78716C] text-xs'>
-          <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
+        <div className='py-12 text-center text-stone-500 text-xs'>
+          <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-accent' />
           {t('myWork.loadingWork')}
         </div>
       ) : visibleGridLots.length === 0 &&
         visibleGridReviews.length === 0 &&
         visible.length === 0 ? (
         <div
-          className='py-12 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E] space-y-2'
+          className='py-12 text-center border border-dashed border-stone-200 bg-white rounded-xl text-xs text-stone-600 space-y-2'
           data-testid='my-work-empty'
         >
           <p>
@@ -1885,7 +1684,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             <button
               type='button'
               onClick={() => setTab('all')}
-              className='text-xs font-semibold text-[#C2410C] hover:underline cursor-pointer'
+              className='text-xs font-semibold text-accent-dark hover:underline cursor-pointer'
             >
               {t('myWork.viewAllChapterTasks', { count: counts.all })}
             </button>
@@ -1944,12 +1743,12 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
 
           {visible.length > 0 &&
             (filteredAssignments.length === 0 ? (
-              <div className='py-10 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E] space-y-2'>
+              <div className='py-10 text-center border border-dashed border-stone-200 bg-white rounded-xl text-xs text-stone-600 space-y-2'>
                 <p>{t('myWork.emptyScene')}</p>
                 <button
                   type='button'
                   onClick={() => setSelectedSceneId('ALL')}
-                  className='text-xs font-semibold text-[#C2410C] hover:underline cursor-pointer'
+                  className='text-xs font-semibold text-accent-dark hover:underline cursor-pointer'
                 >
                   {t('myWork.viewAllChapterTasks', { count: visible.length })}
                 </button>
@@ -1959,15 +1758,15 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 {filteredAssignments.map((a) => (
                   <div key={a.id} className='space-y-1.5'>
                     {(a as any).seriesTitle && (
-                      <div className='flex items-center gap-1.5 text-xs font-semibold text-[#C2410C] bg-[#FFF2E6] px-2.5 py-1 rounded-md border border-[#F97316]/30 w-fit'>
+                      <div className='flex items-center gap-1.5 text-xs font-semibold text-accent-dark bg-accent-soft px-2.5 py-1 rounded-md border border-accent/30 w-fit'>
                         <span>Series: {(a as any).seriesTitle}</span>
-                        <span className='text-[#F97316]'>|</span>
+                        <span className='text-accent'>|</span>
                         <span>
                           {t('myWork.chapterOption', { number: (a as any).chapterNumber })}
                         </span>
                         {(a as any).scopeLabel && (
                           <>
-                            <span className='text-[#F97316]'>|</span>
+                            <span className='text-accent'>|</span>
                             <span>{(a as any).scopeLabel}</span>
                           </>
                         )}
@@ -1996,7 +1795,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   return (
                     <section
                       key={group.sceneId}
-                      className='rounded-2xl border border-[#D8D2C5] bg-[#FCFBF8] p-3.5 space-y-3 shadow-xs'
+                      className='rounded-2xl border border-stone-200 bg-white p-3.5 space-y-3 shadow-xs'
                     >
                       <div
                         onClick={() =>
@@ -2008,7 +1807,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                         className='flex items-center justify-between gap-3 cursor-pointer select-none'
                       >
                         <div className='flex items-center gap-2.5 min-w-0'>
-                          <div className='w-7 h-7 rounded-lg bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] shrink-0'>
+                          <div className='w-7 h-7 rounded-lg bg-accent-soft border border-accent/30 flex items-center justify-center text-accent shrink-0'>
                             {group.scene ? (
                               <Film className='w-4 h-4' />
                             ) : (
@@ -2017,25 +1816,25 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                           </div>
                           <div className='min-w-0'>
                             <div className='flex items-center gap-2'>
-                              <h2 className='text-xs font-bold text-[#1C1917] truncate'>
+                              <h2 className='text-xs font-bold text-stone-900 truncate'>
                                 {group.title}
                               </h2>
-                              <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E]'>
+                              <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-kraft border border-stone-200 text-stone-600'>
                                 {t('myWork.tasksCount', { count: group.assignments.length })}
                               </span>
                             </div>
                             {group.summary && (
-                              <p className='text-xs text-[#57534E] truncate max-w-xl'>
+                              <p className='text-xs text-stone-600 truncate max-w-xl'>
                                 {group.summary}
                               </p>
                             )}
                           </div>
                         </div>
                         <div className='flex items-center gap-2 shrink-0'>
-                          <span className='text-xs font-semibold text-[#57534E]'>
+                          <span className='text-xs font-semibold text-stone-600'>
                             {isCollapsed ? t('myWork.expand') : t('myWork.collapse')}
                           </span>
-                          <div className='p-1 rounded-md hover:bg-[#F3F0E9] text-[#78716C] hover:text-[#1C1917] transition-colors'>
+                          <div className='p-1 rounded-md hover:bg-head-wash text-stone-500 hover:text-stone-900 transition-colors'>
                             {isCollapsed ? (
                               <ChevronDown className='w-4 h-4' />
                             ) : (

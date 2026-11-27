@@ -52,7 +52,7 @@ import {
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { StudioHubTabBar } from './StudioHubTabBar';
-import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
+import { SIDEBAR_ID } from './sidebarTheme';
 import { useSidebarTheme } from './useSidebarTheme';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
@@ -987,7 +987,7 @@ export function AppShell({
             isStudioHome ? 'shadow-[inset_0_2px_0_var(--studio-accent)]' : ''
           }`}
         >
-          <div className='flex items-center gap-2 min-w-0'>
+          <div className={`flex items-center gap-2 ${isStudioHome ? 'shrink-0' : 'min-w-0'}`}>
             {isStudioHome && (
               <div className='flex items-center shrink-0'>
                 <button

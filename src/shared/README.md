@@ -12,8 +12,8 @@ Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng 
 
 ### 2.2 Features phức hợp (`src/shared/features/`)
 - **`series-bible/`**: Series Bible (`SeriesBibleView.tsx`): header dạng hero card kèm KPI (Chờ duyệt / Cần vẽ lại / Đã khoá Canon), sidebar trái gồm danh mục và quy trình khoá Canon (spec V2.6 §5.2), nội dung bên phải. Modal: `AddEntityModal.tsx`, `AddRevisionModal.tsx`, `ReworkModal.tsx`, `BibleEntityDetailModal.tsx`; danh mục dùng chung ở `bibleCategory.tsx`. Workbench một mục (`BibleEntityDetailModal`, toàn trang): sidebar gồm mục cùng danh mục, giai đoạn và "Xuất hiện trong kịch bản" (API `/bible/entries/{id}/usages`); vùng chính gồm dải trạng thái vòng đời (ai đang chờ, "Đến lượt bạn"), hai cột Đặc tả | Bản vẽ (ẩn bản vẽ với mục chỉ văn bản), rồi Phiên bản & nhật ký. Trường đặc tả theo danh mục khai báo một nơi ở `bibleSpec.ts` (lưu `detailsJson.attributes`); Artist xem đặc tả chỉ đọc khi nộp Concept.
-- **`pipeline-board/`**: Bảng điều phối tiến độ sản xuất dạng Kanban qua các giai đoạn kịch bản, nét vẽ, màu sắc, thoại và phê duyệt : màn Quy trình sản xuất chỉ còn Lưới Giao Việc (`TaskGridBoard.tsx`), ma trận Trang × Công đoạn để Producer giao lô, đổi người, bỏ gán, mở lại và Editor duyệt ngay trên ô. `productionBoard.utils.ts` giữ các hàm dùng chung (nhãn trạng thái, công đoạn).
-- **`production-workspace/`**: Khung bàn làm việc sản xuất và trình biên tập tác vụ đa năng (`WorkspaceView.tsx`, `TaskEditorView.tsx`).
+- **`pipeline-board/`**: Bảng điều phối tiến độ sản xuất dạng Kanban qua các giai đoạn kịch bản, nét vẽ, màu sắc, thoại và phê duyệt : màn Quy trình sản xuất chỉ còn Lưới Giao Việc (`TaskGridBoard.tsx`), ma trận Trang × Công đoạn có thanh tiêu đề dính, khung cuộn độc lập, khu Lô công việc thu gọn được, và ngăn kéo Chi tiết công việc (`Drawer`) để Producer/Editor xem lịch sử nộp và mở `ImageViewerLightbox` mà không làm giãn ô lưới. `productionBoard.utils.ts` giữ các hàm dùng chung (nhãn trạng thái, công đoạn).
+- **`production-workspace/`**: Khung bàn làm việc sản xuất và trình biên tập tác vụ đa năng (`WorkspaceView.tsx`, `TaskEditorView.tsx`, `ProducerSharedHeader.tsx` hỗ trợ `mode="chapter" | "series"`).
 - **`account/`**: Quản lý tài khoản cá nhân, xác thực hai lớp và đổi mật khẩu (`ChangePasswordModal.tsx`, `TwoFactorSetupModal.tsx`).
 - **`provenance/`** (CF4): Lịch sử & nguồn gốc chương: bản duyệt (snapshot), Provenance Report (Producer/Editor), lịch sử AI và lịch sử canvas từng trang có so sánh / khôi phục cho Producer, Artist (`ChapterProvenanceModal.tsx`, `PageHistoryPanel.tsx`, `provenanceRules.ts`).
 
@@ -29,6 +29,7 @@ Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng 
 - `CountChip`: chip đếm bằng màu giấy kraft dùng cho header và tab.
 - `PageHeader` / `SectionHeader` / `Card` / `CardHeader` / `CardBody`: bề mặt và phân cấp header theo DESIGN_RULES §4.8.
 - `Modal` / `Drawer` / `ConfirmDialog` / `Alert` / `Toast`: overlay và phản hồi dùng chung.
+- `features/collaboration/WorkspaceOverview.tsx`: khối tổng quan dùng chung cho màn "Công việc của tôi" của mọi vai trò (`OverviewMetrics`, `ContinueCard`, `OverviewPanel`, `OverviewRow`, `DesignStatus`, `DesignThumb`, `OverviewLinkButton`). Writer và Artist cùng bố cục: `PageHeader` → hàng số liệu (bấm để mở/cuộn tới mục) → thẻ "Tiếp tục" → hai panel → danh sách công việc. Chỉ dùng token studio, không hex cứng.
 
 ### 2.4 Modals dùng chung (`src/shared/modals/`)
 - `AuditLogModal.tsx`: Xem nhật ký kiểm toán hành động trong hệ thống.

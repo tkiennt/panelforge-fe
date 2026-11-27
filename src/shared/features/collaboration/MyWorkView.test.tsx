@@ -296,6 +296,63 @@ describe('MyWorkView – Lát cắt 4 (Clean Cutover)', () => {
     });
   });
 
+  it('Artist Overview dùng cùng bố cục studio với Writer: số liệu, thẻ tiếp tục, panel chỉnh sửa & thiết kế', async () => {
+    vi.mocked(assignmentService.getMyTaskLots).mockResolvedValue([
+      {
+        id: 'lot-1',
+        seriesId: 'se-1',
+        seriesTitle: 'Dragonball',
+        chapterId: 'chap-1',
+        chapterNumber: 1,
+        chapterTitle: 'Khởi đầu',
+        pipelineStageId: 'stg-pencil',
+        stageName: 'Pencil',
+        stageOrder: 1,
+        assignedRole: 'Artist',
+        status: 'Active',
+        isOverdue: false,
+        tasks: [
+          {
+            id: 'cell-rework',
+            pageId: 'p-3',
+            pageNumber: 3,
+            status: 'ReworkRequired',
+            isStartable: true,
+            isInputOutdated: false,
+            lastDecisionComment: 'Sửa phối cảnh khung 2',
+          },
+        ],
+      },
+    ]);
+    vi.mocked(bibleService.getBibleDesignQueue).mockResolvedValue([
+      {
+        entryId: 'goku',
+        code: 'CHAR-GOKU',
+        name: 'Goku',
+        category: 'Character',
+        revisionId: 'rev-goku',
+        reviewStatus: 'Draft',
+        updatedAt: '2026-11-26T00:00:00Z',
+        waitingChapterNumbers: [1],
+      },
+    ]);
+
+    renderMyWork();
+
+    expect(await screen.findByText('Dragonball / Artist Workspace')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('artist-metric-revisions')).toHaveTextContent('1');
+      expect(screen.getByTestId('artist-metric-design')).toHaveTextContent('1');
+    });
+    expect(screen.getByTestId('artist-continue-production')).toHaveTextContent(
+      'Chương 1: Khởi đầu',
+    );
+    expect(screen.getByText('Sửa phối cảnh khung 2')).toBeInTheDocument();
+    expect(document.querySelector('a[href*="taskId=cell-rework"]')).toBeInTheDocument();
+    expect(document.querySelector('a[href*="bible?entityId=goku"]')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Danh sách công việc' })).toBeInTheDocument();
+  });
+
   it('Editor đọc hàng chờ duyệt từ getTaskGridReviewQueue và khoá tự duyệt theo BR-06', async () => {
     vi.mocked(assignmentService.getMyTaskLots).mockResolvedValue([]);
     vi.mocked(assignmentService.getTaskGridReviewQueue).mockResolvedValue([

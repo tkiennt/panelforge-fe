@@ -161,6 +161,11 @@
       "changes": "Changes",
       "entities": "Entities"
     },
+    "sidePanel": {
+      "expand": "Expand reference panel",
+      "collapse": "Collapse reference panel",
+      "toggleLabel": "References"
+    },
     "composer": {
       "label": "Note for the writer",
       "placeholder": "What needs to change here, and why?",
@@ -183,7 +188,8 @@
       "itemCount": "{count} items",
       "pageNumber": "Page {page}",
       "panelCode": "Panel {page}.{panel}",
-      "defaultAuthor": "Editor"
+      "defaultAuthor": "Editor",
+      "thoughtTag": "thought"
     },
     "location": {
       "line": "Scene {scene} · line {line}",
@@ -227,6 +233,7 @@
       "bibleUnavailable": "Bible Gate result is unavailable.",
       "biblePassed": "Passed: {count} Bible entries are canon-locked",
       "bibleFailed": "Not passed: {count} Bible entries are not canon-locked",
+      "viewReferences": "View list →",
       "notLocked": "Not canon-locked at this chapter",
       "consistencyTitle": "Consistency check",
       "run": "Run check",
@@ -381,7 +388,8 @@
       "statusMissing": "No Model Sheet",
       "typeMain": "Main",
       "typeCrowd": "Crowd",
-      "blockerTitle": "Script is blocked from starting production:"
+      "blockerTitle": "Script is blocked from starting production:",
+      "openDesignSheet": "Open design sheet"
     },
     "stitch": {
       "readerTitle": "Script Content & Editorial Comments",

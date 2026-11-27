@@ -37,14 +37,11 @@ import {
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
 import { RefreezeScriptModal } from '@/shared/modals/RefreezeScriptModal';
-import { Card, CardHeader } from '@/shared/ui';
+import { Badge, Button, Card, CardHeader, ProgressBar } from '@/shared/ui';
 import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
 import { formatDate } from '@/lib/format';
 import { ProducerSharedHeader } from './ProducerSharedHeader';
-import {
-  notifyChapterHubChanged,
-  useChapterReadiness,
-} from './useChapterProductionHub';
+import { notifyChapterHubChanged, useChapterReadiness } from './useChapterProductionHub';
 import {
   buildChapterManagementUrl,
   buildChapterReaderUrl,
@@ -285,8 +282,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     );
   }, [currentChapter, tf]);
 
-  const { readiness: chapterReadiness, refetch: refetchReadiness } =
-    useChapterReadiness(currentChapterId || null);
+  const { readiness: chapterReadiness, refetch: refetchReadiness } = useChapterReadiness(
+    currentChapterId || null,
+  );
 
   const canRefreezeScript = useMemo(() => {
     if (!currentChapter) return false;
@@ -387,6 +385,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
       {/* SUB-HEADER PIPELINE & CHAPTER BAR */}
       <ProducerSharedHeader
+        hideBackLink
         workspaceId={workspaceId}
         seriesId={seriesId}
         currentChapterId={currentChapterId}
@@ -496,49 +495,32 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         {/* TAB 1: MA TRẬN TRANG (id="view-progress") */}
         {/* ========================================================================= */}
         {activeSubtab === 'progress' && (
-          <div className='space-y-4' id='view-progress'>
-            {/* Production Snapshot & Progress Summary Bar (uses authoritative /readiness — NO duplicate Pre-production Gate) */}
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              {/* Card 1: Production Script Snapshot */}
-              <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs flex flex-col justify-between space-y-2.5'>
-                <div className='flex items-center justify-between'>
-                  <span className='text-xs font-semibold text-stone-700 uppercase tracking-wider'>
-                    Bản Kịch bản Sản xuất
+          <div className='space-y-4 min-w-0' id='view-progress'>
+            {/* Compact Production Snapshot Strip (không lặp lại 3 card lớn từ Overview) */}
+            <div className='rounded-xl bg-white border border-stone-200/90 px-4 py-3 shadow-2xs flex flex-wrap items-center justify-between gap-x-6 gap-y-2.5 text-xs'>
+              <div className='flex flex-wrap items-center gap-x-5 gap-y-2 min-w-0'>
+                {/* Script snapshot */}
+                <div className='flex items-center gap-2'>
+                  <span className='text-stone-500 font-medium'>
+                    {t('workbench.snapshot.scriptLabel')}
                   </span>
                   <span
                     data-testid='readiness-script-status'
-                    className={`text-xs px-2 py-0.5 rounded font-medium border ${
-                      currentChapter?.isScriptFrozen || currentChapter?.scriptStatus === 'Frozen'
+                    className={`px-2 py-0.5 rounded-full font-semibold border ${
+                      (chapterReadiness?.script.isScriptFrozen ?? currentChapter?.isScriptFrozen) ||
+                      (chapterReadiness?.script.scriptStatus ?? currentChapter?.scriptStatus) ===
+                        'Frozen'
                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200'
                     }`}
                   >
                     {scriptStatusLabel(currentChapter)}
                   </span>
-                </div>
-                <div>
-                  <div className='text-base font-bold text-stone-900'>
-                    {t('workbench.readiness.scriptSize', {
-                      scenes: chapterReadiness?.script.sceneCount ?? currentChapter?.scenesCount ?? 0,
-                      pages: chapterReadiness?.script.pageCount ?? currentChapter?.pagesCount ?? 0,
-                    })}
-                  </div>
-                  <div className='text-xs text-stone-500 mt-0.5'>
-                    {chapterReadiness?.script.productionVersionNumber
-                      ? `Đang sản xuất theo bản v${chapterReadiness.script.productionVersionNumber}`
-                      : chapterReadiness?.script.approvedVersionNumber
-                        ? `Bản gửi duyệt v${chapterReadiness.script.approvedVersionNumber} (chưa khóa SX)`
-                        : currentChapter?.isScriptFrozen
-                          ? t('workbench.readiness.scriptFrozen')
-                          : t('workbench.readiness.scriptNotFrozen')}
-                  </div>
-                </div>
-                <div className='pt-2 border-t border-stone-100 flex items-center justify-between'>
-                  <span className='text-xs text-stone-400 font-mono'>
-                    {chapterReadiness?.script.latestVersionNumber
-                      ? `Mới nhất: v${chapterReadiness.script.latestVersionNumber}`
-                      : 'Chưa có bản lưu'}
-                  </span>
+                  {chapterReadiness?.script.productionVersionNumber && (
+                    <span className='font-mono text-stone-600'>
+                      v{chapterReadiness.script.productionVersionNumber}
+                    </span>
+                  )}
                   <button
                     type='button'
                     onClick={() =>
@@ -546,69 +528,32 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                         ? navigate(buildScriptReviewUrl(workspaceId, seriesId, currentChapterId))
                         : undefined
                     }
-                    className='text-orange-700 hover:underline text-xs font-medium cursor-pointer'
+                    className='text-accent-dark hover:underline font-semibold cursor-pointer'
                   >
                     {t('workbench.readiness.viewScript', 'Xem kịch bản →')}
                   </button>
                 </div>
-              </div>
 
-              {/* Card 2: Chapter-Scoped Series Bible Snapshot */}
-              <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs flex flex-col justify-between space-y-2.5'>
-                <div className='flex items-center justify-between'>
-                  <span className='text-xs font-semibold text-stone-700 uppercase tracking-wider'>
-                    Tài liệu Chương (Bible)
+                <span className='hidden sm:inline text-stone-200' aria-hidden='true'>
+                  |
+                </span>
+
+                {/* Chapter Bible snapshot */}
+                <div className='flex items-center gap-2'>
+                  <span className='text-stone-500 font-medium'>
+                    {t('workbench.snapshot.bibleLabel')}
                   </span>
                   <span
-                    className={`text-xs px-2 py-0.5 rounded font-medium border ${
-                      (chapterReadiness
-                        ? chapterReadiness.bible.requiredTotal === 0 ||
-                          chapterReadiness.bible.readyCount === chapterReadiness.bible.requiredTotal
-                        : bibleMetrics.total > 0 && bibleMetrics.pending === 0)
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}
+                    className='font-mono font-bold text-stone-900'
+                    data-testid='readiness-bible-locked'
                   >
-                    {(chapterReadiness
-                      ? chapterReadiness.bible.requiredTotal === 0 ||
-                        chapterReadiness.bible.readyCount === chapterReadiness.bible.requiredTotal
-                      : bibleMetrics.total > 0 && bibleMetrics.pending === 0)
-                      ? t('workbench.readiness.bibleReady')
-                      : t('workbench.readiness.bibleReview')}
-                  </span>
-                </div>
-                <div>
-                  <div className='flex items-center gap-1.5'>
-                    <span
-                      className='text-base font-bold text-stone-900'
-                      data-testid='readiness-bible-locked'
-                    >
-                      {chapterReadiness
-                        ? `${chapterReadiness.bible.readyCount}/${chapterReadiness.bible.requiredTotal}`
-                        : t('workbench.readiness.bibleLocked', {
-                            locked: bibleMetrics.locked,
-                            total: bibleMetrics.total,
-                          })}
-                    </span>
-                    <span className='text-xs text-stone-500'>
-                      {t('workbench.readiness.bibleSub', 'đã khóa chuẩn')}
-                    </span>
-                  </div>
-                  <div className='text-xs text-stone-600 mt-0.5'>
                     {chapterReadiness
-                      ? chapterReadiness.bible.crowdOptionalCount > 0
-                        ? `Phạm vi chương · ${chapterReadiness.bible.crowdOptionalCount} quần chúng tùy chọn`
-                        : 'Phạm vi thực thể bắt buộc trong chương'
-                      : bibleMetrics.total === 0
-                        ? t('workbench.readiness.bibleEmpty')
-                        : t('workbench.readiness.bibleDetail', {
-                            locked: bibleMetrics.locked,
-                            pending: bibleMetrics.pending,
-                          })}
-                  </div>
-                </div>
-                <div className='pt-2 border-t border-stone-100 flex items-center justify-between'>
-                  <span className='text-xs text-stone-400'>Chapter Scope</span>
+                      ? `${chapterReadiness.bible.readyCount}/${chapterReadiness.bible.requiredTotal}`
+                      : t('workbench.readiness.bibleLocked', {
+                          locked: bibleMetrics.locked,
+                          total: bibleMetrics.total,
+                        })}
+                  </span>
                   <button
                     type='button'
                     onClick={() =>
@@ -618,111 +563,106 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                           )
                         : navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible`)
                     }
-                    className='text-orange-700 hover:underline text-xs font-medium cursor-pointer'
+                    className='text-accent-dark hover:underline font-semibold cursor-pointer'
                   >
                     {t('workbench.readiness.checkBible', 'Kiểm tra ngay →')}
                   </button>
                 </div>
               </div>
 
-              {/* Card 3: Separated Task / Page / Panel Production Progress */}
-              <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs flex flex-col justify-between space-y-2.5'>
-                <div className='flex items-center justify-between'>
-                  <span className='text-xs font-semibold text-stone-700 uppercase tracking-wider'>
-                    Tiến độ Ô công việc (Task)
+              {/* Compact Progress Summary */}
+              <div className='flex flex-wrap items-center gap-3 shrink-0'>
+                <div className='flex items-center gap-2'>
+                  <span className='text-stone-500 font-medium'>
+                    {t('workbench.snapshot.progressLabel')}
                   </span>
-                  <span className='text-xs font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200 font-mono'>
+                  <span
+                    className='font-mono font-bold text-stone-900 tabular-nums'
+                    data-testid='readiness-page-percent'
+                  >
                     {chapterReadiness
-                      ? `${chapterReadiness.production.approvedTasks}/${chapterReadiness.production.totalTasks} ô`
-                      : t('workbench.readiness.completedBadge', {
-                          completed: currentMetrics.approvedPanels,
-                          total: currentMetrics.panelCount,
-                        })}
-                  </span>
-                </div>
-                <div>
-                  <div className='flex items-baseline justify-between'>
-                    <span
-                      className='text-2xl font-bold text-stone-900'
-                      data-testid='readiness-page-percent'
-                    >
-                      {chapterReadiness
+                      ? chapterReadiness.production.totalTasks > 0
                         ? chapterReadiness.production.taskProgressPercent
-                        : currentMetrics.percent}
-                      %
-                    </span>
-                    {(currentMetrics.rework > 0 || gateWarnings > 0) && (
-                      <span className='text-xs text-rose-700 font-semibold flex items-center gap-1'>
-                        <Flag className='w-3 h-3 text-rose-600' />
-                        {t('workbench.readiness.reworkAlert', {
-                          rework: chapterReadiness?.production.reworkTasks ?? currentMetrics.rework,
-                          flags: gateWarnings,
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <div className='w-full bg-stone-100 h-1.5 rounded-full overflow-hidden mt-1.5'>
-                    <div
-                      className='bg-orange-600 h-full transition-all'
-                      style={{
-                        width: `${
-                          chapterReadiness
-                            ? chapterReadiness.production.taskProgressPercent
-                            : currentMetrics.percent
-                        }%`,
-                      }}
+                        : 0
+                      : currentMetrics.percent}
+                    %
+                  </span>
+                  <div className='w-24'>
+                    <ProgressBar
+                      value={
+                        chapterReadiness
+                          ? chapterReadiness.production.approvedTasks
+                          : currentMetrics.approvedPanels
+                      }
+                      max={
+                        chapterReadiness
+                          ? chapterReadiness.production.totalTasks
+                          : currentMetrics.panelCount
+                      }
+                      tone='brand'
+                      label={t('workbench.snapshot.progressBarLabel')}
+                      className='h-1.5'
                     />
                   </div>
                 </div>
-                <div className='pt-2 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500'>
-                  <span>
-                    {chapterReadiness
-                      ? `Trang xong: ${chapterReadiness.production.completedPages}/${chapterReadiness.production.totalPages} · Panel cuối: ${chapterReadiness.production.approvedPanels}/${chapterReadiness.production.totalPanels}`
-                      : t('workbench.readiness.pageLoad', {
-                          pages: currentMetrics.pageCount,
-                          panels: currentMetrics.panelCount,
-                        })}
-                  </span>
-                  <span className='font-mono font-medium text-stone-700'>
-                    Ch.{currentChapter?.chapterNumber || '01'}
-                  </span>
-                </div>
+                <span className='text-stone-500 font-mono tabular-nums'>
+                  {chapterReadiness
+                    ? t('workbench.snapshot.completedPages', {
+                        completed: chapterReadiness.production.completedPages,
+                        total: chapterReadiness.production.totalPages,
+                      })
+                    : t('workbench.readiness.pageLoad', {
+                        pages: currentMetrics.pageCount,
+                        panels: currentMetrics.panelCount,
+                      })}
+                </span>
+                {((chapterReadiness?.production.reworkTasks ?? currentMetrics.rework) > 0 ||
+                  gateWarnings > 0) && (
+                  <Badge tone='danger' icon={<Flag aria-hidden='true' />}>
+                    {t('workbench.readiness.reworkAlert', {
+                      rework: chapterReadiness?.production.reworkTasks ?? currentMetrics.rework,
+                      flags: gateWarnings,
+                    })}
+                  </Badge>
+                )}
               </div>
             </div>
 
             {/* 2D Task Matrix Table */}
-            <Card className='shadow-xs' featured>
-              {currentChapterId ? (
-                <TaskGridBoard
-                  chapterId={currentChapterId}
-                  seriesId={seriesId}
-                  workspaceId={workspaceId}
-                  currentUserId={currentUserId}
-                  currentUserRole={currentUserRole}
-                  isProducer={isProducer}
-                  isEditor={isEditor}
-                  refreshKey={refreshKey}
-                  onShowToast={onShowToast}
-                  isChapterLocked={[
-                    'ChapterApproved',
-                    'Approved',
-                    'HandedOffAndPublished',
-                    'Published',
-                  ].includes(String(currentChapter?.status))}
-                />
-              ) : (
-                <div className='rounded-xl border border-dashed border-head-line bg-head-wash p-10 text-center'>
-                  <div className='font-semibold text-stone-900'>
-                    {t('taskGridV3.noChapterSelectedTitle', 'Chưa chọn chương')}
+            <Card className='shadow-xs min-w-0' featured>
+              <div className='p-4 min-w-0'>
+                {currentChapterId ? (
+                  <TaskGridBoard
+                    chapterId={currentChapterId}
+                    seriesId={seriesId}
+                    workspaceId={workspaceId}
+                    currentUserId={currentUserId}
+                    currentUserRole={currentUserRole}
+                    isProducer={isProducer}
+                    isEditor={isEditor}
+                    refreshKey={refreshKey}
+                    onShowToast={onShowToast}
+                    isChapterLocked={[
+                      'ChapterApproved',
+                      'Approved',
+                      'HandedOffAndPublished',
+                      'Published',
+                    ].includes(String(currentChapter?.status))}
+                  />
+                ) : (
+                  <div className='rounded-xl border border-dashed border-head-line bg-head-wash p-10 text-center'>
+                    <div className='font-semibold text-stone-900'>
+                      {t('taskGridV3.noChapterSelectedTitle', 'Chưa chọn chương')}
+                    </div>
+                    <p className='mt-1 text-sm text-stone-500'>
+                      {t(
+                        'taskGridV3.noChapterSelectedDesc',
+                        'Chọn một chương ở phía trên để xem Lưới Giao Việc.',
+                      )}
+                    </p>
                   </div>
-                  <p className='mt-1 text-sm text-stone-500'>
-                    {t(
-                      'taskGridV3.noChapterSelectedDesc',
-                      'Chọn một chương ở phía trên để xem Lưới Giao Việc.',
-                    )}
-                  </p>
-                </div>
-              )}
+                )}
+              </div>
             </Card>
           </div>
         )}
@@ -1070,48 +1010,36 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         {/* ========================================================================= */}
         {activeSubtab === 'crew' && (
           <div className='space-y-6' id='view-crew'>
-            {/* Crew Banner Card */}
-            <div className='p-5 rounded-xl bg-white border border-stone-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4'>
-              <div className='flex items-center gap-3'>
-                <div className='w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center shrink-0'>
-                  <Users className='w-5 h-5' />
-                </div>
-                <div>
-                  <div className='flex items-center gap-2'>
-                    <h3 className='text-lg font-bold text-stone-900 leading-tight'>
-                      {t('workbench.crewOverview.bannerTitle', 'Quản lý Ê-kíp & Phân công nhân sự')}
-                    </h3>
-                    <span className='px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold'>
-                      {t('workbench.crewOverview.bannerBadge', 'Đang hoạt động')}
-                    </span>
-                  </div>
-                  <p className='text-xs text-stone-500 mt-0.5'>
-                    {t('workbench.crewOverview.bannerSubtitle', {
-                      seriesTitle: seriesTitle || 'Series',
-                      chapter: currentChapter?.chapterNumber || '01',
-                      title:
-                        currentChapter?.title || tf('productionWorkspace.workspace.draftFallback'),
-                      count: seriesMembers.length,
-                    })}
-                  </p>
-                </div>
+            {/* Crew Compact Header & KPI Strip */}
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+              <div>
+                <h3 className='text-lg font-bold text-stone-900 leading-tight'>
+                  {t('workbench.crewOverview.bannerTitle', 'Quản lý Ê-kíp & Phân công nhân sự')}
+                </h3>
+                <p className='text-xs text-stone-500 mt-0.5'>
+                  {t('workbench.crewOverview.bannerSubtitle', {
+                    seriesTitle: seriesTitle || 'Series',
+                    chapter: currentChapter?.chapterNumber || '01',
+                    title:
+                      currentChapter?.title || tf('productionWorkspace.workspace.draftFallback'),
+                    count: seriesMembers.length,
+                  })}
+                </p>
               </div>
-              <div className='flex items-center gap-2.5'>
-                <button
-                  type='button'
-                  data-testid='crew-add-member-btn'
-                  disabled={!isProducer}
-                  onClick={() => setMembersModalOpen(true)}
-                  className='px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer'
-                >
-                  <Users className='w-3.5 h-3.5' />
-                  <span>{t('workbench.crewOverview.addMemberBtn', 'Thêm thành viên')}</span>
-                </button>
-              </div>
+              <Button
+                variant='primary'
+                size='sm'
+                data-testid='crew-add-member-btn'
+                disabled={!isProducer}
+                leadingIcon={<Users aria-hidden='true' />}
+                onClick={() => setMembersModalOpen(true)}
+              >
+                {t('workbench.crewOverview.addMemberBtn', 'Thêm thành viên')}
+              </Button>
             </div>
 
-            {/* 4 KPI Cards for Crew */}
-            <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
+            {/* 4 Equal-Height KPI Cards for Crew */}
+            <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch'>
               {/* KPI 1: Tổng quy mô */}
               <div className='p-4 rounded-xl bg-white border border-stone-200 shadow-xs space-y-2'>
                 <div className='flex items-center justify-between text-stone-500 text-xs uppercase tracking-wider font-medium'>

@@ -149,7 +149,7 @@ describe('PublisherChapterManageView — ấn bản & giá (BR-33 / D4)', () => 
     const user = userEvent.setup();
     renderView();
     await openEditions(user);
-    await user.click(screen.getByRole('tab', { name: /English/ }));
+    await user.click(screen.getByRole('tab', { name: /\(EN\)/ }));
 
     expect(screen.getByRole('radio', { name: 'Free' })).not.toBeChecked();
     expect(screen.getByRole('radio', { name: 'Trả phí' })).not.toBeChecked();
@@ -180,7 +180,7 @@ describe('PublisherChapterManageView — ấn bản & giá (BR-33 / D4)', () => 
     const user = userEvent.setup();
     renderView();
     await openEditions(user);
-    await user.click(screen.getByRole('tab', { name: /English/ }));
+    await user.click(screen.getByRole('tab', { name: /\(EN\)/ }));
 
     expect(screen.getByRole('radio', { name: 'Free' })).toBeChecked();
     expect(screen.getByRole('button', { name: 'Trang 1' })).toBeDisabled();

@@ -11,9 +11,7 @@ describe('i18n core engine', () => {
   it('dịch chuỗi tiếng Việt mặc định chính xác', () => {
     expect(translate('common.actions.save', undefined, 'vi')).toBe('Lưu');
     expect(translate('common.actions.cancel', undefined, 'vi')).toBe('Hủy');
-    expect(translate('bible.canonLock.badge', undefined, 'vi')).toBe(
-      'Đã khoá chuẩn (Canon Locked)',
-    );
+    expect(translate('bible.canonLock.badge', undefined, 'vi')).toBe('Đã khóa Canon');
     expect(translate('production.canvas.title', undefined, 'vi')).toBe(
       'Bố Cục Khung Tranh (Panels)',
     );

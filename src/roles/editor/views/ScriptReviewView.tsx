@@ -1,6 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Lock, Play, MapPin, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  ExternalLink,
+  Lock,
+  MapPin,
+  PanelRightClose,
+  PanelRightOpen,
+  Play,
+  Users,
+} from 'lucide-react';
+import { buildBibleUrl } from '@/app/routePaths';
+import { Badge } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
 import {
   chapterService,
@@ -14,10 +25,7 @@ import { seriesService, type SeriesDetailDto } from '@/services/series.service';
 import { bibleService, type BibleEntryDto } from '@/services/bible.service';
 import { chapterCastService, type ChapterCastDto } from '@/services/chapterCast.service';
 import { assignmentService } from '@/services/assignment.service';
-import {
-  getBibleArtworkStatus,
-  BIBLE_STATUS_STYLES,
-} from '@/shared/lib/bibleColoring';
+import { getBibleArtworkStatus, BIBLE_STATUS_STYLES } from '@/shared/lib/bibleColoring';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { ProducerSharedHeader } from '@/shared/features/production-workspace/ProducerSharedHeader';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
@@ -123,6 +131,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const [seriesBibleEntries, setSeriesBibleEntries] = useState<BibleEntryDto[]>([]);
   const [fetchedChapters, setFetchedChapters] = useState<ChapterDto[]>([]);
   const [entityFilter, setEntityFilter] = useState<'main' | 'crowd'>('main');
+  const [sidePanelCollapsed, setSidePanelCollapsed] = useState(false);
 
   const role = (workspaceRole ?? '').toLowerCase();
   const isProducer = ['producer', 'owner'].includes(role);
@@ -441,6 +450,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         seriesTitle={series?.title}
         seriesFormat={series?.format}
         currentChapter={chapter}
+        hideBackLink={isProducer}
         subtitle={
           (pushed
             ? t('scriptReview.pushed.version', {
@@ -491,10 +501,37 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         {t(`scriptReview.lifecycle.status.${scriptStatus}`)}
       </span>
 
-      <div className='flex min-h-0 flex-1 flex-col lg:flex-row'>
+      <div className='flex min-h-0 flex-1 flex-col lg:flex-row relative'>
         <main className='min-h-0 min-w-0 flex-1 overflow-y-auto'>
-          <div className='mx-auto mt-4 max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5'>
-            <p className='text-xs leading-normal text-amber-900'>{notice}</p>
+          <div className='mx-auto mt-4 max-w-4xl px-4 sm:px-6 flex items-center justify-between gap-2'>
+            <div className='flex-1 min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2'>
+              <p className='text-xs leading-normal text-amber-900'>{notice}</p>
+            </div>
+            <button
+              type='button'
+              onClick={() => setSidePanelCollapsed((v) => !v)}
+              aria-label={
+                sidePanelCollapsed
+                  ? t('scriptReview.sidePanel.expand')
+                  : t('scriptReview.sidePanel.collapse')
+              }
+              title={
+                sidePanelCollapsed
+                  ? t('scriptReview.sidePanel.expand')
+                  : t('scriptReview.sidePanel.collapse')
+              }
+              data-testid='toggle-script-sidepanel-btn'
+              className='hidden lg:inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 shrink-0 cursor-pointer transition-colors'
+            >
+              {sidePanelCollapsed ? (
+                <>
+                  <PanelRightOpen className='w-4 h-4 text-accent-dark' aria-hidden='true' />
+                  <span>{t('scriptReview.sidePanel.toggleLabel')}</span>
+                </>
+              ) : (
+                <PanelRightClose className='w-4 h-4 text-stone-500' aria-hidden='true' />
+              )}
+            </button>
           </div>
           {pushed ? (
             <SubmittedScriptPane
@@ -524,294 +561,310 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
           )}
         </main>
 
-        <aside className='flex max-h-[45vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-[28rem] lg:border-l lg:border-t-0'>
-          <div role='tablist' className='flex shrink-0 border-b border-stone-200 px-2'>
-            {(['entities', 'comments', 'changes', 'checks'] as const).map((key) => (
-              <button
-                key={key}
-                type='button'
-                role='tab'
-                aria-selected={tab === key}
-                onClick={() => setTab(key)}
-                className={`-mb-px border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors duration-150 ${
-                  tab === key
-                    ? 'border-orange-500 text-orange-800'
-                    : 'border-transparent text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                {tabLabel(key)}
-              </button>
-            ))}
-          </div>
+        {!sidePanelCollapsed && (
+          <aside className='flex max-h-[45vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-[25rem] xl:w-[27rem] lg:min-w-[320px] lg:max-w-[440px] lg:border-l lg:border-t-0 min-w-0'>
+            <div
+              role='tablist'
+              className='flex shrink-0 border-b border-head-line bg-head-wash px-2 overflow-x-auto'
+            >
+              {(['entities', 'comments', 'changes', 'checks'] as const).map((key) => (
+                <button
+                  key={key}
+                  type='button'
+                  role='tab'
+                  aria-selected={tab === key}
+                  onClick={() => setTab(key)}
+                  className={`-mb-px border-b-2 px-3 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors duration-150 cursor-pointer ${
+                    tab === key
+                      ? 'border-accent text-accent-dark'
+                      : 'border-transparent text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  {tabLabel(key)}
+                </button>
+              ))}
+            </div>
 
-          <div className='flex min-h-0 flex-1 flex-col overflow-y-auto'>
-            {tab === 'entities' ? (
-              <div className='p-4 space-y-4'>
-                <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-200'>
-                  <div>
-                    <h3 className='text-xs font-bold text-stone-900'>
-                      {t('scriptReview.entities.title', 'Thực thể trong kịch bản')} (
-                      {entities.length})
-                    </h3>
-                    <p className='text-xs text-stone-500'>
-                      {t(
-                        'scriptReview.entities.subtitle',
-                        'Kiểm tra tính sẵn sàng của bản vẽ & hồ sơ nhân vật',
-                      )}
-                    </p>
-                  </div>
-                  <div className='inline-flex p-0.5 rounded-lg bg-stone-100 border border-stone-200 text-xs shrink-0'>
-                    <button
-                      type='button'
-                      onClick={() => setEntityFilter('main')}
-                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                        entityFilter === 'main'
-                          ? 'bg-white text-stone-900 shadow-2xs'
-                          : 'text-stone-600 hover:text-stone-900'
-                      }`}
-                    >
-                      {t('scriptReview.entities.filterMain', 'Chính')} ({mainEntities.length})
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => setEntityFilter('crowd')}
-                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                        entityFilter === 'crowd'
-                          ? 'bg-white text-stone-900 shadow-2xs'
-                          : 'text-stone-600 hover:text-stone-900'
-                      }`}
-                    >
-                      {t('scriptReview.entities.filterCrowd', 'Quần chúng')} ({crowdEntities.length}
-                      )
-                    </button>
-                  </div>
-                </div>
-
-                <div className='space-y-2.5'>
-                  {filteredEntities.length === 0 ? (
-                    <p className='py-6 text-center text-xs text-stone-400'>
-                      {t('scriptReview.entities.empty', 'Không có thực thể nào phù hợp')}
-                    </p>
-                  ) : (
-                    filteredEntities.map((item) => {
-                      const isCrowd = item.isCrowd;
-                      const isLocked =
-                        !isCrowd &&
-                        (Boolean(item.isCanonLocked) ||
-                          Boolean(item.boundRevision?.isCanonLocked) ||
-                          item.boundRevision?.status === 'CanonLocked' ||
-                          item.bibleStatus === 'CanonLocked');
-                      const isPendingConfirm =
-                        !isCrowd &&
-                        !isLocked &&
-                        (item.boundRevision?.status === 'ConceptSubmitted' ||
-                          item.bibleStatus === 'WaitingForConfirmation');
-                      const isRework =
-                        !isCrowd &&
-                        !isLocked &&
-                        (item.boundRevision?.status === 'ReworkRequired' ||
-                          item.bibleStatus === 'ReworkRequired');
-                      const isHighlighted = highlightedEntityId === item.bibleEntryId;
-
-                      const initials =
-                        item.name
-                          .split(' ')
-                          .map((w) => w[0])
-                          .slice(0, 2)
-                          .join('')
-                          .toUpperCase() || 'ID';
-
-                      return (
-                        <div
-                          key={item.bibleEntryId}
-                          data-testid={`script-entity-card-${item.bibleEntryId}`}
-                          className={`p-3 rounded-xl border flex items-center justify-between gap-2 transition-colors ${
-                            isHighlighted
-                              ? 'ring-2 ring-orange-500 bg-orange-50/50 border-orange-300'
-                              : !isLocked && !isCrowd
-                                ? 'bg-amber-50/50 border-amber-200'
-                                : 'bg-stone-50/70 border-stone-200 hover:bg-stone-50'
-                          }`}
-                        >
-                          <div className='flex items-center gap-2.5 min-w-0'>
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                                item.category === 'Location'
-                                  ? 'bg-rose-100 text-rose-700'
-                                  : isCrowd
-                                    ? 'bg-stone-200 text-stone-700'
-                                    : 'bg-stone-900 text-white'
-                              }`}
-                            >
-                              {item.category === 'Location' ? (
-                                <MapPin className='w-3.5 h-3.5' />
-                              ) : isCrowd ? (
-                                <Users className='w-3.5 h-3.5' />
-                              ) : (
-                                initials
-                              )}
-                            </div>
-                            <div className='min-w-0'>
-                              <div className='text-xs font-bold text-stone-900 truncate'>
-                                {item.name}
-                              </div>
-                              <div className='text-xs text-stone-500 flex items-center gap-1'>
-                                <span>
-                                  {item.boundRevision?.variantLabel
-                                    ? `[${item.boundRevision.variantLabel}]`
-                                    : item.category === 'Character'
-                                      ? `[${t('scriptReview.defaultVariant')}]`
-                                      : item.category}
-                                </span>
-                                {item.boundRevision?.versionNumber && (
-                                  <span className='font-mono text-[11px] text-stone-400'>
-                                    v{item.boundRevision.versionNumber}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className='flex items-center gap-1.5 shrink-0'>
-                            {isCrowd ? (
-                              <span className='bg-stone-100 text-stone-600 border border-stone-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusExempt', 'Miễn trừ')}
-                              </span>
-                            ) : isLocked ? (
-                              <span className='bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusLocked', 'Đã khóa chuẩn')}
-                              </span>
-                            ) : isPendingConfirm ? (
-                              <span className='bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusInReview', 'Chờ duyệt vẽ')}
-                              </span>
-                            ) : isRework ? (
-                              <span className='bg-rose-50 text-rose-700 border border-rose-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusRework', 'Cần vẽ lại')}
-                              </span>
-                            ) : (
-                              <span className='bg-rose-50 text-rose-700 border border-rose-200 text-xs px-2 py-0.5 rounded-full font-medium'>
-                                {t('scriptReview.entities.statusMissing', 'Chưa có bản vẽ')}
-                              </span>
-                            )}
-                            <span
-                              className={`text-xs px-1.5 py-0.5 rounded border font-medium ${
-                                isCrowd
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : 'bg-white text-stone-500 border-stone-200'
-                              }`}
-                            >
-                              {isCrowd
-                                ? t('scriptReview.entities.typeCrowd', 'Quần chúng')
-                                : t('scriptReview.entities.typeMain', 'Chính')}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {cast?.gate?.canStart === false && (
-                  <div className='p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2'>
-                    <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
+            <div className='flex min-h-0 flex-1 flex-col overflow-y-auto'>
+              {tab === 'entities' ? (
+                <div className='p-4 space-y-4'>
+                  <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-200'>
                     <div>
-                      <p className='font-semibold'>
+                      <h3 className='text-xs font-bold text-stone-900'>
+                        {t('scriptReview.entities.title', 'Thực thể trong kịch bản')} (
+                        {entities.length})
+                      </h3>
+                      <p className='text-xs text-stone-500'>
                         {t(
-                          'scriptReview.entities.blockerTitle',
-                          'Kịch bản đang bị chặn duyệt sản xuất:',
+                          'scriptReview.entities.subtitle',
+                          'Kiểm tra tính sẵn sàng của bản vẽ & hồ sơ nhân vật',
                         )}
                       </p>
-                      <ul className='list-disc pl-4 mt-1 space-y-0.5 text-stone-700'>
-                        {cast.gate.blockers.map((b, idx) => (
-                          <li key={idx}>
-                            {typeof b === 'string'
-                              ? b
-                              : (b as any).message ||
-                                (b as any).reason ||
-                                (b as any).code ||
-                                String(b)}
-                          </li>
-                        ))}
-                      </ul>
+                    </div>
+                    <div className='inline-flex p-0.5 rounded-lg bg-stone-100 border border-stone-200 text-xs shrink-0'>
+                      <button
+                        type='button'
+                        onClick={() => setEntityFilter('main')}
+                        className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                          entityFilter === 'main'
+                            ? 'bg-white text-stone-900 shadow-2xs'
+                            : 'text-stone-600 hover:text-stone-900'
+                        }`}
+                      >
+                        {t('scriptReview.entities.filterMain', 'Chính')} ({mainEntities.length})
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => setEntityFilter('crowd')}
+                        className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                          entityFilter === 'crowd'
+                            ? 'bg-white text-stone-900 shadow-2xs'
+                            : 'text-stone-600 hover:text-stone-900'
+                        }`}
+                      >
+                        {t('scriptReview.entities.filterCrowd', 'Quần chúng')} (
+                        {crowdEntities.length})
+                      </button>
                     </div>
                   </div>
-                )}
-              </div>
-            ) : tab === 'comments' ? (
-              comments.length === 0 ? (
-                <p className='p-4 text-xs text-stone-500'>{t('scriptReview.comments.empty')}</p>
-              ) : (
-                <div className='p-3 space-y-3'>
-                  {comments.map((c) => {
-                    const stale = staleness(c);
-                    const isSelected = activeLineId === c.scriptLineId;
-                    return (
-                      <div key={c.id} className='space-y-1'>
-                        <div className='flex items-center justify-between text-xs px-1 text-stone-500'>
-                          <span className='font-semibold text-stone-700'>
-                            {locateLabel(c.sceneId, c.scriptLineId)}
-                          </span>
-                          {stale && (
-                            <span className='rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800'>
-                              {stale === 'removed'
-                                ? t('scriptReview.comments.staleRemoved')
-                                : t('scriptReview.comments.staleChanged')}
-                            </span>
+
+                  <div className='space-y-2.5'>
+                    {filteredEntities.length === 0 ? (
+                      <p className='py-6 text-center text-xs text-stone-400'>
+                        {t('scriptReview.entities.empty', 'Không có thực thể nào phù hợp')}
+                      </p>
+                    ) : (
+                      filteredEntities.map((item) => {
+                        const isCrowd = item.isCrowd;
+                        const isLocked =
+                          !isCrowd &&
+                          (Boolean(item.isCanonLocked) ||
+                            Boolean(item.boundRevision?.isCanonLocked) ||
+                            item.boundRevision?.status === 'CanonLocked' ||
+                            item.bibleStatus === 'CanonLocked');
+                        const isPendingConfirm =
+                          !isCrowd &&
+                          !isLocked &&
+                          (item.boundRevision?.status === 'ConceptSubmitted' ||
+                            item.bibleStatus === 'WaitingForConfirmation');
+                        const isRework =
+                          !isCrowd &&
+                          !isLocked &&
+                          (item.boundRevision?.status === 'ReworkRequired' ||
+                            item.bibleStatus === 'ReworkRequired');
+                        const isHighlighted = highlightedEntityId === item.bibleEntryId;
+
+                        const initials =
+                          item.name
+                            .split(' ')
+                            .map((w) => w[0])
+                            .slice(0, 2)
+                            .join('')
+                            .toUpperCase() || 'ID';
+
+                        return (
+                          <div
+                            key={item.bibleEntryId}
+                            data-testid={`script-entity-card-${item.bibleEntryId}`}
+                            className={`p-3 rounded-xl border flex items-center justify-between gap-2 transition-colors ${
+                              isHighlighted
+                                ? 'ring-2 ring-orange-500 bg-orange-50/50 border-orange-300'
+                                : !isLocked && !isCrowd
+                                  ? 'bg-amber-50/50 border-amber-200'
+                                  : 'bg-stone-50/70 border-stone-200 hover:bg-stone-50'
+                            }`}
+                          >
+                            <div className='flex items-center gap-2.5 min-w-0'>
+                              <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                                  item.category === 'Location'
+                                    ? 'bg-rose-100 text-rose-700'
+                                    : isCrowd
+                                      ? 'bg-stone-200 text-stone-700'
+                                      : 'bg-stone-900 text-white'
+                                }`}
+                              >
+                                {item.category === 'Location' ? (
+                                  <MapPin className='w-3.5 h-3.5' />
+                                ) : isCrowd ? (
+                                  <Users className='w-3.5 h-3.5' />
+                                ) : (
+                                  initials
+                                )}
+                              </div>
+                              <div className='min-w-0'>
+                                <div className='text-xs font-bold text-stone-900 truncate'>
+                                  {item.name}
+                                </div>
+                                <div className='text-xs text-stone-500 flex items-center gap-1'>
+                                  <span>
+                                    {item.boundRevision?.variantLabel
+                                      ? `[${item.boundRevision.variantLabel}]`
+                                      : item.category === 'Character'
+                                        ? `[${t('scriptReview.defaultVariant')}]`
+                                        : item.category}
+                                  </span>
+                                  {item.boundRevision?.versionNumber && (
+                                    <span className='font-mono text-xs text-stone-500'>
+                                      v{item.boundRevision.versionNumber}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className='flex items-center gap-1.5 shrink-0'>
+                              {isCrowd ? (
+                                <Badge tone='neutral'>
+                                  {t('scriptReview.entities.statusExempt', 'Miễn trừ')}
+                                </Badge>
+                              ) : isLocked ? (
+                                <Badge tone='success'>
+                                  {t('scriptReview.entities.statusLocked', 'Đã chốt thiết kế')}
+                                </Badge>
+                              ) : isPendingConfirm ? (
+                                <Badge tone='warning'>
+                                  {t('scriptReview.entities.statusInReview', 'Chờ duyệt vẽ')}
+                                </Badge>
+                              ) : isRework ? (
+                                <Badge tone='danger'>
+                                  {t('scriptReview.entities.statusRework', 'Cần vẽ lại')}
+                                </Badge>
+                              ) : (
+                                <Badge tone='danger'>
+                                  {t('scriptReview.entities.statusMissing', 'Chưa có bản vẽ')}
+                                </Badge>
+                              )}
+                              {workspaceId && seriesId && (
+                                <button
+                                  type='button'
+                                  onClick={() =>
+                                    navigate(
+                                      buildBibleUrl(workspaceId, seriesId, item.bibleEntryId),
+                                    )
+                                  }
+                                  title={t(
+                                    'scriptReview.entities.openDesignSheet',
+                                    'Mở hồ sơ thiết kế',
+                                  )}
+                                  aria-label={t(
+                                    'scriptReview.entities.openDesignSheet',
+                                    'Mở hồ sơ thiết kế',
+                                  )}
+                                  className='p-1 rounded-md text-stone-500 hover:text-stone-900 hover:bg-stone-200/70 transition-colors cursor-pointer'
+                                >
+                                  <ExternalLink className='w-3.5 h-3.5' aria-hidden='true' />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {cast?.gate?.canStart === false && (
+                    <div className='p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2'>
+                      <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
+                      <div>
+                        <p className='font-semibold'>
+                          {t(
+                            'scriptReview.entities.blockerTitle',
+                            'Kịch bản đang bị chặn duyệt sản xuất:',
                           )}
-                        </div>
-                        <ScriptCommentItemCard
-                          comment={c}
-                          isSelected={isSelected}
-                          onSelect={() => c.scriptLineId && setActiveLineId(c.scriptLineId)}
-                        />
+                        </p>
+                        <ul className='list-disc pl-4 mt-1 space-y-0.5 text-stone-700'>
+                          {cast.gate.blockers.map((b, idx) => (
+                            <li key={idx}>
+                              {typeof b === 'string'
+                                ? b
+                                : (b as any).message ||
+                                  (b as any).reason ||
+                                  (b as any).code ||
+                                  String(b)}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
                 </div>
-              )
-            ) : tab === 'changes' ? (
-              pushed ? (
-                <>
-                  <p className='border-b border-stone-200 px-3 py-2 text-xs text-stone-500'>
-                    {chapter.previousSubmittedVersionId
-                      ? t('scriptReview.pushed.sincePrevious')
-                      : t('scriptReview.pushed.firstSubmit')}
-                  </p>
-                  <ScriptVersionDiff
-                    key={`${chapter.previousSubmittedVersionId ?? EMPTY_BASE}>${pushed.version.id}`}
-                    chapterId={chapterId}
-                    defaultFromId={chapter.previousSubmittedVersionId ?? EMPTY_BASE}
-                    defaultToId={pushed.version.id}
-                  />
-                </>
+              ) : tab === 'comments' ? (
+                comments.length === 0 ? (
+                  <p className='p-4 text-xs text-stone-500'>{t('scriptReview.comments.empty')}</p>
+                ) : (
+                  <div className='p-3 space-y-3'>
+                    {comments.map((c) => {
+                      const stale = staleness(c);
+                      const isSelected = activeLineId === c.scriptLineId;
+                      return (
+                        <div key={c.id} className='space-y-1'>
+                          <div className='flex items-center justify-between text-xs px-1 text-stone-500'>
+                            <span className='font-semibold text-stone-700'>
+                              {locateLabel(c.sceneId, c.scriptLineId)}
+                            </span>
+                            {stale && (
+                              <span className='rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800'>
+                                {stale === 'removed'
+                                  ? t('scriptReview.comments.staleRemoved')
+                                  : t('scriptReview.comments.staleChanged')}
+                              </span>
+                            )}
+                          </div>
+                          <ScriptCommentItemCard
+                            comment={c}
+                            isSelected={isSelected}
+                            onSelect={() => c.scriptLineId && setActiveLineId(c.scriptLineId)}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : tab === 'changes' ? (
+                pushed ? (
+                  <>
+                    <p className='border-b border-stone-200 px-3 py-2 text-xs text-stone-500'>
+                      {chapter.previousSubmittedVersionId
+                        ? t('scriptReview.pushed.sincePrevious')
+                        : t('scriptReview.pushed.firstSubmit')}
+                    </p>
+                    <ScriptVersionDiff
+                      key={`${chapter.previousSubmittedVersionId ?? EMPTY_BASE}>${pushed.version.id}`}
+                      chapterId={chapterId}
+                      defaultFromId={chapter.previousSubmittedVersionId ?? EMPTY_BASE}
+                      defaultToId={pushed.version.id}
+                    />
+                  </>
+                ) : (
+                  <p className='p-4 text-xs text-stone-500'>{t('scriptReview.pushed.none')}</p>
+                )
               ) : (
-                <p className='p-4 text-xs text-stone-500'>{t('scriptReview.pushed.none')}</p>
-              )
-            ) : (
-              <ChecksTab
-                chapter={chapter}
-                cast={cast}
-                findings={findings}
-                locateLabel={locateLabel}
-                onSelectAnchor={selectAnchor}
-                canTriage={isEditor || isProducer}
-                canComment={canComment}
-                isProducer={isProducer}
-                busy={busy}
-                onRunCheck={handleRunCheck}
-                checkedAt={checkedAt}
-                onTriage={handleTriage}
-                onFindingToComment={handleFindingToComment}
-                openComments={openComments}
-                onFreeze={handleStartProduction}
-                onUnfreeze={(reason) =>
-                  chapterAction('freeze', () => chapterService.unfreezeScript(chapterId, reason))
-                }
-              />
-            )}
-          </div>
-        </aside>
+                <ChecksTab
+                  chapter={chapter}
+                  cast={cast}
+                  findings={findings}
+                  locateLabel={locateLabel}
+                  onSelectAnchor={selectAnchor}
+                  canTriage={isEditor || isProducer}
+                  canComment={canComment}
+                  isProducer={isProducer}
+                  busy={busy}
+                  onRunCheck={handleRunCheck}
+                  checkedAt={checkedAt}
+                  onTriage={handleTriage}
+                  onFindingToComment={handleFindingToComment}
+                  openComments={openComments}
+                  onOpenEntities={() => setTab('entities')}
+                  onFreeze={handleStartProduction}
+                  onUnfreeze={(reason) =>
+                    chapterAction('freeze', () => chapterService.unfreezeScript(chapterId, reason))
+                  }
+                />
+              )}
+            </div>
+          </aside>
+        )}
       </div>
       {startOpen && chapter && chapter.status === 'InProduction' && (
         <RefreezeScriptModal

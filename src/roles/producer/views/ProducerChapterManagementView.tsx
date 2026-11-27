@@ -6,19 +6,18 @@ import {
   ArrowRight,
   BookOpen,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Clock,
   Edit2,
   FileText,
   Globe,
   History,
-  Layers,
   LayoutGrid,
   Lock,
   MessageSquare,
   MoreHorizontal,
   Palette,
-  Play,
   Plus,
   RefreshCw,
   Rocket,
@@ -26,7 +25,6 @@ import {
   ShieldAlert,
   Trash2,
   Unlock,
-  Users,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -50,7 +48,18 @@ import { PreviewLinksModal } from '../modals/PreviewLinksModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { ReasonForm } from '@/shared/components/ReasonForm';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
-import { Modal } from '@/shared/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  Modal,
+  ProgressBar,
+  StatusBadge,
+} from '@/shared/ui';
 import { ProducerSharedHeader } from '@/shared/features/production-workspace/ProducerSharedHeader';
 import {
   buildReadinessResolutionUrl,
@@ -60,7 +69,6 @@ import {
 } from '@/shared/features/production-workspace/useChapterProductionHub';
 import {
   buildBibleUrl,
-  buildChapterReaderUrl,
   buildProductionWorkspaceUrl,
   buildScriptReviewUrl,
   buildSeriesExportUrl,
@@ -81,11 +89,25 @@ const CATEGORY_LABELS: Record<string, string> = {
   Event: 'Sự kiện',
 };
 
+const REVIEW_ACTION_LABEL_KEYS: Record<string, string> = {
+  ProducerApproved: 'producer.chapterManagement.reviewAction.ProducerApproved',
+  ChapterApproved: 'producer.chapterManagement.reviewAction.ChapterApproved',
+  ProducerHandedOff: 'producer.chapterManagement.reviewAction.ProducerHandedOff',
+  ChapterHandedOff: 'producer.chapterManagement.reviewAction.ChapterHandedOff',
+  ChapterPublished: 'producer.chapterManagement.reviewAction.ChapterPublished',
+  ScriptFrozen: 'producer.chapterManagement.reviewAction.ScriptFrozen',
+  ScriptUnfrozen: 'producer.chapterManagement.reviewAction.ScriptUnfrozen',
+  ProductionStarted: 'producer.chapterManagement.reviewAction.ProductionStarted',
+  ChangesRequested: 'producer.chapterManagement.reviewAction.ChangesRequested',
+  ChapterReopened: 'producer.chapterManagement.reviewAction.ChapterReopened',
+};
+
 export const ProducerChapterManagementView: React.FC<ProducerChapterManagementViewProps> = ({
   onShowToast,
   workspaceRole,
 }) => {
-  const { t } = useTranslation('production');
+  const { t, lang } = useTranslation('production');
+  const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
   const navigate = useNavigate();
   const { workspaceId = '', seriesId = '' } = useParams<{
     workspaceId: string;
@@ -118,6 +140,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 
   // UI & Modal States
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const [gateExpanded, setGateExpanded] = useState(false);
   const [startProductionOpen, setStartProductionOpen] = useState(false);
   const [showUnfreezeDialog, setShowUnfreezeDialog] = useState(false);
   const [unfreezeBusy, setUnfreezeBusy] = useState(false);
@@ -137,7 +160,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   const [formOutline, setFormOutline] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
 
-  const isProducer = !workspaceRole || workspaceRole.toUpperCase() === 'PRODUCER' || workspaceRole.toUpperCase() === 'OWNER';
+  const isProducer =
+    !workspaceRole ||
+    workspaceRole.toUpperCase() === 'PRODUCER' ||
+    workspaceRole.toUpperCase() === 'OWNER';
 
   // ── Load Series & Chapters List ──
   const loadSeriesAndChapters = useCallback(async () => {
@@ -260,7 +286,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         message: 'Kịch bản đang ở trạng thái Draft, chưa được Writer gửi duyệt.',
         resourceType: 'script',
         resourceId: chapter.id,
-        resolutionTarget: { workspace: 'pre-production', section: 'script', resourceId: chapter.id },
+        resolutionTarget: {
+          workspace: 'pre-production',
+          section: 'script',
+          resourceId: chapter.id,
+        },
       });
     }
     if (!isStarted && !bibleReady) {
@@ -289,7 +319,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         passed: scriptSubmitted,
         mandatory: true,
         statusText: scriptSubmitted ? 'Đã gửi duyệt' : 'Đang soạn (Draft)',
-        resolutionTarget: { workspace: 'pre-production', section: 'script', resourceId: chapter.id },
+        resolutionTarget: {
+          workspace: 'pre-production',
+          section: 'script',
+          resourceId: chapter.id,
+        },
       },
       {
         code: 'BIBLE_CANON_LOCKED',
@@ -298,8 +332,14 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         passed: bibleReady,
         mandatory: true,
         statusText:
-          required.length === 0 ? 'Không có thực thể bắt buộc' : `${ready.length}/${required.length} đã sẵn sàng`,
-        resolutionTarget: { workspace: 'pre-production', section: 'entities', resourceId: chapter.id },
+          required.length === 0
+            ? 'Không có thực thể bắt buộc'
+            : `${ready.length}/${required.length} đã sẵn sàng`,
+        resolutionTarget: {
+          workspace: 'pre-production',
+          section: 'entities',
+          resourceId: chapter.id,
+        },
       },
       {
         code: 'CHAPTER_PAGES_READY',
@@ -308,7 +348,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         passed: hasPages,
         mandatory: true,
         statusText: `${pages.length || chapter.pagesCount || 0} trang`,
-        resolutionTarget: { workspace: 'pre-production', section: 'script', resourceId: chapter.id },
+        resolutionTarget: {
+          workspace: 'pre-production',
+          section: 'script',
+          resourceId: chapter.id,
+        },
       },
     ];
 
@@ -323,7 +367,8 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       chapterStatus: chapter.status || 'PreProduction',
       targetReleaseDate: chapter.targetReleaseDate,
       isHandedOff: Boolean(chapter.isHandedOff),
-      evaluatedScriptVersionId: chapter.frozenScriptVersionId ?? chapter.lastSubmittedVersionId ?? null,
+      evaluatedScriptVersionId:
+        chapter.frozenScriptVersionId ?? chapter.lastSubmittedVersionId ?? null,
       status: isStarted ? 'STARTED' : canStart ? 'READY' : 'NOT_READY',
       canStartProduction: canStart,
       checks,
@@ -355,9 +400,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       bible: {
         requiredTotal: required.length,
         readyCount: ready.length,
-        missingDefinitionCount: required.filter((e) => e.bibleStatus === 'WaitingForDefinition').length,
+        missingDefinitionCount: required.filter((e) => e.bibleStatus === 'WaitingForDefinition')
+          .length,
         missingArtCount: required.filter((e) => e.bibleStatus === 'WaitingForArtist').length,
-        pendingApprovalCount: required.filter((e) => e.bibleStatus === 'WaitingForConfirmation').length,
+        pendingApprovalCount: required.filter((e) => e.bibleStatus === 'WaitingForConfirmation')
+          .length,
         reworkCount: required.filter((e) => e.bibleStatus === 'ReworkRequired').length,
         crowdOptionalCount: entities.filter((e) => e.isCrowd).length,
         nonVisualReadyCount: 0,
@@ -388,7 +435,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   const isPreProduction = chapterStatus === 'PreProduction';
   const isInProduction = chapterStatus === 'InProduction';
   const isApproved = chapterStatus === 'ChapterApproved' || chapterStatus === 'Approved';
-  const isDelivered = chapterStatus === 'HandedOffAndPublished' || chapterStatus === 'Published' || Boolean(readiness?.isHandedOff);
+  const isDelivered =
+    chapterStatus === 'HandedOffAndPublished' ||
+    chapterStatus === 'Published' ||
+    Boolean(readiness?.isHandedOff);
   const canStartProduction = Boolean(readiness?.canStartProduction);
 
   const { steps: lifecycleSteps } = useMemo(
@@ -407,8 +457,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 
   // ── Chapter CRUD & Lifecycle Handlers ──
   const openCreateModal = () => {
-    const nextNum =
-      chapters.length > 0 ? Math.max(...chapters.map((c) => c.chapterNumber)) + 1 : 1;
+    const nextNum = chapters.length > 0 ? Math.max(...chapters.map((c) => c.chapterNumber)) + 1 : 1;
     setFormChapterNumber(nextNum);
     setFormTitle('');
     setFormTargetReleaseDate('');
@@ -491,7 +540,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       setUnfreezeBusy(true);
       await chapterService.unfreezeScript(chapter.id, reason);
       setShowUnfreezeDialog(false);
-      onShowToast?.('Đã mở khóa kịch bản', 'Writer có thể chỉnh sửa kịch bản; cần Refreeze sau khi xong.');
+      onShowToast?.(
+        'Đã mở khóa kịch bản',
+        'Writer có thể chỉnh sửa kịch bản; cần Refreeze sau khi xong.',
+      );
       await refreshAll();
     } catch (err: any) {
       onShowToast?.('Lỗi mở khóa kịch bản', err?.message || 'Không thể mở khóa kịch bản.');
@@ -600,11 +652,24 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       >
         <AlertCircle className='w-3.5 h-3.5' />
         <span>
-          {firstBlocker ? `Xử lý ${readiness?.blockers.length} điểm chặn` : 'Tiếp tục Tiền sản xuất'}
+          {firstBlocker
+            ? `Xử lý ${readiness?.blockers.length} điểm chặn`
+            : 'Tiếp tục Tiền sản xuất'}
         </span>
       </button>
     );
-  }, [chapter, workspaceId, seriesId, isDelivered, isApproved, isInProduction, canStartProduction, isProducer, readiness, navigate]);
+  }, [
+    chapter,
+    workspaceId,
+    seriesId,
+    isDelivered,
+    isApproved,
+    isInProduction,
+    canStartProduction,
+    isProducer,
+    readiness,
+    navigate,
+  ]);
 
   if (loading && chapters.length === 0) {
     return (
@@ -624,44 +689,42 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   if (error) {
     return (
       <div className='p-8 max-w-3xl mx-auto'>
-        <div className='rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-800 space-y-3'>
-          <div className='flex items-center gap-2 font-semibold'>
-            <AlertCircle className='w-5 h-5' />
-            <span>{error}</span>
-          </div>
-          <button
-            type='button'
-            onClick={() => void loadSeriesAndChapters()}
-            className='px-3 py-1.5 rounded-lg bg-white border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-100 cursor-pointer'
-          >
-            Thử lại
-          </button>
-        </div>
+        <Alert
+          tone='danger'
+          title={error}
+          action={
+            <Button variant='danger' size='sm' onClick={() => void loadSeriesAndChapters()}>
+              {t('producer.chapterManagement.retryBtn')}
+            </Button>
+          }
+        >
+          {t('producer.chapterManagement.loadErrorHint')}
+        </Alert>
       </div>
     );
   }
 
   if (chapters.length === 0) {
     return (
-      <div className='p-8 max-w-3xl mx-auto text-center space-y-4'>
-        <div className='rounded-2xl border border-stone-200 bg-white p-10 shadow-xs space-y-3'>
-          <BookOpen className='w-10 h-10 text-orange-600 mx-auto' />
-          <h2 className='text-lg font-bold text-stone-900'>Chưa có chương nào trong bộ truyện</h2>
-          <p className='text-sm text-stone-500'>
-            Tạo chương đầu tiên để bắt đầu quy trình Tiền sản xuất, Kịch bản và Series Bible.
-          </p>
-          {isProducer && (
-            <button
-              type='button'
-              onClick={openCreateModal}
-              data-testid='create-first-chapter-btn'
-              className='px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer'
-            >
-              <Plus className='w-4 h-4' />
-              <span>Tạo chương đầu tiên</span>
-            </button>
-          )}
-        </div>
+      <div className='p-8 max-w-3xl mx-auto'>
+        <EmptyState
+          icon={<BookOpen className='w-8 h-8' />}
+          title={t('producer.chapterManagement.emptyTitle')}
+          description={t('producer.chapterManagement.emptyDesc')}
+          action={
+            isProducer ? (
+              <Button
+                variant='primary'
+                size='sm'
+                leadingIcon={<Plus aria-hidden='true' />}
+                onClick={openCreateModal}
+                data-testid='create-first-chapter-btn'
+              >
+                {t('producer.chapterManagement.createFirstBtn')}
+              </Button>
+            ) : undefined
+          }
+        />
       </div>
     );
   }
@@ -671,372 +734,455 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       ? Math.round((readiness.summary.passed / readiness.summary.required) * 100)
       : 0;
 
+  const isLoadingMetrics = loadingReadiness && !serverReadiness;
+  const totalTasks = readiness?.production.totalTasks ?? 0;
+  const approvedTasks = readiness?.production.approvedTasks ?? 0;
+  const taskPct = totalTasks > 0 ? (readiness?.production.taskProgressPercent ?? 0) : 0;
+  const totalPages = readiness?.production.totalPages ?? 0;
+  const completedPages = readiness?.production.completedPages ?? 0;
+  const pagePct = totalPages > 0 ? (readiness?.production.pageProgressPercent ?? 0) : 0;
+  const totalPanels = readiness?.production.totalPanels ?? 0;
+  const approvedPanels = readiness?.production.approvedPanels ?? 0;
+  const panelPct = totalPanels > 0 ? (readiness?.production.panelProgressPercent ?? 0) : 0;
+
   // Reusable Production Progress Section (placed high when InProduction, lower when PreProduction)
   const productionProgressSection = (
-    <section
-      data-testid='overview-production-progress'
-      className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-4'
-    >
-      <div className='flex flex-wrap items-center justify-between gap-2'>
-        <div>
-          <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
-            <LayoutGrid className='w-4 h-4 text-orange-600' />
-            <span>{isPreProduction ? 'Phạm vi sản xuất dự kiến' : 'Tiến độ sản xuất'}</span>
-          </h3>
-          <p className='text-xs text-stone-500 mt-0.5'>
-            {isPreProduction
-              ? 'Khối lượng trang, khung và quy trình công đoạn sẽ khởi tạo khi Bắt đầu sản xuất.'
-              : 'Tách biệt rõ Tiến độ Ô công việc (Task), Trang hoàn tất (Page) và Khung tranh (Panel).'}
-          </p>
-        </div>
-        {chapter && (
-          <button
-            type='button'
-            onClick={() =>
-              navigate(
-                buildProductionWorkspaceUrl(workspaceId, seriesId, {
-                  chapterId: chapter.id,
-                  tab: 'progress',
-                }),
-              )
-            }
-            className='text-xs font-semibold text-orange-700 hover:text-orange-800 inline-flex items-center gap-1 cursor-pointer'
-          >
-            <span>Mở Bảng sản xuất</span>
-            <ArrowRight className='w-3.5 h-3.5' />
-          </button>
-        )}
-      </div>
-
-      {isPreProduction ? (
-        <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
-          <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5'>
-            <div className='text-xs text-stone-500'>Số trang dự kiến</div>
-            <div className='text-xl font-bold text-stone-900 mt-1'>
-              {readiness?.script.pageCount ?? 0}
-            </div>
-          </div>
-          <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5'>
-            <div className='text-xs text-stone-500'>Số khung (Panel)</div>
-            <div className='text-xl font-bold text-stone-900 mt-1'>
-              {readiness?.script.panelCount ?? 0}
-            </div>
-          </div>
-          <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5'>
-            <div className='text-xs text-stone-500'>Quy trình Pipeline</div>
-            <div className='text-sm font-semibold text-stone-900 mt-1.5 truncate'>
-              {readiness?.production.stages.map((s) => s.stageName).join(' → ') ||
-                stages
-                  .filter((s) => s.isEnabled !== false)
-                  .map((s) => s.name)
-                  .join(' → ') ||
-                'Chưa cấu hình'}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className='space-y-4'>
-          {/* 3 Strictly Separated Progress Metrics */}
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-3'>
-            <div
-              data-testid='metric-task-progress'
-              className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 space-y-2'
+    <Card as='section' featured={!isPreProduction} data-testid='overview-production-progress'>
+      <CardHeader
+        icon={<LayoutGrid aria-hidden='true' />}
+        title={
+          isPreProduction
+            ? t('producer.chapterManagement.overview.scopeTitle')
+            : t('producer.chapterManagement.overview.progressTitle')
+        }
+        subtitle={
+          isPreProduction
+            ? t('producer.chapterManagement.overview.scopeSubtitle')
+            : t('producer.chapterManagement.overview.progressSubtitle')
+        }
+        actions={
+          chapter ? (
+            <Button
+              variant='ghost'
+              size='sm'
+              trailingIcon={<ArrowRight aria-hidden='true' />}
+              onClick={() =>
+                navigate(
+                  buildProductionWorkspaceUrl(workspaceId, seriesId, {
+                    chapterId: chapter.id,
+                    tab: 'progress',
+                  }),
+                )
+              }
             >
-              <div className='flex items-center justify-between text-xs'>
-                <span className='font-semibold text-stone-700'>Ô công việc đã duyệt (Task)</span>
-                <span className='font-mono font-bold text-stone-900'>
-                  {readiness?.production.approvedTasks ?? 0}/{readiness?.production.totalTasks ?? 0} (
-                  {readiness?.production.taskProgressPercent ?? 0}%)
-                </span>
+              {t('producer.chapterManagement.overview.openProdBoard')}
+            </Button>
+          ) : undefined
+        }
+      />
+      <CardBody className='space-y-4'>
+        {isLoadingMetrics ? (
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-3 animate-pulse'>
+            <div className='h-20 rounded-lg bg-stone-200/70' />
+            <div className='h-20 rounded-lg bg-stone-200/70' />
+            <div className='h-20 rounded-lg bg-stone-200/70' />
+          </div>
+        ) : isPreProduction ? (
+          <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 items-stretch'>
+            <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between'>
+              <div className='text-xs font-medium text-stone-500'>
+                {t('producer.chapterManagement.overview.expectedPages')}
               </div>
-              <div className='h-2 rounded-full bg-stone-200 overflow-hidden'>
-                <div
-                  className='h-full bg-orange-600 rounded-full transition-all'
-                  style={{ width: `${readiness?.production.taskProgressPercent ?? 0}%` }}
-                />
-              </div>
-              <div className='flex flex-wrap gap-2 text-[11px] text-stone-500'>
-                <span>Chờ duyệt: {readiness?.production.submittedTasks ?? 0}</span>
-                <span>•</span>
-                <span>Đang làm: {readiness?.production.inProgressTasks ?? 0}</span>
-                {(readiness?.production.reworkTasks ?? 0) > 0 && (
-                  <>
-                    <span>•</span>
-                    <span className='text-rose-600 font-semibold'>
-                      Sửa lại: {readiness?.production.reworkTasks}
-                    </span>
-                  </>
-                )}
-                {(readiness?.production.overdueTasks ?? 0) > 0 && (
-                  <>
-                    <span>•</span>
-                    <span className='text-rose-600 font-semibold'>
-                      Trễ hạn: {readiness?.production.overdueTasks}
-                    </span>
-                  </>
-                )}
+              <div className='text-xl font-mono font-bold text-stone-900 mt-1'>
+                {readiness?.script.pageCount ?? 0}
               </div>
             </div>
-
-            <div
-              data-testid='metric-page-progress'
-              className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 space-y-2'
-            >
-              <div className='flex items-center justify-between text-xs'>
-                <span className='font-semibold text-stone-700'>Trang hoàn tất (Page)</span>
-                <span className='font-mono font-bold text-stone-900'>
-                  {readiness?.production.completedPages ?? 0}/{readiness?.production.totalPages ?? 0}{' '}
-                  ({readiness?.production.pageProgressPercent ?? 0}%)
-                </span>
+            <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between'>
+              <div className='text-xs font-medium text-stone-500'>
+                {t('producer.chapterManagement.overview.panelsLabel')}
               </div>
-              <div className='h-2 rounded-full bg-stone-200 overflow-hidden'>
-                <div
-                  className='h-full bg-emerald-600 rounded-full transition-all'
-                  style={{ width: `${readiness?.production.pageProgressPercent ?? 0}%` }}
-                />
-              </div>
-              <div className='text-[11px] text-stone-500'>
-                Tính trang khi tất cả công đoạn của trang đều đã được duyệt.
+              <div className='text-xl font-mono font-bold text-stone-900 mt-1'>
+                {readiness?.script.panelCount ?? 0}
               </div>
             </div>
-
-            <div
-              data-testid='metric-panel-progress'
-              className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 space-y-2'
-            >
-              <div className='flex items-center justify-between text-xs'>
-                <span className='font-semibold text-stone-700'>Khung tranh công đoạn cuối (Panel)</span>
-                <span className='font-mono font-bold text-stone-900'>
-                  {readiness?.production.approvedPanels ?? 0}/{readiness?.production.totalPanels ?? 0}{' '}
-                  ({readiness?.production.panelProgressPercent ?? 0}%)
-                </span>
+            <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between'>
+              <div className='text-xs font-medium text-stone-500'>
+                {t('producer.chapterManagement.overview.productionStages')}
               </div>
-              <div className='h-2 rounded-full bg-stone-200 overflow-hidden'>
-                <div
-                  className='h-full bg-indigo-600 rounded-full transition-all'
-                  style={{ width: `${readiness?.production.panelProgressPercent ?? 0}%` }}
-                />
-              </div>
-              <div className='text-[11px] text-stone-500'>
-                Số panel đã đạt duyệt tại công đoạn cuối cùng của pipeline.
+              <div className='text-sm font-semibold text-stone-900 mt-1.5 truncate'>
+                {readiness?.production.stages.map((s) => s.stageName).join(' → ') ||
+                  stages
+                    .filter((s) => s.isEnabled !== false)
+                    .map((s) => s.name)
+                    .join(' → ') ||
+                  t('producer.chapterManagement.overview.notConfigured')}
               </div>
             </div>
           </div>
-
-          {/* Per-stage breakdown */}
-          {(readiness?.production.stages?.length ?? 0) > 0 && (
-            <div className='grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1'>
-              {readiness!.production.stages.map((st) => {
-                const pct = st.totalTasks > 0 ? Math.round((st.approvedTasks / st.totalTasks) * 100) : 0;
-                return (
-                  <div
-                    key={st.stageId}
-                    className='rounded-lg border border-stone-200/80 bg-white px-3 py-2.5 text-xs space-y-1.5'
-                  >
-                    <div className='flex items-center justify-between font-semibold text-stone-800'>
-                      <span className='truncate'>{st.stageName}</span>
-                      <span className='font-mono text-[11px] text-stone-600'>
-                        {st.approvedTasks}/{st.totalTasks}
-                      </span>
-                    </div>
-                    <div className='h-1.5 rounded-full bg-stone-100 overflow-hidden'>
-                      <div
-                        className='h-full bg-orange-500 rounded-full'
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    {st.submittedTasks > 0 && (
-                      <div className='text-[11px] text-amber-700 font-medium'>
-                        {st.submittedTasks} chờ duyệt
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </section>
-  );
-
-  // Reusable Pre-production Readiness Center
-  const readinessCenterSection = (
-    <section
-      data-testid='overview-readiness-center'
-      className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-4'
-    >
-      <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-stone-100'>
-        <div className='space-y-1'>
-          <div className='flex items-center gap-2'>
-            <ShieldAlert
-              className={`w-4 h-4 ${canStartProduction ? 'text-emerald-600' : 'text-orange-600'}`}
-            />
-            <h3 className='text-sm font-bold text-stone-900'>
-              Trung tâm Sẵn sàng Tiền sản xuất (Production Gate)
-            </h3>
-            <span
-              data-testid='readiness-status-badge'
-              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
-                isPreProduction
-                  ? canStartProduction
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-amber-50 text-amber-800 border-amber-200'
-                  : 'bg-stone-100 text-stone-700 border-stone-200'
-              }`}
-            >
-              {!isPreProduction
-                ? 'Đã bắt đầu sản xuất'
-                : canStartProduction
-                  ? 'Sẵn sàng sản xuất'
-                  : `Còn ${readiness?.summary.remaining ?? 0} điều kiện bắt buộc`}
-            </span>
-          </div>
-          <p className='text-xs text-stone-500'>
-            Đánh giá tự động từ dữ liệu thật của Kịch bản, Series Bible phạm vi chương và Pipeline.
-          </p>
-        </div>
-
-        {/* Authoritative Start Production Action + Explicit Disabled Reason */}
-        {isPreProduction && isProducer && (
-          <div className='flex flex-col sm:flex-row sm:items-center gap-2.5 shrink-0'>
-            {!canStartProduction && (
-              <span
-                data-testid='start-production-disabled-reason'
-                className='text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5'
+        ) : (
+          <div className='space-y-4'>
+            {/* 3 Strictly Separated Progress Metrics */}
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch'>
+              <div
+                data-testid='metric-task-progress'
+                className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between gap-2'
               >
-                {readiness?.blockers?.[0]?.message || 'Chưa đủ điều kiện bắt buộc để bắt đầu sản xuất.'}
-              </span>
-            )}
-            <button
-              type='button'
-              data-testid='overview-start-production-btn'
-              disabled={!canStartProduction}
-              onClick={() => setStartProductionOpen(true)}
-              className='px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 disabled:bg-stone-200 disabled:text-stone-500 disabled:cursor-not-allowed text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer whitespace-nowrap'
-            >
-              <Rocket className='w-3.5 h-3.5' />
-              <span>Bắt đầu sản xuất</span>
-            </button>
-          </div>
-        )}
-      </div>
+                <div className='flex items-center justify-between gap-2 text-xs'>
+                  <span className='font-semibold text-stone-700'>
+                    {t('producer.chapterManagement.overview.approvedTasks')}
+                  </span>
+                  <span className='font-mono font-bold text-stone-900 tabular-nums'>
+                    {approvedTasks}/{totalTasks} ({taskPct}%)
+                  </span>
+                </div>
+                <ProgressBar
+                  value={approvedTasks}
+                  max={totalTasks}
+                  tone='brand'
+                  label={t('producer.chapterManagement.overview.approvedTasks')}
+                />
+                <div className='flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-stone-500'>
+                  <span>
+                    {t('producer.chapterManagement.overview.pendingReviewCount', {
+                      count: readiness?.production.submittedTasks ?? 0,
+                    })}
+                  </span>
+                  <span>·</span>
+                  <span>
+                    {t('producer.chapterManagement.overview.inProgressCount', {
+                      count: readiness?.production.inProgressTasks ?? 0,
+                    })}
+                  </span>
+                  {(readiness?.production.reworkTasks ?? 0) > 0 && (
+                    <>
+                      <span>·</span>
+                      <span className='text-rose-700 font-semibold'>
+                        {t('producer.chapterManagement.overview.reworkCount', {
+                          count: readiness?.production.reworkTasks ?? 0,
+                        })}
+                      </span>
+                    </>
+                  )}
+                  {(readiness?.production.overdueTasks ?? 0) > 0 && (
+                    <>
+                      <span>·</span>
+                      <span className='text-rose-700 font-semibold'>
+                        {t('producer.chapterManagement.overview.overdueCount', {
+                          count: readiness?.production.overdueTasks ?? 0,
+                        })}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
 
-      {/* Overall Readiness Progress Bar */}
-      <div className='space-y-1.5'>
-        <div className='flex items-center justify-between text-xs'>
-          <span className='font-semibold text-stone-700'>
-            Điều kiện bắt buộc đã đạt: {readiness?.summary.passed ?? 0}/{readiness?.summary.required ?? 0}
-          </span>
-          <span className='font-mono font-bold text-stone-800'>{readinessPercent}%</span>
-        </div>
-        <div className='h-2 rounded-full bg-stone-100 overflow-hidden'>
-          <div
-            className={`h-full rounded-full transition-all ${
-              canStartProduction || !isPreProduction ? 'bg-emerald-600' : 'bg-orange-500'
-            }`}
-            style={{ width: `${readinessPercent}%` }}
-          />
-        </div>
-      </div>
+              <div
+                data-testid='metric-page-progress'
+                className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between gap-2'
+              >
+                <div className='flex items-center justify-between gap-2 text-xs'>
+                  <span className='font-semibold text-stone-700'>
+                    {t('producer.chapterManagement.overview.completedPages')}
+                  </span>
+                  <span className='font-mono font-bold text-stone-900 tabular-nums'>
+                    {completedPages}/{totalPages} ({pagePct}%)
+                  </span>
+                </div>
+                <ProgressBar
+                  value={completedPages}
+                  max={totalPages}
+                  tone='success'
+                  label={t('producer.chapterManagement.overview.completedPages')}
+                />
+                <div className='text-xs text-stone-500'>
+                  {t('producer.chapterManagement.overview.completedPagesHint')}
+                </div>
+              </div>
 
-      {/* Mandatory Checks List */}
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-2.5'>
-        {(readiness?.checks ?? []).map((chk) => (
-          <div
-            key={chk.code}
-            data-testid={`readiness-check-${chk.code}`}
-            className={`rounded-lg border px-3.5 py-2.5 flex items-start justify-between gap-3 ${
-              chk.passed
-                ? 'border-emerald-200/70 bg-emerald-50/30'
-                : 'border-amber-200/80 bg-amber-50/30'
-            }`}
-          >
-            <div className='flex items-start gap-2.5 min-w-0'>
-              {chk.passed ? (
-                <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0 mt-0.5' />
-              ) : (
-                <AlertCircle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
-              )}
-              <div className='min-w-0'>
-                <div className='text-xs font-semibold text-stone-900'>{chk.label}</div>
-                <div className='text-[11px] text-stone-600 mt-0.5'>
-                  {chk.statusText}
-                  {chk.reason ? ` — ${chk.reason}` : ''}
+              <div
+                data-testid='metric-panel-progress'
+                className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between gap-2'
+              >
+                <div className='flex items-center justify-between gap-2 text-xs'>
+                  <span className='font-semibold text-stone-700'>
+                    {t('producer.chapterManagement.overview.completedPanels')}
+                  </span>
+                  <span className='font-mono font-bold text-stone-900 tabular-nums'>
+                    {approvedPanels}/{totalPanels} ({panelPct}%)
+                  </span>
+                </div>
+                <ProgressBar
+                  value={approvedPanels}
+                  max={totalPanels}
+                  tone='info'
+                  label={t('producer.chapterManagement.overview.completedPanels')}
+                />
+                <div className='text-xs text-stone-500'>
+                  {t('producer.chapterManagement.overview.completedPanelsHint')}
                 </div>
               </div>
             </div>
-            {!chk.passed && chapter && (
-              <button
-                type='button'
-                onClick={() =>
-                  navigate(
-                    buildReadinessResolutionUrl(
-                      workspaceId,
-                      seriesId,
-                      chapter.id,
-                      chk.resolutionTarget,
-                    ),
-                  )
-                }
-                className='text-[11px] font-semibold text-orange-700 hover:text-orange-800 whitespace-nowrap shrink-0 cursor-pointer'
-              >
-                Xử lý →
-              </button>
+
+            {/* Per-stage breakdown */}
+            {(readiness?.production.stages?.length ?? 0) > 0 && (
+              <div className='grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1'>
+                {readiness!.production.stages.map((st) => (
+                  <div
+                    key={st.stageId}
+                    className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] px-3 py-2.5 text-xs space-y-1.5'
+                  >
+                    <div className='flex items-center justify-between gap-2 font-semibold text-stone-800'>
+                      <span className='truncate'>{st.stageName}</span>
+                      <span className='font-mono text-xs text-stone-600 tabular-nums shrink-0'>
+                        {st.approvedTasks}/{st.totalTasks}
+                      </span>
+                    </div>
+                    <ProgressBar
+                      value={st.approvedTasks}
+                      max={st.totalTasks}
+                      tone='brand'
+                      label={st.stageName}
+                      className='h-1.5'
+                    />
+                    {st.submittedTasks > 0 && (
+                      <div className='text-xs text-amber-800 font-medium'>
+                        {t('producer.chapterManagement.overview.stageSubmittedCount', {
+                          count: st.submittedTasks,
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-        ))}
-      </div>
-    </section>
+        )}
+      </CardBody>
+    </Card>
   );
 
-  // Action Center (Blockers + Warnings, deduplicated)
-  const actionCenterSection = (
-    <section
-      data-testid='overview-action-center'
-      className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-3'
-    >
-      <div className='flex items-center justify-between gap-2'>
-        <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
-          <AlertTriangle className='w-4 h-4 text-orange-600' />
-          <span>Điểm chặn & Việc cần xử lý (Action Center)</span>
-        </h3>
-        <div className='flex items-center gap-2 text-xs'>
-          <span className='px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-semibold'>
-            {readiness?.blockers.length ?? 0} điểm chặn
+  // Reusable Pre-production Readiness Center (featured when PreProduction, collapsible summary when InProduction)
+  const readinessCenterSection =
+    !isPreProduction && !gateExpanded ? (
+      <section
+        data-testid='overview-readiness-center'
+        className='rounded-xl border border-stone-200/90 bg-white px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-2xs'
+      >
+        <div className='flex flex-wrap items-center gap-2.5 min-w-0'>
+          <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' aria-hidden='true' />
+          <span className='text-sm font-bold text-stone-900'>
+            {t('producer.chapterManagement.overview.gateTitle')}
           </span>
-          <span className='px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-semibold'>
-            {readiness?.warnings.length ?? 0} cảnh báo
+          <Badge data-testid='readiness-status-badge' tone='success'>
+            {t('producer.chapterManagement.overview.productionStartedBadge')}
+          </Badge>
+          <span className='text-xs text-stone-500 font-mono'>
+            {t('producer.chapterManagement.overview.gatePassedSummary', {
+              passed: readiness?.summary.passed ?? 0,
+              required: readiness?.summary.required ?? 0,
+            })}
           </span>
         </div>
-      </div>
+        <Button
+          variant='ghost'
+          size='sm'
+          trailingIcon={<ChevronDown aria-hidden='true' />}
+          onClick={() => setGateExpanded(true)}
+        >
+          {t('producer.chapterManagement.overview.viewDetails')}
+        </Button>
+      </section>
+    ) : (
+      <Card
+        as='section'
+        featured={isPreProduction}
+        tone={canStartProduction ? 'success' : 'brand'}
+        data-testid='overview-readiness-center'
+      >
+        <CardHeader
+          icon={<ShieldAlert aria-hidden='true' />}
+          title={
+            <span className='inline-flex flex-wrap items-center gap-2'>
+              <span>{t('producer.chapterManagement.overview.gateTitle')}</span>
+              <Badge
+                data-testid='readiness-status-badge'
+                tone={!isPreProduction ? 'neutral' : canStartProduction ? 'success' : 'warning'}
+              >
+                {!isPreProduction
+                  ? t('producer.chapterManagement.overview.productionStartedBadge')
+                  : canStartProduction
+                    ? t('producer.chapterManagement.overview.readyToStartBadge')
+                    : t('producer.chapterManagement.overview.remainingChecksBadge', {
+                        count: readiness?.summary.remaining ?? 0,
+                      })}
+              </Badge>
+            </span>
+          }
+          subtitle={t('producer.chapterManagement.overview.gateSubtitle')}
+          actions={
+            <div className='flex flex-wrap items-center gap-2'>
+              {!isPreProduction && (
+                <Button variant='ghost' size='sm' onClick={() => setGateExpanded(false)}>
+                  {t('producer.chapterManagement.overview.collapseBtn')}
+                </Button>
+              )}
+              {isPreProduction && isProducer && (
+                <Button
+                  variant='primary'
+                  size='sm'
+                  data-testid='overview-start-production-btn'
+                  disabled={!canStartProduction}
+                  leadingIcon={<Rocket aria-hidden='true' />}
+                  onClick={() => setStartProductionOpen(true)}
+                >
+                  {t('producer.chapterManagement.overview.startProductionBtn')}
+                </Button>
+              )}
+            </div>
+          }
+        />
 
-      {(readiness?.blockers.length ?? 0) === 0 && (readiness?.warnings.length ?? 0) === 0 ? (
-        <div className='rounded-lg border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-xs text-emerald-800 flex items-center gap-2'>
-          <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' />
-          <span>
-            {isPreProduction
-              ? 'Không còn điểm chặn nào. Chương đã sẵn sàng để Bắt đầu sản xuất.'
-              : 'Không có cảnh báo hoặc điểm chặn cần Producer can thiệp ngay.'}
-          </span>
-        </div>
-      ) : (
-        <div className='space-y-2'>
+        <CardBody className='space-y-4'>
+          {isPreProduction && isProducer && !canStartProduction && (
+            <Alert tone='warning' data-testid='start-production-disabled-reason'>
+              {readiness?.blockers?.[0]?.message ||
+                t('producer.chapterManagement.overview.startDisabledFallback')}
+            </Alert>
+          )}
+
+          {/* Overall Readiness Progress Bar */}
+          <div className='space-y-1.5'>
+            <div className='flex items-center justify-between text-xs'>
+              <span className='font-semibold text-stone-700'>
+                {t('producer.chapterManagement.overview.mandatoryPassedLabel', {
+                  passed: readiness?.summary.passed ?? 0,
+                  required: readiness?.summary.required ?? 0,
+                })}
+              </span>
+              <span className='font-mono font-bold text-stone-900 tabular-nums'>
+                {readinessPercent}%
+              </span>
+            </div>
+            <ProgressBar
+              value={readiness?.summary.passed ?? 0}
+              max={readiness?.summary.required ?? 0}
+              tone={canStartProduction || !isPreProduction ? 'success' : 'brand'}
+              label={t('producer.chapterManagement.overview.gateTitle')}
+            />
+          </div>
+
+          {/* Mandatory Checks List */}
+          {(readiness?.checks?.length ?? 0) > 0 && (
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-2.5'>
+              {(readiness?.checks ?? []).map((chk) => (
+                <div
+                  key={chk.code}
+                  data-testid={`readiness-check-${chk.code}`}
+                  className={`rounded-lg border px-3.5 py-2.5 flex items-start justify-between gap-3 ${
+                    chk.passed
+                      ? 'border-emerald-200/70 bg-emerald-50/40'
+                      : 'border-amber-200/80 bg-amber-50/40'
+                  }`}
+                >
+                  <div className='flex items-start gap-2.5 min-w-0'>
+                    {chk.passed ? (
+                      <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0 mt-0.5' />
+                    ) : (
+                      <AlertCircle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
+                    )}
+                    <div className='min-w-0'>
+                      <div className='text-xs font-semibold text-stone-900'>{chk.label}</div>
+                      <div className='text-xs text-stone-600 mt-0.5'>
+                        {chk.statusText}
+                        {chk.reason ? ` — ${chk.reason}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                  {!chk.passed && chapter && (
+                    <button
+                      type='button'
+                      onClick={() =>
+                        navigate(
+                          buildReadinessResolutionUrl(
+                            workspaceId,
+                            seriesId,
+                            chapter.id,
+                            chk.resolutionTarget,
+                          ),
+                        )
+                      }
+                      className='text-xs font-semibold text-accent-dark hover:underline whitespace-nowrap shrink-0 cursor-pointer'
+                    >
+                      {t('producer.chapterManagement.overview.resolveLink')}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+    );
+
+  // Action Center (Blockers + Warnings, deduplicated; compact confirmation when empty)
+  const blockerCount = readiness?.blockers.length ?? 0;
+  const warningCount = readiness?.warnings.length ?? 0;
+  const actionCenterSection =
+    blockerCount === 0 && warningCount === 0 ? (
+      <div
+        data-testid='overview-action-center'
+        className='rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3 text-xs text-emerald-800 flex items-center gap-2'
+      >
+        <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' aria-hidden='true' />
+        <span className='font-medium'>
+          {isPreProduction
+            ? t('producer.chapterManagement.overview.noBlockersPreProd')
+            : t('producer.chapterManagement.overview.noPendingActions')}
+        </span>
+      </div>
+    ) : (
+      <Card
+        as='section'
+        tone={blockerCount > 0 ? 'danger' : 'warning'}
+        data-testid='overview-action-center'
+      >
+        <CardHeader
+          icon={<AlertTriangle aria-hidden='true' />}
+          title={t('producer.chapterManagement.overview.actionCenterTitle')}
+          actions={
+            <div className='flex items-center gap-1.5'>
+              {blockerCount > 0 && (
+                <Badge tone='danger'>
+                  {t('producer.chapterManagement.overview.blockerCountBadge', {
+                    count: blockerCount,
+                  })}
+                </Badge>
+              )}
+              {warningCount > 0 && (
+                <Badge tone='warning'>
+                  {t('producer.chapterManagement.overview.warningCountBadge', {
+                    count: warningCount,
+                  })}
+                </Badge>
+              )}
+            </div>
+          }
+        />
+        <CardBody className='space-y-2'>
           {(readiness?.blockers ?? []).map((issue, idx) => (
             <div
               key={`${issue.code}-${issue.resourceId || idx}`}
               data-testid={`action-blocker-${issue.code}`}
               className='rounded-lg border border-rose-200/80 bg-rose-50/40 px-3.5 py-2.5 flex items-center justify-between gap-3'
             >
-              <div className='flex items-start gap-2.5 min-w-0'>
-                <span className='px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold uppercase shrink-0 mt-0.5'>
-                  Chặn
-                </span>
-                <p className='text-xs text-stone-800'>{issue.message}</p>
+              <div className='flex items-center gap-2.5 min-w-0'>
+                <Badge tone='danger'>{t('producer.chapterManagement.overview.blockerTag')}</Badge>
+                <p className='text-xs text-stone-800 min-w-0'>{issue.message}</p>
               </div>
               {chapter && (
-                <button
-                  type='button'
+                <Button
+                  variant='danger'
+                  size='sm'
                   onClick={() =>
                     navigate(
                       buildReadinessResolutionUrl(
@@ -1047,10 +1193,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                       ),
                     )
                   }
-                  className='px-2.5 py-1 rounded-md bg-white border border-rose-200 hover:bg-rose-50 text-xs font-semibold text-rose-700 whitespace-nowrap shrink-0 cursor-pointer'
                 >
-                  Mở xử lý →
-                </button>
+                  {t('producer.chapterManagement.overview.openResolveBtn')}
+                </Button>
               )}
             </div>
           ))}
@@ -1061,15 +1206,14 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               data-testid={`action-warning-${issue.code}`}
               className='rounded-lg border border-amber-200/80 bg-amber-50/40 px-3.5 py-2.5 flex items-center justify-between gap-3'
             >
-              <div className='flex items-start gap-2.5 min-w-0'>
-                <span className='px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold uppercase shrink-0 mt-0.5'>
-                  Cảnh báo
-                </span>
-                <p className='text-xs text-stone-800'>{issue.message}</p>
+              <div className='flex items-center gap-2.5 min-w-0'>
+                <Badge tone='warning'>{t('producer.chapterManagement.overview.warningTag')}</Badge>
+                <p className='text-xs text-stone-800 min-w-0'>{issue.message}</p>
               </div>
               {chapter && (
-                <button
-                  type='button'
+                <Button
+                  variant='warning'
+                  size='sm'
                   onClick={() =>
                     navigate(
                       buildReadinessResolutionUrl(
@@ -1080,17 +1224,15 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                       ),
                     )
                   }
-                  className='px-2.5 py-1 rounded-md bg-white border border-amber-200 hover:bg-amber-50 text-xs font-semibold text-amber-800 whitespace-nowrap shrink-0 cursor-pointer'
                 >
-                  Xem chi tiết →
-                </button>
+                  {t('producer.chapterManagement.overview.viewDetails')}
+                </Button>
               )}
             </div>
           ))}
-        </div>
-      )}
-    </section>
-  );
+        </CardBody>
+      </Card>
+    );
 
   return (
     <div
@@ -1099,6 +1241,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
     >
       {/* 1. SHARED CHAPTER HEADER */}
       <ProducerSharedHeader
+        hideBackLink
         workspaceId={workspaceId}
         seriesId={seriesId}
         currentChapterId={selectedChapterId}
@@ -1215,41 +1358,31 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       />
 
       {/* MAIN FULL-WIDTH DESKTOP OVERVIEW BODY */}
-      <div className='max-w-[1640px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-5'>
-        {/* 2. LIFECYCLE TRACKER */}
+      <div className='max-w-[1640px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 space-y-4'>
+        {/* 2. COMPACT LIFECYCLE STEPPER (trực tiếp trên nền giấy, không bọc card lớn) */}
         <section
           data-testid='overview-lifecycle-tracker'
-          className='rounded-xl border border-stone-200 bg-white px-5 py-3.5 shadow-xs'
+          aria-label={t('producer.chapterManagement.overview.lifecycleAria')}
+          className='flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-head-line'
         >
-          <div className='flex items-center justify-between gap-2 mb-2.5'>
-            <span className='text-xs font-bold uppercase tracking-wider text-stone-500'>
-              Vòng đời chương (Chapter Lifecycle)
-            </span>
-            <button
-              type='button'
-              onClick={() => void refreshAll()}
-              disabled={loadingReadiness}
-              className='inline-flex items-center gap-1 text-xs text-stone-500 hover:text-stone-800 cursor-pointer'
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingReadiness ? 'animate-spin' : ''}`} />
-              <span>Làm mới</span>
-            </button>
-          </div>
-          <ol className='flex items-center gap-1.5 overflow-x-auto pb-0.5'>
+          <ol className='flex items-center gap-1.5 overflow-x-auto py-0.5 min-w-0'>
             {lifecycleSteps.map((step, idx) => (
               <React.Fragment key={step.id}>
                 {idx > 0 && (
-                  <ChevronRight className='w-3.5 h-3.5 text-stone-300 shrink-0' aria-hidden='true' />
+                  <ChevronRight
+                    className='w-3.5 h-3.5 text-stone-300 shrink-0'
+                    aria-hidden='true'
+                  />
                 )}
                 <li
                   data-testid={`lifecycle-step-${step.id}`}
                   data-step-state={step.state}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
                     step.state === 'current'
-                      ? 'bg-orange-600 text-white shadow-2xs'
+                      ? 'bg-accent text-white shadow-2xs'
                       : step.state === 'completed'
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-stone-100 text-stone-400'
+                        : 'bg-stone-100 text-stone-500'
                   }`}
                 >
                   {step.state === 'completed' && <CheckCircle2 className='w-3.5 h-3.5 shrink-0' />}
@@ -1258,6 +1391,17 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               </React.Fragment>
             ))}
           </ol>
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={() => void refreshAll()}
+            disabled={loadingReadiness}
+            leadingIcon={
+              <RefreshCw className={loadingReadiness ? 'animate-spin' : ''} aria-hidden='true' />
+            }
+          >
+            {t('producer.chapterManagement.overview.refreshBtn')}
+          </Button>
         </section>
 
         {/* 3. ADAPTIVE PRIMARY ZONE: Pre-production prioritizes Readiness; InProduction prioritizes Progress */}
@@ -1273,36 +1417,37 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
           </>
         )}
 
-        {/* 4. TWO-COLUMN SUMMARY: SCRIPT SUMMARY + CHAPTER SERIES BIBLE SUMMARY */}
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-5'>
-          {/* SCRIPT SUMMARY CARD (NO FULL SCRIPT CONTENT!) */}
-          <section
-            data-testid='overview-script-summary'
-            className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs flex flex-col justify-between space-y-4'
-          >
-            <div className='space-y-3'>
-              <div className='flex items-center justify-between gap-2'>
-                <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
-                  <FileText className='w-4 h-4 text-orange-600' />
-                  <span>Tóm tắt Kịch bản (Script Summary)</span>
-                </h3>
-                <span className='text-[11px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200'>
-                  {readiness?.script.scriptStatus || chapter?.scriptStatus || 'Draft'}
-                </span>
-              </div>
-
+        {/* 4. TWO-COLUMN SUMMARY: SCRIPT SUMMARY + CHAPTER REFERENCES */}
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 items-start'>
+          {/* SCRIPT SUMMARY CARD */}
+          <Card as='section' data-testid='overview-script-summary'>
+            <CardHeader
+              icon={<FileText aria-hidden='true' />}
+              title={t('producer.chapterManagement.overview.scriptSummaryTitle')}
+              actions={
+                <StatusBadge
+                  kind='script'
+                  status={readiness?.script.scriptStatus || chapter?.scriptStatus || 'Draft'}
+                />
+              }
+            />
+            <CardBody className='space-y-3.5'>
               {/* Version Context: Latest vs Approved vs Production */}
               <div className='grid grid-cols-3 gap-2.5'>
                 <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
-                  <div className='text-[11px] text-stone-500'>Bản mới nhất</div>
+                  <div className='text-xs text-stone-500'>
+                    {t('producer.chapterManagement.overview.latestVersion')}
+                  </div>
                   <div className='text-sm font-bold font-mono text-stone-900 mt-0.5'>
                     {readiness?.script.latestVersionNumber
                       ? `v${readiness.script.latestVersionNumber}`
-                      : 'Chưa lưu'}
+                      : t('producer.chapterManagement.overview.notSaved')}
                   </div>
                 </div>
                 <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
-                  <div className='text-[11px] text-stone-500'>Bản gửi duyệt</div>
+                  <div className='text-xs text-stone-500'>
+                    {t('producer.chapterManagement.overview.submittedVersion')}
+                  </div>
                   <div className='text-sm font-bold font-mono text-stone-900 mt-0.5'>
                     {readiness?.script.approvedVersionNumber
                       ? `v${readiness.script.approvedVersionNumber}`
@@ -1310,100 +1455,125 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   </div>
                 </div>
                 <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
-                  <div className='text-[11px] text-stone-500'>Bản đang sản xuất</div>
-                  <div className='text-sm font-bold font-mono text-orange-700 mt-0.5'>
+                  <div className='text-xs text-stone-500'>
+                    {t('producer.chapterManagement.overview.productionVersion')}
+                  </div>
+                  <div className='text-sm font-bold font-mono text-accent-dark mt-0.5'>
                     {readiness?.script.productionVersionNumber
                       ? `v${readiness.script.productionVersionNumber}`
-                      : 'Chưa khóa'}
+                      : t('producer.chapterManagement.overview.notFrozen')}
                   </div>
                 </div>
               </div>
 
               {/* Structural & Review Counters */}
               <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs'>
-                <div className='rounded-lg bg-stone-50 px-3 py-2 border border-stone-100'>
-                  <div className='text-stone-500 text-[11px]'>Cảnh</div>
-                  <div className='font-bold text-stone-900'>{readiness?.script.sceneCount ?? 0}</div>
+                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
+                  <div className='text-stone-500'>
+                    {t('producer.chapterManagement.overview.scenesLabel')}
+                  </div>
+                  <div className='font-mono font-bold text-stone-900 mt-0.5'>
+                    {readiness?.script.sceneCount ?? 0}
+                  </div>
                 </div>
-                <div className='rounded-lg bg-stone-50 px-3 py-2 border border-stone-100'>
-                  <div className='text-stone-500 text-[11px]'>Trang / Khung</div>
-                  <div className='font-bold text-stone-900'>
+                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
+                  <div className='text-stone-500'>
+                    {t('producer.chapterManagement.overview.pagesPanelsLabel')}
+                  </div>
+                  <div className='font-mono font-bold text-stone-900 mt-0.5'>
                     {readiness?.script.pageCount ?? 0} / {readiness?.script.panelCount ?? 0}
                   </div>
                 </div>
-                <div className='rounded-lg bg-stone-50 px-3 py-2 border border-stone-100'>
-                  <div className='text-stone-500 text-[11px]'>Góp ý mở</div>
-                  <div className='font-bold text-stone-900 flex items-center gap-1'>
-                    <MessageSquare className='w-3 h-3 text-stone-400' />
+                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
+                  <div className='text-stone-500'>
+                    {t('producer.chapterManagement.overview.openCommentsLabel')}
+                  </div>
+                  <div className='font-mono font-bold text-stone-900 mt-0.5 flex items-center gap-1'>
+                    <MessageSquare className='w-3.5 h-3.5 text-stone-400' aria-hidden='true' />
                     {readiness?.script.unresolvedCommentsCount ?? 0}
                   </div>
                 </div>
-                <div className='rounded-lg bg-stone-50 px-3 py-2 border border-stone-100'>
-                  <div className='text-stone-500 text-[11px]'>Cảnh báo nhất quán</div>
-                  <div className='font-bold text-stone-900'>
+                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
+                  <div className='text-stone-500'>
+                    {t('producer.chapterManagement.overview.consistencyAlertsLabel')}
+                  </div>
+                  <div className='font-mono font-bold text-stone-900 mt-0.5'>
                     {readiness?.script.openFindingsCount ?? 0}
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className='pt-3 border-t border-stone-100 flex items-center justify-between gap-2'>
-              <span className='text-[11px] text-stone-500'>
-                {readiness?.script.lastUpdatedAt
-                  ? `Cập nhật: ${new Date(readiness.script.lastUpdatedAt).toLocaleString()}`
-                  : ''}
-              </span>
-              {chapter && (
-                <button
-                  type='button'
-                  data-testid='open-script-workspace-btn'
-                  onClick={() => navigate(buildScriptReviewUrl(workspaceId, seriesId, chapter.id))}
-                  className='px-3.5 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer'
-                >
-                  <span>Mở Không gian Kịch bản</span>
-                  <ArrowRight className='w-3.5 h-3.5' />
-                </button>
-              )}
-            </div>
-          </section>
+              <div className='pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2'>
+                <span className='text-xs text-stone-500'>
+                  {readiness?.script.lastUpdatedAt
+                    ? t('producer.chapterManagement.overview.updatedAt', {
+                        date: new Date(readiness.script.lastUpdatedAt).toLocaleString(dateLocale),
+                      })
+                    : ''}
+                </span>
+                {chapter && (
+                  <Button
+                    variant='secondary'
+                    size='sm'
+                    data-testid='open-script-workspace-btn'
+                    trailingIcon={<ArrowRight aria-hidden='true' />}
+                    onClick={() =>
+                      navigate(buildScriptReviewUrl(workspaceId, seriesId, chapter.id))
+                    }
+                  >
+                    {t('producer.chapterManagement.overview.openScriptBtn')}
+                  </Button>
+                )}
+              </div>
+            </CardBody>
+          </Card>
 
           {/* CHAPTER-SCOPED SERIES BIBLE SUMMARY CARD */}
-          <section
-            data-testid='overview-bible-summary'
-            className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs flex flex-col justify-between space-y-4'
-          >
-            <div className='space-y-3'>
-              <div className='flex items-center justify-between gap-2'>
-                <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
-                  <Palette className='w-4 h-4 text-orange-600' />
-                  <span>Tài liệu tham khảo chương (Chapter Bible)</span>
-                </h3>
+          <Card as='section' tone='ai' data-testid='overview-bible-summary'>
+            <CardHeader
+              icon={<Palette aria-hidden='true' />}
+              title={t('producer.chapterManagement.overview.bibleSummaryTitle')}
+              actions={
                 <span className='text-xs font-mono font-bold text-stone-800'>
-                  {readiness?.bible.readyCount ?? 0}/{readiness?.bible.requiredTotal ?? 0} bắt buộc
+                  {t('producer.chapterManagement.overview.bibleRequiredCount', {
+                    ready: readiness?.bible.readyCount ?? 0,
+                    total: readiness?.bible.requiredTotal ?? 0,
+                  })}
                 </span>
-              </div>
-
+              }
+            />
+            <CardBody className='space-y-3.5'>
               <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs'>
-                <div className='rounded-lg bg-emerald-50/60 px-3 py-2 border border-emerald-100'>
-                  <div className='text-emerald-700 text-[11px]'>Đã khóa chuẩn</div>
-                  <div className='font-bold text-emerald-900'>{readiness?.bible.readyCount ?? 0}</div>
+                <div className='rounded-lg bg-emerald-50/60 px-3 py-2 border border-emerald-200/60'>
+                  <div className='text-emerald-700'>
+                    {t('producer.chapterManagement.overview.bibleLockedLabel')}
+                  </div>
+                  <div className='font-mono font-bold text-emerald-900 mt-0.5'>
+                    {readiness?.bible.readyCount ?? 0}
+                  </div>
                 </div>
-                <div className='rounded-lg bg-amber-50/60 px-3 py-2 border border-amber-100'>
-                  <div className='text-amber-800 text-[11px]'>Thiếu bản vẽ / ĐN</div>
-                  <div className='font-bold text-amber-900'>
+                <div className='rounded-lg bg-amber-50/60 px-3 py-2 border border-amber-200/60'>
+                  <div className='text-amber-800'>
+                    {t('producer.chapterManagement.overview.bibleMissingLabel')}
+                  </div>
+                  <div className='font-mono font-bold text-amber-900 mt-0.5'>
                     {(readiness?.bible.missingArtCount ?? 0) +
                       (readiness?.bible.missingDefinitionCount ?? 0)}
                   </div>
                 </div>
-                <div className='rounded-lg bg-sky-50/60 px-3 py-2 border border-sky-100'>
-                  <div className='text-sky-800 text-[11px]'>Chờ duyệt</div>
-                  <div className='font-bold text-sky-900'>
+                <div className='rounded-lg bg-blue-50/60 px-3 py-2 border border-blue-200/60'>
+                  <div className='text-blue-800'>
+                    {t('producer.chapterManagement.overview.biblePendingLabel')}
+                  </div>
+                  <div className='font-mono font-bold text-blue-900 mt-0.5'>
                     {readiness?.bible.pendingApprovalCount ?? 0}
                   </div>
                 </div>
-                <div className='rounded-lg bg-stone-50 px-3 py-2 border border-stone-200/70'>
-                  <div className='text-stone-600 text-[11px]'>Quần chúng (tùy chọn)</div>
-                  <div className='font-bold text-stone-800'>
+                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
+                  <div className='text-stone-600'>
+                    {t('producer.chapterManagement.overview.bibleCrowdLabel')}
+                  </div>
+                  <div className='font-mono font-bold text-stone-800 mt-0.5'>
                     {readiness?.bible.crowdOptionalCount ?? 0}
                   </div>
                 </div>
@@ -1413,12 +1583,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               {(readiness?.bible.byCategory?.length ?? 0) > 0 && (
                 <div className='flex flex-wrap gap-1.5'>
                   {readiness!.bible.byCategory.map((cat) => (
-                    <span
-                      key={cat.category}
-                      className='text-[11px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200/80'
-                    >
+                    <Badge key={cat.category} tone='neutral'>
                       {CATEGORY_LABELS[cat.category] || cat.category}: {cat.ready}/{cat.required}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               )}
@@ -1426,8 +1593,8 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               {/* Quick contextual links for missing required references */}
               {missingBibleEntities.length > 0 && chapter && (
                 <div className='space-y-1.5 pt-1'>
-                  <div className='text-[11px] font-semibold text-stone-500 uppercase tracking-wide'>
-                    Cần bổ sung / khóa chuẩn
+                  <div className='text-xs font-semibold text-stone-500 uppercase tracking-wide'>
+                    {t('producer.chapterManagement.overview.bibleNeedsLockHeading')}
                   </div>
                   <div className='flex flex-wrap gap-1.5'>
                     {missingBibleEntities.slice(0, 6).map((ent) => (
@@ -1448,102 +1615,48 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   </div>
                 </div>
               )}
-            </div>
 
-            <div className='pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2'>
-              <button
-                type='button'
-                onClick={() => navigate(buildBibleUrl(workspaceId, seriesId))}
-                className='text-xs font-semibold text-stone-600 hover:text-stone-900 cursor-pointer'
-              >
-                Mở Thư viện Series Bible →
-              </button>
-              {chapter && (
+              <div className='pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2'>
                 <button
                   type='button'
-                  data-testid='open-chapter-references-btn'
-                  onClick={() =>
-                    navigate(`${buildScriptReviewUrl(workspaceId, seriesId, chapter.id)}?tab=entities`)
-                  }
-                  className='px-3.5 py-1.5 rounded-lg bg-white border border-stone-300 hover:bg-stone-50 text-stone-800 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer'
+                  onClick={() => navigate(buildBibleUrl(workspaceId, seriesId))}
+                  className='text-xs font-semibold text-stone-600 hover:text-stone-900 cursor-pointer'
                 >
-                  <span>Kiểm tra tài liệu chương</span>
-                  <ArrowRight className='w-3.5 h-3.5' />
+                  {t('producer.chapterManagement.overview.seriesBibleLibraryLink')}
                 </button>
-              )}
-            </div>
-          </section>
+                {chapter && (
+                  <Button
+                    variant='secondary'
+                    size='sm'
+                    data-testid='open-chapter-references-btn'
+                    trailingIcon={<ArrowRight aria-hidden='true' />}
+                    onClick={() =>
+                      navigate(
+                        `${buildScriptReviewUrl(workspaceId, seriesId, chapter.id)}?tab=entities`,
+                      )
+                    }
+                  >
+                    {t('producer.chapterManagement.overview.viewChapterReferencesBtn')}
+                  </Button>
+                )}
+              </div>
+            </CardBody>
+          </Card>
         </div>
 
         {/* 5. SECONDARY ZONE: Production Scope (when PreProduction) or Gate Summary (when InProduction) */}
         {isPreProduction ? productionProgressSection : readinessCenterSection}
 
-        {/* 6. QUICK SHORTCUTS & RECENT ACTIVITY */}
-        <div className='grid grid-cols-1 lg:grid-cols-3 gap-5'>
-          <section className='rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-3'>
-            <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
-              <Layers className='w-4 h-4 text-orange-600' />
-              <span>Lối tắt điều hành</span>
-            </h3>
-            <div className='grid grid-cols-1 gap-2 text-xs'>
-              {chapter && (
-                <>
-                  <button
-                    type='button'
-                    onClick={() =>
-                      navigate(
-                        buildProductionWorkspaceUrl(workspaceId, seriesId, {
-                          chapterId: chapter.id,
-                          tab: 'crew',
-                        }),
-                      )
-                    }
-                    className='w-full px-3 py-2 rounded-lg border border-stone-200 hover:bg-stone-50 flex items-center justify-between text-stone-800 font-medium cursor-pointer'
-                  >
-                    <span className='inline-flex items-center gap-2'>
-                      <Users className='w-3.5 h-3.5 text-stone-500' />
-                      Quản lý Ê-kíp & Tải công việc
-                    </span>
-                    <ArrowRight className='w-3.5 h-3.5 text-stone-400' />
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => navigate(buildChapterReaderUrl(workspaceId, seriesId, chapter.id))}
-                    className='w-full px-3 py-2 rounded-lg border border-stone-200 hover:bg-stone-50 flex items-center justify-between text-stone-800 font-medium cursor-pointer'
-                  >
-                    <span className='inline-flex items-center gap-2'>
-                      <Play className='w-3.5 h-3.5 text-stone-500' />
-                      Đọc thử & Soát trang (Reader)
-                    </span>
-                    <ArrowRight className='w-3.5 h-3.5 text-stone-400' />
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => navigate(buildSeriesExportUrl(workspaceId, seriesId, chapter.id))}
-                    className='w-full px-3 py-2 rounded-lg border border-stone-200 hover:bg-stone-50 flex items-center justify-between text-stone-800 font-medium cursor-pointer'
-                  >
-                    <span className='inline-flex items-center gap-2'>
-                      <Share2 className='w-3.5 h-3.5 text-stone-500' />
-                      Xuất file & Bàn giao xuất bản
-                    </span>
-                    <ArrowRight className='w-3.5 h-3.5 text-stone-400' />
-                  </button>
-                </>
-              )}
-            </div>
-          </section>
-
-          <section
-            data-testid='overview-recent-activity'
-            className='lg:col-span-2 rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-3'
-          >
-            <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
-              <Clock className='w-4 h-4 text-orange-600' />
-              <span>Hoạt động & Kiểm duyệt gần đây</span>
-            </h3>
+        {/* 6. RECENT ACTIVITY (Shortcuts trùng sidebar đã được loại bỏ theo §6) */}
+        <Card as='section' data-testid='overview-recent-activity'>
+          <CardHeader
+            icon={<Clock aria-hidden='true' />}
+            title={t('producer.chapterManagement.overview.recentActivityTitle')}
+          />
+          <CardBody>
             {reviews.length === 0 ? (
               <p className='text-xs text-stone-500'>
-                Chưa có bản ghi kiểm duyệt hoặc bàn giao cấp chương nào cho chương này.
+                {t('producer.chapterManagement.overview.recentActivityEmpty')}
               </p>
             ) : (
               <ul className='divide-y divide-stone-100 text-xs'>
@@ -1551,21 +1664,23 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   <li key={rev.id} className='py-2.5 flex items-start justify-between gap-3'>
                     <div className='min-w-0'>
                       <span className='font-semibold text-stone-900'>
-                        {rev.action}
+                        {REVIEW_ACTION_LABEL_KEYS[rev.action]
+                          ? t(REVIEW_ACTION_LABEL_KEYS[rev.action])
+                          : rev.action}
                       </span>
                       {rev.comment && (
                         <p className='text-stone-600 mt-0.5 truncate'>{rev.comment}</p>
                       )}
                     </div>
-                    <span className='text-[11px] text-stone-400 whitespace-nowrap shrink-0'>
-                      {rev.createdAt ? new Date(rev.createdAt).toLocaleString() : ''}
+                    <span className='text-xs text-stone-500 font-mono whitespace-nowrap shrink-0'>
+                      {rev.createdAt ? new Date(rev.createdAt).toLocaleString(dateLocale) : ''}
                     </span>
                   </li>
                 ))}
               </ul>
             )}
-          </section>
-        </div>
+          </CardBody>
+        </Card>
       </div>
 
       {/* ── MODALS ── */}
@@ -1658,7 +1773,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               />
             </div>
             <div>
-              <label className='block font-semibold text-stone-700 mb-1'>Hạn phát hành dự kiến</label>
+              <label className='block font-semibold text-stone-700 mb-1'>
+                Hạn phát hành dự kiến
+              </label>
               <input
                 type='date'
                 value={formTargetReleaseDate}
@@ -1704,7 +1821,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               />
             </div>
             <div>
-              <label className='block font-semibold text-stone-700 mb-1'>Hạn phát hành dự kiến</label>
+              <label className='block font-semibold text-stone-700 mb-1'>
+                Hạn phát hành dự kiến
+              </label>
               <input
                 type='date'
                 value={formTargetReleaseDate}

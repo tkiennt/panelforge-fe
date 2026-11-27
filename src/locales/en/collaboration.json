@@ -26,7 +26,12 @@
       "noRevisions": "There are no revision requests to address.",
       "revisionsSummary": "You have {count} revision requests to address.",
       "revisionProductionTitle": "Chapter {chapter} · Page {page}",
-      "designRevisionFallback": "The artwork needs revision based on feedback."
+      "designRevisionFallback": "The artwork needs revision based on feedback.",
+      "workspaceEyebrow": "{series} / Artist Workspace",
+      "summaryAria": "Artist work summary",
+      "noActiveProduction": "No production work in progress",
+      "noActiveProductionDesc": "New page assignments will appear here. You can still open the desk to browse every chapter.",
+      "noDesignRequests": "No design requests yet."
     },
     "allStudioOption": "Entire Studio (All Chapters)",
     "chapterOption": "Chapter {number}",
@@ -83,7 +88,9 @@
     "chaptersInSeries": "{count} chapters in this series",
     "scriptLocked": "Script locked",
     "noOutline": "This chapter has no script outline yet.",
-    "pagesCount": "{count} pages"
+    "pagesCount": "{count} pages",
+    "greeting": "Work overview for {name}",
+    "taskListTitle": "Task list"
   },
   "card": {
     "start": "Start Working",
