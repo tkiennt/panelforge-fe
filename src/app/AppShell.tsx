@@ -50,7 +50,8 @@ import {
   FileCheck,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
-import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
+import { SIDEBAR_ID } from './sidebarTheme';
+import { useSidebarTheme } from './useSidebarTheme';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 import { getRoleDefaultPath } from '@/roles/roles';
@@ -359,7 +360,8 @@ export function AppShell({
                 icon: LayoutDashboard,
                 label: t('navigation.menu.chapterOverview', 'Tổng quan chương'),
                 href: buildChapterManagementUrl(workspaceId!, seriesId!, chapterId ?? undefined),
-                isActive: location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'chapters'),
+                isActive:
+                  location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'chapters'),
               },
               {
                 icon: Users,
@@ -760,23 +762,7 @@ export function AppShell({
     });
   };
 
-  // Giao diện thanh bên: cài đặt trên thiết bị (localStorage), mặc định "Mực đậm"
-  const [sidebarTheme, setSidebarTheme] = useState<SidebarTheme>(() => {
-    try {
-      const saved = localStorage.getItem('pf.sidebar.theme');
-      return SIDEBAR_THEMES.some((x) => x.id === saved) ? (saved as SidebarTheme) : 'ink';
-    } catch {
-      return 'ink';
-    }
-  });
-  const handleChangeSidebarTheme = (next: SidebarTheme) => {
-    setSidebarTheme(next);
-    try {
-      localStorage.setItem('pf.sidebar.theme', next);
-    } catch {
-      // ignore
-    }
-  };
+  const [sidebarTheme, handleChangeSidebarTheme] = useSidebarTheme();
 
   const navSections = rawSections.map((sec) => ({
     ...sec,

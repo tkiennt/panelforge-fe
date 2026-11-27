@@ -210,7 +210,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(handleToggleVis).toHaveBeenCalledWith('page-1');
   });
 
-  it('defaults to light theme paper and supports custom theme integration', () => {
+  it('keeps the artist tool drawer on its independent paper theme', () => {
     renderWithRouter(
       <ArtistCanvaSidebar
         pages={MOCK_PAGES}
@@ -225,7 +225,6 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     );
 
     const sidebar = screen.getByTestId('artist-desk-sidebar');
-    // Default theme is paper (màu sáng)
     expect(sidebar).toHaveAttribute('data-sb-theme', 'paper');
   });
 

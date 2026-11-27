@@ -31,6 +31,7 @@ import { formatChapterLabel } from '@/shared/features/pipeline-board/productionB
 import { useTranslation } from '@/lib/i18n';
 import { CurrentUser } from './AppShell';
 import { AppShellSidebar } from './AppShellSidebar';
+import { useSidebarTheme } from './useSidebarTheme';
 
 export interface FocusStageItem {
   id: string;
@@ -450,6 +451,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
   const [isExiting, setIsExiting] = useState(false);
   const [headerConfig, setHeaderConfig] = useState<FocusHeaderConfig | null>(null);
   const [fetchedSeriesTitle, setFetchedSeriesTitle] = useState<string | undefined>(undefined);
+  const [sidebarTheme, setSidebarTheme] = useSidebarTheme();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
@@ -892,8 +894,8 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
             isCollapsed={isSidebarCollapsed}
             onToggleSidebar={handleToggleSidebar}
             isMobileDrawer={false}
-            theme='paper'
-            surfaceClassName='!bg-white'
+            theme={sidebarTheme}
+            onChangeTheme={setSidebarTheme}
             activeChapterNumber={activeChapterObj?.chapterNumber ?? null}
           />
         )}

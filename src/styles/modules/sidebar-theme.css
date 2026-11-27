@@ -12,8 +12,10 @@
   --sb-popover: #24201e;
   --sb-ease: cubic-bezier(0.16, 1, 0.3, 1);
 
+  color-scheme: dark;
   background-color: var(--sb-bg);
   color: var(--sb-text);
+  border-color: var(--sb-border);
   transition:
     width 200ms var(--sb-ease),
     background-color 150ms ease,
@@ -31,6 +33,7 @@
   --sb-active-bg: rgba(234, 88, 12, 0.12);
   --sb-accent: #c2410c;
   --sb-popover: #fcfbf8;
+  color-scheme: light;
 }
 .pf-sidebar[data-sb-theme='ocean'] {
   --sb-bg: #0f1b2d;
@@ -55,6 +58,23 @@
   color: var(--sb-text);
   border: 1px solid var(--sb-border);
 }
+.pf-sb-chrome {
+  background-color: var(--sb-bg);
+  border-color: var(--sb-border);
+}
+.pf-sb-text {
+  color: var(--sb-text);
+}
+.pf-sb-muted {
+  color: var(--sb-muted);
+}
+.pf-sb-action {
+  color: var(--sb-muted);
+}
+.pf-sb-action:hover {
+  background-color: var(--sb-hover);
+  color: var(--sb-text);
+}
 .pf-sb-item {
   color: var(--sb-muted);
   transition:
@@ -63,6 +83,12 @@
 }
 .pf-sb-item:hover {
   background-color: var(--sb-hover);
+  color: var(--sb-text);
+}
+.pf-sidebar .pf-sb-icon {
+  color: var(--sb-muted);
+}
+.pf-sidebar .pf-sb-item:hover .pf-sb-icon {
   color: var(--sb-text);
 }
 .pf-sb-item:focus-visible {
