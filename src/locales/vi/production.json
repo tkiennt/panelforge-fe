@@ -1317,6 +1317,7 @@
       "candidatePoolEmptySearchDesc": "Hãy thử tìm với từ khóa hoặc email khác.",
       "candidatePoolEmptyAllDesc": "Mời thêm thành viên vào {workspaceName} để mở rộng đội ngũ.",
       "candidatePoolAddBtn": "Thêm thành viên",
+      "candidateRoleLabel": "Vai trò trong bộ truyện",
       "rosterTitle": "Thành viên bộ truyện",
       "rosterSubtitle": "Đang tham gia sản xuất và phân quyền trong Series",
       "rosterSearch": "Tìm thành viên...",

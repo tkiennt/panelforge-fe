@@ -1317,6 +1317,7 @@
       "candidatePoolEmptySearchDesc": "Try searching with another keyword or email.",
       "candidatePoolEmptyAllDesc": "Invite more members to {workspaceName} to expand your team.",
       "candidatePoolAddBtn": "Add member",
+      "candidateRoleLabel": "Role in this series",
       "rosterTitle": "Series Members",
       "rosterSubtitle": "Participating in production and permissions in this Series",
       "rosterSearch": "Search members...",

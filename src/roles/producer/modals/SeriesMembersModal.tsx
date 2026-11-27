@@ -266,10 +266,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
   }, [seriesMembers, seriesSearchQuery, filterRole, workspaceMembers]);
 
   // Chọn vai trò cho 1 ứng viên trước khi bấm Thêm
-  // Thêm nhân sự vào Series. Vai trò luôn theo vai trò Studio (Workspace) — BE bỏ qua seriesRole, gửi để tương thích.
+  // Spec D10: vai trò chuyên môn chọn khi thêm vào Series (mặc định Artist).
+  const [candidateRoles, setCandidateRoles] = useState<Record<string, string>>({});
   const handleAddCandidateToSeries = async (candidateUserId: string) => {
-    const roleToAdd =
-      availableWorkspaceMembers.find((m) => m.userId === candidateUserId)?.role || 'Artist';
+    const roleToAdd = candidateRoles[candidateUserId] || 'Artist';
     setActionLoadingId(candidateUserId);
     try {
       await seriesService.addSeriesMember(workspaceId, seriesId, {
@@ -616,6 +616,24 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 
                         {/* Thao tác chọn vai trò và nút Thêm trực tiếp */}
                         <div className='flex items-center gap-2 shrink-0 self-end sm:self-center'>
+                          <select
+                            aria-label={tProd('producer.seriesMembersModal.candidateRoleLabel')}
+                            value={candidateRoles[candidate.userId] || 'Artist'}
+                            onChange={(e) =>
+                              setCandidateRoles((prev) => ({
+                                ...prev,
+                                [candidate.userId]: e.target.value,
+                              }))
+                            }
+                            disabled={isAdding}
+                            data-testid={`candidate-role-${candidate.userId}`}
+                            className='h-8 rounded-lg border border-stone-200 bg-white px-2 text-xs font-semibold text-stone-800'
+                          >
+                            <option value='Writer'>{tProd('members.roles.writer')}</option>
+                            <option value='Artist'>{tProd('members.roles.artist')}</option>
+                            <option value='Letterer'>{tProd('members.roles.letterer')}</option>
+                            <option value='Editor'>{tProd('members.roles.editor')}</option>
+                          </select>
                           <button
                             type='button'
                             disabled={isAdding}

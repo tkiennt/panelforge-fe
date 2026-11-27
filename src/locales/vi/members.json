@@ -169,7 +169,11 @@
       "lettererTitle": "Letterer (Thoại & SFX)",
       "lettererDesc": "Đặt bóng thoại, chữ hiệu ứng SFX và chữ thuyết minh",
       "editorTitle": "Biên tập viên (Editor)",
-      "editorDesc": "Biên tập, rà soát kịch bản & duyệt bản vẽ"
+      "editorDesc": "Biên tập, rà soát kịch bản & duyệt bản vẽ",
+      "memberTitle": "Thành viên",
+      "memberDesc": "Tham gia Studio; vai trò Writer, Artist, Letterer hoặc Editor gán khi thêm vào từng bộ truyện",
+      "producerTitle": "Producer",
+      "producerDesc": "Quản lý Studio: tạo bộ truyện, mời người và giao việc"
     },
     "cancelBtn": "Hủy bỏ",
     "submitBtn": "Gửi lời mời & Cấp quyền",
