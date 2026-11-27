@@ -1550,9 +1550,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             </div>
           )}
 
-          {(isArtist || isWriter) && (
+          {/* UIQ-11o: Editor dùng chung màn tổng quan Series Bible với Writer/Artist */}
+          {(isArtist || isWriter || isEditor) && (
             <ArtistBibleOverview
-              role={isWriter ? 'writer' : 'artist'}
+              role={isWriter ? 'writer' : isEditor ? 'editor' : 'artist'}
               entities={localEntities}
               filteredEntities={filteredEntities}
               rawEntries={rawEntries}
@@ -1566,7 +1567,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           )}
 
           {/* VIEW PANEL: TWO-COLUMN MANGA PAPER & INK WORKSPACE */}
-          {!isArtist && !isWriter && (
+          {!isArtist && !isWriter && !isEditor && (
             <div className='grid grid-cols-1 lg:grid-cols-12 gap-5 items-start font-sans'>
               {/* CỘT TRÁI (35% - lg:col-span-4): Danh sách thực thể */}
               <div className='lg:col-span-4 space-y-2.5'>

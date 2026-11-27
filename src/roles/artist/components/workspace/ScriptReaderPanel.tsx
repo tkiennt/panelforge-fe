@@ -139,6 +139,11 @@ export const ScriptReaderPanel: React.FC<ScriptReaderPanelProps> = ({
                         <span className='text-xs font-bold text-stone-900 tracking-wide'>
                           {line.characterName}
                         </span>
+                        {line.characterVariant && (
+                          <span className='rounded-full border border-violet-200 bg-violet-50 px-1.5 text-xs font-semibold text-violet-800'>
+                            {line.characterVariant}
+                          </span>
+                        )}
                       </div>
                     )}
                     <p className='text-xs text-stone-900 font-sans leading-relaxed pl-3 border-l-2 border-stone-300/80'>

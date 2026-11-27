@@ -184,6 +184,14 @@ const ScriptLine: React.FC<{ line: ScriptLineItem; fontSize: number }> = ({ line
                 <span>{line.characterName}</span>
               </span>
             )}
+            {line.characterName && line.characterVariant && (
+              <span
+                className='rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800'
+                data-testid={`script-line-variant-${line.id}`}
+              >
+                {line.characterVariant}
+              </span>
+            )}
             {narrationMode && (
               <span className='text-xs text-[var(--sb-muted)]'>({narrationMode})</span>
             )}

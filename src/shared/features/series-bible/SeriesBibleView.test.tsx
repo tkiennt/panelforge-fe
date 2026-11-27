@@ -571,12 +571,15 @@ describe('SeriesBibleView UX/UI improvements', () => {
               ...mockEntries[0].effectiveRevision!,
               reviewStatus: 'ConceptSubmitted',
               isLocked: false,
+              // Concept đã nộp luôn kèm đúng 01 ảnh Model Sheet (Q20)
+              referenceImageUrl: 'https://cdn.test/concept.png',
             },
           },
         ],
       });
       render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
-      if (role === 'WRITER') {
+      // Writer và Editor (UIQ-11o) dùng màn tổng quan chung: mở Workbench từ thẻ
+      if (role === 'WRITER' || role === 'EDITOR') {
         fireEvent.click(await screen.findByTestId('bible-card-entry-chr-1'));
         await screen.findByTestId('detail-rework-btn');
       } else {
@@ -586,14 +589,14 @@ describe('SeriesBibleView UX/UI improvements', () => {
 
     it('EDITOR được xác nhận & khoá Canon thiết kế (Q20/Q22)', async () => {
       await renderWithConcept('EDITOR');
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(/btn-lock-canon-/).length).toBeGreaterThan(0);
-      });
+      // UIQ-11o: Editor dùng màn tổng quan chung; xác nhận (= khoá Canon) trong Workbench
+      expect(await screen.findByTestId('detail-confirm-btn')).toBeInTheDocument();
     });
 
     it('WRITER chỉ yêu cầu vẽ lại, không tự xác nhận khoá Canon (Q20/Q22)', async () => {
       await renderWithConcept('WRITER');
       expect(screen.queryAllByTestId(/btn-lock-canon-/)).toHaveLength(0);
+      expect(screen.queryByTestId('detail-confirm-btn')).toBeNull();
     });
 
     it('Producer chỉ yêu cầu vẽ lại, không tự xác nhận thiết kế', async () => {

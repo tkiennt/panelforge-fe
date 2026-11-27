@@ -22,7 +22,7 @@ import { useTranslation } from '@/lib/i18n';
 import { StatusBadge } from '@/shared/ui';
 
 interface ArtistBibleOverviewProps {
-  role?: 'artist' | 'writer';
+  role?: 'artist' | 'writer' | 'editor';
   entities: BibleEntity[];
   filteredEntities: BibleEntity[];
   rawEntries: Record<string, BibleEntryDto>;
@@ -54,11 +54,12 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
   onOpenEntity,
 }) => {
   const { t } = useTranslation();
-  const copyKey = role === 'writer' ? 'writerOverview' : 'artistOverview';
+  const copyKey =
+    role === 'writer' ? 'writerOverview' : role === 'editor' ? 'editorOverview' : 'artistOverview';
   const copy = (key: string, values?: Record<string, string | number>) =>
     t(`bible.view.${copyKey}.${key}`, values);
-  const queueEntityIds = new Set(designQueue.map((item) => item.entryId));
-  const referenceEntities = filteredEntities.filter((entity) => !queueEntityIds.has(entity.id));
+  // UIQ-11m: hồ sơ thiết kế liệt kê mọi thực thể, kể cả mục đang phối hợp với Artist (trước đây bị loại ra).
+  const referenceEntities = filteredEntities;
 
   const statusLabel = (status?: BibleReviewStatus | null) => {
     if (status === 'CanonLocked') return t('bible.view.cardCanonLocked');
@@ -230,7 +231,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                   key={entity.id}
                   onClick={() => onOpenEntity(entity)}
                   data-testid={
-                    role === 'writer'
+                    role !== 'artist'
                       ? `bible-card-${entity.id}`
                       : `artist-bible-entry-${entity.id}`
                   }

@@ -589,6 +589,11 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                               ? t('artist.letteringScript.narrationSpeaker')
                               : line.characterName || t('artist.letteringScript.characterFallback')}
                           </span>
+                          {!isNarration && line.characterVariant && (
+                            <span className='ml-1.5 shrink-0 rounded-full border border-violet-200 bg-violet-50 px-1.5 text-xs font-semibold text-violet-800'>
+                              {line.characterVariant}
+                            </span>
+                          )}
                           <span
                             data-testid={`lettering-script-kind-${line.id}`}
                             className='ml-1.5 font-normal text-xs text-stone-400'
