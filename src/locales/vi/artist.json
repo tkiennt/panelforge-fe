@@ -499,7 +499,10 @@
     "startingCell": "Đang mở…",
     "startCellSuccessTitle": "Đã bắt đầu",
     "startCellSuccessDesc": "Bạn có thể chỉnh sửa công đoạn {stage} ngay trên trang này.",
-    "startCellErrorTitle": "Không bắt đầu được"
+    "startCellErrorTitle": "Không bắt đầu được",
+    "uploadPendingDesc": "Đã nạp {file} vào Khung #{panel}. Ảnh sẽ được tải lên khi lưu bố cục.",
+    "pendingUploadFailedTitle": "{count} ảnh khung chưa tải lên được",
+    "pendingUploadFailedDesc": "Ảnh vẫn ở trên khung; nạp lại ảnh đó để thử tải lên."
   },
   "canvaSidebar": {
     "narrationFlashback": "Hồi tưởng",

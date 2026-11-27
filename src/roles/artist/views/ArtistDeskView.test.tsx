@@ -978,6 +978,124 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     expect(screen.getByTestId('canvas-panel-frame-2')).toBeInTheDocument();
   });
 
+  it('keeps a panel image added before saving and uploads it to the saved panel on save', async () => {
+    const pageGuid = '11111111-1111-1111-1111-111111111111';
+    const chapGuid = '22222222-2222-2222-2222-222222222222';
+    const tplGuid = '33333333-3333-3333-3333-333333333333';
+    vi.spyOn(chapterService, 'getChaptersBySeries').mockResolvedValueOnce({
+      items: [
+        {
+          id: chapGuid,
+          seriesId: 'ser-real',
+          chapterNumber: 1,
+          title: 'Chương 1',
+          versionVector: 1,
+          createdAt: '2026-01-01T00:00:00Z',
+          scenesCount: 0,
+          pagesCount: 1,
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 20,
+      totalPages: 1,
+    });
+    vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValueOnce([
+      {
+        id: pageGuid,
+        chapterId: chapGuid,
+        pageNumber: 1,
+        layoutFormat: 'B5',
+        widthPx: 1200,
+        heightPx: 1800,
+        dpi: 600,
+        elementsCount: 0,
+      },
+    ]);
+    const savedPanels = [1, 2].map((n) => ({
+      id: `created-pnl-${n}`,
+      pageId: pageGuid,
+      panelNumber: n,
+      boundingBox: JSON.stringify({
+        normalized: { x: 0.05, y: n === 1 ? 0.05 : 0.5, w: 0.9, h: 0.4 },
+      }),
+      readingOrder: n,
+      createdAt: '2026-01-01T00:00:00Z',
+    }));
+    vi.spyOn(panelService, 'getPanelsByPage')
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(savedPanels);
+    vi.spyOn(frameTemplateService, 'getFrameTemplates').mockResolvedValueOnce([
+      {
+        id: tplGuid,
+        workspaceId: 'ws-real',
+        name: 'Mẫu 2 Khung API',
+        layoutFormat: 'StandardPage',
+        isBuiltIn: false,
+        panelCount: 2,
+        slots: [
+          { x: 0.05, y: 0.05, w: 0.9, h: 0.4, borderless: false },
+          { x: 0.05, y: 0.5, w: 0.9, h: 0.4, borderless: false },
+        ],
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+    vi.spyOn(frameTemplateService, 'applyFrameTemplate').mockResolvedValueOnce({
+      panels: savedPanels,
+      unassignedArtworkCount: 0,
+    });
+    const uploadSpy = vi.spyOn(artworkService, 'uploadArtwork').mockResolvedValue({} as any);
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      blob: async () => new Blob(['png'], { type: 'image/png' }),
+      json: async () => ({}),
+    })) as any;
+
+    try {
+      render(
+        <ToastProvider>
+          <MemoryRouter initialEntries={['/workspaces/ws-real/series/ser-real/artist']}>
+            <Routes>
+              <Route
+                path='/workspaces/:workspaceId/series/:seriesId/artist'
+                element={<ArtistDeskView workspaceRole='ARTIST' />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>,
+      );
+      fireEvent.click(screen.getByTestId('canva-tab-templates'));
+      await waitFor(() => {
+        expect(screen.getByTestId(`canva-template-card-${tplGuid}`)).toBeInTheDocument();
+        expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('1 / 1');
+      });
+      fireEvent.click(screen.getByTestId(`canva-template-card-${tplGuid}`));
+
+      // Bố cục nháp: nạp ảnh vào khung 2 → giữ ở máy, chưa gọi server
+      fireEvent.drop(await screen.findByTestId('panel-dropzone-2'), {
+        dataTransfer: { files: [new File(['art'], 'panel2-new.png', { type: 'image/png' })] },
+      });
+      expect(await screen.findByAltText('panel2-new.png')).toBeInTheDocument();
+      expect(
+        screen.getByText('Đã nạp panel2-new.png vào Khung #2. Ảnh sẽ được tải lên khi lưu bố cục.'),
+      ).toBeInTheDocument();
+      expect(uploadSpy).not.toHaveBeenCalled();
+
+      // Lưu bố cục → ảnh được tải lên đúng khung đã lưu cùng vị trí
+      fireEvent.click(screen.getByTestId('canvas-btn-save-layout'));
+      await waitFor(() => {
+        expect(uploadSpy).toHaveBeenCalledTimes(1);
+      });
+      const [chapterId, pageId, file, , , , panelId] = uploadSpy.mock.calls[0];
+      expect([chapterId, pageId, panelId]).toEqual([chapGuid, pageGuid, 'created-pnl-2']);
+      expect((file as File).name).toBe('panel2-new.png');
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
   it('keeps artwork mapped by reading order when re-templating and marks layout dirty again', async () => {
     render(
       <ConfirmProvider>
@@ -1002,8 +1120,8 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     expect(saveBtn).toBeInTheDocument();
     expect(saveBtn).toHaveTextContent('Lưu bố cục');
 
-    // In draft mode, dropzone is NOT accessible
-    expect(screen.queryByTestId('panel-dropzone-1')).not.toBeInTheDocument();
+    // Bố cục nháp: khung trống đã là giấy trắng kèm ô nạp ảnh (ảnh giữ ở máy tới khi lưu)
+    expect(screen.getByTestId('panel-dropzone-1')).toBeEnabled();
 
     // Verify smooth template switching in draft mode (switch to 4-Koma without any modal blocking)
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));

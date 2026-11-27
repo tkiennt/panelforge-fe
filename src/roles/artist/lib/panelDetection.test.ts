@@ -135,6 +135,82 @@ describe('detectPanelsFromLuminance', () => {
     expect(boxes[2].x).toBeGreaterThan(boxes[3].x);
   });
 
+  /** Trang có các khung đa giác (viền dày 2px) và một chấm nội dung trong mỗi khung. */
+  const polygonPage = (polys: Array<Array<[number, number]>>) => {
+    const lum = new Uint8Array(W * H).fill(245);
+    const plot = (x: number, y: number) => {
+      for (let dy = 0; dy < 2; dy++)
+        for (let dx = 0; dx < 2; dx++) {
+          const px = Math.round(x) + dx;
+          const py = Math.round(y) + dy;
+          if (px >= 0 && px < W && py >= 0 && py < H) lum[py * W + px] = 40;
+        }
+    };
+    for (const poly of polys) {
+      poly.forEach(([ax, ay], i) => {
+        const [bx, by] = poly[(i + 1) % poly.length];
+        const n = Math.ceil(Math.hypot(bx - ax, by - ay));
+        for (let k = 0; k <= n; k++) plot(ax + ((bx - ax) * k) / n, ay + ((by - ay) * k) / n);
+      });
+      const cx = poly.reduce((s, p) => s + p[0], 0) / poly.length;
+      const cy = poly.reduce((s, p) => s + p[1], 0) / poly.length;
+      for (let y = cy - 3; y < cy + 3; y++) for (let x = cx - 3; x < cx + 3; x++) plot(x, y);
+    }
+    return lum;
+  };
+
+  it('splits panels separated by a slanted horizontal gutter and returns their corners', () => {
+    const top: Array<[number, number]> = [
+      [40, 40],
+      [560, 40],
+      [560, 330],
+      [40, 450],
+    ];
+    const bottom: Array<[number, number]> = [
+      [40, 480],
+      [560, 360],
+      [560, 810],
+      [40, 810],
+    ];
+    const boxes = detectPanelsFromLuminance(polygonPage([top, bottom]), W, H);
+    expect(boxes).toHaveLength(2);
+    const [b1, b2] = boxes.map(px);
+    expect(b1.y).toBeLessThan(b2.y); // khung trên đọc trước
+    expect(boxes[0].corners?.length).toBeGreaterThanOrEqual(4);
+    expect(boxes[1].corners?.length).toBeGreaterThanOrEqual(4);
+    // Đáy khung trên dốc từ trái (y≈450) lên phải (y≈330): góc dưới-phải cao hơn góc dưới-trái
+    const toPage = (b: (typeof boxes)[0], c: { x: number; y: number }) => ({
+      x: (b.x + c.x * b.w) * W,
+      y: (b.y + c.y * b.h) * H,
+    });
+    const topPts = boxes[0].corners!.map((c) => toPage(boxes[0], c));
+    const bottomRight = topPts.filter((p) => p.x > 500).sort((a, b) => b.y - a.y)[0];
+    const bottomLeft = topPts.filter((p) => p.x < 100).sort((a, b) => b.y - a.y)[0];
+    expect(bottomRight.y).toBeLessThan(bottomLeft.y - 60);
+  });
+
+  it('splits a slanted vertical gutter and keeps right-to-left order', () => {
+    const left: Array<[number, number]> = [
+      [40, 40],
+      [330, 40],
+      [250, 810],
+      [40, 810],
+    ];
+    const right: Array<[number, number]> = [
+      [350, 40],
+      [560, 40],
+      [560, 810],
+      [270, 810],
+    ];
+    const rtl = detectPanelsFromLuminance(polygonPage([left, right]), W, H).map(px);
+    expect(rtl).toHaveLength(2);
+    expect(rtl[0].x).toBeGreaterThan(rtl[1].x);
+    const ltr = detectPanelsFromLuminance(polygonPage([left, right]), W, H, {
+      readingDirection: 'ltr',
+    }).map(px);
+    expect(ltr[0].x).toBeLessThan(ltr[1].x);
+  });
+
   it('returns nothing for a blank or dark image', () => {
     expect(detectPanelsFromLuminance(new Uint8Array(W * H).fill(250), W, H)).toEqual([]);
     expect(detectPanelsFromLuminance(new Uint8Array(W * H).fill(10), W, H)).toEqual([]);
