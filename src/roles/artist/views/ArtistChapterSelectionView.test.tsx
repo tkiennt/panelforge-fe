@@ -101,12 +101,14 @@ describe('ArtistChapterSelectionView Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Bàn vẽ họa sĩ — Kiếm Sĩ Phương Đông')).toBeInTheDocument();
+      expect(screen.getByText('Bàn vẽ truyện — Kiếm Sĩ Phương Đông')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('artist-stats-total')).toHaveTextContent('3');
-    expect(screen.getByTestId('artist-stats-frozen')).toHaveTextContent('2');
-    expect(screen.getByTestId('artist-stats-in-progress')).toHaveTextContent('1');
+    // Thẻ KPI đã bỏ (048ee69d); số đếm nằm trên các tab lọc
+    expect(screen.getByTestId('artist-filter-all')).toHaveTextContent('Tất cả (3)');
+    expect(screen.getByTestId('artist-filter-frozen')).toHaveTextContent('Sẵn sàng vẽ (2)');
+    expect(screen.getByTestId('artist-filter-in-progress')).toHaveTextContent('Đang sản xuất (2)');
+    expect(screen.getByTestId('artist-filter-approved')).toHaveTextContent('Đã duyệt (1)');
   });
 
   it('renders chapter cards with status badges and details in grid view', async () => {
@@ -121,7 +123,6 @@ describe('ArtistChapterSelectionView Component', () => {
     expect(card1).toHaveTextContent('Khởi đầu hành trình');
     expect(card1).toHaveTextContent('20 trang');
     expect(card1).toHaveTextContent('Kịch bản đã chốt');
-    expect(card1).toHaveTextContent('#abc12345');
     expect(card1).toHaveTextContent('Sẵn sàng vẽ');
 
     const card2 = screen.getByTestId('artist-chapter-card-2');
@@ -145,10 +146,10 @@ describe('ArtistChapterSelectionView Component', () => {
     expect(screen.getByTestId('artist-chapter-card-3')).toBeInTheDocument();
     expect(screen.queryByTestId('artist-chapter-card-2')).not.toBeInTheDocument();
 
-    // Click "Đang sản xuất" filter
+    // Click "Đang sản xuất" filter: lọc theo status InProduction (chương 1 và 2)
     fireEvent.click(screen.getByTestId('artist-filter-in-progress'));
+    expect(screen.getByTestId('artist-chapter-card-1')).toBeInTheDocument();
     expect(screen.getByTestId('artist-chapter-card-2')).toBeInTheDocument();
-    expect(screen.queryByTestId('artist-chapter-card-1')).not.toBeInTheDocument();
     expect(screen.queryByTestId('artist-chapter-card-3')).not.toBeInTheDocument();
 
     // Reset to "Tất cả"
