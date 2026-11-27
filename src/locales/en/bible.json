@@ -967,6 +967,7 @@
     "endorseTitle": "Writer/Editor approves this concept art",
     "defineStubBtn": "Define",
     "openWorkbench": "Workbench",
+    "moreActionsAria": "More actions",
     "hasDraftVersion": "Draft v{version} available",
     "queuePriorityRework": "Priority redraw",
     "revisionRecordedLabel": "Revision saved",

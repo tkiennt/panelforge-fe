@@ -21,12 +21,13 @@ import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService } from '@/services/series.service';
 import { exportService, ExportJobDto, ExportPresetCode } from '@/services/export.service';
 import { ProducerSharedHeader } from '@/shared/features/production-workspace/ProducerSharedHeader';
+import { useChapterReadiness } from '@/shared/features/production-workspace/useChapterProductionHub';
 import {
   buildChapterManagementUrl,
   buildChapterReaderUrl,
   buildProductionWorkspaceUrl,
 } from '@/app/routePaths';
-import { Badge, Button, Card, CardBody, CardHeader, StatusBadge, Tabs } from '@/shared/ui';
+import { Alert, Badge, Button, Card, CardBody, CardHeader, StatusBadge, Tabs } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
 
 interface ExportViewProps {
@@ -59,13 +60,18 @@ const formatSize = (bytes?: number | null) =>
       ? `${Math.ceil(bytes / 1024)} KB`
       : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
+const isChapterExportable = (chapter?: ChapterDto | null) =>
+  Boolean(
+    chapter && (chapter.status === 'ChapterApproved' || chapter.status === 'HandedOffAndPublished'),
+  );
+
 /** UC-12 / Kiểm duyệt & Bàn giao: Theo dõi duyệt chương, đọc thử và đóng gói bản thảo (PDF/CBZ/Webtoon/JSON). */
 export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
   const { t, lang } = useTranslation('production');
   const { t: tp } = useTranslation('pipeline');
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams<{ workspaceId: string; seriesId: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const urlChapterId = searchParams.get('chapterId') || '';
 
   const [allChapters, setAllChapters] = useState<ChapterDto[]>([]);
@@ -94,28 +100,52 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
       .getChaptersBySeries(seriesId, 1, 100)
       .then((res) => {
         const items = res.items || [];
-        setAllChapters([...items].sort((a, b) => a.chapterNumber - b.chapterNumber));
-        const exportable = items.filter(
-          (c) => c.status === 'ChapterApproved' || c.status === 'HandedOffAndPublished',
-        );
+        const sorted = [...items].sort((a, b) => a.chapterNumber - b.chapterNumber);
+        setAllChapters(sorted);
+        const exportable = sorted.filter((c) => isChapterExportable(c));
         setChapters(exportable);
         setChapterId((current) => {
-          if (urlChapterId && exportable.some((c) => c.id === urlChapterId)) return urlChapterId;
-          if (current && exportable.some((c) => c.id === current)) return current;
-          return exportable[0]?.id || '';
+          if (urlChapterId && sorted.some((c) => c.id === urlChapterId)) return urlChapterId;
+          if (current && sorted.some((c) => c.id === current)) return current;
+          return exportable[0]?.id || sorted[0]?.id || '';
         });
       })
       .catch((err) => onShowToast(t('producer.exportView.loadChaptersError'), err.message));
   }, [seriesId, urlChapterId, onShowToast, t]);
 
+  const handleSelectChapter = useCallback(
+    (nextId: string) => {
+      setChapterId(nextId);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (nextId) {
+            next.set('chapterId', nextId);
+          } else {
+            next.delete('chapterId');
+          }
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const selectedChapter = allChapters.find((c) => c.id === chapterId) ?? null;
+  const isSelectedExportable = isChapterExportable(selectedChapter);
+  const { readiness: selectedReadiness } = useChapterReadiness(
+    selectedChapter && !isSelectedExportable ? selectedChapter.id : null,
+  );
+
   const fetchJobs = useCallback(async () => {
-    if (!chapterId) return setJobs([]);
+    if (!chapterId || !isSelectedExportable) return setJobs([]);
     try {
       setJobs(await exportService.getExports(chapterId));
     } catch (err: any) {
       onShowToast(t('producer.exportView.loadExportsError'), err.message);
     }
-  }, [chapterId, onShowToast, t]);
+  }, [chapterId, isSelectedExportable, onShowToast, t]);
 
   useEffect(() => {
     fetchJobs();
@@ -132,6 +162,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
     setFormats((prev) => (prev.includes(code) ? prev.filter((f) => f !== code) : [...prev, code]));
 
   const handleExport = async () => {
+    if (!chapterId || !isSelectedExportable) return;
     setSubmitting(true);
     const results = await Promise.allSettled(
       formats.map((f) => exportService.createExport(chapterId, f)),
@@ -161,7 +192,6 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
       .then(fetchJobs)
       .catch((err) => onShowToast(t('producer.exportView.cancelError'), err.message));
 
-  const selectedChapter = chapters.find((c) => c.id === chapterId);
   const canHandOff = selectedChapter?.status === 'ChapterApproved' && !selectedChapter.isHandedOff;
 
   const handleHandOff = async () => {
@@ -202,9 +232,20 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
   const chapterStatusLabel = (status?: string | null) =>
     status ? tp(`workbench.chapterStatus.${status}`, status) : '';
 
-  const nonReadyChapters = allChapters.filter(
-    (c) => c.status !== 'ChapterApproved' && c.status !== 'HandedOffAndPublished',
-  );
+  const notEligibleReason = (() => {
+    if (!selectedChapter) return t('producer.exportView.noApprovedChapters');
+    if (selectedChapter.status === 'PreProduction') {
+      return t('producer.exportView.notEligiblePreProduction');
+    }
+    if (selectedChapter.status === 'InProduction') {
+      return t('producer.exportView.notEligibleInProduction');
+    }
+    return t('producer.exportView.notEligibleGeneric', {
+      status: chapterStatusLabel(selectedChapter.status),
+    });
+  })();
+
+  const nonReadyChapters = allChapters.filter((c) => !isChapterExportable(c));
 
   return (
     <div className='w-full min-h-screen bg-[#FAF9F5] font-sans text-stone-900 flex flex-col min-w-0'>
@@ -213,15 +254,12 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
         workspaceId={workspaceId}
         seriesId={seriesId}
         currentChapterId={chapterId}
-        chapters={chapters.length > 0 ? chapters : allChapters}
+        chapters={allChapters}
         seriesTitle={seriesTitle}
         seriesFormat={seriesFormat}
-        currentChapter={selectedChapter ?? allChapters[0] ?? null}
-        onChapterChange={(nextId) => {
-          if (chapters.some((c) => c.id === nextId)) {
-            setChapterId(nextId);
-          }
-        }}
+        currentChapter={selectedChapter}
+        readiness={selectedReadiness}
+        onChapterChange={handleSelectChapter}
         actionCta={
           <div className='flex items-center gap-2'>
             {selectedChapter?.isHandedOff ? (
@@ -256,7 +294,8 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
               variant='primary'
               size='sm'
               loading={submitting}
-              disabled={formats.length === 0 || !chapterId}
+              disabled={formats.length === 0 || !chapterId || !isSelectedExportable}
+              title={!isSelectedExportable ? notEligibleReason : undefined}
               leadingIcon={<Download aria-hidden='true' />}
               onClick={handleExport}
               data-testid='export-submit'
@@ -416,13 +455,16 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                       {t('review.handoffView.readinessTitle')}
                     </div>
                     <p className='text-stone-700 leading-relaxed mt-0.5'>
-                      {chapters.length > 0
-                        ? selectedChapter
+                      {selectedChapter
+                        ? isSelectedExportable
                           ? t('producer.exportView.chapterReady', {
                               number: selectedChapter.chapterNumber,
                               status: chapterStatusLabel(selectedChapter.status),
                             })
-                          : t('review.handoffView.readinessReady')
+                          : t('producer.exportView.chapterNotReadySummary', {
+                              number: selectedChapter.chapterNumber,
+                              status: chapterStatusLabel(selectedChapter.status),
+                            })
                         : t('review.handoffView.readinessNotice')}
                     </p>
                   </div>
@@ -436,17 +478,124 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                     {t('producer.exportView.noSeriesNotice')}
                   </CardBody>
                 </Card>
-              ) : chapters.length === 0 ? (
+              ) : !selectedChapter || !isSelectedExportable ? (
                 <Card data-testid='export-no-chapter'>
                   <CardHeader
                     icon={<Clock aria-hidden='true' />}
                     tone='warning'
-                    title={t('producer.exportView.noReadyChaptersTitle')}
-                    subtitle={t('producer.exportView.noApprovedChapters')}
+                    title={
+                      selectedChapter ? (
+                        <span className='inline-flex flex-wrap items-center gap-2'>
+                          <span>
+                            {t('producer.exportView.chapterNotReadyTitle', {
+                              number: selectedChapter.chapterNumber,
+                            })}
+                            {selectedChapter.title ? `: ${selectedChapter.title}` : ''}
+                          </span>
+                          <StatusBadge kind='chapter' status={selectedChapter.status} />
+                        </span>
+                      ) : (
+                        t('producer.exportView.noReadyChaptersTitle')
+                      )
+                    }
+                    subtitle={
+                      selectedChapter
+                        ? notEligibleReason
+                        : t('producer.exportView.noApprovedChapters')
+                    }
                   />
-                  <CardBody className='space-y-3'>
-                    {nonReadyChapters.length > 0 && (
-                      <div className='space-y-2'>
+                  <CardBody className='space-y-4'>
+                    {allChapters.length > 0 && (
+                      <div className='max-w-md'>
+                        <label
+                          htmlFor='export-chapter'
+                          className='font-semibold text-xs text-stone-800 block mb-1.5'
+                        >
+                          {t('producer.exportView.chapterLabel')}
+                        </label>
+                        <select
+                          id='export-chapter'
+                          value={chapterId}
+                          onChange={(e) => handleSelectChapter(e.target.value)}
+                          className='w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg text-xs font-semibold text-stone-900 focus:outline-none focus:border-accent cursor-pointer'
+                          data-testid='export-chapter-select'
+                        >
+                          {allChapters.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {t('producer.exportView.chapterOption', { number: c.chapterNumber })}
+                              {c.title ? `: ${c.title}` : ''} ({chapterStatusLabel(c.status)})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {selectedChapter && (
+                      <Alert tone='warning' data-testid='export-not-eligible-reason'>
+                        <div className='space-y-1.5'>
+                          <p>{notEligibleReason}</p>
+                          {selectedReadiness?.production &&
+                            selectedChapter.status === 'InProduction' &&
+                            selectedReadiness.production.totalTasks > 0 && (
+                              <p className='text-stone-700'>
+                                {t('producer.exportView.readinessProductionDetail', {
+                                  approved: selectedReadiness.production.approvedTasks,
+                                  total: selectedReadiness.production.totalTasks,
+                                  rework: selectedReadiness.production.reworkTasks,
+                                  submitted: selectedReadiness.production.submittedTasks,
+                                })}
+                              </p>
+                            )}
+                          {selectedReadiness?.blockers &&
+                            selectedReadiness.blockers.length > 0 &&
+                            selectedChapter.status === 'PreProduction' && (
+                              <p className='text-stone-700'>
+                                {selectedReadiness.blockers[0].message}
+                              </p>
+                            )}
+                          <p className='text-stone-600'>
+                            {t('producer.exportView.createPackageDisabledHint')}
+                          </p>
+                        </div>
+                      </Alert>
+                    )}
+
+                    {selectedChapter && workspaceId && seriesId && (
+                      <div className='flex flex-wrap items-center gap-2'>
+                        <Button
+                          variant='secondary'
+                          size='sm'
+                          trailingIcon={<ArrowRight aria-hidden='true' />}
+                          onClick={() =>
+                            navigate(
+                              buildChapterManagementUrl(workspaceId, seriesId, selectedChapter.id),
+                            )
+                          }
+                          data-testid='export-goto-overview'
+                        >
+                          {t('producer.exportView.openOverviewBtn')}
+                        </Button>
+                        <Button
+                          variant='primary'
+                          size='sm'
+                          trailingIcon={<ArrowRight aria-hidden='true' />}
+                          onClick={() =>
+                            navigate(
+                              buildProductionWorkspaceUrl(workspaceId, seriesId, {
+                                chapterId: selectedChapter.id,
+                                tab: 'progress',
+                              }),
+                            )
+                          }
+                          data-testid='export-goto-board'
+                        >
+                          {t('producer.exportView.openProdBoardBtn')}
+                        </Button>
+                      </div>
+                    )}
+
+                    {chapters.length === 0 && nonReadyChapters.length > 1 && (
+                      <div className='space-y-2 pt-2 border-t border-stone-200/80'>
                         <div className='text-xs font-semibold text-stone-700'>
                           {t('producer.exportView.inProgressChaptersTitle', {
                             count: nonReadyChapters.length,
@@ -522,11 +671,11 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                         <select
                           id='export-chapter'
                           value={chapterId}
-                          onChange={(e) => setChapterId(e.target.value)}
+                          onChange={(e) => handleSelectChapter(e.target.value)}
                           className='w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg text-xs font-semibold text-stone-900 focus:outline-none focus:border-accent cursor-pointer'
                           data-testid='export-chapter-select'
                         >
-                          {chapters.map((c) => (
+                          {allChapters.map((c) => (
                             <option key={c.id} value={c.id}>
                               {t('producer.exportView.chapterOption', { number: c.chapterNumber })}
                               {c.title ? `: ${c.title}` : ''} ({chapterStatusLabel(c.status)})

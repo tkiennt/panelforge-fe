@@ -831,49 +831,61 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   <span className='font-semibold text-stone-700'>
                     {t('producer.chapterManagement.overview.approvedTasks')}
                   </span>
-                  <span className='font-mono font-bold text-stone-900 tabular-nums'>
-                    {approvedTasks}/{totalTasks} ({taskPct}%)
-                  </span>
+                  {totalTasks > 0 ? (
+                    <span className='font-mono font-bold text-stone-900 tabular-nums'>
+                      {approvedTasks}/{totalTasks} ({taskPct}%)
+                    </span>
+                  ) : (
+                    <span className='font-medium text-stone-500'>
+                      {t('producer.chapterManagement.overview.emptyTasks')}
+                    </span>
+                  )}
                 </div>
                 <ProgressBar
-                  value={approvedTasks}
+                  value={totalTasks > 0 ? approvedTasks : 0}
                   max={totalTasks}
-                  tone='brand'
+                  tone={totalTasks > 0 ? 'brand' : 'neutral'}
                   label={t('producer.chapterManagement.overview.approvedTasks')}
                 />
-                <div className='flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-stone-500'>
-                  <span>
-                    {t('producer.chapterManagement.overview.pendingReviewCount', {
-                      count: readiness?.production.submittedTasks ?? 0,
-                    })}
-                  </span>
-                  <span>·</span>
-                  <span>
-                    {t('producer.chapterManagement.overview.inProgressCount', {
-                      count: readiness?.production.inProgressTasks ?? 0,
-                    })}
-                  </span>
-                  {(readiness?.production.reworkTasks ?? 0) > 0 && (
-                    <>
-                      <span>·</span>
-                      <span className='text-rose-700 font-semibold'>
-                        {t('producer.chapterManagement.overview.reworkCount', {
-                          count: readiness?.production.reworkTasks ?? 0,
-                        })}
-                      </span>
-                    </>
-                  )}
-                  {(readiness?.production.overdueTasks ?? 0) > 0 && (
-                    <>
-                      <span>·</span>
-                      <span className='text-rose-700 font-semibold'>
-                        {t('producer.chapterManagement.overview.overdueCount', {
-                          count: readiness?.production.overdueTasks ?? 0,
-                        })}
-                      </span>
-                    </>
-                  )}
-                </div>
+                {totalTasks > 0 ? (
+                  <div className='flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-stone-500'>
+                    <span>
+                      {t('producer.chapterManagement.overview.pendingReviewCount', {
+                        count: readiness?.production.submittedTasks ?? 0,
+                      })}
+                    </span>
+                    <span>·</span>
+                    <span>
+                      {t('producer.chapterManagement.overview.inProgressCount', {
+                        count: readiness?.production.inProgressTasks ?? 0,
+                      })}
+                    </span>
+                    {(readiness?.production.reworkTasks ?? 0) > 0 && (
+                      <>
+                        <span>·</span>
+                        <span className='text-rose-700 font-semibold'>
+                          {t('producer.chapterManagement.overview.reworkCount', {
+                            count: readiness?.production.reworkTasks ?? 0,
+                          })}
+                        </span>
+                      </>
+                    )}
+                    {(readiness?.production.overdueTasks ?? 0) > 0 && (
+                      <>
+                        <span>·</span>
+                        <span className='text-rose-700 font-semibold'>
+                          {t('producer.chapterManagement.overview.overdueCount', {
+                            count: readiness?.production.overdueTasks ?? 0,
+                          })}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className='text-xs text-stone-500'>
+                    {t('producer.chapterManagement.overview.emptyTasksHint')}
+                  </div>
+                )}
               </div>
 
               <div
@@ -884,14 +896,20 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   <span className='font-semibold text-stone-700'>
                     {t('producer.chapterManagement.overview.completedPages')}
                   </span>
-                  <span className='font-mono font-bold text-stone-900 tabular-nums'>
-                    {completedPages}/{totalPages} ({pagePct}%)
-                  </span>
+                  {totalPages > 0 ? (
+                    <span className='font-mono font-bold text-stone-900 tabular-nums'>
+                      {completedPages}/{totalPages} ({pagePct}%)
+                    </span>
+                  ) : (
+                    <span className='font-medium text-stone-500'>
+                      {t('producer.chapterManagement.overview.emptyPages')}
+                    </span>
+                  )}
                 </div>
                 <ProgressBar
-                  value={completedPages}
+                  value={totalPages > 0 ? completedPages : 0}
                   max={totalPages}
-                  tone='success'
+                  tone={totalPages > 0 ? 'success' : 'neutral'}
                   label={t('producer.chapterManagement.overview.completedPages')}
                 />
                 <div className='text-xs text-stone-500'>
@@ -907,14 +925,20 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   <span className='font-semibold text-stone-700'>
                     {t('producer.chapterManagement.overview.completedPanels')}
                   </span>
-                  <span className='font-mono font-bold text-stone-900 tabular-nums'>
-                    {approvedPanels}/{totalPanels} ({panelPct}%)
-                  </span>
+                  {totalPanels > 0 ? (
+                    <span className='font-mono font-bold text-stone-900 tabular-nums'>
+                      {approvedPanels}/{totalPanels} ({panelPct}%)
+                    </span>
+                  ) : (
+                    <span className='font-medium text-stone-500'>
+                      {t('producer.chapterManagement.overview.emptyPanels')}
+                    </span>
+                  )}
                 </div>
                 <ProgressBar
-                  value={approvedPanels}
+                  value={totalPanels > 0 ? approvedPanels : 0}
                   max={totalPanels}
-                  tone='info'
+                  tone={totalPanels > 0 ? 'info' : 'neutral'}
                   label={t('producer.chapterManagement.overview.completedPanels')}
                 />
                 <div className='text-xs text-stone-500'>
@@ -933,14 +957,20 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   >
                     <div className='flex items-center justify-between gap-2 font-semibold text-stone-800'>
                       <span className='truncate'>{st.stageName}</span>
-                      <span className='font-mono text-xs text-stone-600 tabular-nums shrink-0'>
-                        {st.approvedTasks}/{st.totalTasks}
-                      </span>
+                      {st.totalTasks > 0 ? (
+                        <span className='font-mono text-xs text-stone-600 tabular-nums shrink-0'>
+                          {st.approvedTasks}/{st.totalTasks}
+                        </span>
+                      ) : (
+                        <span className='text-xs font-medium text-stone-500 shrink-0'>
+                          {t('producer.chapterManagement.overview.emptyTasks')}
+                        </span>
+                      )}
                     </div>
                     <ProgressBar
-                      value={st.approvedTasks}
+                      value={st.totalTasks > 0 ? st.approvedTasks : 0}
                       max={st.totalTasks}
-                      tone='brand'
+                      tone={st.totalTasks > 0 ? 'brand' : 'neutral'}
                       label={st.stageName}
                       className='h-1.5'
                     />
@@ -977,10 +1007,12 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             {t('producer.chapterManagement.overview.productionStartedBadge')}
           </Badge>
           <span className='text-xs text-stone-500 font-mono'>
-            {t('producer.chapterManagement.overview.gatePassedSummary', {
-              passed: readiness?.summary.passed ?? 0,
-              required: readiness?.summary.required ?? 0,
-            })}
+            {(readiness?.summary.required ?? 0) > 0
+              ? t('producer.chapterManagement.overview.gatePassedSummary', {
+                  passed: readiness?.summary.passed ?? 0,
+                  required: readiness?.summary.required ?? 0,
+                })
+              : t('producer.chapterManagement.overview.noMandatoryChecks')}
           </span>
         </div>
         <Button
@@ -1054,19 +1086,29 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
           <div className='space-y-1.5'>
             <div className='flex items-center justify-between text-xs'>
               <span className='font-semibold text-stone-700'>
-                {t('producer.chapterManagement.overview.mandatoryPassedLabel', {
-                  passed: readiness?.summary.passed ?? 0,
-                  required: readiness?.summary.required ?? 0,
-                })}
+                {(readiness?.summary.required ?? 0) > 0
+                  ? t('producer.chapterManagement.overview.mandatoryPassedLabel', {
+                      passed: readiness?.summary.passed ?? 0,
+                      required: readiness?.summary.required ?? 0,
+                    })
+                  : t('producer.chapterManagement.overview.noMandatoryChecks')}
               </span>
-              <span className='font-mono font-bold text-stone-900 tabular-nums'>
-                {readinessPercent}%
-              </span>
+              {(readiness?.summary.required ?? 0) > 0 && (
+                <span className='font-mono font-bold text-stone-900 tabular-nums'>
+                  {readinessPercent}%
+                </span>
+              )}
             </div>
             <ProgressBar
-              value={readiness?.summary.passed ?? 0}
+              value={(readiness?.summary.required ?? 0) > 0 ? (readiness?.summary.passed ?? 0) : 0}
               max={readiness?.summary.required ?? 0}
-              tone={canStartProduction || !isPreProduction ? 'success' : 'brand'}
+              tone={
+                (readiness?.summary.required ?? 0) === 0
+                  ? 'neutral'
+                  : canStartProduction || !isPreProduction
+                    ? 'success'
+                    : 'brand'
+              }
               label={t('producer.chapterManagement.overview.gateTitle')}
             />
           </div>
@@ -1124,11 +1166,62 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       </Card>
     );
 
-  // Action Center (Blockers + Warnings, deduplicated; compact confirmation when empty)
+  // Action Center (Blockers + Warnings + Production tasks needing attention)
   const blockerCount = readiness?.blockers.length ?? 0;
   const warningCount = readiness?.warnings.length ?? 0;
+  const productionActionItems: Array<{
+    key: 'overdue' | 'rework' | 'submitted' | 'unassigned';
+    tone: 'danger' | 'warning';
+    tag: string;
+    message: string;
+  }> = [];
+  if (readiness?.production) {
+    if ((readiness.production.overdueTasks ?? 0) > 0) {
+      productionActionItems.push({
+        key: 'overdue',
+        tone: 'danger',
+        tag: t('producer.chapterManagement.overview.overdueTag'),
+        message: t('producer.chapterManagement.overview.actionOverdueDesc', {
+          count: readiness.production.overdueTasks,
+        }),
+      });
+    }
+    if ((readiness.production.reworkTasks ?? 0) > 0) {
+      productionActionItems.push({
+        key: 'rework',
+        tone: 'danger',
+        tag: t('producer.chapterManagement.overview.reworkTag'),
+        message: t('producer.chapterManagement.overview.actionReworkDesc', {
+          count: readiness.production.reworkTasks,
+        }),
+      });
+    }
+    if ((readiness.production.submittedTasks ?? 0) > 0) {
+      productionActionItems.push({
+        key: 'submitted',
+        tone: 'warning',
+        tag: t('producer.chapterManagement.overview.submittedTag'),
+        message: t('producer.chapterManagement.overview.actionSubmittedDesc', {
+          count: readiness.production.submittedTasks,
+        }),
+      });
+    }
+    if ((readiness.production.unassignedTasks ?? 0) > 0) {
+      productionActionItems.push({
+        key: 'unassigned',
+        tone: 'warning',
+        tag: t('producer.chapterManagement.overview.unassignedTag'),
+        message: t('producer.chapterManagement.overview.actionUnassignedDesc', {
+          count: readiness.production.unassignedTasks,
+        }),
+      });
+    }
+  }
+  const hasDangerProductionAction = productionActionItems.some((item) => item.tone === 'danger');
+  const totalActionCount = blockerCount + warningCount + productionActionItems.length;
+
   const actionCenterSection =
-    blockerCount === 0 && warningCount === 0 ? (
+    totalActionCount === 0 ? (
       <div
         data-testid='overview-action-center'
         className='rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3 text-xs text-emerald-800 flex items-center gap-2'
@@ -1143,14 +1236,14 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
     ) : (
       <Card
         as='section'
-        tone={blockerCount > 0 ? 'danger' : 'warning'}
+        tone={blockerCount > 0 || hasDangerProductionAction ? 'danger' : 'warning'}
         data-testid='overview-action-center'
       >
         <CardHeader
           icon={<AlertTriangle aria-hidden='true' />}
           title={t('producer.chapterManagement.overview.actionCenterTitle')}
           actions={
-            <div className='flex items-center gap-1.5'>
+            <div className='flex flex-wrap items-center gap-1.5'>
               {blockerCount > 0 && (
                 <Badge tone='danger'>
                   {t('producer.chapterManagement.overview.blockerCountBadge', {
@@ -1162,6 +1255,13 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 <Badge tone='warning'>
                   {t('producer.chapterManagement.overview.warningCountBadge', {
                     count: warningCount,
+                  })}
+                </Badge>
+              )}
+              {productionActionItems.length > 0 && (
+                <Badge tone={hasDangerProductionAction ? 'danger' : 'warning'}>
+                  {t('producer.chapterManagement.overview.productionActionsCountBadge', {
+                    count: productionActionItems.length,
                   })}
                 </Badge>
               )}
@@ -1195,6 +1295,39 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                   }
                 >
                   {t('producer.chapterManagement.overview.openResolveBtn')}
+                </Button>
+              )}
+            </div>
+          ))}
+
+          {productionActionItems.map((item) => (
+            <div
+              key={`prod-${item.key}`}
+              data-testid={`action-production-${item.key}`}
+              className={`rounded-lg border px-3.5 py-2.5 flex items-center justify-between gap-3 ${
+                item.tone === 'danger'
+                  ? 'border-rose-200/80 bg-rose-50/40'
+                  : 'border-amber-200/80 bg-amber-50/40'
+              }`}
+            >
+              <div className='flex items-center gap-2.5 min-w-0'>
+                <Badge tone={item.tone}>{item.tag}</Badge>
+                <p className='text-xs text-stone-800 min-w-0'>{item.message}</p>
+              </div>
+              {chapter && (
+                <Button
+                  variant={item.tone === 'danger' ? 'danger' : 'warning'}
+                  size='sm'
+                  onClick={() =>
+                    navigate(
+                      buildProductionWorkspaceUrl(workspaceId, seriesId, {
+                        chapterId: chapter.id,
+                        tab: 'progress',
+                      }),
+                    )
+                  }
+                >
+                  {t('producer.chapterManagement.overview.openProdBoard')}
                 </Button>
               )}
             </div>
@@ -1534,12 +1667,18 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               icon={<Palette aria-hidden='true' />}
               title={t('producer.chapterManagement.overview.bibleSummaryTitle')}
               actions={
-                <span className='text-xs font-mono font-bold text-stone-800'>
-                  {t('producer.chapterManagement.overview.bibleRequiredCount', {
-                    ready: readiness?.bible.readyCount ?? 0,
-                    total: readiness?.bible.requiredTotal ?? 0,
-                  })}
-                </span>
+                (readiness?.bible.requiredTotal ?? 0) > 0 ? (
+                  <span className='text-xs font-mono font-bold text-stone-800'>
+                    {t('producer.chapterManagement.overview.bibleRequiredCount', {
+                      ready: readiness?.bible.readyCount ?? 0,
+                      total: readiness?.bible.requiredTotal ?? 0,
+                    })}
+                  </span>
+                ) : (
+                  <span className='text-xs font-medium text-stone-500'>
+                    {t('producer.chapterManagement.overview.bibleNoRequired')}
+                  </span>
+                )
               }
             />
             <CardBody className='space-y-3.5'>
@@ -1584,7 +1723,10 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 <div className='flex flex-wrap gap-1.5'>
                   {readiness!.bible.byCategory.map((cat) => (
                     <Badge key={cat.category} tone='neutral'>
-                      {CATEGORY_LABELS[cat.category] || cat.category}: {cat.ready}/{cat.required}
+                      {CATEGORY_LABELS[cat.category] || cat.category}:{' '}
+                      {cat.required > 0
+                        ? `${cat.ready}/${cat.required}`
+                        : t('producer.chapterManagement.overview.bibleNoRequiredShort')}
                     </Badge>
                   ))}
                 </div>
