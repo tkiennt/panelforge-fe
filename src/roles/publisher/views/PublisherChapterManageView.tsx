@@ -29,7 +29,7 @@ import {
   formatContentLanguageName,
   formatEditionPricingLabel,
   getEditionStatusDisplay,
-} from '../components/multilingual';
+} from '@/shared/lib/multilingual';
 
 type Section = 'general' | 'editions';
 

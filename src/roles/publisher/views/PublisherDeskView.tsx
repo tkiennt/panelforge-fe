@@ -29,7 +29,7 @@ import {
 } from '@/services/publisher.service';
 import { chapterEditionService, type ChapterEditionDto } from '@/services/chapter-edition.service';
 import { CONTENT_LANGUAGES } from '@/services/payment.service';
-import { formatContentLanguageName, getEditionStatusDisplay } from '../components/multilingual';
+import { formatContentLanguageName, getEditionStatusDisplay } from '@/shared/lib/multilingual';
 import { PublishScheduleModal } from '../modals/PublishScheduleModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';

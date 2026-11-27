@@ -11,7 +11,7 @@ import {
 } from '@/services/payment.service';
 import { LanguageFilter, StatCards } from '../components/MonetizationWidgets';
 import { useMoney } from '../components/useMoney';
-import { formatContentLanguageName } from '../components/multilingual';
+import { formatContentLanguageName } from '@/shared/lib/multilingual';
 
 /**
  * Publisher → General → chọn bộ truyện: dashboard tổng (lượt xem, lượt mua, đánh giá, doanh thu) lọc theo ngôn ngữ,

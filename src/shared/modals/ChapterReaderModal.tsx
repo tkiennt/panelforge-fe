@@ -23,7 +23,7 @@ import { Modal } from '@/shared/ui';
 import { LanguageSelector } from '@/shared/components/LanguageSelector';
 import { userService } from '@/services/user.service';
 import { useTranslation } from '@/lib/i18n';
-import { formatContentLanguageName } from '@/roles/publisher/components/multilingual';
+import { formatContentLanguageName } from '@/shared/lib/multilingual';
 
 interface ChapterReaderModalProps {
   isOpen: boolean;

@@ -21,7 +21,7 @@ import {
   formatContentLanguageName,
   formatEditionPricingLabel,
   getEditionStatusDisplay,
-} from './multilingual';
+} from '@/shared/lib/multilingual';
 
 export type SeriesPublishingTab = 'matrix' | 'editions' | 'pricing' | 'chapters';
 

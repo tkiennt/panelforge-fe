@@ -22,7 +22,7 @@ import {
   resolveCatalogImageUrl,
 } from '@/services/catalog.service';
 import { CONTENT_LANGUAGES } from '@/services/payment.service';
-import { formatContentLanguageName } from '@/roles/publisher/components/multilingual';
+import { formatContentLanguageName } from '@/shared/lib/multilingual';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
 import { Modal } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';

@@ -41,7 +41,7 @@ import {
   MultilingualPublishingMatrix,
   type SeriesPublishingTab,
 } from '../components/MultilingualPublishingMatrix';
-import { formatContentLanguageName, orderReleaseLanguages } from '../components/multilingual';
+import { formatContentLanguageName, orderReleaseLanguages } from '@/shared/lib/multilingual';
 import { PublishScheduleModal } from '../modals/PublishScheduleModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
