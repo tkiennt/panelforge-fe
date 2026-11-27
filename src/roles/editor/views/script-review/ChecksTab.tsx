@@ -33,6 +33,7 @@ interface ChecksTabProps {
   onTriage: (finding: ConsistencyFindingDto, decision: FindingDecision, note?: string) => void;
   onFindingToComment: (finding: ConsistencyFindingDto) => void;
   openComments?: number;
+  onOpenEntities?: () => void;
   onFreeze: () => void;
   onUnfreeze: (reason: string) => void;
 }
@@ -60,13 +61,13 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
   onTriage,
   onFindingToComment,
   openComments,
+  onOpenEntities,
   onFreeze,
   onUnfreeze,
 }) => {
   const { t, lang } = useTranslation('review');
   const [noteFor, setNoteFor] = useState<{ id: string; decision: FindingDecision } | null>(null);
   const [unfreezing, setUnfreezing] = useState(false);
-  const [entityFilter, setEntityFilter] = useState<'all' | 'main' | 'crowd'>('all');
 
   const openFindings = findings.filter((f) => OPEN_FINDING.has(String(f.status)));
   const blockingOpen = openFindings.filter((f) => String(f.severity) === 'Blocking').length;
@@ -75,67 +76,31 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
   const isGatePassed = cast?.gate?.canStart ?? false;
   const blockers = cast?.gate?.blockers ?? [];
   const freezeBlocked = Boolean(cast && !isGatePassed);
-  const totalEntities = cast?.entities?.length ?? 0;
-  const passedEntitiesCount = Math.max(0, totalEntities - blockers.length);
-
   const allEntities = cast?.entities ?? [];
-  const mainEntities = allEntities.filter((e) => !e.isCrowd);
-  const crowdEntities = allEntities.filter((e) => e.isCrowd);
-  const displayedEntities =
-    entityFilter === 'main' ? mainEntities : entityFilter === 'crowd' ? crowdEntities : allEntities;
+  const requiredEntities = allEntities.filter((e) => !e.isCrowd);
+  const passedEntitiesCount = Math.max(0, requiredEntities.length - blockers.length);
 
   return (
-    <div className='space-y-6 p-4'>
-      {/* Bible Gate & Entities in Script (Stitch view-script style) */}
-      <section className='space-y-3'>
-        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-stone-200'>
-          <div>
-            <h3 className='text-sm font-bold text-stone-900'>
-              {t('scriptReview.checks.entitiesTitle', { count: allEntities.length })}
-            </h3>
-            <p className='text-xs text-stone-500'>{t('scriptReview.checks.entitiesSubtitle')}</p>
-          </div>
-          {allEntities.length > 0 && (
-            <div className='inline-flex p-0.5 rounded-lg bg-stone-100 border border-stone-200 text-xs shrink-0'>
-              <button
-                type='button'
-                onClick={() => setEntityFilter('all')}
-                className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
-                  entityFilter === 'all'
-                    ? 'bg-white text-stone-900 shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                {t('scriptReview.checks.filterAll', { count: allEntities.length })}
-              </button>
-              <button
-                type='button'
-                onClick={() => setEntityFilter('main')}
-                className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
-                  entityFilter === 'main'
-                    ? 'bg-white text-stone-900 shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                {t('scriptReview.checks.filterMain', { count: mainEntities.length })}
-              </button>
-              <button
-                type='button'
-                onClick={() => setEntityFilter('crowd')}
-                className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
-                  entityFilter === 'crowd'
-                    ? 'bg-white text-stone-900 shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                {t('scriptReview.checks.filterCrowd', { count: crowdEntities.length })}
-              </button>
-            </div>
+    <div className='space-y-5 p-4'>
+      {/* Compact Bible Gate Summary (không lặp lại toàn bộ danh sách thực thể đã có ở tab Tài liệu tham chiếu) */}
+      <section className='space-y-2.5 rounded-xl border border-stone-200 bg-[#FAF9F5] p-3.5'>
+        <div className='flex items-center justify-between gap-2'>
+          <h3 className='text-sm font-bold text-stone-900'>
+            {t('scriptReview.checks.entitiesTitle', { count: allEntities.length })}
+          </h3>
+          {onOpenEntities && (
+            <button
+              type='button'
+              onClick={onOpenEntities}
+              className='text-xs font-semibold text-accent-dark hover:underline cursor-pointer shrink-0'
+            >
+              {t('scriptReview.checks.viewReferences', 'Xem danh sách →')}
+            </button>
           )}
         </div>
 
         {!cast ? (
-          <p className='mt-1 text-xs text-stone-500'>{t('scriptReview.checks.bibleUnavailable')}</p>
+          <p className='text-xs text-stone-500'>{t('scriptReview.checks.bibleUnavailable')}</p>
         ) : (
           <>
             <p
@@ -144,96 +109,17 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
               }`}
             >
               {isGatePassed ? (
-                <CheckCircle2 className='h-3.5 w-3.5' aria-hidden='true' />
+                <CheckCircle2 className='h-3.5 w-3.5 shrink-0' aria-hidden='true' />
               ) : (
-                <AlertTriangle className='h-3.5 w-3.5' aria-hidden='true' />
+                <AlertTriangle className='h-3.5 w-3.5 shrink-0' aria-hidden='true' />
               )}
               {isGatePassed
                 ? t('scriptReview.checks.biblePassed', { count: passedEntitiesCount })
                 : t('scriptReview.checks.bibleFailed', { count: blockers.length })}
             </p>
 
-            {/* List of entities */}
-            {displayedEntities.length > 0 ? (
-              <div className='space-y-2 mt-2'>
-                {displayedEntities.map((ent) => {
-                  const isBlocker = blockers.some((b) => b.bibleEntryId === ent.bibleEntryId);
-                  const isLocked = ent.bibleStatus === 'Active' && !ent.isStub && !isBlocker;
-                  const initials = (ent.name || 'UN')
-                    .split(' ')
-                    .map((w) => w[0])
-                    .join('')
-                    .slice(0, 2)
-                    .toUpperCase();
-
-                  return (
-                    <div
-                      key={ent.bibleEntryId || ent.code}
-                      className={`p-3 rounded-lg border flex items-center justify-between gap-2 shadow-2xs transition-colors ${
-                        isBlocker
-                          ? 'bg-rose-50/60 border-rose-200'
-                          : isLocked
-                            ? 'bg-stone-50 border-stone-200'
-                            : 'bg-amber-50/50 border-amber-200'
-                      }`}
-                    >
-                      <div className='flex items-center gap-2.5 min-w-0'>
-                        <div
-                          className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs shrink-0 ${
-                            isBlocker
-                              ? 'bg-rose-600 text-white'
-                              : ent.isCrowd
-                                ? 'bg-stone-400 text-white'
-                                : 'bg-stone-900 text-white'
-                          }`}
-                        >
-                          {initials}
-                        </div>
-                        <div className='min-w-0'>
-                          <div className='text-xs font-bold text-stone-900 truncate'>
-                            {ent.name}
-                          </div>
-                          <div className='text-[11px] text-stone-500 truncate'>
-                            {ent.category || t('scriptReview.checks.entityCategoryFallback')} ·{' '}
-                            {ent.source === 'Speaker'
-                              ? t('scriptReview.checks.entitySourceSpeaker')
-                              : t('scriptReview.checks.entitySourceMentioned')}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className='flex items-center gap-1.5 shrink-0'>
-                        {isBlocker ? (
-                          <span className='bg-rose-50 text-rose-700 border border-rose-200 text-[11px] px-2 py-0.5 rounded-full font-semibold'>
-                            {t('scriptReview.checks.entityStatusIncomplete')}
-                          </span>
-                        ) : isLocked ? (
-                          <span className='bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] px-2 py-0.5 rounded-full font-semibold'>
-                            {t('scriptReview.checks.entityStatusLocked')}
-                          </span>
-                        ) : ent.isCrowd ? (
-                          <span className='bg-stone-100 text-stone-600 border border-stone-200 text-[11px] px-2 py-0.5 rounded-full font-medium'>
-                            {t('scriptReview.checks.entityStatusExempt')}
-                          </span>
-                        ) : (
-                          <span className='bg-amber-50 text-amber-700 border border-amber-200 text-[11px] px-2 py-0.5 rounded-full font-medium'>
-                            {t('scriptReview.checks.entityStatusPending')}
-                          </span>
-                        )}
-                        <span className='text-[11px] text-stone-500 font-medium bg-white px-1.5 py-0.5 rounded border border-stone-200'>
-                          {ent.isCrowd
-                            ? t('scriptReview.checks.entityRoleCrowd')
-                            : t('scriptReview.checks.entityRoleMain')}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-
             {blockers.length > 0 && (
-              <div className='p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-900 flex items-start gap-2 mt-3'>
+              <div className='p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-900 flex items-start gap-2'>
                 <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0 mt-0.5' />
                 <p>
                   {t('scriptReview.checks.blockedByEntitiesPrefix')}{' '}

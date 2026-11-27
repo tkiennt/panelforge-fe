@@ -753,7 +753,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                       )}
                     </span>
                   </label>
-                  <p className='text-[11px] text-stone-500 pl-6 leading-relaxed'>
+                  <p className='text-xs text-stone-500 pl-6 leading-relaxed'>
                     {t(
                       'seriesChaptersModal.startProductionModal.firstStageOnlyHint',
                       "Các công đoạn sau để trống; bật 'Tự giao công đoạn kế tiếp' ở tab Automation để hệ thống tự giao khi đến lượt.",

@@ -5,7 +5,7 @@ export const RouteFallback: React.FC = () => {
   const { t } = useTranslation();
   return (
     <div
-      className='flex h-full min-h-[40vh] w-full items-center justify-center gap-3 text-zinc-500 font-sans'
+      className='flex h-full min-h-[40vh] w-full items-center justify-center gap-3 text-stone-500 font-sans'
       role='status'
       aria-label='Loading'
     >

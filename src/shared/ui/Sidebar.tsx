@@ -116,7 +116,7 @@ export const SidebarItem = forwardRef<HTMLAnchorElement | HTMLButtonElement, Sid
         {Icon && (
           <Icon
             className={cn(
-              'size-4 shrink-0 transition-colors',
+              'pf-sb-icon size-4 shrink-0 transition-colors',
               active ? 'text-orange-600' : 'text-stone-500 group-hover:text-stone-800',
             )}
             aria-hidden='true'

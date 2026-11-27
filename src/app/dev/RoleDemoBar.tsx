@@ -28,7 +28,7 @@ export const RoleDemoBar: React.FC<RoleDemoBarProps> = ({
     { id: 'artist', label: 'Line Artist', color: 'bg-blue-500 hover:bg-blue-600 text-white' },
     { id: 'letterer', label: 'Letterer', color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
     { id: 'editor', label: 'Chief Editor', color: 'bg-red-600 hover:bg-red-700 text-white' },
-    { id: 'reader', label: 'Reader', color: 'bg-gray-800 hover:bg-black text-white' },
+    { id: 'reader', label: 'Reader', color: 'bg-stone-800 hover:bg-black text-white' },
   ];
 
   return (
@@ -55,7 +55,7 @@ export const RoleDemoBar: React.FC<RoleDemoBarProps> = ({
                 <button
                   key={r.id}
                   onClick={() => onRoleSelect(r.id as DemoRole)}
-                  className={`w-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded border border-transparent transition-all text-left ${r.color} ${
+                  className={`w-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded border border-transparent transition-all text-left ${r.color} ${
                     isActive
                       ? 'ring-2 ring-offset-1 ring-[#171717] opacity-100 font-black scale-[1.02]'
                       : 'opacity-80 hover:opacity-100 hover:scale-[1.02]'
@@ -86,7 +86,7 @@ export const RoleDemoBar: React.FC<RoleDemoBarProps> = ({
         >
           <Settings className='w-5 h-5 group-hover:rotate-45 transition-transform duration-300' />
           {activeRole && (
-            <span className='text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full'>
+            <span className='text-xs font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full'>
               {activeRole}
             </span>
           )}

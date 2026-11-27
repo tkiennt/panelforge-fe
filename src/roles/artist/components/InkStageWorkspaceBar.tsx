@@ -122,7 +122,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
         {/* =========================================================================
           REFERENCE TOOLS: LỚP CHÌ NỀN (PENCIL UNDERLAY GHOST REFERENCE)
          ========================================================================= */}
-        <div className='flex items-center gap-1 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8] text-[11px] h-7'>
+        <div className='flex items-center gap-1 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8] text-xs h-7'>
           <button
             type='button'
             data-testid='btn-toggle-pencil-underlay'
@@ -153,7 +153,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
             disabled={!hasPencilArt || !pencilUnderlayVisible}
             className='w-14 accent-cyan-600 h-1 bg-stone-300 rounded cursor-pointer disabled:opacity-40'
           />
-          <span className='font-mono text-[10px] text-stone-600 w-6 text-right'>
+          <span className='font-mono text-xs text-stone-600 w-6 text-right'>
             {pencilUnderlayVisible && hasPencilArt ? `${pencilUnderlayOpacity}%` : '0%'}
           </span>
         </div>
@@ -166,7 +166,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
           data-testid='btn-toggle-safe-zone'
           onClick={onToggleSafeZone}
           title={t('inkBar.toggleSafeZoneTitle')}
-          className={`h-7 flex items-center gap-1 px-2.5 rounded-lg border font-semibold text-[11px] cursor-pointer transition-colors ${
+          className={`h-7 flex items-center gap-1 px-2.5 rounded-lg border font-semibold text-xs cursor-pointer transition-colors ${
             safeZoneVisible
               ? 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold'
               : 'bg-[#F3EFE6] text-stone-700 border-[#DDD6C8] hover:bg-stone-100'

@@ -161,6 +161,11 @@
       "changes": "Thay đổi",
       "entities": "Thực thể"
     },
+    "sidePanel": {
+      "expand": "Mở bảng tham chiếu",
+      "collapse": "Thu gọn bảng tham chiếu",
+      "toggleLabel": "Tham chiếu"
+    },
     "composer": {
       "label": "Nhận xét cho Writer",
       "placeholder": "Cần sửa gì ở đây, và vì sao?",
@@ -183,7 +188,8 @@
       "itemCount": "{count} mục",
       "pageNumber": "Trang {page}",
       "panelCode": "Khung {page}.{panel}",
-      "defaultAuthor": "Biên tập viên"
+      "defaultAuthor": "Biên tập viên",
+      "thoughtTag": "nghĩ"
     },
     "location": {
       "line": "Cảnh {scene} · dòng {line}",
@@ -227,6 +233,7 @@
       "bibleUnavailable": "Chưa lấy được kết quả Bible Gate.",
       "biblePassed": "Đạt: {count} mục Bible đã khoá canon",
       "bibleFailed": "Chưa đạt: {count} mục Bible chưa khoá canon",
+      "viewReferences": "Xem danh sách →",
       "notLocked": "Chưa khoá canon tại chương này",
       "consistencyTitle": "Kiểm tra nhất quán",
       "run": "Chạy kiểm tra",
@@ -381,7 +388,8 @@
       "statusMissing": "Chưa có bản vẽ",
       "typeMain": "Chính",
       "typeCrowd": "Quần chúng",
-      "blockerTitle": "Kịch bản đang bị chặn duyệt sản xuất:"
+      "blockerTitle": "Kịch bản đang bị chặn duyệt sản xuất:",
+      "openDesignSheet": "Mở hồ sơ thiết kế"
     },
     "stitch": {
       "readerTitle": "Nội dung kịch bản & Góp ý biên tập",
@@ -545,6 +553,18 @@
     "visualReport": "Hình ảnh"
   },
   "chapterReview": {
+    "gate2Badge": "Cổng 2",
+    "gate2Subtitle": "Cổng chất lượng & ghép trang",
+    "status": {
+      "unassigned": "Chưa giao",
+      "assigned": "Đã giao",
+      "inProgress": "Đang làm",
+      "submitted": "Đã nộp",
+      "underReview": "Đang duyệt",
+      "approved": "Đã duyệt",
+      "reworkRequired": "Cần sửa",
+      "blocked": "Bị khóa"
+    },
     "stepper": {
       "editor": "Editor duyệt",
       "producer": "Producer duyệt",
@@ -733,6 +753,14 @@
   "readerView": {
     "title": "Chương {number}: {title} — Duyệt tranh",
     "pageIndicator": "Trang {current} / {total}",
+    "readingModeBtn": "Đọc liền mạch",
+    "readingModeTitle": "Đọc chương như truyện",
+    "readingModeClose": "Thoát chế độ đọc",
+    "readingModePrev": "Trang trước",
+    "readingModeNext": "Trang sau",
+    "readingModeLoading": "Đang ghép trang",
+    "readingModeEmptyPage": "Trang {page} chưa có bản vẽ",
+    "readingModeOpenReview": "Mở trang này ở chế độ duyệt",
     "reworkCount": "Yêu cầu vẽ lại ({count})",
     "approvePage": "Duyệt đạt trang này",
     "scriptRefTitle": "Kịch bản đối chiếu",
@@ -797,5 +825,115 @@
     "readinessTitle": "Tình trạng sẵn sàng",
     "readinessNotice": "Cần xử lý xong các trang chưa đạt trước khi xuất file hoàn chỉnh.",
     "readinessReady": "Đã sẵn sàng xuất bản."
+  },
+  "seriesReader": {
+    "headerSubtitle": "Đọc liền mạch các chương đã có bản vẽ và ghim góp ý trực tiếp lên trang.",
+    "close": "Đóng",
+    "cancel": "Huỷ",
+    "loadErrorTitle": "Không tải được bộ truyện",
+    "loadError": "Không thể tải dữ liệu đọc bộ truyện.",
+    "loadingChapter": "Đang tải trang và bản vẽ chương...",
+    "noPagesInChapter": "Chương này chưa có trang nào.",
+    "emptyChaptersTitle": "Chưa có chương phù hợp để đọc",
+    "emptyChaptersDesc": "Hãy bỏ lọc hoặc bật hiển thị chương chưa có trang ở cột mục lục.",
+    "chapterSectionTitle": "Chương {number}: {title}",
+    "untitledChapter": "Chưa đặt tiêu đề",
+    "pageHeader": "Trang {number}",
+    "commentOnPageBtn": "Góp ý trang này",
+    "pageAlt": "Chương {chapter} - Trang {page}",
+    "noArtworkPlaceholder": "Chưa có bản vẽ",
+    "currentStageLabel": "Công đoạn hiện tại: {stage}",
+    "pinAriaLabel": "Ghim #{index} của {author}",
+    "toolbar": {
+      "addCommentMode": "Thêm góp ý (C)",
+      "pinModeActive": "Đang ghim góp ý (C)",
+      "commentsBtn": "Góp ý ({count})"
+    },
+    "toc": {
+      "title": "Mục lục",
+      "expand": "Mở rộng mục lục",
+      "collapse": "Thu gọn mục lục",
+      "statusFilterLabel": "Lọc theo trạng thái chương",
+      "allStatuses": "Tất cả trạng thái",
+      "statusPreProduction": "Tiền kỳ",
+      "statusInProduction": "Đang sản xuất",
+      "statusApproved": "Đã duyệt chương",
+      "statusPublished": "Đã bàn giao / Phát hành",
+      "showEmptyChapters": "Hiện chương chưa có trang",
+      "empty": "Không có chương nào phù hợp bộ lọc.",
+      "chapterLabel": "Chương {number}",
+      "pagesCount": "{count} trang"
+    },
+    "status": {
+      "Open": "Đang mở",
+      "Resolved": "Đã xử lý",
+      "ConvertedToRework": "Đã chuyển sửa"
+    },
+    "scope": {
+      "label": "Phạm vi góp ý",
+      "page": "Trang này",
+      "chapter": "Chương này",
+      "series": "Cả bộ"
+    },
+    "comments": {
+      "drawerTitle": "Góp ý sửa theo trang",
+      "emptyTitle": "Chưa có góp ý",
+      "emptyDesc": "Bật chế độ Thêm góp ý (phím C) rồi bấm lên ảnh trang để ghim góp ý mới.",
+      "unknownAuthor": "Thành viên Studio",
+      "chapterShort": "Ch. {number}",
+      "pageShort": "Trang {number}",
+      "panelShort": "Khung {number}",
+      "convertedStage": "Đã chuyển sửa: {stage}",
+      "resolutionNotePrefix": "Ghi chú xử lý:",
+      "resolveBtn": "Đánh dấu đã xử lý",
+      "resolveNotePlaceholder": "Ghi chú xử lý (tuỳ chọn)...",
+      "confirmResolve": "Xác nhận",
+      "reopenBtn": "Mở lại",
+      "convertToReworkBtn": "Chuyển thành yêu cầu sửa",
+      "reopenChapterFirst": "Mở lại chương trước",
+      "reopenChapterBtn": "Mở lại chương",
+      "noTargetSelected": "Chọn chương hoặc trang để góp ý",
+      "clearPin": "Bỏ ghim",
+      "inputPlaceholder": "Nhập góp ý chỉnh sửa cho trang hoặc chương...",
+      "shortcutHint": "Ctrl/Cmd + Enter để gửi",
+      "submitBtn": "Gửi góp ý"
+    },
+    "reworkModal": {
+      "title": "Chuyển góp ý thành yêu cầu sửa",
+      "subtitle": "Chương {chapter} · Trang {page}",
+      "selectTaskLabel": "Chọn công việc cần trả về làm lại",
+      "noTasksAvailable": "Không có công việc nào trên lưới của trang này.",
+      "chapterLevel": "Cấp chương",
+      "assignedFallback": "Đã phân công",
+      "unassigned": "Chưa phân công",
+      "statusApproved": "Đã duyệt",
+      "statusSubmitted": "Chờ duyệt",
+      "statusUnderReview": "Đang duyệt",
+      "reasonLabel": "Lý do yêu cầu sửa (bắt buộc - BR-06)",
+      "reasonPlaceholder": "Mô tả chi tiết lỗi cần chỉnh sửa...",
+      "reasonHint": "Chỉ chọn được ô ở trạng thái Đã duyệt, Chờ duyệt hoặc Đang duyệt.",
+      "submitBtn": "Chuyển yêu cầu sửa"
+    },
+    "reopenChapterDialog": {
+      "title": "Mở lại chương để sản xuất",
+      "description": "Chương {number} sẽ chuyển về trạng thái Đang sản xuất để có thể tạo yêu cầu sửa.",
+      "reasonLabel": "Lý do mở lại chương (bắt buộc)",
+      "reasonPlaceholder": "Nhập lý do mở lại chương...",
+      "confirmBtn": "Mở lại chương"
+    },
+    "toast": {
+      "commentCreatedTitle": "Đã thêm góp ý",
+      "commentCreatedDesc": "Góp ý của bạn đã được lưu.",
+      "resolvedTitle": "Đã xử lý góp ý",
+      "resolvedDesc": "Góp ý đã chuyển sang trạng thái Đã xử lý.",
+      "reopenedTitle": "Đã mở lại góp ý",
+      "reopenedDesc": "Góp ý đã quay lại trạng thái Đang mở.",
+      "reworkSuccessTitle": "Đã chuyển thành yêu cầu sửa",
+      "reworkSuccessDesc": "Ô công việc đã được trả về làm lại và thông báo cho người phụ trách.",
+      "chapterReopenedTitle": "Đã mở lại chương",
+      "chapterReopenedDesc": "Chương {number} đã chuyển về trạng thái Đang sản xuất.",
+      "actionFailedTitle": "Thao tác thất bại",
+      "actionFailed": "Không thể thực hiện thao tác, vui lòng thử lại."
+    }
   }
 }

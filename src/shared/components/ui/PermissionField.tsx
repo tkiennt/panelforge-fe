@@ -40,7 +40,7 @@ export const PermissionField: React.FC<PermissionFieldProps> = ({
     return (
       <textarea
         className={cn(
-          'w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#F97316]',
+          'w-full p-2 border border-stone-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#F97316]',
           className,
         )}
         value={value}
@@ -54,7 +54,7 @@ export const PermissionField: React.FC<PermissionFieldProps> = ({
     <input
       type='text'
       className={cn(
-        'w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#F97316]',
+        'w-full p-2 border border-stone-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#F97316]',
         className,
       )}
       value={value}

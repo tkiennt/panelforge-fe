@@ -178,7 +178,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                   stage: t(STAGE_CONFIG[p.stage].labelKey),
                 })}
                 data-testid={`mini-page-btn-${p.pageNumber}`}
-                className={`w-8 h-10 rounded-xs flex flex-col items-center justify-center border text-[10px] font-mono relative transition-all ${
+                className={`w-8 h-10 rounded-xs flex flex-col items-center justify-center border text-xs font-mono relative transition-all ${
                   isSelected
                     ? 'bg-[#094771] border-[#007ACC] text-white shadow-sm ring-1 ring-[#007ACC]'
                     : 'bg-[#1E1E1E] border-[#383838] text-[#9E9E9E] hover:border-[#555555] hover:text-[#CCCCCC]'
@@ -220,10 +220,10 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
       <div className='h-9 bg-[#2D2D30] border-b border-[#383838] px-2.5 flex items-center justify-between shrink-0'>
         <div className='flex items-center gap-2'>
           <Layers className='w-3.5 h-3.5 text-[#007ACC]' />
-          <span className='text-[11px] font-bold tracking-wider uppercase text-[#CCCCCC]'>
+          <span className='text-xs font-bold tracking-wider uppercase text-[#CCCCCC]'>
             {t('pageSidebar.headerTitle')}
           </span>
-          <span className='text-[10px] bg-[#1E1E1E] border border-[#3E3E42] text-[#858585] px-1.5 py-0.2 rounded-xs font-mono'>
+          <span className='text-xs bg-[#1E1E1E] border border-[#3E3E42] text-[#858585] px-1.5 py-0.2 rounded-xs font-mono'>
             {pages.length}
           </span>
         </div>
@@ -294,7 +294,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                 </>
               )}
               <div className='my-1 border-t border-[#2D2D30]' />
-              <div className='px-3 py-1 text-[10px] text-[#858585] uppercase tracking-wider font-semibold'>
+              <div className='px-3 py-1 text-xs text-[#858585] uppercase tracking-wider font-semibold'>
                 {t('pageSidebar.viewModeHeader')}
               </div>
               <button
@@ -340,7 +340,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('pageSidebar.searchPlaceholder')}
               data-testid='input-search-pages'
-              className='w-full h-7 bg-[#252526] border border-[#3E3E42] rounded-xs pl-7 pr-2 text-[11px] text-[#CCCCCC] placeholder-[#858585] focus:outline-none focus:border-[#007ACC]'
+              className='w-full h-7 bg-[#252526] border border-[#3E3E42] rounded-xs pl-7 pr-2 text-xs text-[#CCCCCC] placeholder-[#858585] focus:outline-none focus:border-[#007ACC]'
             />
           </div>
 
@@ -375,7 +375,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
         </div>
 
         {/* Thanh lọc trạng thái giai đoạn (Chips) */}
-        <div className='flex items-center gap-1 overflow-x-auto py-0.5 text-[10px] scrollbar-none'>
+        <div className='flex items-center gap-1 overflow-x-auto py-0.5 text-xs scrollbar-none'>
           {(['all', 'pencil', 'ink', 'lettering', 'completed'] as const).map((stage) => {
             const isActive = filterStage === stage;
             const label =
@@ -405,7 +405,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
         className='flex-1 overflow-y-auto overflow-x-hidden p-1.5 space-y-1 scrollbar-thin scrollbar-thumb-[#3E3E42] scrollbar-track-[#1E1E1E]'
       >
         {filteredPages.length === 0 ? (
-          <div className='py-8 text-center text-[#858585] text-[11px] flex flex-col items-center justify-center'>
+          <div className='py-8 text-center text-[#858585] text-xs flex flex-col items-center justify-center'>
             <FileText className='w-6 h-6 mb-1 text-[#858585]/60' />
             <span>{t('pageSidebar.noPagesFound')}</span>
           </div>
@@ -421,7 +421,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                   key={page.id}
                   data-testid={`page-row-${page.pageNumber}`}
                   onClick={() => onSelectPage(page.id)}
-                  className={`group relative flex items-center justify-between px-2 py-1.5 rounded-xs border text-[11px] cursor-pointer transition-colors ${
+                  className={`group relative flex items-center justify-between px-2 py-1.5 rounded-xs border text-xs cursor-pointer transition-colors ${
                     isSelected
                       ? 'bg-[#094771] border-[#007ACC] text-white font-medium'
                       : 'bg-[#1E1E1E] border-transparent text-[#CCCCCC] hover:bg-[#2A2D2E]'
@@ -446,16 +446,16 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                       )}
                     </button>
 
-                    <span className='font-mono text-[10px] text-[#858585] group-hover:text-white shrink-0'>
+                    <span className='font-mono text-xs text-[#858585] group-hover:text-white shrink-0'>
                       #{String(page.pageNumber).padStart(2, '0')}
                     </span>
 
-                    <span className='truncate text-[11px]'>{page.title}</span>
+                    <span className='truncate text-xs'>{page.title}</span>
                   </div>
 
                   <div className='flex items-center gap-1.5 shrink-0'>
                     <span
-                      className={`text-[9px] px-1 py-0.2 rounded-xs border ${stageMeta.bg} ${stageMeta.text} ${stageMeta.border}`}
+                      className={`text-xs px-1 py-0.2 rounded-xs border ${stageMeta.bg} ${stageMeta.text} ${stageMeta.border}`}
                     >
                       {t(stageMeta.labelKey)}
                     </span>
@@ -495,7 +495,7 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                     )}
                   </button>
 
-                  <span className='text-[9px] font-mono text-[#858585]'>
+                  <span className='text-xs font-mono text-[#858585]'>
                     {String(page.pageNumber).padStart(2, '0')}
                   </span>
                 </div>
@@ -537,22 +537,22 @@ export const ArtistPageSidebar: React.FC<ArtistPageSidebarProps> = ({
                 <div className='flex-1 min-w-0 flex flex-col justify-between py-0.5'>
                   <div>
                     <div className='flex items-center justify-between gap-1'>
-                      <span className='text-[11px] font-semibold truncate'>
+                      <span className='text-xs font-semibold truncate'>
                         {t('pageSidebar.pageLabel', { page: page.pageNumber })}
                       </span>
                       <span
-                        className={`text-[9px] px-1 py-0.2 rounded-xs border font-medium ${stageMeta.bg} ${stageMeta.text} ${stageMeta.border}`}
+                        className={`text-xs px-1 py-0.2 rounded-xs border font-medium ${stageMeta.bg} ${stageMeta.text} ${stageMeta.border}`}
                       >
                         {t(stageMeta.labelKey)}
                       </span>
                     </div>
 
-                    <p className='text-[10px] text-[#858585] truncate mt-0.5'>
+                    <p className='text-xs text-[#858585] truncate mt-0.5'>
                       {page.title || t('pageSidebar.untitled')}
                     </p>
                   </div>
 
-                  <div className='flex items-center justify-between text-[9px] text-[#858585] mt-1'>
+                  <div className='flex items-center justify-between text-xs text-[#858585] mt-1'>
                     <span>{t('pageSidebar.panelsCount', { count: page.panelsCount })}</span>
                     <span>{page.format || 'B5 Master'}</span>
                   </div>

@@ -13,18 +13,13 @@ vi.mock('@/services/chapter.service', () => ({
   chapterService: {
     getChaptersBySeries: vi.fn(),
     getChapterById: vi.fn(),
+    getChapterReadiness: vi.fn(),
+    getChapterReviews: vi.fn(),
     createChapter: vi.fn(),
     updateChapter: vi.fn(),
     deleteChapter: vi.fn(),
     getChapterLockGate: vi.fn(),
-    getScriptVersion: vi.fn(),
-    getScriptWorkingCopy: vi.fn(),
-    getScriptComments: vi.fn(),
-    resolveScriptComment: vi.fn(),
     unfreezeScript: vi.fn(),
-    approveChapter: vi.fn(),
-    uploadChapterCover: vi.fn(),
-    deleteChapterCover: vi.fn(),
   },
 }));
 
@@ -63,48 +58,30 @@ vi.mock('@/shared/modals/StartProductionModal', () => ({
     ) : null,
 }));
 
+vi.mock('@/shared/modals/RefreezeScriptModal', () => ({
+  RefreezeScriptModal: ({ isOpen, onClose }: any) =>
+    isOpen ? (
+      <div data-testid='refreeze-script-modal'>
+        <button onClick={onClose}>Đóng</button>
+      </div>
+    ) : null,
+}));
+
 vi.mock('../modals/ChapterAssignmentsModal', () => ({
-  ChapterAssignmentsModal: ({ isOpen, onClose }: any) =>
-    isOpen ? (
-      <div data-testid='assignments-modal'>
-        <button onClick={onClose}>Đóng</button>
-      </div>
-    ) : null,
+  ChapterAssignmentsModal: () => null,
 }));
-
 vi.mock('../modals/ChapterEditionsModal', () => ({
-  ChapterEditionsModal: ({ isOpen, onClose }: any) =>
-    isOpen ? (
-      <div data-testid='editions-modal'>
-        <button onClick={onClose}>Đóng</button>
-      </div>
-    ) : null,
+  ChapterEditionsModal: () => null,
 }));
-
-vi.mock('@/shared/features/provenance/ChapterProvenanceModal', () => ({
-  ChapterProvenanceModal: ({ onClose }: any) => (
-    <div data-testid='provenance-modal'>
-      <button onClick={onClose}>Đóng</button>
-    </div>
-  ),
-}));
-
 vi.mock('../modals/PreviewLinksModal', () => ({
-  PreviewLinksModal: ({ isOpen, onClose }: any) =>
-    isOpen ? (
-      <div data-testid='preview-links-modal'>
-        <button onClick={onClose}>Đóng</button>
-      </div>
-    ) : null,
+  PreviewLinksModal: () => null,
+}));
+vi.mock('@/shared/features/provenance/ChapterProvenanceModal', () => ({
+  ChapterProvenanceModal: () => null,
 }));
 
-describe('ProducerChapterManagementView', () => {
-  const mockSeries = {
-    id: 'series-1',
-    title: 'Neon Odyssey',
-    synopsis: 'A cyberpunk manga saga',
-  };
-
+describe('ProducerChapterManagementView (Unified Chapter Production Hub)', () => {
+  const mockSeries = { id: 'series-1', title: 'Dragon Saga' };
   const mockChapters = [
     {
       id: 'chap-1',
@@ -114,10 +91,11 @@ describe('ProducerChapterManagementView', () => {
       status: 'PreProduction',
       scriptStatus: 'InReview',
       isScriptFrozen: false,
-      lastSubmittedVersionId: 'ver-1',
+      lastSubmittedVersionId: 'ver-3',
       targetReleaseDate: '2026-12-01',
       pagesCount: 20,
-      versionVector: 1,
+      scenesCount: 4,
+      versionVector: 2,
     },
     {
       id: 'chap-2',
@@ -127,117 +105,17 @@ describe('ProducerChapterManagementView', () => {
       status: 'InProduction',
       scriptStatus: 'Frozen',
       isScriptFrozen: true,
-      lastSubmittedVersionId: 'ver-2',
+      lastSubmittedVersionId: 'ver-5',
+      frozenScriptVersionId: 'ver-4',
       targetReleaseDate: '2026-12-15',
-      pagesCount: 24,
-      versionVector: 2,
+      pagesCount: 18,
+      scenesCount: 3,
+      versionVector: 7,
     },
   ];
 
-  const mockScriptVersion = {
-    version: {
-      id: 'ver-1',
-      versionNumber: 1,
-      message: 'Nộp duyệt Gate 1',
-      authorUserId: 'writer-1',
-      authorName: 'Oda Eiichiro',
-      createdAt: '2026-11-10T10:00:00Z',
-      lineCount: 4,
-      contentHash: 'abc123456789def',
-      submittedAt: '2026-11-10T10:00:00Z',
-    },
-    rows: [
-      { key: 'page:1', type: 'page', page: 1, panel: 0, text: '' },
-      { key: 'panel:1', type: 'panel', page: 1, panel: 1, text: 'Góc nhìn từ trên cao' },
-      {
-        key: 'line:1',
-        type: 'Dialogue',
-        page: 1,
-        panel: 1,
-        label: 'REN',
-        text: 'Thành phố này không bao giờ ngủ.',
-      },
-      {
-        key: 'line:2',
-        type: 'Sfx',
-        page: 1,
-        panel: 1,
-        text: 'RẦM!',
-      },
-    ],
-  };
-
-  const mockCast = {
-    chapterId: 'chap-1',
-    chapterNumber: 1,
-    chapterTitle: 'Khởi đầu mới',
-    isScriptFrozen: false,
-    gate: {
-      canStart: true,
-      blockers: [],
-    },
-    entities: [
-      {
-        bibleEntryId: 'char-ren',
-        code: 'CHR-01',
-        name: 'Ren Takahashi',
-        category: 'Character',
-        isStub: false,
-        isCrowd: false,
-        isCanonLocked: true,
-        boundRevision: {
-          revisionId: 'rev-1',
-          versionNumber: 2,
-          variantLabel: 'Trang phục thường',
-          status: 'CanonLocked',
-          isCanonLocked: true,
-          referenceImageUrl: 'https://example.com/ren.png',
-          summary: 'Nhân vật chính, 17 tuổi',
-        },
-        mentions: [{ lineId: 'line:1' }],
-      },
-    ],
-  };
-
-  const mockLockGate = {
-    chapterId: 'chap-1',
-    status: 'PreProduction',
-    canApprove: false,
-    items: [
-      { code: 'SCRIPT_NOT_FROZEN', blocking: true, count: 1, message: 'Kịch bản chưa đóng băng' },
-      {
-        code: 'ASSIGNMENTS_NOT_APPROVED',
-        blocking: true,
-        count: 5,
-        message: '5 công việc chưa duyệt',
-      },
-    ],
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    (seriesService.getSeriesById as any).mockResolvedValue(mockSeries);
-    (chapterService.getChaptersBySeries as any).mockResolvedValue({
-      items: mockChapters,
-      totalCount: 2,
-    });
-    (chapterService.getChapterById as any).mockImplementation((id: string) => {
-      const found = mockChapters.find((c) => c.id === id) || mockChapters[0];
-      return Promise.resolve(found);
-    });
-    (chapterService.getScriptVersion as any).mockResolvedValue(mockScriptVersion);
-    (chapterCastService.getChapterCast as any).mockResolvedValue(mockCast);
-    (chapterService.getChapterLockGate as any).mockResolvedValue(mockLockGate);
-    (chapterService.getScriptComments as any).mockResolvedValue([]);
-    (pageService.getPagesByChapter as any).mockResolvedValue([]);
-    (pipelineService.getPipelineStages as any).mockResolvedValue([
-      { id: 'stg-1', name: 'Storyboard' },
-      { id: 'stg-2', name: 'Line Art' },
-    ]);
-  });
-
-  const renderComponent = (chapterId = 'chap-1') => {
-    return render(
+  const renderHub = (chapterId = 'chap-1') =>
+    render(
       <MemoryRouter
         initialEntries={[`/workspaces/ws-1/series/series-1/chapters?chapterId=${chapterId}`]}
       >
@@ -246,107 +124,483 @@ describe('ProducerChapterManagementView', () => {
             path='/workspaces/:workspaceId/series/:seriesId/chapters'
             element={<ProducerChapterManagementView workspaceRole='PRODUCER' />}
           />
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/chapters/:chapterId/script/review'
+            element={<div data-testid='canonical-script-workspace'>Script Workspace</div>}
+          />
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/workspace'
+            element={<div data-testid='canonical-production-board'>Production Board</div>}
+          />
         </Routes>
       </MemoryRouter>,
     );
-  };
 
-  it('tải và hiển thị thanh tiêu đề gọn gàng, thông tin chương và nút chốt duyệt', async () => {
-    renderComponent('chap-1');
-
-    await waitFor(() => {
-      expect(screen.getByRole('combobox', { name: /chọn chương/i })).toBeInTheDocument();
-      expect(screen.getByTestId('chapter-status-badge')).toHaveTextContent('Tiền kỳ');
-      expect(screen.getByTestId('script-frozen-badge')).toHaveTextContent('Chờ duyệt (InReview)');
-    });
-
-    // Primary action button is concise: "Chốt duyệt & Bắt đầu"
-    expect(screen.getByText('Chốt duyệt & Bắt đầu')).toBeInTheDocument();
-  });
-
-  it('đọc kịch bản: hiển thị cấu trúc Trang, Panel, Thoại nhân vật và Hiệu ứng SFX', async () => {
-    renderComponent('chap-1');
-
-    await waitFor(() => {
-      expect(screen.getByText('TRANG 1')).toBeInTheDocument();
-      expect(screen.getByText('PANEL 1 Góc nhìn từ trên cao')).toBeInTheDocument();
-      expect(screen.getByText('[REN]:')).toBeInTheDocument();
-      expect(screen.getByText('Thành phố này không bao giờ ngủ.')).toBeInTheDocument();
-      expect(screen.getByText('⚡ SFX: RẦM!')).toBeInTheDocument();
-    });
-  });
-
-  it('xem Art Series Bible bên cột đối chiếu: hiển thị nhân vật và trạng thái Locked', async () => {
-    renderComponent('chap-1');
-
-    await waitFor(() => {
-      expect(screen.getByText('Ren Takahashi')).toBeInTheDocument();
-      expect(screen.getByText('CHR-01')).toBeInTheDocument();
-      expect(screen.getByText('Locked')).toBeInTheDocument();
-    });
-  });
-
-  it('chuyển tab Chốt Cổng: hiển thị checklist Gate 1 & Gate 3 ngắn gọn', async () => {
-    renderComponent('chap-1');
-
-    await waitFor(() => {
-      expect(screen.getByText(/Chốt Cổng/i)).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByText(/Chốt Cổng/i));
-
-    await waitFor(() => {
-      expect(screen.getByText('Gate 1: Bắt đầu sản xuất')).toBeInTheDocument();
-      expect(screen.getByText('Gate 3: Khóa duyệt chương')).toBeInTheDocument();
-      expect(screen.getByText('Kịch bản chưa đóng băng')).toBeInTheDocument();
-    });
-  });
-
-  it('Gate 3: chương đã nghiệm thu hiện "ĐÃ QUA CỔNG", không còn "CHƯA ĐẠT"', async () => {
-    const approved = { ...mockChapters[1], status: 'ChapterApproved' };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (seriesService.getSeriesById as any).mockResolvedValue(mockSeries);
     (chapterService.getChaptersBySeries as any).mockResolvedValue({
-      items: [mockChapters[0], approved],
+      items: mockChapters,
       totalCount: 2,
     });
-    (chapterService.getChapterById as any).mockResolvedValue(approved);
-    (chapterService.getChapterLockGate as any).mockResolvedValue({
-      chapterId: 'chap-2',
-      status: 'ChapterApproved',
-      canApprove: false,
-      items: [
-        { code: 'NOT_IN_PRODUCTION', blocking: true, count: 1, message: 'Không ở InProduction' },
+    (pipelineService.getPipelineStages as any).mockResolvedValue([
+      { id: 'st-1', name: 'Pencil', stageOrder: 1, isEnabled: true },
+      { id: 'st-2', name: 'Ink', stageOrder: 2, isEnabled: true },
+    ]);
+    (pageService.getPagesByChapter as any).mockResolvedValue([{ id: 'p1', pageNumber: 1 }]);
+    (chapterService.getChapterLockGate as any).mockResolvedValue(null);
+    (chapterService.getChapterReviews as any).mockResolvedValue([]);
+    (chapterCastService.getChapterCast as any).mockResolvedValue({
+      chapterId: 'chap-1',
+      entities: [],
+      submitGate: { canSubmit: true, blockers: [] },
+      gate: { canStart: true, blockers: [] },
+    });
+  });
+
+  it('Scenario A/B: shows blockers, disables Start Production with explicit reason, and deep-links to detail', async () => {
+    (chapterService.getChapterById as any).mockResolvedValue(mockChapters[0]);
+    (chapterService.getChapterReadiness as any).mockResolvedValue({
+      chapterId: 'chap-1',
+      seriesId: 'series-1',
+      chapterNumber: 1,
+      chapterTitle: 'Khởi đầu mới',
+      chapterStatus: 'PreProduction',
+      targetReleaseDate: '2026-12-01',
+      isHandedOff: false,
+      evaluatedScriptVersionId: 'ver-3',
+      status: 'NOT_READY',
+      canStartProduction: false,
+      checks: [
+        {
+          code: 'SCRIPT_SUBMITTED',
+          group: 'SCRIPT',
+          label: 'Kịch bản đã gửi duyệt',
+          passed: true,
+          mandatory: true,
+          statusText: 'Đã nộp v3',
+        },
+        {
+          code: 'BIBLE_CANON_LOCKED',
+          group: 'BIBLE',
+          label: 'Tài liệu tham khảo bắt buộc đã khóa chuẩn',
+          passed: false,
+          mandatory: true,
+          statusText: '2/3 đã sẵn sàng',
+          reason: 'Còn 1 tài nguyên chưa khóa chuẩn Canon.',
+          resolutionTarget: {
+            workspace: 'pre-production',
+            section: 'entities',
+            resourceId: 'ent-3',
+          },
+        },
       ],
+      blockers: [
+        {
+          code: 'BIBLE_REFERENCE_BLOCKED',
+          severity: 'BLOCKING',
+          message: 'Vegeta: Bản Mặc định v1 chưa được khoá Canon (chờ Artist vẽ).',
+          resourceType: 'bible_entry',
+          resourceId: 'ent-3',
+          resolutionTarget: {
+            workspace: 'pre-production',
+            section: 'entities',
+            resourceId: 'ent-3',
+          },
+        },
+      ],
+      warnings: [],
+      summary: { required: 2, passed: 1, remaining: 1 },
+      script: {
+        latestVersionId: 'ver-3',
+        latestVersionNumber: 3,
+        approvedVersionId: 'ver-3',
+        approvedVersionNumber: 3,
+        productionVersionId: null,
+        productionVersionNumber: null,
+        scriptStatus: 'InReview',
+        isScriptFrozen: false,
+        hasUnpushedDraftChanges: false,
+        sceneCount: 4,
+        pageCount: 20,
+        panelCount: 80,
+        lineCount: 120,
+        unresolvedCommentsCount: 0,
+        openFindingsCount: 0,
+      },
+      bible: {
+        requiredTotal: 3,
+        readyCount: 2,
+        missingDefinitionCount: 0,
+        missingArtCount: 1,
+        pendingApprovalCount: 0,
+        reworkCount: 0,
+        crowdOptionalCount: 1,
+        nonVisualReadyCount: 0,
+        byCategory: [{ category: 'Character', required: 3, ready: 2, missing: 1 }],
+      },
+      production: {
+        totalTasks: 0,
+        approvedTasks: 0,
+        submittedTasks: 0,
+        inProgressTasks: 0,
+        reworkTasks: 0,
+        unassignedTasks: 0,
+        overdueTasks: 0,
+        taskProgressPercent: 0,
+        totalPages: 20,
+        completedPages: 0,
+        pageProgressPercent: 0,
+        totalPanels: 80,
+        approvedPanels: 0,
+        panelProgressPercent: 0,
+        stages: [],
+      },
+      evaluatedAt: '2026-11-27T05:00:00Z',
     });
 
-    renderComponent('chap-2');
-    fireEvent.click(await screen.findByText(/Chốt Cổng/i));
+    renderHub('chap-1');
 
-    expect(await screen.findByTestId('gate3-status-badge')).toHaveTextContent('ĐÃ QUA CỔNG');
-    expect(screen.getByText('Đã duyệt Gate 3')).toBeInTheDocument();
-    expect(screen.queryByText('Không ở InProduction')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('overview-readiness-center')).toBeInTheDocument();
+      expect(screen.getByTestId('overview-start-production-btn')).toBeDisabled();
+    });
+
+    expect(screen.getByTestId('start-production-disabled-reason')).toHaveTextContent('Vegeta');
+    expect(screen.getByTestId('overview-script-summary')).toHaveTextContent('v3');
+    expect(screen.getByTestId('overview-bible-summary')).toHaveTextContent('2/3 bắt buộc');
+    expect(screen.getByTestId('action-blocker-BIBLE_REFERENCE_BLOCKED')).toBeInTheDocument();
+
+    // Clicking Open Script Workspace navigates to canonical Script Workspace
+    fireEvent.click(screen.getByTestId('open-script-workspace-btn'));
+    expect(await screen.findByTestId('canonical-script-workspace')).toBeInTheDocument();
   });
 
-  it('mở modal Start Production khi Producer bấm nút Chốt duyệt & Bắt đầu', async () => {
-    renderComponent('chap-1');
-
-    await waitFor(() => {
-      expect(screen.getByText('Chốt duyệt & Bắt đầu')).toBeInTheDocument();
+  it('Scenario D/E: enables Start Production when all mandatory gates pass even with warnings', async () => {
+    (chapterService.getChapterById as any).mockResolvedValue(mockChapters[0]);
+    (chapterService.getChapterReadiness as any).mockResolvedValue({
+      chapterId: 'chap-1',
+      seriesId: 'series-1',
+      chapterNumber: 1,
+      chapterTitle: 'Khởi đầu mới',
+      chapterStatus: 'PreProduction',
+      isHandedOff: false,
+      status: 'READY',
+      canStartProduction: true,
+      checks: [
+        {
+          code: 'SCRIPT_SUBMITTED',
+          group: 'SCRIPT',
+          label: 'Kịch bản đã gửi duyệt',
+          passed: true,
+          mandatory: true,
+          statusText: 'Đã nộp v3',
+        },
+      ],
+      blockers: [],
+      warnings: [
+        { code: 'UNRESOLVED_SCRIPT_COMMENTS', severity: 'WARNING', message: 'Còn 1 góp ý mở.' },
+      ],
+      summary: { required: 1, passed: 1, remaining: 0 },
+      script: {
+        latestVersionNumber: 3,
+        approvedVersionNumber: 3,
+        productionVersionNumber: null,
+        scriptStatus: 'InReview',
+        isScriptFrozen: false,
+        hasUnpushedDraftChanges: false,
+        sceneCount: 4,
+        pageCount: 20,
+        panelCount: 80,
+        lineCount: 120,
+        unresolvedCommentsCount: 1,
+        openFindingsCount: 0,
+      },
+      bible: {
+        requiredTotal: 2,
+        readyCount: 2,
+        missingDefinitionCount: 0,
+        missingArtCount: 0,
+        pendingApprovalCount: 0,
+        reworkCount: 0,
+        crowdOptionalCount: 1,
+        nonVisualReadyCount: 0,
+        byCategory: [],
+      },
+      production: {
+        totalTasks: 0,
+        approvedTasks: 0,
+        submittedTasks: 0,
+        inProgressTasks: 0,
+        reworkTasks: 0,
+        unassignedTasks: 0,
+        overdueTasks: 0,
+        taskProgressPercent: 0,
+        totalPages: 20,
+        completedPages: 0,
+        pageProgressPercent: 0,
+        totalPanels: 80,
+        approvedPanels: 0,
+        panelProgressPercent: 0,
+        stages: [],
+      },
+      evaluatedAt: '2026-11-27T05:00:00Z',
     });
 
-    fireEvent.click(screen.getByText('Chốt duyệt & Bắt đầu'));
+    renderHub('chap-1');
 
     await waitFor(() => {
-      expect(screen.getByTestId('start-production-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('overview-start-production-btn')).toBeEnabled();
+      expect(screen.getByTestId('lifecycle-step-ready_for_production')).toHaveAttribute(
+        'data-step-state',
+        'current',
+      );
     });
+
+    fireEvent.click(screen.getByTestId('overview-start-production-btn'));
+    expect(await screen.findByTestId('start-production-modal')).toBeInTheDocument();
   });
 
-  it('khi chọn chương đã Frozen (chap-2), hiển thị nút Bảng sản xuất và Mở lại kịch bản', async () => {
-    renderComponent('chap-2');
+  it('Scenario G/H: InProduction separates Task/Page/Panel progress and distinguishes Latest vs Production script version', async () => {
+    (chapterService.getChapterById as any).mockResolvedValue(mockChapters[1]);
+    (chapterService.getChapterReadiness as any).mockResolvedValue({
+      chapterId: 'chap-2',
+      seriesId: 'series-1',
+      chapterNumber: 2,
+      chapterTitle: 'Đêm định mệnh',
+      chapterStatus: 'InProduction',
+      isHandedOff: false,
+      status: 'STARTED',
+      canStartProduction: false,
+      checks: [],
+      blockers: [],
+      warnings: [],
+      summary: { required: 4, passed: 4, remaining: 0 },
+      script: {
+        latestVersionNumber: 5,
+        approvedVersionNumber: 5,
+        productionVersionNumber: 4,
+        scriptStatus: 'Frozen',
+        isScriptFrozen: true,
+        hasUnpushedDraftChanges: false,
+        sceneCount: 3,
+        pageCount: 18,
+        panelCount: 60,
+        lineCount: 95,
+        unresolvedCommentsCount: 0,
+        openFindingsCount: 0,
+      },
+      bible: {
+        requiredTotal: 3,
+        readyCount: 3,
+        missingDefinitionCount: 0,
+        missingArtCount: 0,
+        pendingApprovalCount: 0,
+        reworkCount: 0,
+        crowdOptionalCount: 0,
+        nonVisualReadyCount: 0,
+        byCategory: [],
+      },
+      production: {
+        totalTasks: 9,
+        approvedTasks: 4,
+        submittedTasks: 2,
+        inProgressTasks: 3,
+        reworkTasks: 0,
+        unassignedTasks: 0,
+        overdueTasks: 0,
+        taskProgressPercent: 44,
+        totalPages: 3,
+        completedPages: 1,
+        pageProgressPercent: 33,
+        totalPanels: 12,
+        approvedPanels: 0,
+        panelProgressPercent: 0,
+        stages: [
+          {
+            stageId: 'st-1',
+            stageName: 'Pencil',
+            stageOrder: 1,
+            totalTasks: 3,
+            approvedTasks: 3,
+            submittedTasks: 0,
+            inProgressTasks: 0,
+            reworkTasks: 0,
+            unassignedTasks: 0,
+          },
+        ],
+      },
+      evaluatedAt: '2026-11-27T05:00:00Z',
+    });
+
+    renderHub('chap-2');
 
     await waitFor(() => {
-      expect(screen.getByTestId('script-frozen-badge')).toHaveTextContent('Đóng băng (Frozen)');
-      expect(screen.getByText('Bảng sản xuất')).toBeInTheDocument();
-      expect(screen.getByText('Mở lại')).toBeInTheDocument();
+      expect(screen.getByTestId('header-chapter-lifecycle-badge')).toHaveTextContent(
+        'Đang sản xuất',
+      );
+      expect(screen.getByTestId('header-script-lock-badge')).toHaveTextContent('Kịch bản: Đã khóa');
+      expect(screen.getByTestId('metric-task-progress')).toHaveTextContent('4/9 (44%)');
+      expect(screen.getByTestId('metric-page-progress')).toHaveTextContent('1/3 (33%)');
+      expect(screen.getByTestId('metric-panel-progress')).toHaveTextContent('0/12 (0%)');
     });
+
+    expect(screen.getByTestId('overview-script-summary')).toHaveTextContent('v5');
+    expect(screen.getByTestId('overview-script-summary')).toHaveTextContent('v4');
+    expect(screen.getByTestId('hub-primary-action')).toHaveTextContent('Mở Bảng sản xuất');
+  });
+
+  it('P1-2: Action Center lists unassigned, pending review, rework, and overdue production tasks with link to Production Board', async () => {
+    (chapterService.getChapterById as any).mockResolvedValue(mockChapters[1]);
+    (chapterService.getChapterReadiness as any).mockResolvedValue({
+      chapterId: 'chap-2',
+      seriesId: 'series-1',
+      chapterNumber: 2,
+      chapterTitle: 'Đêm định mệnh',
+      chapterStatus: 'InProduction',
+      isHandedOff: false,
+      status: 'STARTED',
+      canStartProduction: false,
+      checks: [],
+      blockers: [],
+      warnings: [],
+      summary: { required: 3, passed: 3, remaining: 0 },
+      script: {
+        latestVersionNumber: 5,
+        approvedVersionNumber: 5,
+        productionVersionNumber: 5,
+        scriptStatus: 'Frozen',
+        isScriptFrozen: true,
+        hasUnpushedDraftChanges: false,
+        sceneCount: 3,
+        pageCount: 18,
+        panelCount: 60,
+        lineCount: 95,
+        unresolvedCommentsCount: 0,
+        openFindingsCount: 0,
+      },
+      bible: {
+        requiredTotal: 2,
+        readyCount: 2,
+        missingDefinitionCount: 0,
+        missingArtCount: 0,
+        pendingApprovalCount: 0,
+        reworkCount: 0,
+        crowdOptionalCount: 0,
+        nonVisualReadyCount: 0,
+        byCategory: [],
+      },
+      production: {
+        totalTasks: 9,
+        approvedTasks: 2,
+        submittedTasks: 1,
+        inProgressTasks: 1,
+        reworkTasks: 1,
+        unassignedTasks: 4,
+        overdueTasks: 1,
+        taskProgressPercent: 22,
+        totalPages: 3,
+        completedPages: 0,
+        pageProgressPercent: 0,
+        totalPanels: 12,
+        approvedPanels: 0,
+        panelProgressPercent: 0,
+        stages: [],
+      },
+      evaluatedAt: '2026-11-27T05:00:00Z',
+    });
+
+    renderHub('chap-2');
+
+    expect(await screen.findByTestId('action-production-overdue')).toBeInTheDocument();
+    expect(screen.getByTestId('action-production-rework')).toBeInTheDocument();
+    expect(screen.getByTestId('action-production-submitted')).toBeInTheDocument();
+    expect(screen.getByTestId('action-production-unassigned')).toBeInTheDocument();
+    expect(screen.queryByText('Không có việc cần xử lý ngay.')).not.toBeInTheDocument();
+  });
+
+  it('P1-4: shows descriptive empty state instead of 0/0 (0%) and 0/0 bắt buộc when totals are zero', async () => {
+    (chapterService.getChapterById as any).mockResolvedValue(mockChapters[1]);
+    (chapterService.getChapterReadiness as any).mockResolvedValue({
+      chapterId: 'chap-2',
+      seriesId: 'series-1',
+      chapterNumber: 2,
+      chapterTitle: 'Đêm định mệnh',
+      chapterStatus: 'HandedOffAndPublished',
+      isHandedOff: true,
+      status: 'STARTED',
+      canStartProduction: false,
+      checks: [],
+      blockers: [],
+      warnings: [],
+      summary: { required: 0, passed: 0, remaining: 0 },
+      script: {
+        latestVersionNumber: 1,
+        approvedVersionNumber: 1,
+        productionVersionNumber: 1,
+        scriptStatus: 'Frozen',
+        isScriptFrozen: true,
+        hasUnpushedDraftChanges: false,
+        sceneCount: 0,
+        pageCount: 0,
+        panelCount: 0,
+        lineCount: 0,
+        unresolvedCommentsCount: 0,
+        openFindingsCount: 0,
+      },
+      bible: {
+        requiredTotal: 0,
+        readyCount: 0,
+        missingDefinitionCount: 0,
+        missingArtCount: 0,
+        pendingApprovalCount: 0,
+        reworkCount: 0,
+        crowdOptionalCount: 0,
+        nonVisualReadyCount: 0,
+        byCategory: [],
+      },
+      production: {
+        totalTasks: 0,
+        approvedTasks: 0,
+        submittedTasks: 0,
+        inProgressTasks: 0,
+        reworkTasks: 0,
+        unassignedTasks: 0,
+        overdueTasks: 0,
+        taskProgressPercent: 0,
+        totalPages: 0,
+        completedPages: 0,
+        pageProgressPercent: 0,
+        totalPanels: 0,
+        approvedPanels: 0,
+        panelProgressPercent: 0,
+        stages: [
+          {
+            stageId: 'st-1',
+            stageName: 'Pencil',
+            stageOrder: 1,
+            totalTasks: 0,
+            approvedTasks: 0,
+            submittedTasks: 0,
+            inProgressTasks: 0,
+            reworkTasks: 0,
+            unassignedTasks: 0,
+          },
+        ],
+      },
+      evaluatedAt: '2026-11-27T05:00:00Z',
+    });
+
+    renderHub('chap-2');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('metric-task-progress')).toHaveTextContent('Chưa có công việc');
+      expect(screen.getByTestId('metric-page-progress')).toHaveTextContent('Chưa có trang');
+      expect(screen.getByTestId('metric-panel-progress')).toHaveTextContent('Chưa có khung tranh');
+      expect(screen.getByTestId('overview-bible-summary')).toHaveTextContent(
+        'Không có tài liệu bắt buộc',
+      );
+    });
+    expect(screen.queryByText(/0\/0/)).not.toBeInTheDocument();
   });
 });

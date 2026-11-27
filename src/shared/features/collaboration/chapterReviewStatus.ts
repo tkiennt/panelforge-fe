@@ -48,7 +48,7 @@ export const STAGE_STATUS_CONFIG: Record<PageStageStatus, StageStatusStyle> = {
       return translate('collaboration.stageStatus.NotStarted');
     },
     dotColor: '#9CA3AF', // gray
-    badgeClass: 'bg-zinc-100 text-zinc-500 border-zinc-200',
+    badgeClass: 'bg-stone-100 text-stone-500 border-stone-200',
   },
 };
 

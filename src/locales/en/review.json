@@ -161,6 +161,11 @@
       "changes": "Changes",
       "entities": "Entities"
     },
+    "sidePanel": {
+      "expand": "Expand reference panel",
+      "collapse": "Collapse reference panel",
+      "toggleLabel": "References"
+    },
     "composer": {
       "label": "Note for the writer",
       "placeholder": "What needs to change here, and why?",
@@ -183,7 +188,8 @@
       "itemCount": "{count} items",
       "pageNumber": "Page {page}",
       "panelCode": "Panel {page}.{panel}",
-      "defaultAuthor": "Editor"
+      "defaultAuthor": "Editor",
+      "thoughtTag": "thought"
     },
     "location": {
       "line": "Scene {scene} · line {line}",
@@ -227,6 +233,7 @@
       "bibleUnavailable": "Bible Gate result is unavailable.",
       "biblePassed": "Passed: {count} Bible entries are canon-locked",
       "bibleFailed": "Not passed: {count} Bible entries are not canon-locked",
+      "viewReferences": "View list →",
       "notLocked": "Not canon-locked at this chapter",
       "consistencyTitle": "Consistency check",
       "run": "Run check",
@@ -381,7 +388,8 @@
       "statusMissing": "No Model Sheet",
       "typeMain": "Main",
       "typeCrowd": "Crowd",
-      "blockerTitle": "Script is blocked from starting production:"
+      "blockerTitle": "Script is blocked from starting production:",
+      "openDesignSheet": "Open design sheet"
     },
     "stitch": {
       "readerTitle": "Script Content & Editorial Comments",
@@ -545,6 +553,18 @@
     "visualReport": "Visual Report"
   },
   "chapterReview": {
+    "gate2Badge": "Gate 2",
+    "gate2Subtitle": "Quality & Composite Gate",
+    "status": {
+      "unassigned": "Unassigned",
+      "assigned": "Assigned",
+      "inProgress": "In Progress",
+      "submitted": "Submitted",
+      "underReview": "Under Review",
+      "approved": "Approved",
+      "reworkRequired": "Rework Required",
+      "blocked": "Blocked"
+    },
     "stepper": {
       "editor": "Editor Review",
       "producer": "Producer Review",
@@ -733,6 +753,14 @@
   "readerView": {
     "title": "Chapter {number}: {title} — Artwork Review",
     "pageIndicator": "Page {current} / {total}",
+    "readingModeBtn": "Read through",
+    "readingModeTitle": "Read the chapter like a comic",
+    "readingModeClose": "Exit reading mode",
+    "readingModePrev": "Previous page",
+    "readingModeNext": "Next page",
+    "readingModeLoading": "Composing page",
+    "readingModeEmptyPage": "Page {page} has no artwork yet",
+    "readingModeOpenReview": "Open this page in review mode",
     "reworkCount": "Request rework ({count})",
     "approvePage": "Approve this page",
     "scriptRefTitle": "Script reference",
@@ -797,5 +825,115 @@
     "readinessTitle": "Readiness status",
     "readinessNotice": "Incomplete pages must be resolved before final export.",
     "readinessReady": "Ready for publication export."
+  },
+  "seriesReader": {
+    "headerSubtitle": "Read chapters continuously and pin page-level feedback directly on artwork.",
+    "close": "Close",
+    "cancel": "Cancel",
+    "loadErrorTitle": "Failed to load series",
+    "loadError": "Could not load series reader data.",
+    "loadingChapter": "Loading chapter pages and artwork...",
+    "noPagesInChapter": "This chapter has no pages yet.",
+    "emptyChaptersTitle": "No matching chapters to read",
+    "emptyChaptersDesc": "Adjust the status filter or enable showing empty chapters in the table of contents.",
+    "chapterSectionTitle": "Chapter {number}: {title}",
+    "untitledChapter": "Untitled",
+    "pageHeader": "Page {number}",
+    "commentOnPageBtn": "Comment on page",
+    "pageAlt": "Chapter {chapter} - Page {page}",
+    "noArtworkPlaceholder": "No artwork yet",
+    "currentStageLabel": "Current stage: {stage}",
+    "pinAriaLabel": "Pin #{index} by {author}",
+    "toolbar": {
+      "addCommentMode": "Add comment (C)",
+      "pinModeActive": "Pinning comment (C)",
+      "commentsBtn": "Comments ({count})"
+    },
+    "toc": {
+      "title": "Contents",
+      "expand": "Expand contents",
+      "collapse": "Collapse contents",
+      "statusFilterLabel": "Filter by chapter status",
+      "allStatuses": "All statuses",
+      "statusPreProduction": "Pre-production",
+      "statusInProduction": "In production",
+      "statusApproved": "Chapter approved",
+      "statusPublished": "Handed off / Published",
+      "showEmptyChapters": "Show empty chapters",
+      "empty": "No chapters match the current filter.",
+      "chapterLabel": "Chapter {number}",
+      "pagesCount": "{count} pages"
+    },
+    "status": {
+      "Open": "Open",
+      "Resolved": "Resolved",
+      "ConvertedToRework": "Converted"
+    },
+    "scope": {
+      "label": "Comment scope",
+      "page": "This page",
+      "chapter": "This chapter",
+      "series": "Whole series"
+    },
+    "comments": {
+      "drawerTitle": "Page comments",
+      "emptyTitle": "No comments yet",
+      "emptyDesc": "Enable Add comment mode (C) and click on a page image to place a pin.",
+      "unknownAuthor": "Studio Member",
+      "chapterShort": "Ch. {number}",
+      "pageShort": "Page {number}",
+      "panelShort": "Panel {number}",
+      "convertedStage": "Converted to rework: {stage}",
+      "resolutionNotePrefix": "Resolution note:",
+      "resolveBtn": "Mark resolved",
+      "resolveNotePlaceholder": "Resolution note (optional)...",
+      "confirmResolve": "Confirm",
+      "reopenBtn": "Reopen",
+      "convertToReworkBtn": "Convert to rework",
+      "reopenChapterFirst": "Reopen chapter first",
+      "reopenChapterBtn": "Reopen chapter",
+      "noTargetSelected": "Select a chapter or page to comment",
+      "clearPin": "Clear pin",
+      "inputPlaceholder": "Write feedback for this page or chapter...",
+      "shortcutHint": "Ctrl/Cmd + Enter to send",
+      "submitBtn": "Post comment"
+    },
+    "reworkModal": {
+      "title": "Convert comment to rework request",
+      "subtitle": "Chapter {chapter} · Page {page}",
+      "selectTaskLabel": "Select task to return for rework",
+      "noTasksAvailable": "No grid tasks found for this page.",
+      "chapterLevel": "Chapter level",
+      "assignedFallback": "Assigned",
+      "unassigned": "Unassigned",
+      "statusApproved": "Approved",
+      "statusSubmitted": "Submitted",
+      "statusUnderReview": "Under review",
+      "reasonLabel": "Rework reason (required - BR-06)",
+      "reasonPlaceholder": "Describe the required changes...",
+      "reasonHint": "Only Approved, Submitted, or Under review tasks can be selected.",
+      "submitBtn": "Send rework request"
+    },
+    "reopenChapterDialog": {
+      "title": "Reopen chapter for production",
+      "description": "Chapter {number} will return to In Production so rework requests can be created.",
+      "reasonLabel": "Reason for reopening (required)",
+      "reasonPlaceholder": "Enter reason to reopen chapter...",
+      "confirmBtn": "Reopen chapter"
+    },
+    "toast": {
+      "commentCreatedTitle": "Comment added",
+      "commentCreatedDesc": "Your comment has been saved.",
+      "resolvedTitle": "Comment resolved",
+      "resolvedDesc": "Comment marked as resolved.",
+      "reopenedTitle": "Comment reopened",
+      "reopenedDesc": "Comment returned to open status.",
+      "reworkSuccessTitle": "Converted to rework",
+      "reworkSuccessDesc": "The stage task was returned for rework and the assignee was notified.",
+      "chapterReopenedTitle": "Chapter reopened",
+      "chapterReopenedDesc": "Chapter {number} is now back in production.",
+      "actionFailedTitle": "Action failed",
+      "actionFailed": "Could not complete the action. Please try again."
+    }
   }
 }

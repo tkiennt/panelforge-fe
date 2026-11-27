@@ -168,7 +168,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
         {/* Current Workflow Stage Badge */}
         <div
           data-testid='global-stage-tag'
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-bold font-mono tracking-wide ${stageBadgeTone}`}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-bold font-mono tracking-wide ${stageBadgeTone}`}
         >
           <span className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-pulse`} />
           <span>
@@ -258,7 +258,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                 }`}
               >
                 <span
-                  className={`flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-mono font-bold ${
+                  className={`flex items-center justify-center w-4 h-4 rounded-full text-xs font-mono font-bold ${
                     isSelected
                       ? 'bg-orange-600 text-white'
                       : isCompleted
@@ -277,7 +277,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                     <span className='font-bold'>{label}</span>
                   </div>
                   <span
-                    className={`text-[9px] font-medium ${
+                    className={`text-xs font-medium ${
                       isSelected
                         ? 'text-orange-700'
                         : isCompleted

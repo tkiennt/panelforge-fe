@@ -16,6 +16,7 @@ import {
   FileText,
   Loader2,
   MessageSquare,
+  Save,
   Sparkles,
   X,
   Zap,
@@ -137,7 +138,12 @@ const SHEET_CSS = `
 .gn-sheet .gn-panel:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .gn-sheet .gn-panel::before { content: attr(data-label) "\\00a0\\00a0"; font-weight: 800; color: #18181B; }
 .gn-sheet .gn-action { margin-top: .5rem; color: #18181B; }
+.gn-sheet .gn-action.is-empty::before { content: attr(data-placeholder); color: #a8a29e; pointer-events: none; font-style: italic; float: left; height: 0; }
 .gn-sheet .gn-character { float: left; clear: both; width: 10rem; margin-top: .5rem; text-transform: uppercase; font-weight: 700; color: #18181B; }
+.gn-sheet .gn-character.gn-char-tone-approved_artwork { color: #15803d !important; }
+.gn-sheet .gn-character.gn-char-tone-defined_no_artwork { color: #b45309 !important; }
+.gn-sheet .gn-character.gn-char-tone-undefined_no_artwork { color: #c2410c !important; }
+.gn-sheet .gn-character.gn-char-tone-crowd { color: #78716c !important; opacity: 0.85; }
 .gn-sheet .gn-dialogue { clear: none; margin-left: 11rem; color: #18181B; }
 .gn-sheet .gn-parens { clear: none; margin-left: 14rem; font-style: italic; color: #57534E; }
 .gn-sheet .gn-parens::before { content: '('; }
@@ -351,7 +357,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         ScriptDocument,
         BibleRefMark,
         ScriptLineBlockNode,
-        ScriptTypingBehavior.configure({ labels, bibleSpeakers }),
+        ScriptTypingBehavior.configure({ labels, bibleSpeakers, bibleEntries: allBibleEntries }),
         Extension.create({
           name: 'scriptCommentHighlights',
           addProseMirrorPlugins() {
@@ -777,6 +783,33 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                     {t('collaboration.writerStudio.unsavedBadge', 'Chưa lưu')}
                   </span>
                 )}
+                {!isReadOnly && (
+                  <button
+                    type='button'
+                    id='flow-sheet-save-btn'
+                    data-testid='flow-sheet-save-btn'
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => void handleSave(true)}
+                    disabled={isSaving}
+                    title={t('scriptStudio.gn.saveTooltip', 'Lưu kịch bản (Ctrl+S)')}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      isDirty
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
+                        : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200'
+                    } disabled:opacity-60`}
+                  >
+                    {isSaving ? (
+                      <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                    ) : (
+                      <Save className='w-3.5 h-3.5' />
+                    )}
+                    <span>
+                      {isSaving
+                        ? t('scriptStudio.gn.saving', 'Đang lưu...')
+                        : t('scriptStudio.gn.save', 'Lưu')}
+                    </span>
+                  </button>
+                )}
                 {!isReadOnly && onRewriteLineId && effectiveRewriteLineId && (
                   <button
                     type='button'
@@ -860,7 +893,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                     <span className='text-xs font-bold uppercase tracking-wider text-stone-500'>
                       {t('collaboration.writerStudio.quickTemplatesTitle', 'Mẫu nhanh')}
                     </span>
-                    <span className='text-[11px] text-stone-400'>
+                    <span className='text-xs text-stone-400'>
                       {t(
                         'collaboration.writerStudio.quickTemplatesHint',
                         'Chèn khung định dạng trống vào kịch bản',

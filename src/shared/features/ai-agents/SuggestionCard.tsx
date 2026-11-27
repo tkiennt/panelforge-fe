@@ -269,23 +269,23 @@ export const SuggestionCard: React.FC<Props> = ({
           {t('aiAgents.suggestionCard.titlePrefix', { title: meta.title })}
         </h4>
         <span
-          className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${STATUS_STYLE[s.status]}`}
+          className={`rounded border px-1.5 py-0.5 text-xs font-bold ${STATUS_STYLE[s.status]}`}
         >
           {t(`aiAgents.suggestionCard.status.${s.status}`)}
         </span>
-        <span className='ml-auto font-mono text-[10px] text-[#737373]'>
+        <span className='ml-auto font-mono text-xs text-[#737373]'>
           hash {s.payloadHash.slice(0, 10)} · base v{s.baseChapterVersion}
         </span>
       </div>
       <p className='mt-1 text-xs text-[#404040]'>{s.summary}</p>
-      <p className='mt-0.5 text-[11px] text-[#737373]'>{detailOf(s, t)}</p>
+      <p className='mt-0.5 text-xs text-[#737373]'>{detailOf(s, t)}</p>
 
       {canPreview && s.payload != null && (
         <div className='mt-2'>
           <button
             type='button'
             onClick={() => setShowContent((v) => !v)}
-            className='flex items-center gap-1 text-[11px] font-semibold text-[#525252] hover:text-[#171717]'
+            className='flex items-center gap-1 text-xs font-semibold text-[#525252] hover:text-[#171717]'
           >
             {showContent ? <EyeOff size={12} /> : <Eye size={12} />}
             {showContent
@@ -311,13 +311,13 @@ export const SuggestionCard: React.FC<Props> = ({
                           </span>
                           <span className='text-[#404040]'>{md?.synopsis}</span>
                         </div>
-                        <div className='text-[11px] text-[#525252]'>
+                        <div className='text-xs text-[#525252]'>
                           {t('aiAgents.suggestionCard.genreLabel')} <b>{md?.genre}</b>
                         </div>
                       </div>
                       {hasRefFields && (
                         <div
-                          className='space-y-1 rounded border border-dashed border-[#D4D4D4] bg-white/80 p-2 text-[11px] text-[#525252]'
+                          className='space-y-1 rounded border border-dashed border-[#D4D4D4] bg-white/80 p-2 text-xs text-[#525252]'
                           data-testid='series-metadata-reference-only'
                         >
                           <div className='font-semibold text-[#737373]'>
@@ -346,7 +346,7 @@ export const SuggestionCard: React.FC<Props> = ({
                         </div>
                       )}
                       {sm?.reason && (
-                        <div className='text-[11px] italic text-[#737373]'>
+                        <div className='text-xs italic text-[#737373]'>
                           {t('aiAgents.suggestionCard.reasonLabel')} {sm.reason}
                         </div>
                       )}
@@ -371,7 +371,7 @@ export const SuggestionCard: React.FC<Props> = ({
                   <div className='font-medium text-[#171717]'>
                     Prompt: {(s.payload as ThumbnailSuggestion)?.prompt}
                   </div>
-                  <div className='mt-1 text-[11px] text-[#737373]'>
+                  <div className='mt-1 text-xs text-[#737373]'>
                     Provider: {(s.payload as ThumbnailSuggestion)?.provider} · Model:{' '}
                     {(s.payload as ThumbnailSuggestion)?.model} · SHA-256:{' '}
                     {(s.payload as ThumbnailSuggestion)?.sha256?.slice(0, 12)}...
@@ -379,14 +379,14 @@ export const SuggestionCard: React.FC<Props> = ({
                 </div>
               ) : s.kind === 'LineRewrite' ? (
                 <div className='rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
-                  <div className='text-[11px] text-[#737373] line-through'>
+                  <div className='text-xs text-[#737373] line-through'>
                     {(s.payload as LineRewriteSuggestion)?.originalText}
                   </div>
                   <div className='mt-1 font-medium text-emerald-800'>
                     {(s.payload as LineRewriteSuggestion)?.suggestedText}
                   </div>
                   {(s.payload as LineRewriteSuggestion)?.reason && (
-                    <div className='mt-2 text-[11px] italic text-[#525252]'>
+                    <div className='mt-2 text-xs italic text-[#525252]'>
                       {t('aiAgents.suggestionCard.reasonLabel')}{' '}
                       {(s.payload as LineRewriteSuggestion)?.reason}
                     </div>
@@ -402,7 +402,7 @@ export const SuggestionCard: React.FC<Props> = ({
                         {nl?.text}
                       </div>
                       {nl?.reason && (
-                        <div className='text-[11px] italic text-[#525252]'>
+                        <div className='text-xs italic text-[#525252]'>
                           {t('aiAgents.suggestionCard.reasonLabel')} {nl.reason}
                         </div>
                       )}
@@ -419,15 +419,15 @@ export const SuggestionCard: React.FC<Props> = ({
                 isBubbleShortenPayload(s.payload) ? (
                   <div className='space-y-1.5 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
                     <div>
-                      <span className='text-[11px] font-semibold text-[#737373]'>
+                      <span className='text-xs font-semibold text-[#737373]'>
                         {t('aiAgents.suggestionCard.originalLabel')}
                       </span>
-                      <span className='text-[11px] text-[#737373] line-through'>
+                      <span className='text-xs text-[#737373] line-through'>
                         {s.payload.originalText}
                       </span>
                     </div>
                     <div>
-                      <span className='text-[11px] font-semibold text-emerald-800'>
+                      <span className='text-xs font-semibold text-emerald-800'>
                         {t('aiAgents.suggestionCard.shortenedLabel')}
                       </span>
                       <span className='font-medium text-emerald-800'>
@@ -435,7 +435,7 @@ export const SuggestionCard: React.FC<Props> = ({
                       </span>
                     </div>
                     {s.payload.reason && (
-                      <div className='text-[11px] italic text-[#525252]'>
+                      <div className='text-xs italic text-[#525252]'>
                         {t('aiAgents.suggestionCard.reasonLabel')} {s.payload.reason}
                       </div>
                     )}
@@ -454,7 +454,7 @@ export const SuggestionCard: React.FC<Props> = ({
                     {(s.payload as BibleStubSuggestion)?.draft?.description}
                   </div>
                   {(s.payload as BibleStubSuggestion)?.reason && (
-                    <div className='text-[11px] italic text-[#525252]'>
+                    <div className='text-xs italic text-[#525252]'>
                       {t('aiAgents.suggestionCard.reasonLabel')}{' '}
                       {(s.payload as BibleStubSuggestion).reason}
                     </div>
@@ -467,7 +467,7 @@ export const SuggestionCard: React.FC<Props> = ({
                           className='rounded border border-[#E7E7E7] bg-white p-2'
                         >
                           <div className='font-semibold text-[#171717]'>{c.claim}</div>
-                          <blockquote className='mt-0.5 text-[11px] italic text-[#525252]'>
+                          <blockquote className='mt-0.5 text-xs italic text-[#525252]'>
                             “{c.quote}”
                           </blockquote>
                         </li>
@@ -482,7 +482,7 @@ export const SuggestionCard: React.FC<Props> = ({
                       {t('aiAgents.suggestionCard.decisionLabel')}
                     </span>
                     <span
-                      className={`rounded border px-1.5 py-0.5 text-[11px] font-bold ${
+                      className={`rounded border px-1.5 py-0.5 text-xs font-bold ${
                         impactIsRework
                           ? 'border-amber-300 bg-amber-50 text-amber-800'
                           : 'border-emerald-300 bg-emerald-50 text-emerald-800'
@@ -503,14 +503,10 @@ export const SuggestionCard: React.FC<Props> = ({
                         return (
                           <li key={idx} className='rounded border border-[#E7E7E7] bg-white p-2'>
                             {heading && (
-                              <div className='text-[11px] font-semibold text-[#525252]'>
-                                {heading}
-                              </div>
+                              <div className='text-xs font-semibold text-[#525252]'>{heading}</div>
                             )}
                             {ch.before != null && ch.before !== '' && (
-                              <div className='text-[11px] text-[#737373] line-through'>
-                                {ch.before}
-                              </div>
+                              <div className='text-xs text-[#737373] line-through'>{ch.before}</div>
                             )}
                             {ch.after != null && ch.after !== '' && (
                               <div className='mt-0.5 font-medium text-emerald-800'>{ch.after}</div>
@@ -530,21 +526,21 @@ export const SuggestionCard: React.FC<Props> = ({
       )}
 
       {s.hasBlockingFindings && (
-        <div className='mt-2 flex items-start gap-1.5 rounded border border-red-300 bg-red-50 p-2 text-[11px] text-red-700'>
+        <div className='mt-2 flex items-start gap-1.5 rounded border border-red-300 bg-red-50 p-2 text-xs text-red-700'>
           <MessageSquareWarning size={13} className='mt-0.5 shrink-0' />
           {t('aiAgents.suggestionCard.blockingFindingsWarning')}
         </div>
       )}
 
       {s.decisions.map((d) => (
-        <div key={d.id} className='mt-2 rounded bg-[#FAF8F5] p-2 text-[11px] text-[#525252]'>
+        <div key={d.id} className='mt-2 rounded bg-[#FAF8F5] p-2 text-xs text-[#525252]'>
           <b>{t(`aiAgents.suggestionCard.status.${d.decision}`)}</b>{' '}
           {t('aiAgents.suggestionCard.decidedAt', {
             time: new Date(d.decidedAtUtc).toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN'),
           })}
           {d.reason ? ` — “${d.reason}”` : ''}
           {d.resultRevisionId && (
-            <div className='font-mono text-[10px]'>
+            <div className='font-mono text-xs'>
               {t('aiAgents.suggestionCard.createdRevision', {
                 id: d.resultRevisionId.slice(0, 8),
                 from: d.chapterVersionAtDecision,
@@ -557,7 +553,7 @@ export const SuggestionCard: React.FC<Props> = ({
 
       {pending && !allowed && (
         <div
-          className='mt-3 flex items-start gap-1.5 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-2 text-[11px] text-[#525252]'
+          className='mt-3 flex items-start gap-1.5 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-2 text-xs text-[#525252]'
           data-testid='no-decision-rights'
         >
           <Lock size={12} className='mt-0.5 shrink-0' />
@@ -641,10 +637,10 @@ export const SuggestionCard: React.FC<Props> = ({
             </div>
           )}
           {canAccept && !!acceptDisabledReason && !form && (
-            <p className='mt-1 text-[10px] text-[#737373]'>{acceptDisabledReason}</p>
+            <p className='mt-1 text-xs text-[#737373]'>{acceptDisabledReason}</p>
           )}
           {canAccept && !acceptDisabledReason && !form && (
-            <p className='mt-1 text-[10px] text-[#737373]'>{meta.applyNote}</p>
+            <p className='mt-1 text-xs text-[#737373]'>{meta.applyNote}</p>
           )}
         </div>
       )}

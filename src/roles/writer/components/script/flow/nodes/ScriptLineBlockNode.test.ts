@@ -257,4 +257,22 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
     expect(els(editor)).toEqual(['sfx']);
     expect(editor.getJSON().content?.[0].attrs?.refId).toBeNull();
   });
+
+  it('gõ "Panel 2: " hoặc "Khung 1: " ở đầu dòng action thì tự động đổi thành panel', () => {
+    const editor = createEditor([line('page'), line('panel'), line('action', '')]);
+    caretAtEndOf(editor, 2);
+    // Gõ chuỗi "Panel 2: "
+    const textToType = 'Panel 2: ';
+    for (let i = 0; i < textToType.length; i++) {
+      const char = textToType[i];
+      const from = editor.state.selection.from;
+      const handled = editor.view.someProp('handleTextInput', (f: any) =>
+        f(editor.view, from, from, char),
+      );
+      if (!handled) {
+        editor.commands.insertContent(char);
+      }
+    }
+    expect(els(editor)).toEqual(['page', 'panel', 'panel']);
+  });
 });

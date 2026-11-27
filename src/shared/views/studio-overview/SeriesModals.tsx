@@ -174,7 +174,8 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
                       checked={format === 'MANGA'}
                       onChange={() => {
                         onFormatChange('MANGA');
-                        onDirectionChange(1);
+                        // BE ReadingDirection: 0 = RightToLeft (Manga), 1 = LeftToRight, 2 = Vertical
+                        onDirectionChange(0);
                       }}
                       className='accent-orange-600'
                     />

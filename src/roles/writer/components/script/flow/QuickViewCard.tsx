@@ -149,7 +149,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
       style={stylePosition}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`w-72 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl p-3.5 text-zinc-900 font-sans text-xs select-none animate-in fade-in zoom-in-95 duration-150 ${className}`}
+      className={`w-72 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl p-3.5 text-stone-900 font-sans text-xs select-none animate-in fade-in zoom-in-95 duration-150 ${className}`}
     >
       {/* 1. Header: Loại & Mã định danh */}
       <div className='flex items-center justify-between gap-1.5 pb-2 mb-2 border-b border-[#E5E0D8]'>
@@ -163,7 +163,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
               ? t('quickView.panelCategory')
               : data.category || t('quickView.defaultCategory')}
           </span>
-          <span className='font-mono font-bold text-xs text-zinc-800 truncate' title={data.code}>
+          <span className='font-mono font-bold text-xs text-stone-800 truncate' title={data.code}>
             {data.code}
           </span>
         </div>
@@ -190,12 +190,12 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
         {data.type === 'bible' && (
           <div className='flex items-start gap-2.5'>
             {loadingImage ? (
-              <div className='w-14 h-14 rounded-lg bg-zinc-200 animate-pulse shrink-0 border border-zinc-300' />
+              <div className='w-14 h-14 rounded-lg bg-stone-200 animate-pulse shrink-0 border border-stone-300' />
             ) : imageSrc ? (
               <img
                 src={imageSrc}
                 alt={data.name}
-                className='w-14 h-14 rounded-lg object-cover shrink-0 border border-zinc-300 shadow-2xs'
+                className='w-14 h-14 rounded-lg object-cover shrink-0 border border-stone-300 shadow-2xs'
               />
             ) : (
               <div className='w-14 h-14 rounded-lg bg-orange-100 text-orange-800 text-lg font-bold flex items-center justify-center shrink-0 border border-orange-200'>
@@ -204,14 +204,16 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
             )}
 
             <div className='min-w-0 flex-1'>
-              <h4 className='font-bold text-sm text-zinc-900 truncate'>{data.name}</h4>
+              <h4 className='font-bold text-sm text-stone-900 truncate'>{data.name}</h4>
               {data.stageName && (
                 <span className='inline-block mt-0.5 text-xs text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded font-medium border border-purple-200'>
                   {data.stageName}
                 </span>
               )}
               {data.description && (
-                <p className='text-xs text-zinc-600 line-clamp-2 mt-1 italic'>{data.description}</p>
+                <p className='text-xs text-stone-600 line-clamp-2 mt-1 italic'>
+                  {data.description}
+                </p>
               )}
             </div>
           </div>
@@ -220,7 +222,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
         {/* VÙNG KHUNG TRANH / PANEL */}
         {data.type === 'panel' && (
           <div className='space-y-2'>
-            <div className='flex items-center gap-1.5 text-zinc-800 font-bold text-xs'>
+            <div className='flex items-center gap-1.5 text-stone-800 font-bold text-xs'>
               <LayoutGrid className='w-3.5 h-3.5 text-purple-700' />
               <span>
                 {t('quickView.pagePanelTitle', {
@@ -231,7 +233,7 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
             </div>
 
             {loadingImage ? (
-              <div className='h-28 w-full rounded-lg bg-zinc-200 animate-pulse border border-zinc-300' />
+              <div className='h-28 w-full rounded-lg bg-stone-200 animate-pulse border border-stone-300' />
             ) : imageSrc ? (
               <img
                 src={imageSrc}
@@ -239,15 +241,15 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
                   page: data.pageNumber || 1,
                   panel: data.panelNumber || 1,
                 })}
-                className='h-28 w-full rounded-lg object-contain bg-zinc-900 border border-zinc-300'
+                className='h-28 w-full rounded-lg object-contain bg-stone-900 border border-stone-300'
               />
             ) : (
               /* Ô trống ghi "Chưa có phác thảo" — Tuyệt đối không hiện ảnh lỗi */
               <div
                 data-testid='panel-no-sketch-placeholder'
-                className='h-24 w-full rounded-lg bg-zinc-100 border border-dashed border-zinc-300 flex flex-col items-center justify-center text-zinc-400 gap-1'
+                className='h-24 w-full rounded-lg bg-stone-100 border border-dashed border-stone-300 flex flex-col items-center justify-center text-stone-400 gap-1'
               >
-                <ImageOff className='w-5 h-5 text-zinc-400' />
+                <ImageOff className='w-5 h-5 text-stone-400' />
                 <span className='text-xs font-medium'>{t('quickView.noSketch')}</span>
               </div>
             )}

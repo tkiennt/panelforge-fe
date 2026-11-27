@@ -257,12 +257,12 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
                   {t('common.modals.auditLog.title')}
                 </h3>
                 {effectiveWorkspaceName && (
-                  <span className='px-2 py-0.5 rounded-full bg-[#EAE5DC] text-[#57534E] text-[11px] font-mono font-medium'>
+                  <span className='px-2 py-0.5 rounded-full bg-[#EAE5DC] text-[#57534E] text-xs font-mono font-medium'>
                     {effectiveWorkspaceName}
                   </span>
                 )}
               </div>
-              <div className='text-[11px] font-mono text-[#78716C] flex items-center gap-1.5'>
+              <div className='text-xs font-mono text-[#78716C] flex items-center gap-1.5'>
                 <span>BR-18 PROVENANCE GUARANTEE</span>
                 <span>•</span>
                 <span>SHA-256 IMMUTABLE LEDGER</span>
@@ -346,7 +346,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
               <CheckCircle className='w-4 h-4' />
               {t('common.modals.auditLog.integrityBanner')}
             </span>
-            <span className='text-[10px] bg-white px-2 py-0.5 rounded border border-[#10B981]/40 font-semibold'>
+            <span className='text-xs bg-white px-2 py-0.5 rounded border border-[#10B981]/40 font-semibold'>
               {t('common.modals.auditLog.verifiedBadge')}
             </span>
           </div>
@@ -381,12 +381,12 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
                         <User className='w-3.5 h-3.5 text-[#78716C]' />
                         {log.actor}
                       </span>
-                      <span className='text-[11px] font-mono text-[#78716C]'>
+                      <span className='text-xs font-mono text-[#78716C]'>
                         ({formatEntityLabel(log.entityName)}
                         {log.entityId ? ` #${String(log.entityId).slice(0, 8)}` : ''})
                       </span>
                     </div>
-                    <span className='text-[#78716C] text-[11px] font-mono flex items-center gap-1'>
+                    <span className='text-[#78716C] text-xs font-mono flex items-center gap-1'>
                       <Clock className='w-3 h-3' />
                       {log.timestamp}
                     </span>
@@ -394,7 +394,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
 
                   <p className='text-xs text-[#57534E] font-sans leading-relaxed'>{log.details}</p>
 
-                  <div className='flex items-center justify-between pt-1 text-[11px] font-mono'>
+                  <div className='flex items-center justify-between pt-1 text-xs font-mono'>
                     {log.hash ? (
                       <span
                         className='text-[#78716C] bg-[#F1EEE8] px-2 py-0.5 rounded border border-[#D8D2C5]'
@@ -403,14 +403,14 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
                         {t('common.modals.auditLog.hashLabel', { hash: log.hash.slice(0, 8) })}
                       </span>
                     ) : (
-                      <span className='text-[#059669] text-[10px] font-medium'>
+                      <span className='text-[#059669] text-xs font-medium'>
                         {t('common.modals.auditLog.integrityVerified')}
                       </span>
                     )}
                     {log.statusTag && (
                       <span
                         title={log.action}
-                        className={`font-semibold px-2 py-0.5 rounded text-[10px] ${log.statusTagColor}`}
+                        className={`font-semibold px-2 py-0.5 rounded text-xs ${log.statusTagColor}`}
                       >
                         {log.statusTag}
                       </span>

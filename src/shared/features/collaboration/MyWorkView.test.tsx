@@ -9,6 +9,8 @@ import { pipelineService } from '@/services/pipeline.service';
 import { workspaceService } from '@/services/workspace.service';
 import { scriptLineService } from '@/services/scriptLine.service';
 import { pageService } from '@/services/page.service';
+import { bibleService } from '@/services/bible.service';
+import { seriesService } from '@/services/series.service';
 
 vi.mock('@/services/assignment.service', async () => {
   const actual = await vi.importActual<typeof import('@/services/assignment.service')>(
@@ -67,6 +69,19 @@ vi.mock('@/services/page.service', () => ({
   },
 }));
 
+vi.mock('@/services/bible.service', () => ({
+  bibleService: {
+    getSeriesBible: vi.fn(),
+    getBibleDesignQueue: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/series.service', () => ({
+  seriesService: {
+    getSeriesById: vi.fn(),
+  },
+}));
+
 describe('MyWorkView – Lát cắt 4 (Clean Cutover)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -89,6 +104,20 @@ describe('MyWorkView – Lát cắt 4 (Clean Cutover)', () => {
     vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([]);
     vi.mocked(scriptLineService.getScenesByChapter).mockResolvedValue([]);
     vi.mocked(pageService.getPagesByChapter).mockResolvedValue([]);
+    vi.mocked(seriesService.getSeriesById).mockResolvedValue({
+      id: 'se-1',
+      title: 'Dragonball',
+      format: 'Manga',
+    } as any);
+    vi.mocked(bibleService.getSeriesBible).mockResolvedValue({
+      id: 'bible-1',
+      seriesId: 'se-1',
+      workspaceId: 'ws-1',
+      name: 'Dragonball Bible',
+      version: 1,
+      entries: [],
+    });
+    vi.mocked(bibleService.getBibleDesignQueue).mockResolvedValue([]);
   });
 
   const renderMyWork = (
@@ -105,6 +134,113 @@ describe('MyWorkView – Lát cắt 4 (Clean Cutover)', () => {
         </Routes>
       </MemoryRouter>,
     );
+
+  it('Writer Overview dùng dữ liệu thật, tiếp tục chương sửa gần nhất và tổng hợp Bible collaboration', async () => {
+    vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
+      items: [
+        {
+          id: 'chap-old',
+          seriesId: 'se-1',
+          chapterNumber: 1,
+          title: 'Khởi đầu',
+          versionVector: 1,
+          createdAt: '2026-11-01T08:00:00Z',
+          updatedAt: '2026-11-10T08:00:00Z',
+          scenesCount: 1,
+          pagesCount: 3,
+          scriptStatus: 'Draft',
+          isScriptFrozen: false,
+        },
+        {
+          id: 'chap-latest',
+          seriesId: 'se-1',
+          chapterNumber: 2,
+          title: 'Hành trình mở ra',
+          versionVector: 3,
+          createdAt: '2026-11-02T08:00:00Z',
+          updatedAt: '2026-11-25T09:30:00Z',
+          scenesCount: 4,
+          pagesCount: 13,
+          outline: 'Goku cùng Bulma lên đường vào Thành phố.',
+          scriptStatus: 'Draft',
+          isScriptFrozen: false,
+        },
+      ],
+      totalCount: 2,
+      pageIndex: 1,
+      pageSize: 50,
+      totalPages: 1,
+    });
+    vi.mocked(assignmentService.getMyTaskLots).mockResolvedValue([
+      {
+        id: 'lot-writer',
+        seriesId: 'se-1',
+        seriesTitle: 'Dragonball',
+        chapterId: 'chap-latest',
+        chapterNumber: 2,
+        chapterTitle: 'Hành trình mở ra',
+        pipelineStageId: 'script-stage',
+        stageName: 'Script',
+        stageOrder: 1,
+        assignedRole: 'Writer',
+        status: 'Active',
+        isOverdue: false,
+        tasks: [],
+      },
+    ]);
+    vi.mocked(bibleService.getSeriesBible).mockResolvedValue({
+      id: 'bible-1',
+      seriesId: 'se-1',
+      workspaceId: 'ws-1',
+      name: 'Dragonball Bible',
+      version: 1,
+      entries: [
+        {
+          id: 'bulma',
+          seriesBibleId: 'bible-1',
+          category: 'Character',
+          code: 'CHAR-BULMA',
+          name: 'Bulma',
+          description: '',
+          detailsJson: '{}',
+          createdAt: '2026-11-01T00:00:00Z',
+          isStub: true,
+        },
+      ],
+    });
+    vi.mocked(bibleService.getBibleDesignQueue).mockResolvedValue([
+      {
+        entryId: 'yamcha',
+        code: 'CHAR-YAMCHA',
+        name: 'Yamcha',
+        category: 'Character',
+        revisionId: 'rev-yamcha',
+        reviewStatus: 'Draft',
+        variantLabel: 'Mặc định',
+        versionNumber: 2,
+        updatedAt: '2026-11-26T00:00:00Z',
+      },
+    ]);
+
+    renderMyWork(
+      { currentUserId: 'u-writer', workspaceRole: 'WRITER' },
+      '/workspaces/ws-1/series/se-1/my-work',
+    );
+
+    expect(await screen.findByTestId('writer-workspace-overview')).toBeInTheDocument();
+    expect(screen.getByText('Chương 2: Hành trình mở ra')).toBeInTheDocument();
+    expect(screen.getByText('Goku cùng Bulma lên đường vào Thành phố.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('writer-metric-assigned')).toHaveTextContent('1');
+      expect(screen.getByTestId('writer-metric-collaborating')).toHaveTextContent('1');
+      expect(screen.getByText('1 nhân vật cần bổ sung brief thiết kế')).toBeInTheDocument();
+      expect(screen.getByText('Yamcha')).toBeInTheDocument();
+    });
+    expect(
+      document.querySelector('a[href*="script/editor?chapterId=chap-latest"]'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Model Sheet')).not.toBeInTheDocument();
+  });
 
   it('Artist xuyên chương mở Artist Desk thay vì hiện nút Bắt đầu thừa, và vẫn nộp ô đang làm', async () => {
     vi.mocked(assignmentService.getMyTaskLots).mockResolvedValue([
@@ -147,7 +283,7 @@ describe('MyWorkView – Lát cắt 4 (Clean Cutover)', () => {
 
     renderMyWork();
 
-    expect(await screen.findByText('Vẽ chì trang 1-2')).toBeInTheDocument();
+    expect((await screen.findAllByText('Vẽ chì trang 1-2')).length).toBeGreaterThan(0);
     expect(assignmentService.getTaskGridReviewQueue).not.toHaveBeenCalled();
 
     expect(screen.queryByTestId('start-lot-cell-cell-start')).not.toBeInTheDocument();
@@ -158,6 +294,63 @@ describe('MyWorkView – Lát cắt 4 (Clean Cutover)', () => {
     await waitFor(() => {
       expect(assignmentService.submitStageTasks).toHaveBeenCalledWith('chap-1', ['cell-submit']);
     });
+  });
+
+  it('Artist Overview dùng cùng bố cục studio với Writer: số liệu, thẻ tiếp tục, panel chỉnh sửa & thiết kế', async () => {
+    vi.mocked(assignmentService.getMyTaskLots).mockResolvedValue([
+      {
+        id: 'lot-1',
+        seriesId: 'se-1',
+        seriesTitle: 'Dragonball',
+        chapterId: 'chap-1',
+        chapterNumber: 1,
+        chapterTitle: 'Khởi đầu',
+        pipelineStageId: 'stg-pencil',
+        stageName: 'Pencil',
+        stageOrder: 1,
+        assignedRole: 'Artist',
+        status: 'Active',
+        isOverdue: false,
+        tasks: [
+          {
+            id: 'cell-rework',
+            pageId: 'p-3',
+            pageNumber: 3,
+            status: 'ReworkRequired',
+            isStartable: true,
+            isInputOutdated: false,
+            lastDecisionComment: 'Sửa phối cảnh khung 2',
+          },
+        ],
+      },
+    ]);
+    vi.mocked(bibleService.getBibleDesignQueue).mockResolvedValue([
+      {
+        entryId: 'goku',
+        code: 'CHAR-GOKU',
+        name: 'Goku',
+        category: 'Character',
+        revisionId: 'rev-goku',
+        reviewStatus: 'Draft',
+        updatedAt: '2026-11-26T00:00:00Z',
+        waitingChapterNumbers: [1],
+      },
+    ]);
+
+    renderMyWork();
+
+    expect(await screen.findByText('Dragonball / Artist Workspace')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('artist-metric-revisions')).toHaveTextContent('1');
+      expect(screen.getByTestId('artist-metric-design')).toHaveTextContent('1');
+    });
+    expect(screen.getByTestId('artist-continue-production')).toHaveTextContent(
+      'Chương 1: Khởi đầu',
+    );
+    expect(screen.getByText('Sửa phối cảnh khung 2')).toBeInTheDocument();
+    expect(document.querySelector('a[href*="taskId=cell-rework"]')).toBeInTheDocument();
+    expect(document.querySelector('a[href*="bible?entityId=goku"]')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Danh sách công việc' })).toBeInTheDocument();
   });
 
   it('Editor đọc hàng chờ duyệt từ getTaskGridReviewQueue và khoá tự duyệt theo BR-06', async () => {

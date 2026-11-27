@@ -11,7 +11,8 @@ import {
   balloonPath,
   tailFromStyle,
   fillRgba,
-  layoutText,
+  layoutBalloonText,
+  letteringCase,
   resolveAppearance,
   type BalloonAppearance,
 } from '@/shared/lib/lettering/balloonRender';
@@ -188,7 +189,7 @@ function tracePath(ctx: Ctx2D, points: ClipPoint[]) {
 
 /**
  * Vẽ lớp chữ cho màn duyệt và bản xuất bằng đúng quy tắc của bàn Letterer (`balloonRender`): cùng hình bóng, nền,
- * viền, vùng chữ an toàn, ngắt dòng và cỡ chữ đã chọn (không tự thu nhỏ). Không vẽ khung chọn/tay nắm/đường gióng.
+ * viền, vùng chữ an toàn, ngắt dòng hình thoi và cỡ chữ đã chọn (câu tràn tự thu nhỏ cho vừa). Không vẽ khung chọn/tay nắm/đường gióng.
  * Hình bóng/nền/viền/đuôi đọc từ `style` đã lưu (BE TextStyle); thiếu thì mặc định theo loại — giống bàn Letterer và bản xuất BE.
  */
 export function drawTextElement(
@@ -196,6 +197,8 @@ export function drawTextElement(
   el: ElementSnapshotDto,
   rect: PixelRect,
   appearance: BalloonAppearance = resolveAppearance(el.elementType, appearanceFromStyle(el.style)),
+  /** Ngôn ngữ của chữ đang vẽ (bản EN in hoa như bàn Letterer). */
+  lang?: string | null,
 ) {
   const text = (el.renderedText ?? el.content ?? '').trim();
   const style = resolveTextStyle(el);
@@ -219,10 +222,17 @@ export function drawTextElement(
     }
   }
 
-  const layout = layoutText(text, style, appearance.shape, rect.w, rect.h, (s, font) => {
-    ctx.font = font;
-    return ctx.measureText(s).width;
-  });
+  const layout = layoutBalloonText(
+    letteringCase(text, lang),
+    style,
+    appearance.shape,
+    rect.w,
+    rect.h,
+    (s, font) => {
+      ctx.font = font;
+      return ctx.measureText(s).width;
+    },
+  );
   const { area, lines, lineHeightPx } = layout;
   const align = style.align ?? 'center';
   ctx.font = layout.font;

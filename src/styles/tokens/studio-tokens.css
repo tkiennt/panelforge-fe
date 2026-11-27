@@ -30,11 +30,11 @@
   --studio-accent-border: #fdba74;
 
   /* --- HEADER ACCENTS & KRAFT (UIQ-09) --- */
-  --studio-head-wash: #FBF5EC;
-  --studio-head-line: #EFE3D1;
-  --studio-kraft: #F6E7D3;
-  --studio-kraft-ink: #5B4636;
-  --studio-sienna: #9A3412;
+  --studio-head-wash: #fbf5ec;
+  --studio-head-line: #efe3d1;
+  --studio-kraft: #f6e7d3;
+  --studio-kraft-ink: #5b4636;
+  --studio-sienna: #9a3412;
 
   /* --- STATUS (Trạng thái công đoạn duyệt) --- */
   --studio-mint: #119c72;
@@ -108,11 +108,11 @@
   --studio-accent-border: rgba(251, 146, 60, 0.42);
 
   /* --- HEADER ACCENTS & KRAFT (UIQ-09) --- */
-  --studio-head-wash: #1F1A15;
+  --studio-head-wash: #1f1a15;
   --studio-head-line: rgba(251, 146, 60, 0.18);
   --studio-kraft: rgba(251, 146, 60, 0.14);
-  --studio-kraft-ink: #E9D5BC;
-  --studio-sienna: #FDBA74;
+  --studio-kraft-ink: #e9d5bc;
+  --studio-sienna: #fdba74;
 
   --studio-mint: #7ee8c0;
   --studio-mint-soft: rgba(17, 156, 114, 0.18);
@@ -174,14 +174,10 @@ html:has(dialog:modal) {
   transition-duration: 150ms;
 }
 
-/* Floor 7: Universal prefers-reduced-motion fallback */
+/* Motion is opt-in at component level. Spatial animations must provide their own
+   prefers-reduced-motion fallback; color and focus transitions remain available. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  html {
+    scroll-behavior: auto;
   }
 }

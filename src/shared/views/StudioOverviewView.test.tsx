@@ -29,7 +29,7 @@ const mockSeriesList = [
     title: 'Hành Trình Bất Tận',
     synopsis: 'Câu chuyện phiêu lưu kỳ ảo của nhóm thiếu niên.',
     storyArc: 'Arc 1: Khởi đầu',
-    readingDirection: 1, // RTL
+    readingDirection: 0, // RTL (enum BE: 0 RightToLeft)
     genre: 'Action',
     format: 'Manga',
     chaptersCount: 12,

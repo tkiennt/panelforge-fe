@@ -973,6 +973,14 @@ export interface MyTaskLotDto {
   tasks: MyTaskCellDto[];
 }
 
+/** UIQ-11q: việc của tôi ở một Studio (GET /api/me/work). */
+export interface MyWorkStudioDto {
+  workspaceId: string;
+  workspaceName: string;
+  lots: MyTaskLotDto[];
+  reviewQueue: TaskGridReviewItemDto[];
+}
+
 /** Ô chờ duyệt (Submitted / UnderReview) trong Workspace (GET /api/workspaces/{workspaceId}/task-grid/review-queue). */
 export interface TaskGridReviewItemDto {
   taskId: string;

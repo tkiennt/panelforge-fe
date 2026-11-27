@@ -11,6 +11,14 @@ import {
 import type { PanelDto } from '@/types/pipeline';
 import type { ScriptLineItem } from '../components/desk/ArtistCanvaSidebar';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
+import { findFreeBalloonSlot } from '../lib/balloonPlacement';
+import {
+  defaultAppearance,
+  fitBalloonSize,
+  tailToward,
+  withAppearance,
+  type TailPoint,
+} from '@/shared/lib/lettering/balloonRender';
 import { classifyScriptLine, patchTextStyle, resolveTextStyle } from '@/shared/utils/textStyle';
 
 export type BalloonType = 'SPEECH_BALLOON' | 'THOUGHT_BALLOON' | 'NARRATION_BOX' | 'SOUND_EFFECT';
@@ -88,6 +96,28 @@ export function useLetteringBalloons(
     {},
   );
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  // Bóng đã hiện trên UI nhưng server chưa xác nhận lưu (request còn chờ)
+  const [pendingElementIds, setPendingElementIds] = useState<ReadonlySet<string>>(() => new Set());
+  const markPending = useCallback((id: string, pending: boolean) => {
+    setPendingElementIds((prev) => {
+      if (prev.has(id) === pending) return prev;
+      const next = new Set(prev);
+      if (pending) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  // Còn bóng chưa lưu mà rời/tải lại trang thì request bị huỷ → hỏi lại trước khi rời
+  useEffect(() => {
+    if (pendingElementIds.size === 0) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [pendingElementIds]);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
   const [clipboard, setClipboard] = useState<ElementSnapshotDto | null>(null);
@@ -404,32 +434,26 @@ export function useLetteringBalloons(
       );
       return;
     }
-    const w = type === 'NARRATION_BOX' ? 320 : type === 'SOUND_EFFECT' ? 240 : 260;
-    const h = type === 'NARRATION_BOX' ? 120 : type === 'SOUND_EFFECT' ? 100 : 160;
     const panelIndex = scriptLine?.panelNumber ? Math.max(0, scriptLine.panelNumber - 1) : 0;
     const panel = pagePanels[panelIndex] || pagePanels[0];
 
-    let x: number;
-    let y: number;
-    if (panel) {
-      const b = parseBoundingBox(panel.boundingBox, pageWidth, pageHeight);
-      x = b.pixelX + Math.max(10, Math.round((b.pixelW - w) / 2));
-      y = b.pixelY + Math.max(10, Math.round((b.pixelH - h) / 2));
-    } else {
-      const step = pageElements.length % 5;
-      x = Math.max(50, pageWidth - w - 60 - step * 40);
-      y = 80 + step * 180;
-    }
-
-    // Thả vào canvas: đặt tâm bóng tại điểm thả
-    if (options?.at) {
-      x = Math.round(options.at.x - w / 2);
-      y = Math.round(options.at.y - h / 2);
-    }
-
-    const id = newElementId();
-    const pos = clampToPanel(x, y, w, h);
-
+    // Đặt vào chỗ trống của khung (hoặc trang) để bóng tạo liên tiếp không chồng cùng một vị trí
+    const area = panel
+      ? (() => {
+          const b = parseBoundingBox(panel.boundingBox, pageWidth, pageHeight);
+          return {
+            minX: b.pixelX,
+            minY: b.pixelY,
+            maxX: b.pixelX + b.pixelW,
+            maxY: b.pixelY + b.pixelH,
+          };
+        })()
+      : {
+          minX: PAGE_MARGIN,
+          minY: PAGE_MARGIN,
+          maxX: pageWidth - PAGE_MARGIN,
+          maxY: pageHeight - PAGE_MARGIN,
+        };
     let content = t('lettering.balloons.defaultContent');
     if (scriptLine) {
       const classification = classifyScriptLine({
@@ -444,6 +468,44 @@ export function useLetteringBalloons(
     }
 
     const defaultStyle = resolveTextStyle({ elementType: type });
+    const shape = defaultAppearance(type).shape;
+
+    // Bóng vừa câu ở cỡ chữ mặc định (câu dài → bóng to/rộng hơn), không vượt khung đang đặt
+    const minW = type === 'NARRATION_BOX' ? 240 : 160;
+    const { w, h } = fitBalloonSize(content, defaultStyle, shape, {
+      minW,
+      minH: type === 'NARRATION_BOX' ? 70 : 90,
+      maxW: Math.max(minW, Math.min(520, area.maxX - area.minX - 24)),
+      maxH: Math.max(90, Math.min(420, area.maxY - area.minY - 24)),
+    });
+
+    let { x, y } = findFreeBalloonSlot(
+      area,
+      w,
+      h,
+      pageElements.filter((el) => !el.isRemoved),
+    );
+
+    // Thả vào canvas: đặt tâm bóng tại điểm thả
+    if (options?.at) {
+      x = Math.round(options.at.x - w / 2);
+      y = Math.round(options.at.y - h / 2);
+    }
+
+    const id = newElementId();
+    const pos = clampToPanel(x, y, w, h);
+
+    // Bóng thoại: đuôi mặc định hướng về tâm khung — nơi nhân vật thường đứng (Letterer kéo đuôi để chỉnh)
+    const tail =
+      shape === 'oval'
+        ? tailToward(
+            { x: pos.x, y: pos.y, w, h },
+            { x: (area.minX + area.maxX) / 2, y: (area.minY + area.maxY) / 2 },
+          )
+        : null;
+    const initialStyle = tail
+      ? (withAppearance(defaultStyle, defaultStyle, { tail }) ?? defaultStyle)
+      : defaultStyle;
 
     const newElement: ElementSnapshotDto = {
       elementId: id,
@@ -453,7 +515,7 @@ export function useLetteringBalloons(
       height: h,
       zIndex: pageElements.length + 1,
       content,
-      style: defaultStyle,
+      style: initialStyle,
       scriptLineId: scriptLine ? scriptLine.id : null,
       readingOrder: pageElements.length + 1,
       version: 1,
@@ -462,6 +524,7 @@ export function useLetteringBalloons(
 
     updatePageElements((list) => [...list, newElement]);
     setSelectedElementId(id);
+    markPending(id, true);
 
     try {
       const res = await elementService.addElement(pageId, {
@@ -478,9 +541,23 @@ export function useLetteringBalloons(
       });
 
       toast.success(t('lettering.balloons.added'), '');
-      if (res?.elementId && res.elementId !== id) {
-        updateElement(id, (el) => ({ ...el, elementId: res.elementId, version: 1 }));
-        setSelectedElementId((cur) => (cur === id ? res.elementId : cur));
+      const savedId = res?.elementId || id;
+      if (savedId !== id) {
+        updateElement(id, (el) => ({ ...el, elementId: savedId, version: 1 }));
+        setSelectedElementId((cur) => (cur === id ? savedId : cur));
+      }
+      // AddElement chưa nhận style: lưu đuôi ngay sau khi tạo. Lỗi thì bóng vẫn còn, chỉ về đuôi mặc định.
+      if (tail) {
+        try {
+          const styled = await elementService.updateElementStyle(pageId, savedId, {
+            style: initialStyle,
+            expectedElementVersion: 1,
+          });
+          if (styled?.elementVersion)
+            updateElement(savedId, (el) => ({ ...el, version: styled.elementVersion }));
+        } catch {
+          updateElement(savedId, (el) => ({ ...el, style: defaultStyle }));
+        }
       }
     } catch (err: any) {
       if (isForbiddenError(err)) {
@@ -495,6 +572,8 @@ export function useLetteringBalloons(
         t('lettering.balloons.saveFailed'),
         (err as Error)?.message || t('lettering.balloons.tryAgainLater'),
       );
+    } finally {
+      markPending(id, false);
     }
   };
 
@@ -648,20 +727,12 @@ export function useLetteringBalloons(
     ],
   );
 
-  const updateElementStyle = useCallback(
-    async (elementId: string, patch: Partial<TextStyleDto> | null) => {
+  /** Lưu style mới của bóng (lạc quan); 409 → nạp lại, không gửi đè. */
+  const saveElementStyle = useCallback(
+    async (target: ElementSnapshotDto, newStyle: TextStyleDto | null) => {
       if (!selectedPage?.id) return;
-      if (readOnly) {
-        notifyForbidden();
-        return;
-      }
-      const target = pageElements.find((item) => item.elementId === elementId);
-      if (!target) return;
-
       const pageId = selectedPage.id;
-      const currentStyle = resolveTextStyle(target);
-      const newStyle = patch === null ? null : patchTextStyle(currentStyle, patch);
-
+      const elementId = target.elementId;
       updateElement(elementId, (el) => ({ ...el, style: newStyle }));
 
       try {
@@ -685,16 +756,38 @@ export function useLetteringBalloons(
         }
       }
     },
-    [
-      selectedPage?.id,
-      readOnly,
-      notifyForbidden,
-      pageElements,
-      updateElement,
-      reloadElements,
-      toast,
-      t,
-    ],
+    [selectedPage?.id, updateElement, reloadElements, toast, t],
+  );
+
+  const updateElementStyle = useCallback(
+    async (elementId: string, patch: Partial<TextStyleDto> | null) => {
+      if (!selectedPage?.id) return;
+      if (readOnly) {
+        notifyForbidden();
+        return;
+      }
+      const target = pageElements.find((item) => item.elementId === elementId);
+      if (!target) return;
+      const newStyle = patch === null ? null : patchTextStyle(resolveTextStyle(target), patch);
+      await saveElementStyle(target, newStyle);
+    },
+    [selectedPage?.id, readOnly, notifyForbidden, pageElements, saveElementStyle],
+  );
+
+  /** Kéo đầu đuôi bóng: chỉ đổi tailX/tailY, giữ nguyên kiểu chữ (kể cả nhãn preset). */
+  const updateElementTail = useCallback(
+    async (elementId: string, tail: TailPoint) => {
+      if (!selectedPage?.id) return;
+      if (readOnly) {
+        notifyForbidden();
+        return;
+      }
+      const target = pageElements.find((item) => item.elementId === elementId);
+      if (!target) return;
+      const defaults = resolveTextStyle({ elementType: target.elementType });
+      await saveElementStyle(target, withAppearance(target.style, defaults, { tail }));
+    },
+    [selectedPage?.id, readOnly, notifyForbidden, pageElements, saveElementStyle],
   );
 
   const deleteElement = useCallback(
@@ -957,6 +1050,7 @@ export function useLetteringBalloons(
     elementsByPageId,
     selectedElementId,
     setSelectedElementId,
+    pendingElementIds,
     draggingId: dragging?.elementId ?? null,
     resizingId: resizing?.elementId ?? null,
     addElement,
@@ -967,6 +1061,7 @@ export function useLetteringBalloons(
     updateElementText,
     syncElementText,
     updateElementStyle,
+    updateElementTail,
     reloadElements,
     prefetchPages,
     linkedByScriptLine,

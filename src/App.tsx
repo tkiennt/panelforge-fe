@@ -508,6 +508,30 @@ function AppContent() {
     };
   }, [location.pathname, currentUserInfo?.id]);
 
+  // Spec D10: trong một Series, vai trò hiệu lực là vai trò Series (Studio chỉ có Producer / Thành viên)
+  const seriesIdInPath = location.pathname.match(/\/workspaces\/[^/]+\/series\/([^/]+)/)?.[1];
+  useEffect(() => {
+    if (!seriesIdInPath || currentRole === 'ADMINISTRATOR') return;
+    let cancelled = false;
+    seriesService
+      .getSeriesById(seriesIdInPath)
+      .then((detail) => {
+        const seriesRole = normalizeWorkspaceRole(detail?.currentUserRole);
+        if (cancelled || !seriesRole) return;
+        setCurrentWorkspaceRole(seriesRole);
+        setActiveProjectRoles([seriesRole]);
+        try {
+          localStorage.setItem('workspaceRole', seriesRole);
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch((err) => console.warn('Failed to load series role:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [seriesIdInPath, currentRole]);
+
   const [cards, setCards] = useState<KanbanCard[]>([]);
   const [entities, setEntities] = useState<BibleEntity[]>([]);
   const [members, setMembers] = useState<StudioMember[]>([]);
@@ -776,21 +800,7 @@ function AppContent() {
         } else if (landing?.suggestedLanding === 'PublisherPortal' || role === 'PUBLISHER') {
           navigate('/publisher/series');
         } else {
-          try {
-            const list = await workspaceService.getMyWorkspaces();
-            const lastActiveId =
-              localStorage.getItem('activeWorkspaceId') ||
-              localStorage.getItem('lastActiveWorkspaceId');
-            const target = (lastActiveId && list.find((w) => w.id === lastActiveId)) || list[0];
-            if (target) {
-              localStorage.setItem('activeWorkspaceId', target.id);
-              setActiveWorkspace(target as any);
-              navigate(`/workspaces/${target.id}`);
-              return;
-            }
-          } catch {
-            // fallback if api error
-          }
+          // Spec §5.3 Bước 2: sau đăng nhập luôn vào màn chọn Studio, không tự vào studio gần nhất.
           navigate('/workspaces');
         }
       })
@@ -800,21 +810,6 @@ function AppContent() {
         } else if (role === 'PUBLISHER') {
           navigate('/publisher/series');
         } else {
-          try {
-            const list = await workspaceService.getMyWorkspaces();
-            const lastActiveId =
-              localStorage.getItem('activeWorkspaceId') ||
-              localStorage.getItem('lastActiveWorkspaceId');
-            const target = (lastActiveId && list.find((w) => w.id === lastActiveId)) || list[0];
-            if (target) {
-              localStorage.setItem('activeWorkspaceId', target.id);
-              setActiveWorkspace(target as any);
-              navigate(`/workspaces/${target.id}`);
-              return;
-            }
-          } catch {
-            // fallback
-          }
           navigate('/workspaces');
         }
       });

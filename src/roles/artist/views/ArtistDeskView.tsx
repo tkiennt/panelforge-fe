@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { chapterCastService, type ChapterCastDto } from '@/services/chapterCast.service';
+import { buildCastVariantLookup } from '@/shared/lib/castVariant';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, Flag, Loader2, RefreshCw, Send, ShieldAlert } from 'lucide-react';
 import { pageService, PageDto, PageHistoryDto, isGuid } from '@/services/page.service';
@@ -43,6 +45,7 @@ import {
   DEFAULT_FRAME_TEMPLATES,
   DEFAULT_SCRIPT_LINES,
 } from '../components/desk/ArtistCanvaSidebar';
+import { getCharacterStatusTone, BIBLE_STATUS_STYLES } from '@/shared/lib/bibleColoring';
 import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip';
 import { PageStage } from '../components/desk/ArtistPageSidebar';
 import { ArtistCanvasViewport, type PageSketch } from '../components/desk/ArtistCanvasViewport';
@@ -1355,25 +1358,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     t,
   ]);
 
-  const handleSelectStage = useCallback(
-    (idx: number) => {
-      if (idx < 0 || idx >= artistStages.length) return;
-      if (idx > currentStageIndex) {
-        toast.warning(
-          t('artist.deskView.stageLockedTitle'),
-          t('artist.deskView.stageLockedDesc', {
-            stage:
-              artistStages[currentStageIndex]?.label || t('artist.deskView.currentStageFallback'),
-          }),
-        );
-        return;
-      }
-      setCurrentStageIndex(idx);
-      setIsStageFlowCompleted(false);
-    },
-    [artistStages, currentStageIndex, toast, t],
-  );
-
   const seriesPath = useMemo(() => {
     if (workspaceId && seriesId) {
       return `/workspaces/${workspaceId}/series/${seriesId}/artist`;
@@ -1475,7 +1459,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       isStageFlowCompleted,
       isSubmittingStage,
       onSubmitStage: handleSubmitStage,
-      onSelectStage: handleSelectStage,
       submitButtonLabel: t('artist.deskView.submitButtonLabel'),
       showWithdrawButton: true,
       onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
@@ -1497,7 +1480,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     isStageFlowCompleted,
     isSubmittingStage,
     handleSubmitStage,
-    handleSelectStage,
     withdrawableCell,
     handleWithdrawStage,
     isWithdrawingStage,
@@ -1568,6 +1550,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   }, [hasLoadedRealBible, rawBibleEntries, initialBibleEntities]);
 
   // Đồng bộ các dòng kịch bản với Trang, Khung và Tên/Màu nhân vật từ Hồ sơ truyện
+  // UIQ-11n: biến thể tạo hình của nhân vật trong chương, để dòng kịch bản ghi rõ đang dùng biến thể nào
+  const [chapterCast, setChapterCast] = useState<ChapterCastDto | null>(null);
+  useEffect(() => {
+    setChapterCast(null);
+    if (!currentChapterId) return;
+    let active = true;
+    chapterCastService
+      .getChapterCast(currentChapterId)
+      .then((cast) => active && setChapterCast(cast))
+      .catch(() => active && setChapterCast(null));
+    return () => {
+      active = false;
+    };
+  }, [currentChapterId]);
+  const castVariantOf = useMemo(() => buildCastVariantLookup(chapterCast), [chapterCast]);
+
   const resolvedScriptLines = useMemo(() => {
     if (!hasLoadedRealScript && !initialScriptLines) return undefined;
     const source: ScriptLineItem[] | undefined = rawScriptLines || initialScriptLines;
@@ -1652,9 +1650,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         ? speaker || undefined
         : speaker || t('artist.deskView.narratorFallback');
       const resolvedCharColor = resolvedCharName
-        ? line.characterColor ||
-          (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.color) ||
-          getDeterministicColor(resolvedCharName)
+        ? (rawBibleEntries.length > 0
+            ? BIBLE_STATUS_STYLES[getCharacterStatusTone(resolvedCharName, rawBibleEntries, null)].textColor
+            : line.characterColor ||
+              (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.color) ||
+              getDeterministicColor(resolvedCharName))
         : undefined;
 
       const resolvedStageDirection =
@@ -1679,9 +1679,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         characterAvatarUrl:
           (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.avatarUrl) ||
           undefined,
+        characterVariant: castVariantOf({
+          entryId: line.speakerCharacterId,
+          name: resolvedCharName,
+          panelId: line.panelId,
+        }),
       };
     });
-  }, [hasLoadedRealScript, rawScriptLines, initialScriptLines, pages, panelPageMap, characterById]);
+  }, [
+    hasLoadedRealScript,
+    rawScriptLines,
+    initialScriptLines,
+    pages,
+    panelPageMap,
+    characterById,
+    castVariantOf,
+  ]);
 
   const firstSceneMeta = useMemo(() => {
     const first = resolvedScriptLines?.find((l) => l.sceneTitle || l.sceneSlugline);
@@ -1700,6 +1713,30 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
     return 'pencil';
   }, [isStageFlowCompleted, artistStages, currentStageIndex]);
+
+  // Tổng hợp khung toàn bộ chương từ db.Panels (Left-join SSOT cho ArtistScriptReader và LetteringScriptPanel)
+  const allChapterPanels = useMemo(() => {
+    const result: Array<{
+      id: string;
+      pageNumber?: number;
+      panelNumber?: number;
+      direction?: string | null;
+      pageId?: string;
+    }> = [];
+    pages.forEach((pg) => {
+      const pList = panelsByPageId[pg.id] || [];
+      pList.forEach((p) => {
+        result.push({
+          id: p.id,
+          pageNumber: pg.pageNumber,
+          panelNumber: p.panelNumber || p.readingOrder || 1,
+          direction: (p as any).direction ?? null,
+          pageId: pg.id,
+        });
+      });
+    });
+    return result;
+  }, [pages, panelsByPageId]);
 
   // Thao tác trang: Chọn trang
   const handleSelectPage = (page: PageDto) => {
@@ -1857,6 +1894,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
   // Kiểm tra quyền chỉnh sửa trang và tải artwork trên chương dùng Lưới V3 (mục B & C)
   const { isPageReadOnly, canUploadCurrentPageArtwork } = useMemo(() => {
+    // 0. Khóa quyền tạo/sửa layout ở giai đoạn PreProduction để Writer giữ quyền SSOT tuyệt đối
+    const currentChapter = chapters.find((c) => c.id === currentChapterId);
+    const isPreProduction =
+      currentChapter &&
+      (currentChapter.status === 'PreProduction' ||
+        (currentChapter as any).status === 1 ||
+        (!currentChapter.isScriptFrozen && currentChapter.status !== 'InProduction'));
+    if (isPreProduction) {
+      return { isPageReadOnly: true, canUploadCurrentPageArtwork: false };
+    }
+
     if (gridTasks.length === 0 || !selectedPage) {
       return { isPageReadOnly: false, canUploadCurrentPageArtwork: true };
     }
@@ -1887,7 +1935,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       isPageReadOnly: !holdsOpenPageCell && !isProducerOnUnassignedStage,
       canUploadCurrentPageArtwork: holdsOpenStageCell || isProducerOnUnassignedStage,
     };
-  }, [gridTasks, selectedPage, workspaceRole, currentStage?.id]);
+  }, [chapters, currentChapterId, gridTasks, selectedPage, workspaceRole, currentStage?.id]);
 
   // Ô của công đoạn hiện tại trên trang này đã giao cho mình và đến lượt làm nhưng chưa bấm Bắt đầu
   const startableCurrentCell = useMemo(() => {
@@ -1933,10 +1981,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             ? { ...t, ...started, id: t.id, status: started?.status ?? 'InProgress' }
             : t,
         ),
-      );
-      toast.success(
-        t('artist.deskView.startCellSuccessTitle'),
-        t('artist.deskView.startCellSuccessDesc', { stage: currentStage?.label ?? '' }),
       );
     } catch (err: any) {
       toast.error(t('artist.deskView.startCellErrorTitle'), err?.message || '');
@@ -2028,10 +2072,65 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             page.id === targetPage.id ? { ...page, elementsCount: savedPanels.length } : page,
           ),
         );
+        // Ảnh trên các khung (tách từ phác thảo, nạp khi chưa lưu, hoặc chuyển từ bố cục cũ) được
+        // tải lên khung mới cùng vị trí trong thứ tự đọc; trước đây chúng mất khi nạp lại từ server.
+        const failedUploads: Record<string, PanelArtworkData> = {};
         if (currentChapterId) {
+          const byOrder = (panels: PanelDto[]) =>
+            [...panels].sort(
+              (a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
+            );
+          const oldOrdered = byOrder(currentPagePanels);
+          const currentStg = artistStages[currentStageIndex];
+          const stageId = currentStg?.id && isGuid(currentStg.id) ? currentStg.id : undefined;
+          const uploadedUrls: string[] = [];
+          // Tải lần lượt: mỗi lần tải tạo phiên bản mới của trang, server từ chối (409) các lần
+          // tải đồng thời lên cùng trang.
+          for (const [idx, oldPanel] of oldOrdered.entries()) {
+            const artwork = currentPageArtworks[oldPanel.id];
+            const target = savedPanels[idx];
+            // Lưu bố cục tạo khung mới (mã mới) trên server: ảnh đang hiện trên khung (mới cắt,
+            // mới nạp, hoặc ảnh cũ được chuyển theo thứ tự đọc) phải gán lại vào khung mới.
+            if (!artwork || !target || artwork.panelId === target.id) continue;
+            try {
+              const blob = await (await fetch(artwork.imageUrl)).blob();
+              const file = new File([blob], artwork.fileName, { type: blob.type || 'image/png' });
+              await artworkService.uploadArtwork(
+                currentChapterId,
+                targetPage.id,
+                file,
+                stageId,
+                undefined,
+                undefined,
+                target.id,
+              );
+              uploadedUrls.push(artwork.imageUrl);
+            } catch (uploadErr) {
+              console.warn(`Không tải lên được ảnh khung #${target.panelNumber}:`, uploadErr);
+              failedUploads[target.id] = {
+                ...artwork,
+                panelId: target.id,
+                panelNumber: target.panelNumber || idx + 1,
+              };
+            }
+          }
           await loadPageArtworks(currentChapterId, [targetPage], currentStageId, {
             [targetPage.id]: savedPanels,
           });
+          uploadedUrls.forEach((url) => {
+            if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+          });
+          const failedCount = Object.keys(failedUploads).length;
+          if (failedCount > 0) {
+            setPanelArtworksByPageId((prev) => ({
+              ...prev,
+              [targetPage.id]: { ...(prev[targetPage.id] || {}), ...failedUploads },
+            }));
+            toast.warning(
+              t('artist.deskView.pendingUploadFailedTitle', { count: failedCount }),
+              t('artist.deskView.pendingUploadFailedDesc'),
+            );
+          }
         }
         if (result.unassignedArtworkCount > 0) {
           toast.warning(
@@ -2081,9 +2180,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     );
   }, [
     activeTemplateByPageId,
+    artistStages,
+    currentPageArtworks,
     currentPagePanels,
     currentChapterId,
     currentStageId,
+    currentStageIndex,
     frameTemplates,
     isCurrentPageLayoutSaved,
     isInkOrColorStage,
@@ -2101,11 +2203,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         toast.error(t('artist.deskView.noUploadPermission'));
         return;
       }
-      if (!savedLayoutByPageId[selectedPage.id]) {
-        toast.warning(t('artist.deskView.saveLayoutBeforeUpload'), '');
-        return;
-      }
+      // Bố cục chưa lưu thì khung chưa có mã trên server: giữ ảnh ở máy, tải lên khi lưu bố cục.
+      const isLayoutSaved = Boolean(savedLayoutByPageId[selectedPage.id]);
       const shouldPersistToServer = Boolean(
+        isLayoutSaved &&
         currentChapterId &&
         isGuid(selectedPage.id) &&
         isGuid(panelId) &&
@@ -2160,6 +2261,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         imageUrl: objectUrl,
         fileName: file.name,
         uploadedAt: new Date().toISOString(),
+        source: 'upload',
+        pendingUpload: !isLayoutSaved,
       };
 
       setPanelArtworksByPageId((prev) => ({
@@ -2172,7 +2275,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
       toast.success(
         t('artist.deskView.uploadSuccessTitle'),
-        t('artist.deskView.uploadSuccessDesc', { file: file.name, panel: panelNum }),
+        isLayoutSaved
+          ? t('artist.deskView.uploadSuccessDesc', { file: file.name, panel: panelNum })
+          : t('artist.deskView.uploadPendingDesc', { file: file.name, panel: panelNum }),
       );
     },
     [
@@ -2201,8 +2306,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         delete pageArts[panelId];
         return { ...prev, [selectedPage.id]: pageArts };
       });
-      // Ảnh cắt tự động chỉ tồn tại ở máy: gỡ khỏi khung là bỏ hẳn, giải phóng bộ nhớ.
-      if (removed?.source === 'auto-split') revokeArtworkUrls([removed]);
+      // Ảnh chỉ ở máy (chưa tải lên): gỡ khỏi khung là bỏ hẳn, giải phóng bộ nhớ.
+      if (removed?.pendingUpload) revokeArtworkUrls([removed]);
       toast.info(
         t('artist.deskView.removeArtTitle'),
         t('artist.deskView.removeArtDesc', { panel: panelNum }),
@@ -2437,6 +2542,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         readingOrder: p.readingOrder,
         boundingBox: JSON.stringify({
           normalized: { x: p.x, y: p.y, w: p.w, h: p.h },
+          corners: p.corners,
           borderless: Boolean(p.borderless),
           pageWidthPx: targetPage.widthPx || 1200,
           pageHeightPx: targetPage.heightPx || 1800,
@@ -2464,6 +2570,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           fileName: `panel-${p.panelNumber}.png`,
           uploadedAt: nowIso,
           source: 'auto-split',
+          pendingUpload: true,
         };
       });
 
@@ -2614,6 +2721,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const activeEditionStatus = normalizeEditionStatus(activeEdition?.status);
   const isActiveEditionEditable = isEditionEditableStatus(activeEdition?.status);
   const canEditCurrentTranslation = isTranslationMode && isActiveEditionEditable;
+
+  // UIQ-11e: bỏ nút "Bắt đầu làm" — mở trang đến lượt mình thì tự chuyển nhiệm vụ sang InProgress
+  // (BE vẫn yêu cầu InProgress trước khi nộp). Mỗi ô chỉ tự thử một lần để không lặp khi lỗi.
+  const autoStartedCellRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!startableCurrentCell || canEditCurrentTranslation) return;
+    if (autoStartedCellRef.current === startableCurrentCell.id) return;
+    autoStartedCellRef.current = startableCurrentCell.id;
+    void handleStartCurrentCell();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startableCurrentCell?.id, canEditCurrentTranslation]);
   const editionBadgeStyle =
     EDITION_STATUS_STYLES[activeEditionStatus] || EDITION_STATUS_STYLES.Draft;
 
@@ -2853,7 +2971,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             isStageFlowCompleted,
             isSubmittingStage,
             onSubmitStage: handleSubmitStage,
-            onSelectStage: handleSelectStage,
             submitButtonLabel: t('artist.deskView.submitButtonLabel'),
             showWithdrawButton: true,
             onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
@@ -2908,18 +3025,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             : startableCurrentCell
               ? t('artist.deskView.readyToStartBanner', { stage: currentStage?.label ?? '' })
               : t('artist.deskView.readOnlyBanner')}
-          {startableCurrentCell && !canEditCurrentTranslation && (
-            <button
-              type='button'
-              data-testid='artist-start-cell-btn'
-              disabled={isStartingCell}
-              onClick={() => void handleStartCurrentCell()}
-              className='ml-3 inline-flex items-center rounded-md bg-orange-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-60'
-            >
-              {isStartingCell
-                ? t('artist.deskView.startingCell')
-                : t('artist.deskView.startCellBtn')}
-            </button>
+          {startableCurrentCell && isStartingCell && (
+            <span className='ml-3'>{t('artist.deskView.startingCell')}</span>
           )}
         </div>
       )}
@@ -2973,6 +3080,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onToggleVisibility={() => {}}
           hidePagesTab={false}
           scriptLines={resolvedScriptLines}
+          chapterPanels={allChapterPanels}
           sceneTitle={firstSceneMeta.title}
           sceneSlugline={firstSceneMeta.slugline}
           chapterTitle={activeChapterTitle}
@@ -3017,6 +3125,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onAddLetteringElement={balloons.addElement}
           onDeleteLetteringElement={balloons.deleteElement}
           selectedElementId={balloons.selectedElementId}
+          pendingElementIds={balloons.pendingElementIds}
           onSelectElementId={balloons.setSelectedElementId}
           artworkPanelKeys={artworkPanelKeys}
           onSelectPanel={(pageNumber, panelNumber) => {
@@ -3059,7 +3168,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   {keepOut.zones.length > 0 && (
                     <span
                       data-testid='keepout-count-badge'
-                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      className={`px-1.5 py-0.2 rounded-full text-xs font-bold ${
                         keepOut.isDrawingMode ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'
                       }`}
                     >
@@ -3235,6 +3344,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   onResizeStart={balloons.onResizeStart}
                   onResizeMove={balloons.onResizeMove}
                   onResizeEnd={balloons.onResizeEnd}
+                  onTailChange={(id, tail) => void balloons.updateElementTail(id, tail)}
                 />
               )}
             </ArtistCanvasViewport>
@@ -3281,7 +3391,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             )}
           </div>
 
-          {hasCurrentPageArtwork && (
+          {currentPagePanels.length > 0 && (
             <SplitPanelStrip
               panels={currentPagePanels}
               artworks={currentPageArtworks}

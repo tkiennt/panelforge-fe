@@ -45,6 +45,7 @@
     "noBalloons": "Page has no balloons yet.",
     "balloonTitle": "Balloon {order}",
     "linkedToLine": "Linked to line {line}",
+    "saving": "Saving…",
     "unlinked": "Unlinked",
     "addEmptyBalloon": "Add empty balloon"
   },
@@ -377,13 +378,13 @@
     "statusScriptFrozen": "Script frozen",
     "statusPreProduction": "Pre-production (scripting)",
     "statusInProduction": "In production",
-    "pageTitlePrefix": "Artist Desk — {series}",
-    "subtitleHighlight": "Select a Chapter to Open the Dedicated Artist Desk",
-    "subtitleBody": " — Choose a chapter to enter the standalone full-screen Focus Workspace, split panel layouts (Panel Templates), upload pencil drafts (Pencil), ink line-art (Ink), and submit finished pages.",
+    "eyebrow": "Comic production",
+    "pageTitlePrefix": "Drawing Workspace — {series}",
+    "subtitle": "Select a chapter to view and complete assigned production work.",
     "statsTotal": "Total chapters",
     "statsFrozen": "Ready to draw",
     "statsInProgress": "In production",
-    "searchPlaceholder": "Search by chapter number, title, or outline...",
+    "searchPlaceholder": "Search chapter number or title...",
     "clearSearchTitle": "Clear search",
     "sortAriaLabel": "Sort chapters",
     "sortAsc": "Chapter ascending (1 → N)",
@@ -414,14 +415,16 @@
     "scenesCount": "{count} scenes",
     "readyToDraw": "Ready to draw",
     "scriptNotFrozen": "Script not frozen",
+    "chapterStatusLabel": "Chapter status",
+    "scriptStatusLabel": "Script status",
     "updatedAt": "Updated: {date}",
     "newlyCreated": "Newly created",
-    "enterDesk": "Open Desk",
+    "openDesk": "Open workspace",
     "tableColChapter": "Chapter",
-    "tableColTitleOutline": "Title & Outline",
-    "tableColStatus": "Script Status",
+    "tableColTitle": "Chapter title",
+    "tableColChapterStatus": "Chapter status",
+    "tableColScriptStatus": "Script",
     "tableColPages": "Pages",
-    "tableColScenes": "Scenes",
     "tableColActions": "Actions"
   },
   "deskView": {
@@ -503,7 +506,10 @@
     "startingCell": "Starting…",
     "startCellSuccessTitle": "Started",
     "startCellSuccessDesc": "You can now edit the {stage} stage on this page.",
-    "startCellErrorTitle": "Could not start"
+    "startCellErrorTitle": "Could not start",
+    "uploadPendingDesc": "Added {file} to Panel #{panel}. It will be uploaded when you save the layout.",
+    "pendingUploadFailedTitle": "{count} panel image(s) could not be uploaded",
+    "pendingUploadFailedDesc": "The images stay on their panels; add them again to retry the upload."
   },
   "canvaSidebar": {
     "narrationFlashback": "Flashback",
@@ -668,27 +674,31 @@
   "canvasViewport": {
     "trimLineTitle": "Trim Line (3mm Bleed)",
     "safeAreaTitle": "Live Safe Area (dialogue & main artwork)",
-    "detectingPanels": "Detecting gutters and splitting panels...",
-    "emptyPrompt": "Upload a sketch or choose a panel template to get started."
+    "detectingPanels": "Extracting panels...",
+    "originalPage": "Original page image",
+    "noPageImage": "No image",
+    "emptyTitle": "No page image",
+    "emptyPrompt": "Use Upload page image in the toolbar to begin."
   },
   "dialogs": {
     "closeArtworkPreview": "Close artwork preview"
   },
   "layoutToolbar": {
     "steps": {
-      "sketch": "Sketch",
-      "splitOrTemplate": "Split Panels / Choose Template",
-      "saveLayout": "Save Layout",
-      "uploadArtwork": "Upload Artwork"
+      "pageImage": "Upload",
+      "extract": "Extract",
+      "review": "Review",
+      "saved": "Saved"
     },
+    "processingTitle": "Image processing",
     "needSketchFirst": "Upload a sketch first",
     "needPanelsFirst": "Choose a template or split panels first",
     "noChangesToSave": "No changes to save",
     "ariaLabel": "Page layout workflow",
-    "uploadSketch": "Upload sketch",
-    "chooseTemplate": "Choose template",
+    "uploadPageImage": "Upload page image",
+    "chooseTemplate": "Choose layout",
     "splittingPanels": "Splitting panels...",
-    "splitPanels": "Split panels",
+    "extractPanels": "Extract panels",
     "saveLayout": "Save layout"
   },
   "scriptRefSidebar": {
@@ -757,6 +767,7 @@
     "delete": "Delete balloon",
     "labelPrefix": "Balloon {order}",
     "resizeTitle": "Drag to resize",
+    "tailTitle": "Drag to point the tail at the speaker",
     "staleTitle": "Dialogue changed after balloon placement",
     "staleBadge": "Dialogue changed",
     "keepOutTitle": "Balloon covers {label}",
@@ -961,11 +972,12 @@
     "saveFailed": "Failed to save keep-out zones."
   },
   "splitStrip": {
-    "title": "Split panel images",
-    "heading": "Panel images ({filled}/{total})",
+    "title": "Extracted panels",
+    "regionsCount": "{count} panel regions",
+    "imagesCount": "{count} panel images",
     "selectAria": "Select panel {panelNum}",
     "imageAlt": "Panel {panelNum} image",
-    "empty": "Empty",
+    "empty": "No panel image",
     "downloadTitle": "Download image",
     "downloadAria": "Download panel {panelNum} image"
   }

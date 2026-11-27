@@ -45,18 +45,16 @@ export const ArtistPromptsView: React.FC<{
       {set.panels.map((p) => (
         <div key={p.panelId} className='rounded-lg border-[1.5px] border-[#171717] bg-white p-3'>
           <div className='flex flex-wrap items-center gap-2'>
-            <span className='rounded bg-[#171717] px-1.5 py-0.5 text-[10px] font-bold text-white'>
+            <span className='rounded bg-[#171717] px-1.5 py-0.5 text-xs font-bold text-white'>
               {t('aiAgents.output.pagePanel', { page: p.pageNumber, panel: p.panelNumber })}
             </span>
-            <span className='font-mono text-[10px] text-[#737373]'>
-              panel {p.panelId.slice(0, 8)}
-            </span>
+            <span className='font-mono text-xs text-[#737373]'>panel {p.panelId.slice(0, 8)}</span>
           </div>
-          <p className='mt-2 whitespace-pre-wrap rounded bg-[#FAF8F5] p-2 font-mono text-[11px] leading-relaxed'>
+          <p className='mt-2 whitespace-pre-wrap rounded bg-[#FAF8F5] p-2 font-mono text-xs leading-relaxed'>
             {p.prompt}
           </p>
           <div className='mt-2 flex flex-wrap items-center gap-1'>
-            <span className='text-[10px] font-bold uppercase tracking-wide text-[#737373]'>
+            <span className='text-xs font-bold uppercase tracking-wide text-[#737373]'>
               {t('aiAgents.output.referenceBible')}
             </span>
             {p.referenceIds.length === 0 && (
@@ -66,14 +64,14 @@ export const ArtistPromptsView: React.FC<{
               <span
                 key={id}
                 title={id}
-                className='rounded border border-[#DDD6FE] bg-[#F5F3FF] px-1.5 py-0.5 text-[10px] font-semibold text-[#6D28D9]'
+                className='rounded border border-[#DDD6FE] bg-[#F5F3FF] px-1.5 py-0.5 text-xs font-semibold text-[#6D28D9]'
               >
                 {nameById[id] ?? id.slice(0, 8)}
               </span>
             ))}
           </div>
           {p.consistencyNotes && (
-            <p className='mt-1 text-[11px] text-[#065F46]'>
+            <p className='mt-1 text-xs text-[#065F46]'>
               <b>{t('aiAgents.output.consistencyNotes')}</b> {p.consistencyNotes}
             </p>
           )}
@@ -117,11 +115,11 @@ export const LetteringDiffView: React.FC<{ set: LetteringSuggestionSet }> = ({ s
             className='rounded-lg border-[1.5px] border-[#171717] bg-white p-3'
           >
             <div className='flex flex-wrap items-center gap-2'>
-              <span className='font-mono text-[10px] text-[#737373]'>
+              <span className='font-mono text-xs text-[#737373]'>
                 {t('aiAgents.output.linePrefix', { id: s.sourceScriptLineId.slice(0, 8) })}
               </span>
               <span
-                className={`flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
+                className={`flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-semibold ${
                   s.targetElementId
                     ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
                     : 'border-[#E7E7E7] bg-[#FAF8F5] text-[#525252]'
@@ -134,7 +132,7 @@ export const LetteringDiffView: React.FC<{ set: LetteringSuggestionSet }> = ({ s
                   : t('aiAgents.output.noBubble')}
               </span>
               <span
-                className='rounded border border-[#E7E7E7] bg-[#FAF8F5] px-1.5 py-0.5 text-[10px] font-semibold text-[#525252]'
+                className='rounded border border-[#E7E7E7] bg-[#FAF8F5] px-1.5 py-0.5 text-xs font-semibold text-[#525252]'
                 title={t('aiAgents.output.estimatedLimitTitle')}
               >
                 {t('aiAgents.output.estimatedLimit', {
@@ -145,7 +143,7 @@ export const LetteringDiffView: React.FC<{ set: LetteringSuggestionSet }> = ({ s
             </div>
             <div className='mt-2 grid gap-2 md:grid-cols-2'>
               <div className='rounded border border-red-200 bg-red-50/60 p-2'>
-                <div className='text-[10px] font-bold uppercase tracking-wide text-red-700'>
+                <div className='text-xs font-bold uppercase tracking-wide text-red-700'>
                   {t('aiAgents.output.originalChars', { count: s.originalText.length })}
                 </div>
                 <p className='mt-1'>
@@ -161,7 +159,7 @@ export const LetteringDiffView: React.FC<{ set: LetteringSuggestionSet }> = ({ s
                 </p>
               </div>
               <div className='rounded border border-emerald-200 bg-emerald-50/60 p-2'>
-                <div className='text-[10px] font-bold uppercase tracking-wide text-emerald-700'>
+                <div className='text-xs font-bold uppercase tracking-wide text-emerald-700'>
                   {t('aiAgents.output.suggestedChars', { count: s.suggestedText.length })} ·{' '}
                   {s.withinEstimatedLimit
                     ? t('aiAgents.output.withinLimit')
@@ -170,7 +168,7 @@ export const LetteringDiffView: React.FC<{ set: LetteringSuggestionSet }> = ({ s
                 <p className='mt-1 font-medium'>{s.suggestedText}</p>
               </div>
             </div>
-            <p className='mt-2 text-[11px] text-[#404040]'>
+            <p className='mt-2 text-xs text-[#404040]'>
               <b>{t('aiAgents.output.reasonLabel')}</b> {s.reason}
             </p>
           </div>
@@ -194,7 +192,7 @@ export const ProductionReportView: React.FC<{ report: ProductionReport }> = ({ r
         <span
           key={k}
           title={factText(k)}
-          className='rounded border border-[#FDE68A] bg-[#FFFBEB] px-1 font-mono text-[10px] font-bold text-[#92400E]'
+          className='rounded border border-[#FDE68A] bg-[#FFFBEB] px-1 font-mono text-xs font-bold text-[#92400E]'
         >
           {k}
         </span>
@@ -210,9 +208,7 @@ export const ProductionReportView: React.FC<{ report: ProductionReport }> = ({ r
           {report.headline}
         </div>
         <p className='mt-1'>{report.summary}</p>
-        <p className='mt-1 text-[10px] text-[#737373]'>
-          {t('aiAgents.output.productionDisclaimer')}
-        </p>
+        <p className='mt-1 text-xs text-[#737373]'>{t('aiAgents.output.productionDisclaimer')}</p>
       </div>
 
       {report.dataGaps.length > 0 && (
@@ -230,7 +226,7 @@ export const ProductionReportView: React.FC<{ report: ProductionReport }> = ({ r
       )}
 
       <div>
-        <div className='mb-1 text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
+        <div className='mb-1 text-xs font-bold uppercase tracking-wide text-[#737373]'>
           {t('aiAgents.output.risksTitle', { count: report.risks.length })}
         </div>
         {report.risks.length === 0 && (
@@ -241,7 +237,7 @@ export const ProductionReportView: React.FC<{ report: ProductionReport }> = ({ r
         {report.risks.map((r, i) => (
           <div key={i} className='mb-1 rounded border border-[#E7E7E7] bg-white p-2'>
             <span
-              className={`mr-1 rounded border px-1 text-[10px] font-bold ${SEVERITY_STYLE[r.severity] ?? ''}`}
+              className={`mr-1 rounded border px-1 text-xs font-bold ${SEVERITY_STYLE[r.severity] ?? ''}`}
             >
               {r.severity}
             </span>
@@ -252,19 +248,19 @@ export const ProductionReportView: React.FC<{ report: ProductionReport }> = ({ r
       </div>
 
       <div>
-        <div className='mb-1 text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
+        <div className='mb-1 text-xs font-bold uppercase tracking-wide text-[#737373]'>
           {t('aiAgents.output.recommendationsTitle', { count: report.recommendations.length })}
         </div>
         {report.recommendations.map((r, i) => (
           <div key={i} className='mb-1 rounded border border-[#E7E7E7] bg-white p-2'>
             <b>{r.action}</b>
             {r.suggestedOwnerRole && (
-              <span className='ml-1 rounded bg-[#F5F3FF] px-1.5 py-0.5 text-[10px] font-bold text-[#6D28D9]'>
+              <span className='ml-1 rounded bg-[#F5F3FF] px-1.5 py-0.5 text-xs font-bold text-[#6D28D9]'>
                 {r.suggestedOwnerRole}
               </span>
             )}
             <Sources keys={r.sourceFactKeys} />
-            <div className='text-[11px] text-[#525252]'>{r.rationale}</div>
+            <div className='text-xs text-[#525252]'>{r.rationale}</div>
           </div>
         ))}
       </div>
@@ -273,7 +269,7 @@ export const ProductionReportView: React.FC<{ report: ProductionReport }> = ({ r
         <button
           type='button'
           onClick={() => setShowFacts((v) => !v)}
-          className='flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-[#737373]'
+          className='flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-[#737373]'
         >
           {showFacts ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           {t('aiAgents.output.factsTitle', { count: report.facts.length })}
@@ -282,7 +278,7 @@ export const ProductionReportView: React.FC<{ report: ProductionReport }> = ({ r
           <ul className='mt-1 space-y-0.5'>
             {report.facts.map((f) => (
               <li key={f.key} className='flex gap-2 rounded bg-[#FAF8F5] p-1.5'>
-                <span className='font-mono text-[10px] font-bold text-[#92400E]'>{f.key}</span>
+                <span className='font-mono text-xs font-bold text-[#92400E]'>{f.key}</span>
                 <span>{f.text}</span>
               </li>
             ))}
@@ -322,7 +318,7 @@ export const ReviewReportView: React.FC<{ report: ReviewReport }> = ({ report: r
             )}
             <div>
               {c.name}
-              <div className='text-[10px] text-[#737373]'>
+              <div className='text-xs text-[#737373]'>
                 {t('aiAgents.output.computedByCode', { detail: c.detail })}
               </div>
             </div>
@@ -332,7 +328,7 @@ export const ReviewReportView: React.FC<{ report: ReviewReport }> = ({ report: r
       {r.items.map((it, i) => (
         <div key={i} className='rounded border border-[#E7E7E7] bg-white p-2'>
           <span
-            className={`mr-1 rounded border px-1 text-[10px] font-bold ${SEVERITY_STYLE[it.severity] ?? ''}`}
+            className={`mr-1 rounded border px-1 text-xs font-bold ${SEVERITY_STYLE[it.severity] ?? ''}`}
           >
             {it.severity}
           </span>

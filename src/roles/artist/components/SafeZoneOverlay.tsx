@@ -36,7 +36,7 @@ export const SafeZoneOverlay: React.FC<Props> = ({ widthPx, heightPx, visible })
           bottom: `${bleedMarginPct}%`,
         }}
       >
-        <span className='absolute top-1 left-1 font-mono text-[9px] uppercase tracking-wider bg-rose-500 text-white px-1 py-0.2 rounded opacity-80'>
+        <span className='absolute top-1 left-1 font-mono text-xs uppercase tracking-wider bg-rose-500 text-white px-1 py-0.2 rounded opacity-80'>
           {t('safeZone.trimLine')}
         </span>
       </div>
@@ -51,7 +51,7 @@ export const SafeZoneOverlay: React.FC<Props> = ({ widthPx, heightPx, visible })
           bottom: `${safeMarginPct}%`,
         }}
       >
-        <span className='absolute bottom-1 right-1 font-mono text-[9px] uppercase tracking-wider bg-emerald-600 text-white px-1 py-0.2 rounded opacity-80'>
+        <span className='absolute bottom-1 right-1 font-mono text-xs uppercase tracking-wider bg-emerald-600 text-white px-1 py-0.2 rounded opacity-80'>
           {t('safeZone.liveSafeZone')}
         </span>
       </div>

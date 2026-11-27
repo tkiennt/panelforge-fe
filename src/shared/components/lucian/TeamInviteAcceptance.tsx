@@ -172,7 +172,7 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
       </div>
 
       {errorMessage && (
-        <div className='mx-4 mt-3 p-2 bg-red-50 text-red-600 text-[11px] rounded-lg border border-red-200 flex items-center justify-between'>
+        <div className='mx-4 mt-3 p-2 bg-red-50 text-red-600 text-xs rounded-lg border border-red-200 flex items-center justify-between'>
           <span>{errorMessage}</span>
           <button
             type='button'

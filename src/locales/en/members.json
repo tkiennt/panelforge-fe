@@ -169,7 +169,11 @@
       "lettererTitle": "Letterer (Dialogue & SFX)",
       "lettererDesc": "Places speech balloons, SFX lettering and captions",
       "editorTitle": "Editor",
-      "editorDesc": "Edit, review scripts & approve artwork"
+      "editorDesc": "Edit, review scripts & approve artwork",
+      "memberTitle": "Member",
+      "memberDesc": "Joins the studio; Writer, Artist, Letterer or Editor is assigned per series",
+      "producerTitle": "Producer",
+      "producerDesc": "Runs the studio: creates series, invites people and assigns work"
     },
     "cancelBtn": "Cancel",
     "submitBtn": "Send Invitation & Grant Role",

@@ -188,11 +188,11 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
               {compare.elements.map((d) => (
                 <li key={d.elementId} className='flex items-center gap-2'>
                   <span
-                    className={`px-1.5 py-0.5 rounded-full border text-[10px] font-semibold ${CHANGE_STYLE[d.change]}`}
+                    className={`px-1.5 py-0.5 rounded-full border text-xs font-semibold ${CHANGE_STYLE[d.change]}`}
                   >
                     {t(`provenance.pageHistory.change.${d.change}`)}
                   </span>
-                  <span className='font-mono text-[11px]'>{d.elementType}</span>
+                  <span className='font-mono text-xs'>{d.elementType}</span>
                   <span className='text-[#737373]'>{d.elementId.slice(0, 8)}</span>
                   {d.changedFields.length > 0 && (
                     <span className='text-[#555555]'>({d.changedFields.join(', ')})</span>
@@ -221,7 +221,7 @@ export const PageHistoryPanel: React.FC<PageHistoryPanelProps> = ({ chapterId, v
               <span className='font-mono font-bold text-[#171717] w-10 shrink-0'>v{h.version}</span>
               <div className='flex-1 min-w-0'>
                 <div className='text-[#171717] truncate'>{h.summary}</div>
-                <div className='text-[11px] text-[#737373]'>
+                <div className='text-xs text-[#737373]'>
                   {h.actorName || t('provenance.pageHistory.systemActor')} ·{' '}
                   {formatDateTime(h.occurredAtUtc)}
                 </div>

@@ -163,7 +163,7 @@ const CloudflareModelPicker: React.FC<{
   const renderGroup = (label: string, items: AiProviderModelDto[]) =>
     items.length > 0 ? (
       <div>
-        <div className='px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-admin-muted bg-admin-subtle border-y border-admin-line'>
+        <div className='px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-admin-muted bg-admin-subtle border-y border-admin-line'>
           {label}
         </div>
         {items.map((m) => (

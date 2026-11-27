@@ -19,9 +19,10 @@ import type {
 } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { useTranslation } from '@/lib/i18n';
+import { StatusBadge } from '@/shared/ui';
 
 interface ArtistBibleOverviewProps {
-  role?: 'artist' | 'writer';
+  role?: 'artist' | 'writer' | 'editor';
   entities: BibleEntity[];
   filteredEntities: BibleEntity[];
   rawEntries: Record<string, BibleEntryDto>;
@@ -43,19 +44,6 @@ const categoryIcon = (category: BibleEntity['category']) => {
   return ShieldCheck;
 };
 
-const statusTone = (status?: BibleReviewStatus | null) => {
-  if (status === 'CanonLocked') {
-    return 'border-emerald-200 bg-emerald-50 text-emerald-800';
-  }
-  if (status === 'ConceptSubmitted') {
-    return 'border-amber-200 bg-amber-50 text-amber-800';
-  }
-  if (status === 'ReworkRequired') {
-    return 'border-rose-200 bg-rose-50 text-rose-800';
-  }
-  return 'border-stone-200 bg-stone-100 text-stone-700';
-};
-
 export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
   role = 'artist',
   entities,
@@ -66,11 +54,12 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
   onOpenEntity,
 }) => {
   const { t } = useTranslation();
-  const copyKey = role === 'writer' ? 'writerOverview' : 'artistOverview';
+  const copyKey =
+    role === 'writer' ? 'writerOverview' : role === 'editor' ? 'editorOverview' : 'artistOverview';
   const copy = (key: string, values?: Record<string, string | number>) =>
     t(`bible.view.${copyKey}.${key}`, values);
-  const queueEntityIds = new Set(designQueue.map((item) => item.entryId));
-  const referenceEntities = filteredEntities.filter((entity) => !queueEntityIds.has(entity.id));
+  // UIQ-11m: hồ sơ thiết kế liệt kê mọi thực thể, kể cả mục đang phối hợp với Artist (trước đây bị loại ra).
+  const referenceEntities = filteredEntities;
 
   const statusLabel = (status?: BibleReviewStatus | null) => {
     if (status === 'CanonLocked') return t('bible.view.cardCanonLocked');
@@ -81,27 +70,43 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
 
   return (
     <div className='space-y-6' data-testid={`${role}-bible-overview`}>
-      <section
-        className='flex flex-col gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between'
-        aria-label={copy('summaryAria')}
-      >
-        <h2 className='text-base font-bold text-stone-900'>{copy('overviewTitle')}</h2>
-        <div className='flex flex-wrap items-center gap-2 text-xs font-semibold'>
-          <span className='rounded-full bg-orange-50 px-2.5 py-1 text-orange-800'>
-            {copy('todoCompact', {
-              count: role === 'writer' ? stats.pending : designQueue.length,
-            })}
-          </span>
-          <span className='rounded-full bg-amber-50 px-2.5 py-1 text-amber-800'>
-            {copy('reviewCompact', {
-              count: role === 'writer' ? designQueue.length : stats.pending,
-            })}
-          </span>
-          <span className='rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800'>
-            {copy('canonCompact', { count: stats.locked })}
-          </span>
-        </div>
-      </section>
+      {role === 'artist' ? (
+        <section
+          className='grid grid-cols-1 gap-3 sm:grid-cols-3'
+          aria-label={copy('summaryAria')}
+        >
+          <div className='rounded-lg border border-stone-200 bg-white px-4 py-3'>
+            <div className='text-xl font-bold tabular-nums text-stone-900'>{designQueue.length}</div>
+            <div className='mt-1 text-xs font-medium text-stone-600'>{copy('todoMetric')}</div>
+          </div>
+          <div className='rounded-lg border border-stone-200 bg-white px-4 py-3'>
+            <div className='text-xl font-bold tabular-nums text-stone-900'>{stats.pending}</div>
+            <div className='mt-1 text-xs font-medium text-stone-600'>{copy('reviewMetric')}</div>
+          </div>
+          <div className='rounded-lg border border-stone-200 bg-white px-4 py-3'>
+            <div className='text-xl font-bold tabular-nums text-stone-900'>{stats.locked}</div>
+            <div className='mt-1 text-xs font-medium text-stone-600'>{copy('canonMetric')}</div>
+          </div>
+        </section>
+      ) : (
+        <section
+          className='flex flex-col gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between'
+          aria-label={copy('summaryAria')}
+        >
+          <h2 className='text-base font-bold text-stone-900'>{copy('overviewTitle')}</h2>
+          <div className='flex flex-wrap items-center gap-2 text-xs font-semibold'>
+            <span className='rounded-full bg-orange-50 px-2.5 py-1 text-orange-800'>
+              {copy('todoCompact', { count: stats.pending })}
+            </span>
+            <span className='rounded-full bg-amber-50 px-2.5 py-1 text-amber-800'>
+              {copy('reviewCompact', { count: designQueue.length })}
+            </span>
+            <span className='rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800'>
+              {copy('canonCompact', { count: stats.locked })}
+            </span>
+          </div>
+        </section>
+      )}
 
       <section className='rounded-xl border border-stone-200 bg-white shadow-xs'>
         <div className='flex items-center justify-between gap-3 border-b border-stone-100 px-4 py-3'>
@@ -132,12 +137,25 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                   className={`rounded-lg border px-3 py-2.5 ${needsRework ? 'border-rose-200 bg-rose-50/40' : 'border-stone-200 bg-white'}`}
                 >
                   <div className='flex flex-col gap-3 lg:flex-row lg:items-center'>
+                    <div className='flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-stone-200 bg-stone-100'>
+                      {entity?.imageUrl ? (
+                        <AuthenticatedImage
+                          src={entity.imageUrl}
+                          alt={item.name}
+                          className='h-full w-full object-cover'
+                        />
+                      ) : (
+                        <ImageIcon className='h-6 w-6 text-stone-400' />
+                      )}
+                    </div>
                     <div className='min-w-0 flex-1'>
                       <div className='flex flex-wrap items-center gap-2'>
                         <h3 className='text-base font-bold text-stone-900'>{item.name}</h3>
-                        <span className='rounded bg-stone-100 px-2 py-0.5 font-mono text-xs font-semibold text-stone-600'>
-                          {item.code}
-                        </span>
+                        {entity && (
+                          <span className='rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-600'>
+                            {t(`bible.categories.${entity.category}`, String(entity.category))}
+                          </span>
+                        )}
                         {needsRework && (
                           <span
                             className='inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700'
@@ -202,7 +220,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
             {copy('libraryEmpty')}
           </div>
         ) : (
-          <div className='grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3'>
+          <div className='grid grid-cols-1 gap-3 md:grid-cols-2'>
             {referenceEntities.map((entity) => {
               const CategoryIcon = categoryIcon(entity.category);
               const revision = rawEntries[entity.id]?.effectiveRevision;
@@ -213,7 +231,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                   key={entity.id}
                   onClick={() => onOpenEntity(entity)}
                   data-testid={
-                    role === 'writer'
+                    role !== 'artist'
                       ? `bible-card-${entity.id}`
                       : `artist-bible-entry-${entity.id}`
                   }
@@ -237,10 +255,20 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                           <h3 className='truncate text-base font-bold text-stone-900'>
                             {entity.name}
                           </h3>
-                          <p className='mt-0.5 font-mono text-xs text-stone-500'>
-                            {entity.code}
-                            {revision?.stageName ? ` · ${revision.stageName}` : ''}
-                          </p>
+                          {/* UIQ-11h: biến thể tạo hình + tuổi thay cho "Era" cũ (BR-15) */}
+                          {entity.category === 'characters' || revision?.stageName ? (
+                            <span
+                              className='mt-1 inline-flex max-w-full items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800'
+                              data-testid={`bible-card-variant-${entity.id}`}
+                            >
+                              <span className='truncate'>
+                                {revision?.stageName || t('bible.view.defaultVariant', 'Mặc định')}
+                                {entity.category === 'characters' && entity.age
+                                  ? ` · ${entity.age}`
+                                  : ''}
+                              </span>
+                            </span>
+                          ) : null}
                           {entity.latestDraftVersionNumber ? (
                             <span
                               className='mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800'
@@ -252,11 +280,11 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                             </span>
                           ) : null}
                         </div>
-                        <span
-                          className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${statusTone(status)}`}
-                        >
-                          {statusLabel(status)}
-                        </span>
+                        <StatusBadge
+                          kind='bibleReview'
+                          status={status ?? 'Draft'}
+                          label={statusLabel(status)}
+                        />
                       </div>
                     </div>
                   </div>

@@ -304,6 +304,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
       : null);
   const isProducer = effectiveRole === 'PRODUCER';
+  const isArtistReference = effectiveRole === 'ARTIST';
   const canCreateChapter = isProducer;
 
   // Xác định ID người dùng hiện tại (từ prop, localStorage hoặc JWT)
@@ -722,32 +723,59 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // 4. Tải danh sách Scenes khi currentChapter thay đổi
   // V2.5: Đồng bộ kịch bản từ Screenplay Flow Editor (TipTap) lên Backend khi bấm Lưu (Explicit Commit)
-  const loadPagesAndPanels = useCallback(async (chapId: string): Promise<PanelDto[]> => {
-    try {
-      const pages = await pageService.getPagesByChapter(chapId);
-      setChapterPages(pages || []);
-      if (!pages || pages.length === 0) {
-        setChapterPanels([]);
-        return [];
-      }
-      const panelsByPages = await Promise.all(
-        pages.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
-      );
-      const allPanels: PanelDto[] = [];
-      panelsByPages.forEach((list, idx) => {
-        list.forEach((p) => {
-          (p as any).pageNumber = pages[idx].pageNumber;
-          allPanels.push(p);
+  const fetchPagesAndPanels = useCallback(
+    async (chapId: string): Promise<{ pages: PageDto[]; panels: PanelDto[] }> => {
+      try {
+        const pages = await pageService.getPagesByChapter(chapId);
+        if (!pages || pages.length === 0) {
+          return { pages: [], panels: [] };
+        }
+        const panelsByPages = await Promise.all(
+          pages.map((page) => panelService.getPanelsByPage(page.id).catch(() => [])),
+        );
+        const allPanels: PanelDto[] = [];
+        panelsByPages.forEach((list, idx) => {
+          list.forEach((p) => {
+            (p as any).pageNumber = pages[idx].pageNumber;
+            allPanels.push(p);
+          });
         });
-      });
-      setChapterPanels(allPanels);
-      return allPanels;
-    } catch {
-      setChapterPages([]);
-      setChapterPanels([]);
-      return [];
-    }
-  }, []);
+        return { pages, panels: allPanels };
+      } catch {
+        return { pages: [], panels: [] };
+      }
+    },
+    [],
+  );
+
+  const fetchScenesAndDetails = useCallback(
+    async (chapId: string): Promise<{ scenes: SceneDto[]; details: SceneDetailDto[] }> => {
+      try {
+        const freshScenes = await scriptLineService.getScenesByChapter(chapId);
+        freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        const details = (
+          await Promise.all(
+            freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
+          )
+        ).filter((d): d is SceneDetailDto => d !== null);
+        details.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        return { scenes: freshScenes, details };
+      } catch {
+        return { scenes: [], details: [] };
+      }
+    },
+    [],
+  );
+
+  const loadPagesAndPanels = useCallback(
+    async (chapId: string): Promise<PanelDto[]> => {
+      const res = await fetchPagesAndPanels(chapId);
+      setChapterPages(res.pages);
+      setChapterPanels(res.panels);
+      return res.panels;
+    },
+    [fetchPagesAndPanels],
+  );
 
   const buildFallbackScriptTree = useCallback((): ChapterScriptBody => {
     const linesByPanel = new Map<string, any[]>();
@@ -840,21 +868,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
         setVersionsTick((n) => n + 1);
 
-        // Nạp lại dữ liệu sau khi lưu
-        await loadPagesAndPanels(chapterId);
+        // Nạp lại dữ liệu sau khi lưu đồng thời bằng Promise.all (tránh desync state giữa panels và scenes)
         try {
-          const freshScenes = await scriptLineService.getScenesByChapter(chapterId);
-          freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
-          setScenes(freshScenes);
-          const details = (
-            await Promise.all(
-              freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-            )
-          ).filter((d): d is SceneDetailDto => d !== null);
-          details.sort((a, b) => a.sceneNumber - b.sceneNumber);
-          setChapterScenesDetail(details);
+          const [freshPagesAndPanels, freshScenesAndDetails] = await Promise.all([
+            fetchPagesAndPanels(chapterId),
+            fetchScenesAndDetails(chapterId),
+          ]);
+          setChapterPages(freshPagesAndPanels.pages);
+          setChapterPanels(freshPagesAndPanels.panels);
+          setScenes(freshScenesAndDetails.scenes);
+          setChapterScenesDetail(freshScenesAndDetails.details);
           if (selectedScene) {
-            setSelectedScene(details.find((d) => d.id === selectedScene.id) ?? details[0] ?? null);
+            setSelectedScene(
+              freshScenesAndDetails.details.find((d) => d.id === selectedScene.id) ??
+                freshScenesAndDetails.details[0] ??
+                null,
+            );
           }
           if (seriesId) {
             const freshBible = await bibleService.getSeriesBible(seriesId);
@@ -1063,29 +1092,30 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       setScenes([]);
       setSelectedScene(null);
       setChapterScenesDetail([]);
+      setChapterPages([]);
+      setChapterPanels([]);
       return;
     }
     setLoadingScenes(true);
     try {
-      const list = await scriptLineService.getScenesByChapter(currentChapter.id);
-      list.sort((a, b) => a.sceneNumber - b.sceneNumber);
-      setScenes(list);
+      const [freshPagesAndPanels, freshScenesAndDetails] = await Promise.all([
+        fetchPagesAndPanels(currentChapter.id),
+        fetchScenesAndDetails(currentChapter.id),
+      ]);
+      setChapterPages(freshPagesAndPanels.pages);
+      setChapterPanels(freshPagesAndPanels.panels);
+      setScenes(freshScenesAndDetails.scenes);
+      setChapterScenesDetail(freshScenesAndDetails.details);
 
-      if (list.length > 0) {
-        // Tải chi tiết tất cả các phân cảnh để dựng không gian kịch bản liền mạch
-        const allDetails = await Promise.all(
-          list.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-        );
-        const validDetails = allDetails.filter((d): d is SceneDetailDto => d !== null);
-        validDetails.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setChapterScenesDetail(validDetails);
-
+      if (freshScenesAndDetails.details.length > 0) {
         setSelectedScene((prev) => {
-          if (prev && validDetails.some((s) => s.id === prev.id)) {
-            return validDetails.find((s) => s.id === prev.id) || prev;
+          if (prev && freshScenesAndDetails.details.some((s) => s.id === prev.id)) {
+            return freshScenesAndDetails.details.find((s) => s.id === prev.id) || prev;
           }
-          const matched = sceneIdFromUrl ? validDetails.find((s) => s.id === sceneIdFromUrl) : null;
-          return matched || validDetails[0] || null;
+          const matched = sceneIdFromUrl
+            ? freshScenesAndDetails.details.find((s) => s.id === sceneIdFromUrl)
+            : null;
+          return matched || freshScenesAndDetails.details[0] || null;
         });
       } else if (canEditScript && !isChapterLocked && !userDeletedSceneRef.current) {
         // Tự động khởi tạo phân cảnh đầu tiên để Writer vào thẳng trình soạn thảo
@@ -1112,15 +1142,24 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         setChapterScenesDetail([]);
       }
     } catch (err: any) {
-      console.error('Lỗi tải danh sách phân cảnh:', err);
+      console.error('Lỗi tải kịch bản và cấu trúc khung:', err);
       notify(
         t('writer.scriptEditor.loadScriptErrorTitle'),
-        err.message || t('writer.scriptEditor.loadScenesErrorFallback'),
+        err?.message || t('writer.scriptEditor.loadScenesErrorFallback'),
       );
     } finally {
       setLoadingScenes(false);
     }
-  }, [currentChapter?.id, sceneIdFromUrl, notify, canEditScript, isChapterLocked]);
+  }, [
+    currentChapter?.id,
+    sceneIdFromUrl,
+    notify,
+    canEditScript,
+    isChapterLocked,
+    fetchPagesAndPanels,
+    fetchScenesAndDetails,
+    t,
+  ]);
 
   useEffect(() => {
     loadScenes();
@@ -1427,20 +1466,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       await applyChapterUpdate(res.chapter);
       setVersionsTick((v) => v + 1);
 
-      await loadPagesAndPanels(currentChapter.id);
       try {
-        const freshScenes = await scriptLineService.getScenesByChapter(currentChapter.id);
-        freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setScenes(freshScenes);
-        const details = (
-          await Promise.all(
-            freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null)),
-          )
-        ).filter((d): d is SceneDetailDto => d !== null);
-        details.sort((a, b) => a.sceneNumber - b.sceneNumber);
-        setChapterScenesDetail(details);
+        const [freshPagesAndPanels, freshScenesAndDetails] = await Promise.all([
+          fetchPagesAndPanels(currentChapter.id),
+          fetchScenesAndDetails(currentChapter.id),
+        ]);
+        setChapterPages(freshPagesAndPanels.pages);
+        setChapterPanels(freshPagesAndPanels.panels);
+        setScenes(freshScenesAndDetails.scenes);
+        setChapterScenesDetail(freshScenesAndDetails.details);
         if (selectedScene) {
-          setSelectedScene(details.find((d) => d.id === selectedScene.id) ?? details[0] ?? null);
+          setSelectedScene(
+            freshScenesAndDetails.details.find((d) => d.id === selectedScene.id) ??
+              freshScenesAndDetails.details[0] ??
+              null,
+          );
         }
         void loadChapterCast(currentChapter.id);
       } catch (refreshErr) {
@@ -2050,6 +2090,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           onSelectChapter={(chap) => handleSelectChapter(chap.id)}
           onCreateChapter={canCreateChapter ? handleCreateNewChapter : undefined}
           onShowToast={notify}
+          presentationMode={isArtistReference ? 'reference' : 'editor'}
         />
       </div>
     );
@@ -2064,7 +2105,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   return (
     <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
-      <h1 className='sr-only'>{t('writer.scriptEditor.srHeading')}</h1>
+      <h1 className='sr-only'>
+        {isArtistReference
+          ? t('writer.scriptEditor.referenceSrHeading')
+          : t('writer.scriptEditor.srHeading')}
+      </h1>
 
       {deleteBlockedError && (
         <div
@@ -2195,7 +2240,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
           <div className='h-4 w-px bg-stone-300 mx-1' />
 
-          <span className='font-mono text-stone-400 text-xs hidden sm:inline'>Ctrl+S</span>
+          {canEditScript && !isChapterLocked && (
+            <span className='font-mono text-stone-400 text-xs hidden sm:inline'>Ctrl+S</span>
+          )}
 
           {canEditScript && !isChapterLocked && (
             <button
@@ -2224,8 +2271,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         </div>
       </div>
 
+      {isArtistReference && (
+        <div
+          data-testid='artist-script-reference-banner'
+          role='status'
+          className='shrink-0 border-b border-stone-300 bg-stone-100 px-4 py-2 text-xs font-semibold text-stone-800'
+        >
+          {t('writer.scriptEditor.referenceReadOnlyBanner')}
+        </div>
+      )}
+
       {/* Kịch bản đã chốt (Gate 1): giải thích vì sao editor chỉ đọc */}
-      {isScriptFrozen && (
+      {isScriptFrozen && !isArtistReference && (
         <div
           data-testid='script-frozen-banner'
           role='status'
@@ -2236,7 +2293,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <span className='font-bold'>{t('writer.statusDrawer.frozenBadge')}</span>
             {currentChapter?.scriptContentHash && (
               <span
-                className='ml-2 font-mono text-[11px] text-stone-600'
+                className='ml-2 font-mono text-xs text-stone-600'
                 title={`SHA-256: ${currentChapter.scriptContentHash}`}
               >
                 #{currentChapter.scriptContentHash.slice(0, 8)}

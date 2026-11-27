@@ -7,7 +7,7 @@ _Tuân thủ BR-07: Administrator không trực tiếp tham gia hay thao tác d�
 
 ## 2. Route & Màn hình
 
-- **Route**: `/admin` (khung riêng, không dùng AppShell sản xuất). Điều hướng bằng tab trong `AdminDashboard.tsx`.
+- **Route**: `/admin`, nằm trong `AppShell` chung giống Publisher Portal (header "PanelForge // Cổng Quản Trị" + sidebar hệ thống). Menu quản trị khai báo ở `getRoleNavConfig().ADMINISTRATOR` trong `src/app/AppShell.tsx`, mỗi mục trỏ `/admin?tab=<tab>`; `AdminDashboard.tsx` chỉ render nội dung theo `?tab=`. Đăng xuất, hồ sơ, 2FA nằm ở menu người dùng trên header.
 - **Màn hình** (nhãn trên menu):
   - Tổng quan — `AdminDashboardView.tsx`: số liệu từ `GET /Admin/system-stats` + lối tắt tác vụ.
   - Người dùng & quyền — `AdminUserManagementView.tsx`: cấp/thu hồi quyền tạo Studio (BR-07).

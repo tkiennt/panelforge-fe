@@ -8,7 +8,6 @@ import {
   Send,
   Calendar,
   Clock,
-  CheckCircle2,
   AlertCircle,
   Loader2,
   Sparkles,
@@ -32,7 +31,7 @@ import {
   describeStartError,
   pendingDependencyCount,
 } from '@/shared/features/collaboration/collaborationRules';
-import { Modal } from '@/shared/ui';
+import { Modal, StatusBadge } from '@/shared/ui';
 
 interface ChapterAssignmentsModalProps {
   isOpen: boolean;
@@ -216,52 +215,22 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
   });
 
   const renderStatusBadge = (status: AssignmentStatus) => {
-    switch (status) {
-      case 'Assigned':
-        return (
-          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200'>
-            {t('chapterAssignmentsModal.statusBadges.assigned', 'Đã giao (Assigned)')}
-          </span>
-        );
-      case 'InProgress':
-        return (
-          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1'>
-            <span className='w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse' />
-            {t('chapterAssignmentsModal.statusBadges.inProgress', 'Đang làm (InProgress)')}
-          </span>
-        );
-      case 'Submitted':
-        return (
-          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-violet-50 text-violet-700 border border-violet-200'>
-            {t('chapterAssignmentsModal.statusBadges.submitted', 'Đã nộp (Submitted)')}
-          </span>
-        );
-      case 'UnderReview':
-        return (
-          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200'>
-            {t('chapterAssignmentsModal.statusBadges.underReview', 'Đang duyệt (UnderReview)')}
-          </span>
-        );
-      case 'Approved':
-        return (
-          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1'>
-            <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-            {t('chapterAssignmentsModal.statusBadges.approved', 'Đã duyệt (Approved)')}
-          </span>
-        );
-      case 'ReworkRequired':
-        return (
-          <span className='px-2 py-0.5 rounded text-xs font-mono font-semibold bg-red-50 text-red-700 border border-red-200'>
-            {t('chapterAssignmentsModal.statusBadges.reworkRequired', 'Cần sửa lại (Rework)')}
-          </span>
-        );
-      default:
-        return (
-          <span className='px-2 py-0.5 rounded text-xs font-mono bg-stone-100 text-stone-700'>
-            {String(status)}
-          </span>
-        );
-    }
+    const labelKeys: Partial<Record<Exclude<AssignmentStatus, number>, string>> = {
+      Assigned: 'chapterAssignmentsModal.statusBadges.assigned',
+      InProgress: 'chapterAssignmentsModal.statusBadges.inProgress',
+      Submitted: 'chapterAssignmentsModal.statusBadges.submitted',
+      UnderReview: 'chapterAssignmentsModal.statusBadges.underReview',
+      Approved: 'chapterAssignmentsModal.statusBadges.approved',
+      ReworkRequired: 'chapterAssignmentsModal.statusBadges.reworkRequired',
+    };
+    const labelKey = typeof status === 'string' ? labelKeys[status] : undefined;
+    return (
+      <StatusBadge
+        kind='assignment'
+        status={status}
+        label={labelKey ? t(labelKey) : String(status)}
+      />
+    );
   };
 
   const renderPriorityBadge = (priority: string | number) => {

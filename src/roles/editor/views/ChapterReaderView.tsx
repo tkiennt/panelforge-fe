@@ -14,6 +14,7 @@ import {
   History,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { ChapterReadingMode } from './review-shared/ChapterReadingMode';
 import { ProducerSharedHeader } from '@/shared/features/production-workspace/ProducerSharedHeader';
 import { chapterService, ChapterDto, ScriptVersionRow } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
@@ -31,6 +32,7 @@ export interface ChapterReaderViewProps {
 
 export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
   currentUserId,
+  workspaceRole,
   onShowToast,
 }) => {
   const {
@@ -58,6 +60,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
 
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
+  const [readingMode, setReadingMode] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [zoomScale, setZoomScale] = useState(1);
   const [activeTool, setActiveTool] = useState<'pan' | 'crop'>('crop');
@@ -269,10 +272,40 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
         seriesTitle={series?.title}
         seriesFormat={series?.format}
         currentChapter={chapter}
+        hideBackLink={['producer', 'owner'].includes((workspaceRole ?? '').toLowerCase())}
         onChapterChange={(nextId) => {
           navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${nextId}/reader`);
         }}
       />
+
+      {!loading && pages.length > 0 && (
+        <div className='flex justify-end px-4 sm:px-6 pt-3 max-w-[1720px] mx-auto w-full'>
+          <button
+            type='button'
+            onClick={() => setReadingMode(true)}
+            data-testid='open-reading-mode'
+            className='inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800 hover:border-orange-300 hover:bg-orange-50 cursor-pointer'
+          >
+            <BookOpen className='h-4 w-4 text-orange-600' aria-hidden='true' />
+            {t('readerView.readingModeBtn')}
+          </button>
+        </div>
+      )}
+
+      {readingMode && chapterId && seriesId && (
+        <ChapterReadingMode
+          chapterId={chapterId}
+          seriesId={seriesId}
+          readingDirection={series?.readingDirection}
+          pages={pages}
+          initialPageId={currentPageId}
+          onClose={() => setReadingMode(false)}
+          onReviewPage={(pageId) => {
+            setCurrentPageId(pageId);
+            setReadingMode(false);
+          }}
+        />
+      )}
 
       {loading && (
         <div className='flex flex-1 items-center justify-center py-24 text-stone-500'>
@@ -352,7 +385,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                       <History className='w-3.5 h-3.5 text-orange-600' />
                       <span>{t('readerView.scriptRefTitle', 'Kịch bản đối chiếu')}</span>
                     </span>
-                    <span className='text-[10px] font-mono px-1.5 py-0.5 bg-stone-200 text-stone-700 rounded font-semibold'>
+                    <span className='text-xs font-mono px-1.5 py-0.5 bg-stone-200 text-stone-700 rounded font-semibold'>
                       {t('readerView.pageShort', {
                         page: String(currentPage.pageNumber).padStart(2, '0'),
                       })}
@@ -397,11 +430,11 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                               })}
                             </span>
                             {hasOpenCr ? (
-                              <span className='px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold'>
+                              <span className='px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold'>
                                 {t('readerView.hasReworkFlag')}
                               </span>
                             ) : (
-                              <span className='px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold'>
+                              <span className='px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold'>
                                 {t('readerView.matchedBadge')}
                               </span>
                             )}
@@ -420,18 +453,18 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                                     <span>"{line.text}"</span>
                                   </div>
                                 ) : line.type === 'Sfx' ? (
-                                  <div className='font-mono text-orange-700 font-bold text-[10px]'>
+                                  <div className='font-mono text-orange-700 font-bold text-xs'>
                                     SFX: {line.text}
                                   </div>
                                 ) : (
-                                  <p className='text-stone-600 italic leading-relaxed text-[11px]'>
+                                  <p className='text-stone-600 italic leading-relaxed text-xs'>
                                     {line.text}
                                   </p>
                                 )}
                               </div>
                             ))
                           ) : (
-                            <p className='text-stone-400 italic text-[11px]'>
+                            <p className='text-stone-400 italic text-xs'>
                               {t('readerView.actionPanelNoDialogue')}
                             </p>
                           )}
@@ -566,7 +599,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                           {/* Pin overlay if rework requested */}
                           {hasOpenCr && (
                             <div className='absolute top-7 right-3 px-2 py-1 border border-dashed border-rose-600 bg-rose-500/20 rounded pointer-events-none flex items-center gap-1'>
-                              <span className='bg-rose-600 text-white font-mono text-[10px] font-bold px-1 rounded'>
+                              <span className='bg-rose-600 text-white font-mono text-xs font-bold px-1 rounded'>
                                 {t('readerView.needsReworkPin')}
                               </span>
                             </div>
