@@ -95,7 +95,9 @@ export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(function P
                     {title}
                   </HeadingTag>
                 )}
-                {description && <p className='truncate text-xs text-stone-600'>{description}</p>}
+                {description && (
+                  <div className='truncate text-xs text-stone-600'>{description}</div>
+                )}
               </div>
             </div>
             {actions && <div className='flex shrink-0 items-center gap-2'>{actions}</div>}
@@ -133,7 +135,7 @@ export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(function P
                   {title}
                 </HeadingTag>
               )}
-              {description && <p className='mt-1 text-sm text-stone-600'>{description}</p>}
+              {description && <div className='mt-1 text-sm text-stone-600'>{description}</div>}
             </div>
           </div>
           {actions && <div className='flex shrink-0 items-center gap-2'>{actions}</div>}

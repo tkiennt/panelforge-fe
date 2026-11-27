@@ -198,14 +198,9 @@ export const workspaceService = {
   },
 
   getMyWorkspaces: async (): Promise<WorkspaceDto[]> => {
-    // Chưa đăng nhập thì không gọi API (tránh 401 làm phát 'auth:unauthorized')
-    if (
-      typeof window !== 'undefined' &&
-      !localStorage.getItem('user') &&
-      !localStorage.getItem('token')
-    ) {
-      return [];
-    }
+    // Luôn gọi API: phiên nằm ở cookie HttpOnly, localStorage 'user' có thể chưa kịp ghi lúc
+    // App vừa khôi phục phiên (trước đây chặn ở đây làm danh sách Studio rỗng khi mới mở app).
+    // 401 khi chưa đăng nhập không phát 'auth:unauthorized' (clearSession chỉ phát khi đã có phiên).
     try {
       const response = await axiosClient.get('/Workspaces');
       return response.data;

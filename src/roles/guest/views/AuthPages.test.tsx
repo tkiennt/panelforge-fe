@@ -286,6 +286,38 @@ describe('LoginPage Component', () => {
     expect(screen.getByLabelText(/Mã xác thực 6 chữ số/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Vào Studio/i })).toBeInTheDocument();
   });
+
+  it('cho đăng nhập bằng mã khôi phục khi mất điện thoại', async () => {
+    const user = userEvent.setup();
+    vi.mocked(authService.login).mockResolvedValueOnce({
+      requiresTwoFactor: true,
+      twoFactorEmail: 'producer@panelforge.com',
+    });
+    // Dừng ở lỗi để test không đi tiếp sang luồng điều hướng sau đăng nhập
+    vi.mocked(authService.verifyTwoFactor).mockRejectedValueOnce(new Error('stop'));
+
+    const { container } = render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    );
+    await user.type(
+      container.querySelector('#login-email') as HTMLInputElement,
+      'producer@panelforge.com',
+    );
+    await user.type(container.querySelector('#login-password') as HTMLInputElement, 'Bnt123#');
+    await user.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+
+    await user.click(await screen.findByRole('button', { name: /Dùng mã khôi phục/i }));
+    const input = screen.getByLabelText('Mã khôi phục');
+    await user.type(input, 'abcde fghjk');
+    expect(input).toHaveValue('ABCDEFGHJK');
+    await user.click(screen.getByRole('button', { name: /Vào Studio/i }));
+
+    expect(authService.verifyTwoFactor).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'ABCDEFGHJK', email: 'producer@panelforge.com' }),
+    );
+  });
 });
 
 describe('RegisterPage Component', () => {

@@ -1,13 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ClipboardList } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { assignmentService } from '@/services/assignment.service';
 import type { MyWorkStudioDto } from '@/types/pipeline';
 import { flattenMyWork, type WorkBucket } from './myWorkItems';
 import { Badge, Card, EmptyState, PageHeader } from '@/shared/ui';
+import { PageContainer } from '@/shared/components/PageContainer';
+import { StudioDirectoryHeader, type StudioDirectoryHeaderProps } from './StudioDirectoryHeader';
+
+type MyWorkHubViewProps = Pick<StudioDirectoryHeaderProps, 'currentUser' | 'onLogout'>;
+
 /** UIQ-11q: "Việc của tôi" xuyên mọi Studio cho Writer / Artist / Letterer / Editor. */
-export const MyWorkHubView: React.FC = () => {
+export const MyWorkHubView: React.FC<MyWorkHubViewProps> = ({ currentUser, onLogout }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [studios, setStudios] = useState<MyWorkStudioDto[] | null>(null);
@@ -50,16 +55,13 @@ export const MyWorkHubView: React.FC = () => {
     'h-8 rounded-lg border border-stone-200 bg-white px-2 text-xs font-semibold text-stone-800';
 
   return (
-    <div className='min-h-screen w-full overflow-y-auto bg-[#FAF9F5]'>
-      <div className='mx-auto max-w-5xl space-y-5 px-4 py-6'>
-        <button
-          type='button'
-          onClick={() => navigate('/workspaces')}
-          className='inline-flex items-center gap-1 text-xs font-semibold text-stone-600 hover:text-stone-900 cursor-pointer'
-        >
-          <ArrowLeft className='h-4 w-4' aria-hidden='true' />
-          {t('workspace.myWorkHub.backToStudios')}
-        </button>
+    <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF9F5]'>
+      <StudioDirectoryHeader
+        currentUser={currentUser}
+        onLogout={onLogout}
+        current={t('workspace.myWorkHub.title')}
+      />
+      <PageContainer className='max-w-[1840px] mx-auto space-y-5 py-6 md:py-8'>
         <PageHeader
           icon={<ClipboardList className='h-5 w-5' aria-hidden='true' />}
           title={t('workspace.myWorkHub.title')}
@@ -161,7 +163,7 @@ export const MyWorkHubView: React.FC = () => {
             ))}
           </ul>
         )}
-      </div>
+      </PageContainer>
     </div>
   );
 };

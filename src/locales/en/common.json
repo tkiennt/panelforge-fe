@@ -200,7 +200,12 @@
     "confirmPasswordPlaceholder": "Re-enter the password you created",
     "backToRegister": "Back to registration form",
     "verifyPinTitle": "Verify PIN",
-    "changeEmail": "Use another email"
+    "changeEmail": "Use another email",
+    "twoFactorUseRecovery": "Lost your phone? Use a recovery code",
+    "twoFactorUseAuthenticator": "Use a 6-digit Authenticator code",
+    "twoFactorRecoveryLabel": "Recovery code",
+    "twoFactorRecoveryHint": "Enter one of the recovery codes saved when you enabled 2FA (ABCDE-FGHJK). Each code works once.",
+    "errRecoveryCodeFormat": "A recovery code has 10 letters and digits, like ABCDE-FGHJK."
   },
   "modals": {
     "provenance": {

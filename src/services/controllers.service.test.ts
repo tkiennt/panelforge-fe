@@ -36,11 +36,22 @@ describe('Workspaces, Pages, and Elements Services', () => {
       expect(get).toHaveBeenCalledWith('/Workspaces');
     });
 
-    it('trả về danh sách rỗng an toàn khi không có token mà không gọi API (tránh 401)', async () => {
+    it('vẫn gọi API khi localStorage chưa có user/token (phiên cookie HttpOnly lúc mới mở app)', async () => {
+      const sampleWorkspaces = [{ id: 'w-1', name: 'Alpha Studio', currentUserRole: 'PRODUCER' }];
+      get.mockResolvedValue({ data: sampleWorkspaces });
+
+      const result = await workspaceService.getMyWorkspaces();
+
+      expect(result).toEqual(sampleWorkspaces);
+      expect(get).toHaveBeenCalledWith('/Workspaces');
+    });
+
+    it('trả về danh sách rỗng khi API lỗi (vd. 401 chưa đăng nhập)', async () => {
+      get.mockRejectedValue(new Error('401'));
+
       const result = await workspaceService.getMyWorkspaces();
 
       expect(result).toEqual([]);
-      expect(get).not.toHaveBeenCalled();
     });
 
     it('tạo Workspace mới thành công', async () => {
