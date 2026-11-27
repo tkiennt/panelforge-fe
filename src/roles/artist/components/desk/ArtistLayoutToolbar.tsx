@@ -71,7 +71,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
   return (
     <section
       aria-label={t('layoutToolbar.ariaLabel')}
-      className='w-full min-h-11 shrink-0 border-b border-[#E7E5E4] bg-white px-3 py-2 flex flex-wrap items-center justify-end 2xl:justify-between gap-x-3 gap-y-2 overflow-hidden'
+      className='w-full min-h-11 shrink-0 border-b border-[#E7E5E4] bg-white px-3 py-2 flex flex-wrap items-center justify-start 2xl:justify-between gap-2'
       data-testid='artist-layout-toolbar'
     >
       {!layoutLockedReason && (
@@ -106,7 +106,7 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
         </ol>
       )}
 
-      <div className='flex min-w-0 flex-wrap items-center justify-end gap-1.5'>
+      <div className='flex flex-wrap items-center justify-start gap-1.5 min-w-0'>
         <span title={layoutLockedReason} className='shrink-0'>
           <button
             type='button'

@@ -428,6 +428,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             onCaretSceneChangeRef.current?.(matchedSceneId);
           }
         }
+
         const m = getElementMenu(ed.state);
         if (!m.open) {
           setMenu(null);
@@ -627,7 +628,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
   useEffect(() => {
     if (!registerSave) return;
-    registerSave((force = true) => handleSave(force));
+    // Nút Lưu / Ctrl+S của view là thao tác lưu chủ động: luôn lưu như Ctrl+S trong editor
+    registerSave(() => handleSave(true));
     return () => registerSave(null);
   }, [registerSave, handleSave]);
 

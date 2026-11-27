@@ -489,7 +489,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     await user.click(await screen.findByTestId('rail-ai-btn'));
     await user.click(screen.getByTestId('quick-template-sfx'));
 
-    expect(await screen.findByTestId('unsaved-badge')).toBeInTheDocument();
+    expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
 
     // Bấm lưu (Ctrl+S) -> gặp 409
     fireEvent.keyDown(window, { key: 's', ctrlKey: true });
@@ -543,7 +543,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     await screen.findByText(/Họ đang di chuyển/);
     await user.click(await screen.findByTestId('rail-ai-btn'));
     await user.click(screen.getByTestId('quick-template-sfx'));
-    expect(await screen.findByTestId('unsaved-badge')).toBeInTheDocument();
+    expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
 
     // BE vừa tạo rev-11 (khôi phục / AI ở nơi khác)
     vi.mocked(chapterService.getScriptWorkingCopy).mockResolvedValue(null as any);
@@ -569,7 +569,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(await screen.findByTestId('concurrency-error-banner')).toHaveTextContent(
       'Kịch bản vừa được thay đổi (khôi phục / AI / người khác). Tải lại để xem bản mới nhất.',
     );
-    expect(screen.getByTestId('unsaved-badge')).toBeInTheDocument();
+    expect(screen.getByText(/Chưa lưu/)).toBeInTheDocument();
 
     // Vẫn giữ expectedRevisionId cũ: lưu tiếp sẽ bị BE chặn 409 thay vì đè bản mới
     fireEvent.keyDown(window, { key: 's', ctrlKey: true });
@@ -989,7 +989,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
       await user.click(screen.getByTestId('quick-template-dialogue'));
 
-      expect(await screen.findByTestId('unsaved-badge')).toBeInTheDocument();
+      expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
       const sheet = screen.getByTestId('paper-editor-sheet');
       expect(sheet.textContent).not.toMatch(/Kael|Cổng đã đồng bộ|SHAKIIIIN/);
     });

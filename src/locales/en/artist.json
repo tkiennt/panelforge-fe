@@ -960,5 +960,14 @@
     "balloonMoveFailedTitle": "Could not move balloon",
     "loadFailed": "Could not load page keep-out zones.",
     "saveFailed": "Failed to save keep-out zones."
+  },
+  "splitStrip": {
+    "title": "Split panel images",
+    "heading": "Panel images ({filled}/{total})",
+    "selectAria": "Select panel {panelNum}",
+    "imageAlt": "Panel {panelNum} image",
+    "empty": "Empty",
+    "downloadTitle": "Download image",
+    "downloadAria": "Download panel {panelNum} image"
   }
 }
