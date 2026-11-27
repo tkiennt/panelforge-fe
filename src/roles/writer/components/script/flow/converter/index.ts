@@ -2,3 +2,4 @@
 export * from './types';
 export * from './regexScriptParser';
 export * from './scriptConverterAdapter';
+export * from './ScriptImportModal';

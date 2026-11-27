@@ -5,7 +5,7 @@
  * Ctrl+S lưu. Kịch bản là chữ thuần, không liên kết Series Bible.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Extension } from '@tiptap/core';
+import { Extension, type JSONContent } from '@tiptap/core';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
@@ -13,6 +13,7 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import {
   ArrowRight,
   Clapperboard,
+  FileDown,
   FileText,
   Loader2,
   MessageSquare,
@@ -51,6 +52,7 @@ import {
 } from './scriptFlowAdapter';
 import { BibleRefFloatingMenu } from './BibleRefFloatingMenu';
 import { mapCategoryToTab } from '@/shared/features/series-bible/bibleCategory';
+import { ScriptImportModal } from './converter';
 
 export interface ScreenplayFlowEditorProps {
   chapterId?: string;
@@ -211,6 +213,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [active, setActive] = useState<GnElement | null>(null);
   const [showAiPopover, setShowAiPopover] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   /** Menu chọn loại dòng (Enter trên dòng trống): vị trí neo theo con trỏ + mục đang chọn. */
   const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
   const [cursorAnchor, setCursorAnchor] = useState<{
@@ -684,6 +687,32 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     [editor, isReadOnly],
   );
 
+  const handleApplyImportedScript = useCallback(
+    (nodes: JSONContent[], mode: 'append' | 'insert' | 'replace') => {
+      if (!editor || isReadOnly) return;
+
+      if (mode === 'replace') {
+        editor.commands.setContent({ type: 'doc', content: nodes }, { emitUpdate: true });
+        editor.commands.focus('start');
+      } else if (mode === 'append') {
+        const endPos = editor.state.doc.content.size;
+        editor.commands.insertContentAt(endPos, nodes);
+        editor.commands.focus('end');
+      } else {
+        editor.commands.insertContent(nodes);
+      }
+
+      onShowToast?.(
+        t('writer.scriptEditor.importSuccessTitle', 'Đã nhập kịch bản'),
+        t(
+          'writer.scriptEditor.importSuccessDesc',
+          'Đã chuyển đổi và chèn nội dung vào kịch bản thành công.',
+        ),
+      );
+    },
+    [editor, isReadOnly, onShowToast, t],
+  );
+
   const effectiveRewriteLineId = cursorAnchor.rewriteLineId ?? firstSavedLineId;
   const targetSceneId = cursorAnchor.sceneId ?? selectedSceneId ?? scenes[0]?.id ?? null;
   const targetAfterLineId =
@@ -808,6 +837,23 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                         ? t('scriptStudio.gn.saving', 'Đang lưu...')
                         : t('scriptStudio.gn.save', 'Lưu')}
                     </span>
+                  </button>
+                )}
+                {!isReadOnly && (
+                  <button
+                    type='button'
+                    id='flow-sheet-import-btn'
+                    data-testid='flow-sheet-import-btn'
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setShowImportModal(true)}
+                    title={t(
+                      'writer.scriptEditor.importScriptTooltip',
+                      'Nhập văn bản thô / kịch bản bên ngoài và tự parse',
+                    )}
+                    className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-100 text-stone-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer'
+                  >
+                    <FileDown className='w-3.5 h-3.5 text-orange-600' />
+                    <span>{t('writer.scriptEditor.importScriptBtn', 'Nhập văn bản')}</span>
                   </button>
                 )}
                 {!isReadOnly && onRewriteLineId && effectiveRewriteLineId && (
@@ -941,6 +987,29 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                       <span>{t('collaboration.writerStudio.templateAction', 'Hành động')}</span>
                     </button>
                   </div>
+
+                  <button
+                    type='button'
+                    data-testid='quick-import-plain-text'
+                    onClick={() => {
+                      setShowAiPopover(false);
+                      setShowImportModal(true);
+                    }}
+                    className='w-full flex items-center justify-between p-2 rounded-lg border border-stone-200/90 bg-white hover:border-orange-300 hover:bg-orange-50/50 text-stone-800 font-semibold transition-colors cursor-pointer mt-1'
+                  >
+                    <div className='flex items-center gap-2'>
+                      <FileDown className='w-4 h-4 text-orange-600' />
+                      <div className='text-left'>
+                        <div className='text-xs font-bold'>
+                          {t('writer.scriptEditor.importScriptBtn', 'Nhập văn bản thô')}
+                        </div>
+                        <div className='text-[10px] text-stone-500 font-normal'>
+                          {t('writer.scriptEditor.importScriptSub', 'Tự parse văn xuôi thành kịch bản')}
+                        </div>
+                      </div>
+                    </div>
+                    <ArrowRight className='w-3.5 h-3.5 text-stone-400' />
+                  </button>
                 </div>
 
                 {onRunNextLine && targetSceneId && (
@@ -1134,6 +1203,33 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             </li>
           ))}
         </ul>
+      )}
+
+      {showImportModal && (
+        <ScriptImportModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          onApplyScript={handleApplyImportedScript}
+          initialStartingPageNumber={pages.length > 0 ? pages.length + 1 : 1}
+          characters={allBibleEntries
+            ?.filter((e) => e.category === 'Character')
+            .map((c) => ({
+              id: c.id,
+              name: c.name,
+              code: c.code,
+            }))}
+          seriesBibleContext={{
+            characters: allBibleEntries
+              ?.filter((e) => e.category === 'Character')
+              .map((c) => ({
+                name: c.name,
+              })),
+            locations: allBibleEntries
+              ?.filter((e) => e.category === 'Location')
+              .map((l) => l.name),
+          }}
+          onShowToast={onShowToast}
+        />
       )}
     </div>
   );

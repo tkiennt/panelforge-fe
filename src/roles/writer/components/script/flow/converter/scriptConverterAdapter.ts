@@ -1,6 +1,8 @@
 // src/roles/writer/components/script/flow/converter/scriptConverterAdapter.ts
-import { generateGuid } from '../scriptFlowAdapter';
+import type { JSONContent } from '@tiptap/core';
+import { generateGuid, splitSpeakerLabel } from '../scriptFlowAdapter';
 import type { ExtractedScriptLinePayload } from '../scriptFlowAdapter';
+import type { GnElement } from '../grammar/scriptGrammar';
 import { MangaBlockType } from '../types';
 
 export interface ConverterAdapterOptions {
@@ -78,6 +80,7 @@ export interface ParsedScriptBlock {
   panelNumber?: string;
   cameraAngle?: string;
   character?: string;
+  parens?: string;
   content: string;
 }
 
@@ -282,16 +285,20 @@ export function parseScriptTextToBlocks(
     // 5. Nhận diện Thoại và Nhân vật:
     // Hỗ trợ cả:
     // - @Minh: "Thoại" hoặc @Minh: Thoại
+    // - @Minh (thì thầm): "Thoại"
     // - MINH: Thoại hoặc Minh: "Thoại"
     // - Minh (thì thầm): Thoại hoặc Minh / Hét: Thoại
     // - Minh nói: "Thoại"
-    const dialogueWithAt = trimmed.match(/^@([\w\p{L}_-]+)\s*:\s*(?:["“]([^"”]+)["”]|(.+))$/u);
+    const dialogueWithAt = trimmed.match(/^@([^:"“”]+?)\s*:\s*(?:["“]([^"”]+)["”]|(.+))$/u);
     if (dialogueWithAt) {
-      const charName = dialogueWithAt[1].trim();
+      const rawChar = dialogueWithAt[1].trim();
+      const speakerName = extractSpeakerName(rawChar) || rawChar;
+      const parensMatch = rawChar.match(/\(([^()]*)\)/);
       const dialogueText = (dialogueWithAt[2] || dialogueWithAt[3] || '').trim();
       rawBlocks.push({
         type: 'dialogue',
-        character: charName,
+        character: speakerName,
+        parens: parensMatch ? parensMatch[1].trim() : undefined,
         pageNumber: String(currentPageIndex || 1).padStart(2, '0'),
         panelNumber:
           panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
@@ -302,16 +309,19 @@ export function parseScriptTextToBlocks(
 
     // TÊN: thoại | Tên (cảm xúc): "thoại" | Tên / Hét: thoại | Tên nói: "thoại"
     const speakerDialogueMatch = trimmed.match(/^([^:"“”]{2,60}?)\s*:\s*(.+)$/u);
-    const speakerName = speakerDialogueMatch ? extractSpeakerName(speakerDialogueMatch[1]) : null;
+    const rawSpeaker = speakerDialogueMatch ? speakerDialogueMatch[1].trim().replace(/^@/, '') : '';
+    const speakerName = extractSpeakerName(rawSpeaker);
     if (speakerDialogueMatch && speakerName) {
       const dialogueContent = speakerDialogueMatch[2]
         .trim()
         .replace(/^["“](.*)["”]$/u, '$1')
         .trim();
       if (dialogueContent) {
+        const parensMatch = rawSpeaker.match(/\(([^()]*)\)/);
         rawBlocks.push({
           type: 'dialogue',
           character: speakerName,
+          parens: parensMatch ? parensMatch[1].trim() : undefined,
           pageNumber: String(currentPageIndex || 1).padStart(2, '0'),
           panelNumber:
             panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
@@ -571,4 +581,111 @@ export function filterScriptTextByPageRange(
     pagesCount: Math.max(pagesCount, hasEncounteredAnyPage ? 0 : selectedLines.length > 0 ? 1 : 0),
     panelsCount,
   };
+}
+
+/**
+ * Chuyển đổi danh sách ParsedScriptBlock sang TipTap JSON nodes (node scriptLine mang attrs.el: GnElement).
+ * Đây là schema chuẩn của PanelForge ScreenplayFlowEditor (WriterSolo Graphic Novel).
+ */
+export function convertBlocksToEditorNodes(
+  blocks: ParsedScriptBlock[],
+  options?: ConverterAdapterOptions,
+): JSONContent[] {
+  const nodes: JSONContent[] = [];
+
+  for (const block of blocks) {
+    switch (block.type) {
+      case 'page':
+        nodes.push({
+          type: 'scriptLine',
+          attrs: { el: 'page' as GnElement },
+          content: [],
+        });
+        break;
+
+      case 'panel': {
+        const direction = block.cameraAngle ? `[${block.cameraAngle}]` : '';
+        nodes.push({
+          type: 'scriptLine',
+          attrs: { el: 'panel' as GnElement },
+          content: direction ? [{ type: 'text', text: direction }] : [],
+        });
+        break;
+      }
+
+      case 'dialogue': {
+        const rawChar = block.character || 'NHÂN VẬT';
+        const { name, parens: labelParens } = splitSpeakerLabel(rawChar);
+        const matched = matchBibleCharacter(name, options?.characters);
+        const speakerName = (matched?.name || name).trim().toUpperCase();
+        const parensText = block.parens || labelParens;
+
+        nodes.push({
+          type: 'scriptLine',
+          attrs: { el: 'character' as GnElement },
+          content: [{ type: 'text', text: `${speakerName}:` }],
+        });
+
+        if (parensText) {
+          nodes.push({
+            type: 'scriptLine',
+            attrs: { el: 'parens' as GnElement },
+            content: [{ type: 'text', text: parensText }],
+          });
+        }
+
+        nodes.push({
+          type: 'scriptLine',
+          attrs: { el: 'dialogue' as GnElement },
+          content: [{ type: 'text', text: block.content }],
+        });
+        break;
+      }
+
+      case 'sfx':
+        nodes.push({
+          type: 'scriptLine',
+          attrs: { el: 'sfx' as GnElement },
+          content: [{ type: 'text', text: block.content }],
+        });
+        break;
+
+      case 'caption':
+        nodes.push({
+          type: 'scriptLine',
+          attrs: { el: 'caption' as GnElement },
+          content: [{ type: 'text', text: block.content }],
+        });
+        break;
+
+      case 'action':
+      default:
+        nodes.push({
+          type: 'scriptLine',
+          attrs: { el: 'action' as GnElement },
+          content: [{ type: 'text', text: block.content }],
+        });
+        break;
+    }
+  }
+
+  if (nodes.length === 0) {
+    nodes.push(
+      { type: 'scriptLine', attrs: { el: 'page' as GnElement }, content: [] },
+      { type: 'scriptLine', attrs: { el: 'panel' as GnElement }, content: [] },
+    );
+  }
+
+  return nodes;
+}
+
+/**
+ * Phân tích và chuyển đổi chuỗi kịch bản hoặc văn bản thô trực tiếp thành danh sách các node scriptLine của TipTap editor
+ */
+export function convertScriptTextToEditorNodes(
+  scriptText: string,
+  options?: ConverterAdapterOptions,
+): JSONContent[] {
+  const blocks = parseScriptTextToBlocks(scriptText, options);
+  return convertBlocksToEditorNodes(blocks, options);
 }

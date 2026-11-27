@@ -123,8 +123,10 @@ function extractBeatsFromParagraph(paragraph: string, bible?: SeriesBibleContext
         beats.push({ type: 'dialogue', speaker: bibleSpeaker, text: dialogueContent });
       }
     } else {
-      // Không có đoạn text trước, thoại đứng đầu câu
-      const bibleSpeaker = bible?.characters?.[0]?.name || 'Nhân vật';
+      // Không có đoạn text trước, thoại đứng đầu câu (e.g. "Chúng ta phải đi!" - Minh nói)
+      const afterMatch = trimmed.slice(match.index + match[0].length);
+      const speakerCandidate = resolveSpeaker(afterMatch, bible);
+      const bibleSpeaker = speakerCandidate || bible?.characters?.[0]?.name || 'Nhân vật';
       beats.push({ type: 'dialogue', speaker: bibleSpeaker, text: dialogueContent });
     }
 
