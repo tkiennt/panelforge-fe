@@ -188,7 +188,9 @@
     "zenModeBtn": "Focus",
     "quickSearchTooltip": "Quick search (Ctrl+K)",
     "exitZenTooltip": "Exit focus mode (Key F or Escape)",
-    "exitZenBtn": "Exit fullscreen (F)"
+    "exitZenBtn": "Exit fullscreen (F)",
+    "readChapterBtn": "Read demo",
+    "readChapterTooltip": "Read full chapter demo"
   },
   "guard": {
     "forbiddenTitle": "403 - Access Denied",

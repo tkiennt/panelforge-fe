@@ -487,6 +487,11 @@ export function AppShell({
             section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
             items: [
               {
+                icon: BookOpen,
+                label: t('navigation.menu.readSeries', 'Đọc bộ truyện'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/read`,
+              },
+              {
                 icon: BookMarked,
                 label: t('navigation.menu.bible', 'Series Bible'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
@@ -537,6 +542,11 @@ export function AppShell({
           {
             section: t('navigation.writerSections.storyWorld', 'THẾ GIỚI TRUYỆN'),
             items: [
+              {
+                icon: BookOpen,
+                label: t('navigation.menu.readSeries', 'Đọc bộ truyện'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/read`,
+              },
               {
                 icon: BookMarked,
                 label: t('navigation.menu.bible', 'Series Bible'),

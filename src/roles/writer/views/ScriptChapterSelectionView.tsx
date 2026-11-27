@@ -91,6 +91,11 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
     navigate(`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${chapter.id}`);
   };
 
+  const handleReadChapter = (chapter: ChapterDto) => {
+    if (!workspaceId || !seriesId) return;
+    navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapter.id}/reader`);
+  };
+
   const handleCreateChapter = async (data: CreateChapterRequest) => {
     if (!seriesId) return;
     await chapterService.createChapter(seriesId, data);
@@ -149,6 +154,7 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
       onCreateChapter={isProducer ? handleCreateChapter : undefined}
       onShowToast={notify}
       presentationMode={effectiveRole === 'ARTIST' ? 'reference' : 'editor'}
+      onReadChapter={handleReadChapter}
     />
   );
 };

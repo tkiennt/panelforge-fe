@@ -65,6 +65,7 @@ export interface FocusHeaderConfig {
   withdrawDisabledReason?: string;
   isWithdrawingStage?: boolean;
   withdrawButtonLabel?: string;
+  readerUrl?: string;
 }
 
 interface FocusHeaderContextValue {
@@ -332,6 +333,18 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
 
       {/* Phía phải: Nút Rút bài / Nộp qua công đoạn / Gửi duyệt kịch bản */}
       <div className='flex items-center gap-1.5 shrink-0'>
+        {headerConfig?.readerUrl && (
+          <Link
+            to={headerConfig.readerUrl}
+            data-testid='focus-header-read-btn'
+            title={t('navigation.focus.readChapterTooltip', 'Đọc thử toàn bộ chương')}
+            className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-white hover:bg-stone-50 border border-[#E7E5E4] text-stone-700 text-xs font-medium active:scale-95 transition-all cursor-pointer shrink-0 whitespace-nowrap'
+          >
+            <BookOpen className='w-3.5 h-3.5 text-orange-600' />
+            <span className='hidden sm:inline'>{t('navigation.focus.readChapterBtn', 'Đọc demo')}</span>
+          </Link>
+        )}
+
         {showWithdrawBtn && (
           <button
             type='button'

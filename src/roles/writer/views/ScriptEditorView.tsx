@@ -2057,6 +2057,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         scriptAction === 'resubmit'
           ? t('scriptStudio.submit.resubmit', 'Gửi lại kịch bản')
           : t('scriptStudio.submit.writer', 'Gửi duyệt kịch bản'),
+      readerUrl:
+        workspaceId && seriesId && currentChapter.id
+          ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${currentChapter.id}/reader`
+          : undefined,
     });
   }, [
     focusHeader,

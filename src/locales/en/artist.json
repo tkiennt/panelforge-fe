@@ -398,6 +398,8 @@
     "filterFrozen": "Ready ({count})",
     "filterInProgress": "In production ({count})",
     "filterApproved": "Approved ({count})",
+    "readChapterBtn": "Read demo",
+    "readChapterTooltip": "Read full chapter demo",
     "loadingChapters": "Loading series chapter list...",
     "errorTitle": "Failed to load chapters",
     "retry": "Retry",
@@ -669,7 +671,9 @@
     "expandFilmstrip": "Expand page strip",
     "pagesLabel": "Pages",
     "exitFullscreen": "Exit fullscreen",
-    "fullscreen": "Fullscreen"
+    "fullscreen": "Fullscreen",
+    "readChapterLabel": "Read demo",
+    "readChapterTooltip": "Read full chapter demo"
   },
   "canvasViewport": {
     "trimLineTitle": "Trim Line (3mm Bleed)",

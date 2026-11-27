@@ -156,4 +156,22 @@ describe('ChapterSelectionView Component', () => {
     expect(screen.getByText('Đang viết')).toBeInTheDocument();
     expect(screen.getByText('Đã khóa')).toBeInTheDocument();
   });
+
+  it('calls onReadChapter when clicking read demo button', () => {
+    const onSelectChapter = vi.fn();
+    const onReadChapter = vi.fn();
+    render(
+      <ChapterSelectionView
+        chapters={mockChapters}
+        onSelectChapter={onSelectChapter}
+        onReadChapter={onReadChapter}
+      />,
+    );
+
+    const readBtn = screen.getByTestId('writer-read-chapter-btn-1');
+    fireEvent.click(readBtn);
+
+    expect(onReadChapter).toHaveBeenCalledWith(mockChapters[0]);
+    expect(onSelectChapter).not.toHaveBeenCalled();
+  });
 });
