@@ -133,16 +133,13 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
-    expect(screen.getByText('Ma trận trang')).toBeInTheDocument();
-    expect(screen.getByText('Tổng quan chương')).toBeInTheDocument();
-    expect(screen.getByText('Quản lý Ê-kíp')).toBeInTheDocument();
-    expect(screen.getByText('Kịch bản')).toBeInTheDocument();
-    expect(screen.getByText('Đọc thử & Soát trang')).toBeInTheDocument();
-    expect(screen.getByText('Bàn giao')).toBeInTheDocument();
-    expect(screen.getByText('Kiểm tra & Hiệu đính')).toBeInTheDocument();
-    expect(screen.getByText('Thư viện')).toBeInTheDocument();
+    expect(screen.getByText('Tổng quan')).toBeInTheDocument();
+    expect(screen.getByText('Tiền sản xuất')).toBeInTheDocument();
+    expect(screen.getByText('Sản xuất')).toBeInTheDocument();
+    expect(screen.getByText('Kiểm duyệt & Bàn giao')).toBeInTheDocument();
+    expect(screen.getByText('Series Bible / Thư viện')).toBeInTheDocument();
     expect(screen.getByText('Doanh thu & Lượt đọc')).toBeInTheDocument();
-    // Removed old items:
+    // Removed fragmented / old items:
     expect(screen.queryByText('Tiến độ & Giao việc')).not.toBeInTheDocument();
     expect(screen.queryByText('Kịch bản & Cổng duyệt')).not.toBeInTheDocument();
     expect(screen.queryByText('Đọc duyệt tranh')).not.toBeInTheDocument();
@@ -341,7 +338,7 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/workspace');
 
-    const activeLink = screen.getByRole('link', { name: /Ma trận trang/i });
+    const activeLink = screen.getByRole('link', { name: /^Sản xuất$/i });
     expect(activeLink).toBeInTheDocument();
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 
