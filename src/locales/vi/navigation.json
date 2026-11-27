@@ -188,7 +188,9 @@
     "zenModeBtn": "Tập trung",
     "quickSearchTooltip": "Tìm kiếm nhanh (Ctrl+K)",
     "exitZenTooltip": "Thoát chế độ tập trung (Phím F hoặc Escape)",
-    "exitZenBtn": "Thoát toàn màn hình (F)"
+    "exitZenBtn": "Thoát toàn màn hình (F)",
+    "readChapterBtn": "Đọc demo",
+    "readChapterTooltip": "Đọc thử toàn bộ chương"
   },
   "guard": {
     "forbiddenTitle": "403 - Không có quyền truy cập",

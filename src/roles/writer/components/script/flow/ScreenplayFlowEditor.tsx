@@ -5,7 +5,7 @@
  * Ctrl+S lưu. Kịch bản là chữ thuần, không liên kết Series Bible.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Extension } from '@tiptap/core';
+import { Extension, type JSONContent } from '@tiptap/core';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
@@ -13,6 +13,7 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import {
   ArrowRight,
   Clapperboard,
+  FileDown,
   FileText,
   Loader2,
   MessageSquare,
@@ -29,6 +30,7 @@ import { PanelDto } from '@/types/pipeline';
 import { ScriptCommentDto } from '@/services/chapter.service';
 import { BibleEntryDto } from '@/services/bible.service';
 import { GN_ELEMENTS, GnElement } from './grammar/scriptGrammar';
+import { ScriptActionGooeyMenu } from './ScriptActionGooeyMenu';
 import {
   BibleRefMark,
   BibleSpeakerRef,
@@ -51,6 +53,7 @@ import {
 } from './scriptFlowAdapter';
 import { BibleRefFloatingMenu } from './BibleRefFloatingMenu';
 import { mapCategoryToTab } from '@/shared/features/series-bible/bibleCategory';
+import { ScriptImportModal } from './converter';
 
 export interface ScreenplayFlowEditorProps {
   chapterId?: string;
@@ -211,6 +214,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [active, setActive] = useState<GnElement | null>(null);
   const [showAiPopover, setShowAiPopover] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   /** Menu chọn loại dòng (Enter trên dòng trống): vị trí neo theo con trỏ + mục đang chọn. */
   const [menu, setMenu] = useState<{ index: number; top: number; left: number } | null>(null);
   const [cursorAnchor, setCursorAnchor] = useState<{
@@ -687,6 +691,32 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     [editor, isReadOnly],
   );
 
+  const handleApplyImportedScript = useCallback(
+    (nodes: JSONContent[], mode: 'append' | 'insert' | 'replace') => {
+      if (!editor || isReadOnly) return;
+
+      if (mode === 'replace') {
+        editor.commands.setContent({ type: 'doc', content: nodes }, { emitUpdate: true });
+        editor.commands.focus('start');
+      } else if (mode === 'append') {
+        const endPos = editor.state.doc.content.size;
+        editor.commands.insertContentAt(endPos, nodes);
+        editor.commands.focus('end');
+      } else {
+        editor.commands.insertContent(nodes);
+      }
+
+      onShowToast?.(
+        t('writer.scriptEditor.importSuccessTitle', 'Đã nhập kịch bản'),
+        t(
+          'writer.scriptEditor.importSuccessDesc',
+          'Đã chuyển đổi và chèn nội dung vào kịch bản thành công.',
+        ),
+      );
+    },
+    [editor, isReadOnly, onShowToast, t],
+  );
+
   const effectiveRewriteLineId = cursorAnchor.rewriteLineId ?? firstSavedLineId;
   const targetSceneId = cursorAnchor.sceneId ?? selectedSceneId ?? scenes[0]?.id ?? null;
   const targetAfterLineId =
@@ -758,6 +788,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
       {/* Center Paper Sheet Surface: Nền bàn làm việc #F4EFE8/70, Trang giấy trắng tinh bg-white với viền & đổ bóng */}
       <main
+        id='script-editor-content'
         className='flex-1 min-h-0 overflow-y-auto bg-[#F4EFE8]/70 px-4 sm:px-8 py-6 sm:py-8 flex flex-col items-center pb-32 custom-scrollbar'
         onClick={() => {
           if (editor && !editor.isFocused) editor.commands.focus();
@@ -786,52 +817,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                     {t('collaboration.writerStudio.unsavedBadge', 'Chưa lưu')}
                   </span>
                 )}
-                {!isReadOnly && (
-                  <button
-                    type='button'
-                    id='flow-sheet-save-btn'
-                    data-testid='flow-sheet-save-btn'
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => void handleSave(true)}
-                    disabled={isSaving}
-                    title={t('scriptStudio.gn.saveTooltip', 'Lưu kịch bản (Ctrl+S)')}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      isDirty
-                        ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
-                        : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200'
-                    } disabled:opacity-60`}
-                  >
-                    {isSaving ? (
-                      <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                    ) : (
-                      <Save className='w-3.5 h-3.5' />
-                    )}
-                    <span>
-                      {isSaving
-                        ? t('scriptStudio.gn.saving', 'Đang lưu...')
-                        : t('scriptStudio.gn.save', 'Lưu')}
-                    </span>
-                  </button>
-                )}
-                {!isReadOnly && onRewriteLineId && effectiveRewriteLineId && (
-                  <button
-                    type='button'
-                    data-testid={`ai-rewrite-line-${effectiveRewriteLineId}`}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => onRewriteLineId(effectiveRewriteLineId)}
-                    disabled={rewritingLineId === effectiveRewriteLineId}
-                    className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-violet-200 bg-violet-50/80 hover:bg-violet-100 text-violet-700 text-xs font-semibold transition-colors disabled:opacity-60 cursor-pointer'
-                  >
-                    {rewritingLineId === effectiveRewriteLineId ? (
-                      <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                    ) : (
-                      <Sparkles className='w-3.5 h-3.5' />
-                    )}
-                    <span>
-                      {t('collaboration.writerStudio.rewriteLineAiBtn', 'Viết lại bằng AI')}
-                    </span>
-                  </button>
-                )}
               </div>
             </div>
             {!isReadOnly && (
@@ -856,16 +841,61 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         </div>
       </main>
 
-      {/* Quick templates & AI script assistant floating button & popover */}
+      {/* Persistent script actions rail: stays outside the paper while the script scrolls */}
       {!isReadOnly && (
         <div
-          className='fixed bottom-6 right-20 sm:right-88 z-40 flex flex-col items-end select-none'
+          className='fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2 select-none'
           id='ai-script-assistant-wrapper'
         >
+          <ScriptActionGooeyMenu
+            label={t('writer.scriptEditor.scriptActions', 'Thao tác kịch bản')}
+            openLabel={t('writer.scriptEditor.openScriptActions', 'Mở thao tác kịch bản')}
+            closeLabel={t('writer.scriptEditor.closeScriptActions', 'Đóng thao tác kịch bản')}
+            triggerTestId='script-actions-trigger'
+            actions={[
+              {
+                id: 'save',
+                label: isSaving
+                  ? t('scriptStudio.gn.saving', 'Đang lưu...')
+                  : t('scriptStudio.gn.saveTooltip', 'Lưu kịch bản (Ctrl+S)'),
+                icon: isSaving ? (
+                  <Loader2 className='animate-spin' aria-hidden='true' />
+                ) : (
+                  <Save aria-hidden='true' />
+                ),
+                disabled: isSaving,
+                testId: 'flow-sheet-save-btn',
+                color: 'var(--u460-save)',
+                onSelect: () => void handleSave(true),
+              },
+              {
+                id: 'import',
+                label: t(
+                  'writer.scriptEditor.importScriptTooltip',
+                  'Nhập văn bản thô / kịch bản bên ngoài và tự parse',
+                ),
+                icon: <FileDown aria-hidden='true' />,
+                testId: 'flow-sheet-import-btn',
+                color: 'var(--u460-import)',
+                onSelect: () => setShowImportModal(true),
+              },
+              {
+                id: 'ai',
+                label: hasRealAi
+                  ? t('collaboration.writerStudio.templatesAndAi', 'Mẫu & AI')
+                  : t('collaboration.writerStudio.quickTemplatesTitle', 'Mẫu nhanh'),
+                icon: hasRealAi ? <Sparkles aria-hidden='true' /> : <FileText aria-hidden='true' />,
+                testId: 'rail-ai-btn',
+                color: 'var(--u460-ai)',
+                onSelect: () => setShowAiPopover(true),
+              },
+            ]}
+          />
+
           {showAiPopover && (
             <div
               id='ai-script-suggestions-popover'
-              className='mb-3 w-80 bg-[#FFFDF9] rounded-xl border border-stone-200/90 shadow-xl overflow-hidden font-sans transition-all duration-300'
+              className='absolute bottom-20 right-20 w-80 overflow-hidden rounded-xl border border-stone-200/90 bg-[#FFFDF9] font-sans shadow-xl'
             >
               <div className='px-4 py-3 bg-[#FBF9F4] border-b border-stone-200/80 flex items-center justify-between'>
                 <div className='flex items-center gap-2'>
@@ -944,7 +974,58 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
                       <span>{t('collaboration.writerStudio.templateAction', 'Hành động')}</span>
                     </button>
                   </div>
+
+                  <button
+                    type='button'
+                    data-testid='quick-import-plain-text'
+                    onClick={() => {
+                      setShowAiPopover(false);
+                      setShowImportModal(true);
+                    }}
+                    className='w-full flex items-center justify-between p-2 rounded-lg border border-stone-200/90 bg-white hover:border-orange-300 hover:bg-orange-50/50 text-stone-800 font-semibold transition-colors cursor-pointer mt-1'
+                  >
+                    <div className='flex items-center gap-2'>
+                      <FileDown className='w-4 h-4 text-orange-600' />
+                      <div className='text-left'>
+                        <div className='text-xs font-bold'>
+                          {t('writer.scriptEditor.importScriptBtn', 'Nhập văn bản thô')}
+                        </div>
+                        <div className='text-xs text-stone-500 font-normal'>
+                          {t(
+                            'writer.scriptEditor.importScriptSub',
+                            'Tự parse văn xuôi thành kịch bản',
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <ArrowRight className='w-3.5 h-3.5 text-stone-400' />
+                  </button>
                 </div>
+
+                {onRewriteLineId && effectiveRewriteLineId && (
+                  <div className='border-t border-stone-200/70 pt-2'>
+                    <button
+                      type='button'
+                      data-testid={`ai-rewrite-line-${effectiveRewriteLineId}`}
+                      onClick={() => {
+                        setShowAiPopover(false);
+                        onRewriteLineId(effectiveRewriteLineId);
+                      }}
+                      disabled={rewritingLineId === effectiveRewriteLineId}
+                      className='flex w-full items-center justify-between rounded-lg border border-violet-200 bg-violet-50/80 p-2.5 text-left text-xs font-semibold text-violet-800 transition-colors hover:bg-violet-100 disabled:opacity-60'
+                    >
+                      <span className='flex items-center gap-2'>
+                        {rewritingLineId === effectiveRewriteLineId ? (
+                          <Loader2 className='size-4 animate-spin' aria-hidden='true' />
+                        ) : (
+                          <Sparkles className='size-4' aria-hidden='true' />
+                        )}
+                        {t('collaboration.writerStudio.rewriteLineAiBtn', 'Viết lại bằng AI')}
+                      </span>
+                      <ArrowRight className='size-3.5' aria-hidden='true' />
+                    </button>
+                  </div>
+                )}
 
                 {onRunNextLine && targetSceneId && (
                   <div className='space-y-1.5 pt-2 border-t border-stone-200/70'>
@@ -1085,30 +1166,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               </div>
             </div>
           )}
-
-          <button
-            type='button'
-            id='btn-ai-script-assistant'
-            data-testid='rail-ai-btn'
-            onClick={() => setShowAiPopover(!showAiPopover)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-semibold text-xs shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 hover:scale-105 active:scale-95 cursor-pointer ${
-              hasRealAi
-                ? 'bg-violet-600 hover:bg-violet-700 text-white'
-                : 'bg-stone-800 hover:bg-stone-900 text-white'
-            }`}
-          >
-            {hasRealAi ? <Sparkles className='w-4 h-4' /> : <FileText className='w-4 h-4' />}
-            <span>
-              {hasRealAi
-                ? t('collaboration.writerStudio.templatesAndAi', 'Mẫu & AI')
-                : t('collaboration.writerStudio.quickTemplatesTitle', 'Mẫu nhanh')}
-            </span>
-            {hasRealAi && (
-              <span className='px-1.5 py-0.5 rounded-full bg-white/20 text-white text-xs font-mono font-bold'>
-                AI
-              </span>
-            )}
-          </button>
         </div>
       )}
 
@@ -1137,6 +1194,31 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             </li>
           ))}
         </ul>
+      )}
+
+      {showImportModal && (
+        <ScriptImportModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          onApplyScript={handleApplyImportedScript}
+          initialStartingPageNumber={pages.length > 0 ? pages.length + 1 : 1}
+          characters={allBibleEntries
+            ?.filter((e) => e.category === 'Character')
+            .map((c) => ({
+              id: c.id,
+              name: c.name,
+              code: c.code,
+            }))}
+          seriesBibleContext={{
+            characters: allBibleEntries
+              ?.filter((e) => e.category === 'Character')
+              .map((c) => ({
+                name: c.name,
+              })),
+            locations: allBibleEntries?.filter((e) => e.category === 'Location').map((l) => l.name),
+          }}
+          onShowToast={onShowToast}
+        />
       )}
     </div>
   );

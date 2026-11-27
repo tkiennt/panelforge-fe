@@ -14,6 +14,11 @@ import { FocusWorkspaceLayout } from './FocusWorkspaceLayout';
 import { RequireWorkspaceRole } from './RequireWorkspaceRole';
 import { resolveCurrentWorkspaceRole } from './workspaceRoleGuard';
 import { getRoleDefaultPath } from '@/roles/roles';
+import {
+  buildRoleChapterReaderUrl,
+  buildSeriesReaderUrl,
+  type StudioReaderRole,
+} from './routePaths';
 import { AuthLayout } from '@/roles/guest/views/AuthLayout';
 import { LoginPage } from '@/roles/guest/views/LoginPage';
 import { RegisterPage } from '@/roles/guest/views/RegisterPage';
@@ -45,6 +50,55 @@ const SeriesIndexRedirect: React.FC<SeriesIndexRedirectProps> = ({
   );
   const target = getRoleDefaultPath(effectiveRole, workspaceId, seriesId);
   return <Navigate to={target} replace />;
+};
+
+interface ChapterReaderRoleBoundaryProps extends SeriesIndexRedirectProps {
+  expectedRole?: StudioReaderRole;
+  children?: React.ReactNode;
+}
+
+const ChapterReaderRoleBoundary: React.FC<ChapterReaderRoleBoundaryProps> = ({
+  currentWorkspaceRole,
+  activeProjectRoles,
+  currentRole,
+  expectedRole,
+  children,
+}) => {
+  const {
+    workspaceId = '',
+    seriesId = '',
+    chapterId = '',
+  } = useParams<{
+    workspaceId: string;
+    seriesId: string;
+    chapterId: string;
+  }>();
+  const effectiveRole = resolveCurrentWorkspaceRole(
+    currentWorkspaceRole,
+    activeProjectRoles,
+    currentRole,
+  ).toLowerCase();
+  const canonicalRole: StudioReaderRole | null =
+    effectiveRole === 'writer' || effectiveRole === 'editor' || effectiveRole === 'producer'
+      ? effectiveRole
+      : effectiveRole === 'administrator'
+        ? expectedRole || 'producer'
+        : null;
+
+  if (!canonicalRole) {
+    return <Navigate to={buildSeriesReaderUrl(workspaceId, seriesId, { chapterId })} replace />;
+  }
+
+  if (!expectedRole || canonicalRole !== expectedRole) {
+    return (
+      <Navigate
+        to={buildRoleChapterReaderUrl(canonicalRole, workspaceId, seriesId, chapterId)}
+        replace
+      />
+    );
+  }
+
+  return <>{children}</>;
 };
 
 import { seriesService } from '@/services/series.service';
@@ -84,8 +138,18 @@ const EditorDeskView = lazy(() =>
 const ScriptReviewView = lazy(() =>
   import('@/roles/editor/views/ScriptReviewView').then((m) => ({ default: m.ScriptReviewView })),
 );
-const ChapterReaderView = lazy(() =>
+const EditorChapterReaderView = lazy(() =>
   import('@/roles/editor/views/ChapterReaderView').then((m) => ({ default: m.ChapterReaderView })),
+);
+const WriterChapterReaderView = lazy(() =>
+  import('@/roles/writer/views/WriterChapterReaderView').then((m) => ({
+    default: m.WriterChapterReaderView,
+  })),
+);
+const ProducerChapterReaderView = lazy(() =>
+  import('@/roles/producer/views/ProducerChapterReaderView').then((m) => ({
+    default: m.ProducerChapterReaderView,
+  })),
 );
 const SeriesReaderView = lazy(() =>
   import('@/shared/features/series-reader/SeriesReaderView').then((m) => ({
@@ -720,7 +784,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='read'
                   element={
                     <RequireWorkspaceRole
-                      allowedRoles={['PRODUCER', 'EDITOR', 'ADMINISTRATOR']}
+                      allowedRoles={['PRODUCER', 'EDITOR', 'WRITER', 'ADMINISTRATOR']}
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
                       activeRoles={activeProjectRoles}
@@ -735,21 +799,80 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 <Route
                   path='chapters/:chapterId/reader'
                   element={
-                    <RequireWorkspaceRole
-                      allowedRoles={[
-                        'EDITOR',
-                        'PRODUCER',
-                        'ARTIST',
-                        'LETTERER',
-                        'WRITER',
-                        'ADMINISTRATOR',
-                      ]}
+                    <ChapterReaderRoleBoundary
                       currentWorkspaceRole={currentWorkspaceRole}
                       currentRole={currentRole}
-                      activeRoles={activeProjectRoles}
+                      activeProjectRoles={activeProjectRoles}
+                    />
+                  }
+                />
+                <Route
+                  path='writer/chapters/:chapterId/reader'
+                  element={
+                    <ChapterReaderRoleBoundary
+                      expectedRole='writer'
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeProjectRoles={activeProjectRoles}
                     >
-                      <ChapterReaderView onShowToast={showToast} />
-                    </RequireWorkspaceRole>
+                      <RequireWorkspaceRole
+                        allowedRoles={['WRITER', 'ADMINISTRATOR']}
+                        currentWorkspaceRole={currentWorkspaceRole}
+                        currentRole={currentRole}
+                        activeRoles={activeProjectRoles}
+                      >
+                        <WriterChapterReaderView
+                          currentUserId={currentUserInfo?.id}
+                          onShowToast={showToast}
+                        />
+                      </RequireWorkspaceRole>
+                    </ChapterReaderRoleBoundary>
+                  }
+                />
+                <Route
+                  path='editor/chapters/:chapterId/reader'
+                  element={
+                    <ChapterReaderRoleBoundary
+                      expectedRole='editor'
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeProjectRoles={activeProjectRoles}
+                    >
+                      <RequireWorkspaceRole
+                        allowedRoles={['EDITOR', 'ADMINISTRATOR']}
+                        currentWorkspaceRole={currentWorkspaceRole}
+                        currentRole={currentRole}
+                        activeRoles={activeProjectRoles}
+                      >
+                        <EditorChapterReaderView
+                          currentUserId={currentUserInfo?.id}
+                          onShowToast={showToast}
+                        />
+                      </RequireWorkspaceRole>
+                    </ChapterReaderRoleBoundary>
+                  }
+                />
+                <Route
+                  path='producer/chapters/:chapterId/reader'
+                  element={
+                    <ChapterReaderRoleBoundary
+                      expectedRole='producer'
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeProjectRoles={activeProjectRoles}
+                    >
+                      <RequireWorkspaceRole
+                        allowedRoles={['PRODUCER', 'ADMINISTRATOR']}
+                        currentWorkspaceRole={currentWorkspaceRole}
+                        currentRole={currentRole}
+                        activeRoles={activeProjectRoles}
+                      >
+                        <ProducerChapterReaderView
+                          currentUserId={currentUserInfo?.id}
+                          onShowToast={showToast}
+                        />
+                      </RequireWorkspaceRole>
+                    </ChapterReaderRoleBoundary>
                   }
                 />
                 <Route

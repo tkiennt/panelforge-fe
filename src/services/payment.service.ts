@@ -6,6 +6,8 @@ import type { PagedResult } from './chapter.service';
 /** WorkspacePaymentsSummaryDto */
 export interface WorkspacePaymentSummaryDto {
   totalRevenueVnd: number;
+  totalTopupsVnd: number;
+  totalUnlockRevenueVnd: number;
   pendingCount: number;
   totalUnlockedChapters: number;
   paidTransactionsCount: number;
@@ -75,6 +77,8 @@ export interface GetPaymentsParams {
 
 const EMPTY_SUMMARY: WorkspacePaymentSummaryDto = {
   totalRevenueVnd: 0,
+  totalTopupsVnd: 0,
+  totalUnlockRevenueVnd: 0,
   pendingCount: 0,
   totalUnlockedChapters: 0,
   paidTransactionsCount: 0,

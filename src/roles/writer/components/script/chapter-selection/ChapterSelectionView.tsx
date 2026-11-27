@@ -35,6 +35,7 @@ interface ChapterSelectionViewProps {
   onCreateChapter?: (data: CreateChapterRequest) => Promise<void>;
   onShowToast?: (title: string, desc: string) => void;
   presentationMode?: 'editor' | 'reference';
+  onReadChapter?: (chapter: ChapterDto) => void;
 }
 
 type StatusFilterType = 'all' | 'in_progress' | 'frozen' | 'approved';
@@ -50,6 +51,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
   onCreateChapter,
   onShowToast,
   presentationMode = 'editor',
+  onReadChapter,
 }) => {
   const { t, lang } = useTranslation('writer');
   const isReferenceMode = presentationMode === 'reference';
@@ -673,21 +675,39 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                     <span>{formattedDate}</span>
                   </div>
 
-                  <button
-                    type='button'
-                    className='inline-flex items-center gap-1 text-xs font-bold text-[#EA580C] group-hover:translate-x-0.5 transition-transform cursor-pointer'
-                  >
-                    <span>
-                      {isReferenceMode
-                        ? t('chapterSelectionView.openReference')
-                        : chapter.isScriptFrozen
-                          ? t('chapterSelectionView.viewScript')
-                          : t('collaboration.writerStudio.openScriptChapter', {
-                              chapter: chapter.chapterNumber,
-                            })}
-                    </span>
-                    <ChevronRight className='w-4 h-4' />
-                  </button>
+                  <div className='flex items-center gap-2'>
+                    {onReadChapter && (
+                      <button
+                        type='button'
+                        data-testid={`writer-read-chapter-btn-${chapter.chapterNumber}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReadChapter(chapter);
+                        }}
+                        title={t('chapterSelectionView.readChapterTooltip', 'Đọc thử trang tranh cả chương')}
+                        className='inline-flex items-center gap-1 px-2.5 py-1 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-orange-300 text-stone-700 text-xs font-semibold transition-all duration-150 cursor-pointer shadow-2xs'
+                      >
+                        <BookOpen className='w-3.5 h-3.5 text-orange-600' />
+                        <span>{t('chapterSelectionView.readChapterBtn', 'Đọc demo')}</span>
+                      </button>
+                    )}
+
+                    <button
+                      type='button'
+                      className='inline-flex items-center gap-1 text-xs font-bold text-[#EA580C] group-hover:translate-x-0.5 transition-transform cursor-pointer'
+                    >
+                      <span>
+                        {isReferenceMode
+                          ? t('chapterSelectionView.openReference')
+                          : chapter.isScriptFrozen
+                            ? t('chapterSelectionView.viewScript')
+                            : t('collaboration.writerStudio.openScriptChapter', {
+                                chapter: chapter.chapterNumber,
+                              })}
+                      </span>
+                      <ChevronRight className='w-4 h-4' />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -755,19 +775,37 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                       {chapter.targetReleaseDate || '—'}
                     </td>
                     <td className='py-3.5 px-4 text-right'>
-                      <button
-                        type='button'
-                        className='inline-flex items-center gap-1 text-xs font-bold text-[#C2410C] group-hover:translate-x-1 transition-transform'
-                      >
-                        <span>
-                          {isReferenceMode
-                            ? t('chapterSelectionView.openReference')
-                            : chapter.isScriptFrozen
-                              ? t('chapterSelectionView.viewScript')
-                              : t('chapterSelectionView.writeScript')}
-                        </span>
-                        <ChevronRight className='w-4 h-4' />
-                      </button>
+                      <div className='inline-flex items-center justify-end gap-2'>
+                        {onReadChapter && (
+                          <button
+                            type='button'
+                            data-testid={`writer-read-chapter-row-btn-${chapter.chapterNumber}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onReadChapter(chapter);
+                            }}
+                            title={t('chapterSelectionView.readChapterTooltip', 'Đọc thử trang tranh cả chương')}
+                            className='inline-flex items-center gap-1 px-2.5 py-1 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-orange-300 text-stone-700 text-xs font-semibold transition-colors cursor-pointer shadow-2xs'
+                          >
+                            <BookOpen className='w-3.5 h-3.5 text-orange-600' />
+                            <span>{t('chapterSelectionView.readChapterBtn', 'Đọc demo')}</span>
+                          </button>
+                        )}
+
+                        <button
+                          type='button'
+                          className='inline-flex items-center gap-1 text-xs font-bold text-[#C2410C] group-hover:translate-x-1 transition-transform'
+                        >
+                          <span>
+                            {isReferenceMode
+                              ? t('chapterSelectionView.openReference')
+                              : chapter.isScriptFrozen
+                                ? t('chapterSelectionView.viewScript')
+                                : t('chapterSelectionView.writeScript')}
+                          </span>
+                          <ChevronRight className='w-4 h-4' />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

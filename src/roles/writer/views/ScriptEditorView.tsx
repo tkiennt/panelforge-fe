@@ -5,7 +5,6 @@ import {
   BookOpen,
   MessageSquare,
   History,
-  Save,
   Clapperboard,
   Compass,
   PanelLeft,
@@ -59,6 +58,7 @@ import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { mapCategoryToTab } from '@/shared/features/series-bible/bibleCategory';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { assignmentService } from '@/services/assignment.service';
+import { buildRoleChapterReaderUrl } from '@/app/routePaths';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
 import { ScriptDiffPreview } from '../components/script/flow/ScriptDiffPreview';
@@ -2062,6 +2062,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         scriptAction === 'resubmit'
           ? t('scriptStudio.submit.resubmit', 'Gửi lại kịch bản')
           : t('scriptStudio.submit.writer', 'Gửi duyệt kịch bản'),
+      readerUrl:
+        workspaceId && seriesId && currentChapter.id
+          ? buildRoleChapterReaderUrl('writer', workspaceId, seriesId, currentChapter.id)
+          : undefined,
     });
   }, [
     focusHeader,
@@ -2242,37 +2246,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               <span>Version</span>
             </button>
           </div>
-
-          <div className='h-4 w-px bg-stone-300 mx-1' />
-
-          {canEditScript && !isChapterLocked && (
-            <span className='font-mono text-stone-400 text-xs hidden sm:inline'>Ctrl+S</span>
-          )}
-
-          {canEditScript && !isChapterLocked && (
-            <button
-              type='button'
-              id='btn-save'
-              data-testid='save-script-btn'
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                if (editorSaveRef.current) {
-                  void editorSaveRef.current();
-                } else {
-                  void handleSaveScript(
-                    editorGetPayloadRef.current
-                      ? editorGetPayloadRef.current()
-                      : buildFallbackScriptTree(),
-                  );
-                }
-              }}
-              title='Ctrl + S'
-              className='inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer text-stone-600 hover:text-primary'
-            >
-              <Save className='w-3.5 h-3.5' />
-              <span>{t('scriptStudio.gn.save', 'Lưu')}</span>
-            </button>
-          )}
         </div>
       </div>
 

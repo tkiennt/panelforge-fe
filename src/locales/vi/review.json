@@ -751,6 +751,34 @@
     "panelDirectionFallback": "Nội dung khung tranh theo kịch bản phân cảnh..."
   },
   "readerView": {
+    "chapterLabel": "Chương {number}",
+    "chapterOption": "Chương {number}: {title}",
+    "chapterSelectLabel": "Chọn chương để đọc",
+    "manuscriptSize": "Bản thảo B5",
+    "roles": {
+      "writer": {
+        "eyebrow": "Bàn biên kịch",
+        "badge": "Writer · Chỉ đọc",
+        "description": "Đối chiếu kịch bản với bản vẽ và theo dõi phản hồi, không can thiệp quy trình duyệt.",
+        "title": "Chương {number}: {title} — Đối chiếu kịch bản",
+        "back": "Về danh sách kịch bản",
+        "readOnlyNotice": "Bạn đang xem với vai trò Writer. Có thể đối chiếu kịch bản và theo dõi trao đổi; quyền duyệt trang, bình luận kiểm định và yêu cầu vẽ lại thuộc Editor hoặc Producer dự phòng."
+      },
+      "editor": {
+        "eyebrow": "Bàn biên tập",
+        "badge": "Editor · Kiểm định",
+        "description": "Kiểm tra từng khung, ghi nhận góp ý, yêu cầu sửa và duyệt trang theo Gate 2.",
+        "title": "Chương {number}: {title} — Duyệt tranh",
+        "back": "Về hàng đợi duyệt"
+      },
+      "producer": {
+        "eyebrow": "Bàn điều phối sản xuất",
+        "badge": "Producer · Giám sát",
+        "description": "Theo dõi chất lượng toàn chương và thực hiện quyền duyệt dự phòng khi cần.",
+        "title": "Chương {number}: {title} — Nghiệm thu sản xuất",
+        "back": "Về quản lý chương"
+      }
+    },
     "title": "Chương {number}: {title} — Duyệt tranh",
     "pageIndicator": "Trang {current} / {total}",
     "readingModeBtn": "Đọc liền mạch",
@@ -804,6 +832,8 @@
     "matchedBadge": "Đã khớp ✓",
     "actionPanelNoDialogue": "Khung hành động (không có lời thoại).",
     "noPanelsInPage": "Chưa có khung tranh nào trong trang này.",
+    "pageArtworkAlt": "Bản vẽ hoàn chỉnh của trang {page}",
+    "pageArtworkEmpty": "Trang {page} chưa có bản vẽ để hiển thị",
     "panelAlt": "Khung {number}",
     "panelHash": "Khung #{number}",
     "statusNeedsRework": "Cần sửa",

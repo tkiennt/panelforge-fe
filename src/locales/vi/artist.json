@@ -398,6 +398,8 @@
     "filterFrozen": "Sẵn sàng vẽ ({count})",
     "filterInProgress": "Đang sản xuất ({count})",
     "filterApproved": "Đã duyệt ({count})",
+    "readChapterBtn": "Đọc demo",
+    "readChapterTooltip": "Đọc thử toàn bộ chương",
     "loadingChapters": "Đang tải danh sách chương của bộ truyện...",
     "errorTitle": "Lỗi tải danh sách chương",
     "retry": "Thử lại",
@@ -669,7 +671,9 @@
     "expandFilmstrip": "Mở hàng trang",
     "pagesLabel": "Trang",
     "exitFullscreen": "Thoát toàn màn hình",
-    "fullscreen": "Toàn màn hình"
+    "fullscreen": "Toàn màn hình",
+    "readChapterLabel": "Đọc demo",
+    "readChapterTooltip": "Đọc thử toàn bộ chương"
   },
   "canvasViewport": {
     "trimLineTitle": "Đường xén thành phẩm (Trim Line - 3mm Bleed)",

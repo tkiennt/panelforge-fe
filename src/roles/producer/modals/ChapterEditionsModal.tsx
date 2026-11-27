@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Globe, CheckCircle2, Send, RotateCcw, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Globe, CheckCircle2, RotateCcw, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { Modal } from '@/shared/ui';
 import {
@@ -102,22 +102,6 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
       await loadEditions();
     } catch (err: any) {
       onShowToast?.(t('producer.chapterEditionsModal.approveError'), err.message);
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handlePublishEdition = async (lang: string) => {
-    setActionLoading(`publish-${lang}`);
-    try {
-      await chapterEditionService.publishEdition(chapter.id, lang);
-      onShowToast?.(
-        t('producer.chapterEditionsModal.publishToastTitle'),
-        t('producer.chapterEditionsModal.publishToastDesc', { lang: lang.toUpperCase() }),
-      );
-      await loadEditions();
-    } catch (err: any) {
-      onShowToast?.(t('producer.chapterEditionsModal.publishError'), err.message);
     } finally {
       setActionLoading(null);
     }
@@ -246,9 +230,7 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
                     const langName =
                       LANGUAGE_NAMES[ed.languageCode.toLowerCase()] || ed.languageCode;
                     const isApproveBusy = actionLoading === `approve-${ed.languageCode}`;
-                    const isPublishBusy = actionLoading === `publish-${ed.languageCode}`;
                     const canApprove = ed.status === 'EditorApproved';
-                    const canPublish = ed.status === 'Approved';
                     const canReopen =
                       ed.status === 'Approved' ||
                       ed.status === 'Published' ||
@@ -294,23 +276,6 @@ export const ChapterEditionsModal: React.FC<ChapterEditionsModalProps> = ({
                                   {isApproveBusy
                                     ? t('producer.chapterEditionsModal.approving')
                                     : t('producer.chapterEditionsModal.approveBtn')}
-                                </span>
-                              </button>
-                            )}
-                            {canPublish && (
-                              <button
-                                type='button'
-                                onClick={() => handlePublishEdition(ed.languageCode)}
-                                disabled={Boolean(actionLoading)}
-                                data-testid={`publish-edition-${ed.languageCode}`}
-                                className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
-                                title={t('producer.chapterEditionsModal.publishTooltip')}
-                              >
-                                <Send className='w-3.5 h-3.5' />
-                                <span>
-                                  {isPublishBusy
-                                    ? t('producer.chapterEditionsModal.publishing')
-                                    : t('producer.chapterEditionsModal.publishBtn')}
                                 </span>
                               </button>
                             )}

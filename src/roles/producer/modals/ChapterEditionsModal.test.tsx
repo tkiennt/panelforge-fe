@@ -53,7 +53,8 @@ describe('ChapterEditionsModal', () => {
       expect(screen.getByTestId('edition-row-en')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('publish-edition-vi')).toBeInTheDocument();
+    // BR-33 / D1: Producer không phát hành ấn bản; việc này thuộc Publisher.
+    expect(screen.queryByTestId('publish-edition-vi')).not.toBeInTheDocument();
     expect(screen.getByTestId('approve-edition-en')).toBeInTheDocument();
   });
 

@@ -8,7 +8,7 @@ import { Badge, Button, type SurfaceTone } from '@/shared/ui';
 import { daysUntil } from './workspaceMetrics';
 import {
   buildChapterManagementUrl,
-  buildChapterReaderUrl,
+  buildRoleChapterReaderUrl,
   buildProductionWorkspaceUrl,
   buildScriptReviewUrl,
   buildSeriesExportUrl,
@@ -137,7 +137,7 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
       if (location.pathname.includes('/script/review')) {
         navigate(buildScriptReviewUrl(workspaceId, seriesId, nextId));
       } else if (location.pathname.endsWith('/reader')) {
-        navigate(buildChapterReaderUrl(workspaceId, seriesId, nextId));
+        navigate(buildRoleChapterReaderUrl('producer', workspaceId, seriesId, nextId));
       } else if (location.pathname.endsWith('/export')) {
         navigate(buildSeriesExportUrl(workspaceId, seriesId, nextId));
       } else if (location.pathname.endsWith('/workspace')) {

@@ -8,6 +8,7 @@ import { ChapterSelectionView } from '../components/script/chapter-selection';
 import { ScriptReviewView } from '@/roles/editor/views/ScriptReviewView';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { useTranslation } from '@/lib/i18n';
+import { buildRoleChapterReaderUrl } from '@/app/routePaths';
 
 interface ScriptChapterSelectionViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -91,6 +92,11 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
     navigate(`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${chapter.id}`);
   };
 
+  const handleReadChapter = (chapter: ChapterDto) => {
+    if (!workspaceId || !seriesId) return;
+    navigate(buildRoleChapterReaderUrl('writer', workspaceId, seriesId, chapter.id));
+  };
+
   const handleCreateChapter = async (data: CreateChapterRequest) => {
     if (!seriesId) return;
     await chapterService.createChapter(seriesId, data);
@@ -149,6 +155,7 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
       onCreateChapter={isProducer ? handleCreateChapter : undefined}
       onShowToast={notify}
       presentationMode={effectiveRole === 'ARTIST' ? 'reference' : 'editor'}
+      onReadChapter={handleReadChapter}
     />
   );
 };

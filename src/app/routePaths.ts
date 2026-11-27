@@ -90,6 +90,20 @@ export const buildChapterReaderUrl = (
 ): string =>
   buildSeriesPath(workspaceId, seriesId, `chapters/${encodeURIComponent(chapterId)}/reader`);
 
+export type StudioReaderRole = 'writer' | 'editor' | 'producer';
+
+export const buildRoleChapterReaderUrl = (
+  role: StudioReaderRole,
+  workspaceId: string,
+  seriesId: string,
+  chapterId: string,
+): string =>
+  buildSeriesPath(
+    workspaceId,
+    seriesId,
+    `${role}/chapters/${encodeURIComponent(chapterId)}/reader`,
+  );
+
 export const buildSeriesReaderUrl = (
   workspaceId: string,
   seriesId: string,

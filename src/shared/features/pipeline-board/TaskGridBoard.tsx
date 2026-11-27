@@ -6,13 +6,13 @@ import {
   AlertTriangle,
   Check,
   CheckCircle2,
+  CheckSquare,
   ChevronDown,
   ChevronRight,
   Clock,
   Eye,
   Grid,
   History,
-  Info,
   Loader2,
   Lock,
   Pencil,
@@ -123,6 +123,24 @@ const STATUS_STYLE: Record<StageTaskStatus, { labelKey: string; cls: string }> =
   },
 };
 
+const STATUS_DOT: Record<StageTaskStatus, string> = {
+  Unassigned: 'bg-stone-400',
+  Assigned: 'bg-blue-500',
+  InProgress: 'bg-amber-500',
+  Submitted: 'bg-purple-500',
+  UnderReview: 'bg-indigo-500',
+  Approved: 'bg-emerald-500',
+  ReworkRequired: 'bg-rose-500',
+  Cancelled: 'bg-stone-300',
+};
+
+const getInitials = (name: string): string => {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toLocaleUpperCase();
+  return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toLocaleUpperCase();
+};
+
 export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
   chapterId,
   seriesId,
@@ -178,7 +196,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
   // Task Detail Drawer (mở chi tiết công việc & bài nộp mà không làm phình ô Task Grid)
   const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
-  const [lotsExpanded, setLotsExpanded] = useState(true);
+  const [lotsExpanded, setLotsExpanded] = useState(false);
 
   useEffect(() => {
     setScriptVersionMap({});
@@ -1467,35 +1485,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     }
   };
 
-  const renderCell = (stage: TaskGridStageDto, pageId: string | null) => {
-    const key = `${stage.id}:${pageId ?? '__CHAPTER__'}`;
-    const task = taskMap.get(key);
-    if (!task) {
-      const cancelled = cancelledTaskMap.get(key);
-      if (cancelled) {
-        return (
-          <div
-            data-testid={`cancelled-task-cell-${cancelled.id}`}
-            className='w-full min-w-0 box-border p-2 rounded-lg border border-dashed border-stone-200 bg-stone-50/80 text-center text-xs text-stone-400 opacity-55 line-through'
-          >
-            {t('taskGridV3.cancelledCell')}
-          </div>
-        );
-      }
-      return (
-        <div className='p-2 text-center text-xs text-stone-400 italic'>
-          {t('taskGridV3.unassignedCell')}
-        </div>
-      );
-    }
-
-    const statusStyle = STATUS_STYLE[task.status];
-    const meta = statusStyle
-      ? { label: t(statusStyle.labelKey), cls: statusStyle.cls }
-      : {
-          label: task.status,
-          cls: 'bg-stone-100 text-stone-700 border-stone-300',
-        };
+  const getTaskPermissions = (task: StageTaskDto, stage: TaskGridStageDto) => {
     const isStageEnabled = stage.isEnabled !== false && enabledStageIds.has(stage.id);
     const isMine = Boolean(currentUserId && task.assigneeUserId === currentUserId);
     const canSelectForLot = isStageEnabled && canCoordinateAssign && task.status === 'Unassigned';
@@ -1541,17 +1531,82 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
     const canSuggestImpactAi = Boolean(
       canResolveImpact && task.pageId && task.outdatedReason === SCRIPT_CHANGED_REASON,
     );
-    const impactSuggestion = impactSuggestionsByTask[task.id] ?? null;
-    const impactAiError = impactErrorsByTask[task.id] ?? null;
+    const canSelectForApprove =
+      !isChapterLocked && canReview && !task.isInputOutdated && !isLockedByOtherReviewer;
+    return {
+      isStageEnabled,
+      isMine,
+      canSelectForLot,
+      canUnassign,
+      canReassign,
+      canStart,
+      canSubmit,
+      canWithdraw,
+      isLockedByOtherReviewer,
+      canReview,
+      canForceReleaseReview,
+      canReleaseOwnReview,
+      canReopen,
+      canResolveImpact,
+      prereqReadyForImpact,
+      canSuggestImpactAi,
+      canSelectForApprove,
+    };
+  };
 
+  const openTaskDetail = (task: StageTaskDto) => {
+    setDrawerTaskId(task.id);
+  };
+
+  const closeTaskDetail = () => {
+    setDrawerTaskId(null);
+    setReopeningTaskId(null);
+    setReopenReason('');
+    setRequestingChangesTaskId(null);
+    setRequestChangesComment('');
+    setReassigningTaskId(null);
+    setHistoryTaskId(null);
+  };
+
+  const renderCell = (stage: TaskGridStageDto, pageId: string | null) => {
+    const key = `${stage.id}:${pageId ?? '__CHAPTER__'}`;
+    const task = taskMap.get(key);
+    if (!task) {
+      const cancelled = cancelledTaskMap.get(key);
+      if (cancelled) {
+        return (
+          <div
+            data-testid={`cancelled-task-cell-${cancelled.id}`}
+            className='w-full min-w-0 min-h-[38px] box-border px-2 py-1.5 rounded-lg border border-dashed border-stone-200 bg-stone-50/80 flex items-center justify-center text-xs text-stone-400 opacity-55 line-through'
+          >
+            {t('taskGridV3.cancelledCell')}
+          </div>
+        );
+      }
+      return (
+        <div className='min-h-[38px] px-2 py-1.5 flex items-center justify-center text-xs text-stone-400 italic'>
+          {t('taskGridV3.unassignedCell')}
+        </div>
+      );
+    }
+
+    const statusStyle = STATUS_STYLE[task.status];
+    const meta = statusStyle
+      ? { label: t(statusStyle.labelKey), cls: statusStyle.cls }
+      : {
+          label: task.status,
+          cls: 'bg-stone-100 text-stone-700 border-stone-300',
+        };
+    const statusDotCls = STATUS_DOT[task.status] ?? 'bg-stone-400';
+    const perms = getTaskPermissions(task, stage);
     const isSelectedForLot = selectedUnassignedIds.has(task.id);
     const isSelectedForSubmit = selectedSubmitIds.has(task.id);
     const isSelectedForUnassign = selectedUnassignIds.has(task.id);
-    const canSelectForApprove =
-      !isChapterLocked && canReview && !task.isInputOutdated && !isLockedByOtherReviewer;
-    const isSelectedForApprove = canSelectForApprove && selectedApproveIds.has(task.id);
-    const attemptCount = task.attemptCount ?? 0;
-    const taskLot = task.lotId ? lotById.get(task.lotId) : undefined;
+    const isSelectedForApprove = perms.canSelectForApprove && selectedApproveIds.has(task.id);
+    const isSelected =
+      isSelectedForLot || isSelectedForSubmit || isSelectedForUnassign || isSelectedForApprove;
+    const isActiveDrawer = drawerTaskId === task.id;
+    const assigneeName = task.assigneeUserId ? getMemberName(task.assigneeUserId) : null;
     const reworkDisplay = resolveReworkReasonDisplay(
       task,
       reworkCommentsByTask[task.id] || pickLatestDecisionComment(submissionsByTaskId[task.id]),
@@ -1561,706 +1616,129 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         ? `${t('taskGridV3.reopenReasonPrefix')} ${reworkDisplay.text}`
         : `${t('taskGridV3.lastDecisionLabel')}: ${reworkDisplay.text}`
       : undefined;
+    const cellTooltip =
+      reworkTooltip || (assigneeName ? `${meta.label} · ${assigneeName}` : meta.label);
 
     return (
       <div
         data-testid={`task-cell-${stage.id}-${pageId ?? 'chapter'}`}
-        title={reworkTooltip}
-        className={`w-full min-w-0 box-border p-2 rounded-lg border text-xs flex flex-col gap-1 transition-colors ${
-          isSelectedForLot || isSelectedForSubmit || isSelectedForUnassign || isSelectedForApprove
+        title={cellTooltip}
+        onClick={() => openTaskDetail(task)}
+        className={`w-full min-w-0 min-h-[38px] box-border px-2 py-1.5 rounded-lg border text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
+          isSelected
             ? 'ring-2 ring-accent border-accent bg-accent-soft/50'
-            : 'bg-white border-stone-200 hover:border-stone-300'
+            : isActiveDrawer
+              ? 'ring-2 ring-stone-800 border-stone-800 bg-stone-50'
+              : 'bg-white border-stone-200 hover:border-stone-400 hover:bg-stone-50/70'
         }`}
       >
-        <div className='flex items-center justify-between gap-1.5'>
-          <div className='flex items-center gap-1 flex-wrap'>
-            <span className={`px-1.5 py-0.5 rounded border text-xs font-semibold ${meta.cls}`}>
-              {meta.label}
-            </span>
-            {attemptCount > 0 && (
-              <span
-                data-testid={`task-attempt-count-${task.id}`}
-                className='px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-xs font-mono font-semibold text-stone-700'
-              >
-                {t('taskGridV3.attemptBadge', { count: attemptCount })}
-              </span>
-            )}
-            {taskLot?.isAutoAssigned && (
-              <span
-                data-testid={`task-auto-badge-${task.id}`}
-                title={taskLot.autoAssignReason || undefined}
-                className='px-1.5 py-0.5 rounded bg-orange-50 border border-orange-200 text-xs font-semibold text-[#C2410C]'
-              >
-                {t('taskGridV3.autoAssignedBadge')}
-              </span>
-            )}
-          </div>
-
-          <div className='flex items-center gap-1'>
-            {canSelectForLot && (
-              <input
-                type='checkbox'
-                aria-label={t('taskGridV3.selectCellAria', { stage: stage.name })}
-                checked={isSelectedForLot}
-                onChange={() => toggleSelectUnassigned(task.id)}
-                className='h-3.5 w-3.5 accent-[#F97316] cursor-pointer'
-              />
-            )}
-
-            {canUnassign && (
-              <input
-                type='checkbox'
-                aria-label={t('taskGridV3.selectUnassignCellAria', { stage: stage.name })}
-                checked={isSelectedForUnassign}
-                onChange={() => toggleSelectUnassign(task.id)}
-                className='h-3.5 w-3.5 accent-rose-600 cursor-pointer'
-              />
-            )}
-
-            {canSubmit && !task.isInputOutdated && (
-              <input
-                type='checkbox'
-                aria-label={t('taskGridV3.selectSubmitCellAria', { stage: stage.name })}
-                checked={isSelectedForSubmit}
-                onChange={() => toggleSelectSubmit(task.id)}
-                className='h-3.5 w-3.5 accent-emerald-600 cursor-pointer'
-              />
-            )}
-
-            {canSelectForApprove && (
-              <input
-                type='checkbox'
-                aria-label={t('taskGridV3.selectApproveCellAria', { stage: stage.name })}
-                checked={isSelectedForApprove}
-                onChange={() => toggleSelectApprove(task.id)}
-                className='h-3.5 w-3.5 accent-indigo-600 cursor-pointer'
-              />
-            )}
-          </div>
-        </div>
-
-        {task.assigneeUserId && (
-          <div
-            className='text-xs text-stone-700 truncate'
-            title={getMemberName(task.assigneeUserId)}
-          >
-            👤 <span className='font-medium'>{getMemberName(task.assigneeUserId)}</span>
-          </div>
-        )}
-
-        {isLockedByOtherReviewer && task.reviewerUserId && (
-          <div
-            data-testid={`under-review-by-${task.id}`}
-            className='rounded border border-indigo-200 bg-indigo-50 px-1.5 py-1 text-xs font-semibold text-indigo-900 flex items-center gap-1'
-          >
-            <Lock className='h-2.5 w-2.5 shrink-0 text-indigo-600' />
-            <span className='truncate'>
-              {t('taskGridV3.underReviewBy', { name: getMemberName(task.reviewerUserId) })}
-            </span>
-          </div>
-        )}
-
-        {reworkDisplay && (
-          <div
-            data-testid={
-              reworkDisplay.kind === 'reopen'
-                ? `rework-reopen-reason-${task.id}`
-                : `rework-decision-comment-${task.id}`
-            }
-            title={reworkTooltip}
-            className='rounded border border-rose-200 bg-rose-50/80 px-1.5 py-1 text-xs leading-snug text-rose-800 line-clamp-2'
-          >
-            {reworkDisplay.kind === 'reopen' ? (
-              <>
-                🔄 <span className='font-semibold'>{t('taskGridV3.reopenReasonPrefix')}</span>{' '}
-                {reworkDisplay.text}
-              </>
-            ) : (
-              <>
-                💬 <span className='font-semibold'>{t('taskGridV3.lastDecisionPrefix')}</span>{' '}
-                {reworkDisplay.text}
-              </>
-            )}
-          </div>
-        )}
-
-        {task.isInputOutdated && (
-          <div className='space-y-1'>
-            <div
-              className='inline-flex items-center gap-1 rounded bg-amber-100 border border-amber-300 px-1.5 py-0.5 text-xs font-semibold text-amber-900'
-              title={task.outdatedReason || t('taskGridV3.prevStageChanged')}
-            >
-              <AlertTriangle className='h-3 w-3 shrink-0 text-amber-700' />
-              <span>{t('taskGridV3.inputOutdatedTitle')}</span>
-            </div>
-            {task.outdatedReason && (
-              <div className='text-xs text-amber-800 leading-tight'>{task.outdatedReason}</div>
-            )}
-          </div>
-        )}
-
-        {/* Các nút thao tác nhanh trên ô */}
-        <div className='flex flex-wrap items-center gap-1 pt-1'>
-          {canStart && (
-            <button
-              type='button'
-              disabled={!task.isStartable || actionLoading === `start:${task.id}`}
-              onClick={() => handleStartTask(task)}
-              title={
-                task.isStartable
-                  ? t('taskGridV3.startCellTooltip')
-                  : t('taskGridV3.waitPrereqsTooltip')
-              }
-              className='inline-flex items-center gap-1 rounded bg-[#171717] hover:bg-black text-white px-2 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
-            >
-              {actionLoading === `start:${task.id}` ? (
-                <Loader2 className='h-3 w-3 animate-spin' />
-              ) : (
-                <Play className='h-2.5 w-2.5 text-[#F97316]' />
-              )}
-              <span>
-                {task.isStartable ? t('taskGridV3.startBtn') : t('taskGridV3.waitPrereqsBtn')}
-              </span>
-            </button>
-          )}
-
-          {canSubmit && (
-            <button
-              type='button'
-              disabled={task.isInputOutdated || actionLoading === `submit:${task.id}`}
-              onClick={() => handleSubmitTasks([task.id])}
-              title={
-                task.isInputOutdated
-                  ? t('taskGridV3.submitOutdatedTooltip')
-                  : t('taskGridV3.submitCellTooltip')
-              }
-              className='inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
-            >
-              {actionLoading === `submit:${task.id}` ? (
-                <Loader2 className='h-3 w-3 animate-spin' />
-              ) : (
-                <Send className='h-2.5 w-2.5' />
-              )}
-              <span>{t('taskGridV3.submitBtn')}</span>
-            </button>
-          )}
-
-          {canWithdraw && (
-            <button
-              type='button'
-              data-testid={`withdraw-task-btn-${task.id}`}
-              disabled={actionLoading === `withdraw:${task.id}`}
-              onClick={() => void handleWithdrawTask(task)}
-              title={t('taskGridV3.withdrawTooltip')}
-              className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
-            >
-              {actionLoading === `withdraw:${task.id}` ? (
-                <Loader2 className='h-3 w-3 animate-spin' />
-              ) : (
-                <Undo2 className='h-2.5 w-2.5' />
-              )}
-              <span>{t('taskGridV3.withdrawBtn')}</span>
-            </button>
-          )}
-
-          {canReview && (
+        <button
+          type='button'
+          data-testid={`open-task-detail-${task.id}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            openTaskDetail(task);
+          }}
+          aria-label={t('taskGridV3.openCellDetailAria', {
+            stage: stage.name,
+            status: meta.label,
+          })}
+          className='flex-1 min-w-0 flex items-center gap-1.5 text-left cursor-pointer focus-visible:outline-none'
+        >
+          <span
+            className={`h-2.5 w-2.5 rounded-full shrink-0 ${statusDotCls}`}
+            title={meta.label}
+            aria-hidden='true'
+          />
+          {assigneeName ? (
             <>
-              <button
-                type='button'
-                disabled={
-                  task.isInputOutdated ||
-                  isLockedByOtherReviewer ||
-                  actionLoading === `approve:${task.id}`
-                }
-                onClick={() => handleApproveTask(task)}
-                title={
-                  isLockedByOtherReviewer
-                    ? t('taskGridV3.underReviewBy', { name: getMemberName(task.reviewerUserId) })
-                    : task.isInputOutdated
-                      ? t('taskGridV3.approveOutdatedTooltip')
-                      : t('taskGridV3.approveCellTooltip')
-                }
-                className='inline-flex items-center gap-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+              <span
+                className='size-5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-bold inline-grid place-items-center shrink-0'
+                aria-hidden='true'
               >
-                {actionLoading === `approve:${task.id}` ? (
-                  <Loader2 className='h-3 w-3 animate-spin' />
-                ) : (
-                  <CheckCircle2 className='h-2.5 w-2.5' />
-                )}
-                <span>{t('taskGridV3.approveBtn')}</span>
-              </button>
-
-              {requestingChangesTaskId !== task.id && (
-                <button
-                  type='button'
-                  disabled={
-                    isLockedByOtherReviewer || actionLoading === `requestChanges:${task.id}`
-                  }
-                  onClick={() => {
-                    setRequestingChangesTaskId(task.id);
-                    setRequestChangesComment('');
-                  }}
-                  title={
-                    isLockedByOtherReviewer
-                      ? t('taskGridV3.underReviewBy', { name: getMemberName(task.reviewerUserId) })
-                      : t('taskGridV3.requestChangesTooltip')
-                  }
-                  className='inline-flex items-center gap-1 rounded border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2 py-1 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-                >
-                  <XCircle className='h-2.5 w-2.5' />
-                  <span>{t('taskGridV3.requestChangesBtn')}</span>
-                </button>
-              )}
+                {getInitials(assigneeName)}
+              </span>
+              <span className='truncate font-medium text-stone-800'>{assigneeName}</span>
             </>
+          ) : (
+            <span className='truncate text-stone-500'>{meta.label}</span>
+          )}
+        </button>
+
+        {/* Tín hiệu quan trọng dưới dạng icon nhỏ kèm tooltip */}
+        <div className='flex items-center gap-1 shrink-0'>
+          {task.isInputOutdated && (
+            <span
+              title={task.outdatedReason || t('taskGridV3.inputOutdatedTitle')}
+              aria-label={t('taskGridV3.inputOutdatedTitle')}
+              className='inline-flex items-center text-amber-600'
+            >
+              <AlertTriangle className='h-3.5 w-3.5' aria-hidden='true' />
+            </span>
+          )}
+          {reworkDisplay && (
+            <span
+              title={reworkTooltip}
+              aria-label={reworkTooltip}
+              className='h-2 w-2 rounded-full bg-rose-500'
+            />
+          )}
+          {perms.isLockedByOtherReviewer && task.reviewerUserId && (
+            <span
+              title={t('taskGridV3.underReviewBy', { name: getMemberName(task.reviewerUserId) })}
+              aria-label={t('taskGridV3.underReviewBy', {
+                name: getMemberName(task.reviewerUserId),
+              })}
+              className='inline-flex items-center text-indigo-600'
+            >
+              <Lock className='h-3 w-3' aria-hidden='true' />
+            </span>
           )}
 
-          {canReleaseOwnReview && (
-            <button
-              type='button'
-              data-testid={`release-review-btn-${task.id}`}
-              disabled={actionLoading === `releaseReview:${task.id}`}
-              onClick={() => void handleReleaseReview(task)}
-              title={t('taskGridV3.releaseReviewTooltip')}
-              className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 px-2 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
-            >
-              {actionLoading === `releaseReview:${task.id}` ? (
-                <Loader2 className='h-3 w-3 animate-spin' />
-              ) : (
-                <Unlock className='h-2.5 w-2.5' />
-              )}
-              <span>{t('taskGridV3.releaseReviewBtn')}</span>
-            </button>
+          {perms.canSelectForLot && (
+            <input
+              type='checkbox'
+              aria-label={t('taskGridV3.selectCellAria', { stage: stage.name })}
+              checked={isSelectedForLot}
+              onClick={(e) => e.stopPropagation()}
+              onChange={() => toggleSelectUnassigned(task.id)}
+              className='h-3.5 w-3.5 accent-[#F97316] cursor-pointer'
+            />
           )}
 
-          {canForceReleaseReview && (
-            <button
-              type='button'
-              data-testid={`force-release-review-btn-${task.id}`}
-              disabled={actionLoading === `releaseReview:${task.id}`}
-              onClick={() => void handleReleaseReview(task)}
-              title={t('taskGridV3.forceReleaseReviewTooltip')}
-              className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-white hover:bg-indigo-50 text-indigo-900 px-2 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
-            >
-              {actionLoading === `releaseReview:${task.id}` ? (
-                <Loader2 className='h-3 w-3 animate-spin' />
-              ) : (
-                <Unlock className='h-2.5 w-2.5' />
-              )}
-              <span>{t('taskGridV3.forceReleaseReviewBtn')}</span>
-            </button>
+          {perms.canUnassign && (
+            <input
+              type='checkbox'
+              aria-label={t('taskGridV3.selectUnassignCellAria', { stage: stage.name })}
+              checked={isSelectedForUnassign}
+              onClick={(e) => e.stopPropagation()}
+              onChange={() => toggleSelectUnassign(task.id)}
+              className='h-3.5 w-3.5 accent-rose-600 cursor-pointer'
+            />
           )}
 
-          {canReopen && reopeningTaskId !== task.id && (
-            <button
-              type='button'
-              onClick={() => {
-                setReopeningTaskId(task.id);
-                setReopenReason('');
-              }}
-              title={t('taskGridV3.reopenTooltip')}
-              className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-1 text-xs font-semibold cursor-pointer'
-            >
-              <RotateCcw className='h-2.5 w-2.5' />
-              <span>{t('taskGridV3.reopenBtn')}</span>
-            </button>
+          {perms.canSubmit && !task.isInputOutdated && (
+            <input
+              type='checkbox'
+              aria-label={t('taskGridV3.selectSubmitCellAria', { stage: stage.name })}
+              checked={isSelectedForSubmit}
+              onClick={(e) => e.stopPropagation()}
+              onChange={() => toggleSelectSubmit(task.id)}
+              className='h-3.5 w-3.5 accent-emerald-600 cursor-pointer'
+            />
           )}
 
-          {canReassign && reassigningTaskId !== task.id && (
-            <button
-              type='button'
-              data-testid={`reassign-task-btn-${task.id}`}
-              disabled={task.isInputOutdated || actionLoading === `reassign:${task.id}`}
-              onClick={() => openReassignForm(task, stage)}
-              title={
-                task.isInputOutdated
-                  ? t('taskGridV3.reassignOutdatedTooltip')
-                  : t('taskGridV3.reassignTooltip')
-              }
-              className='inline-flex items-center gap-1 rounded border border-orange-300 bg-orange-50 hover:bg-orange-100 text-[#C2410C] px-2 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
-            >
-              <UserCheck className='h-2.5 w-2.5' />
-              <span>{t('taskGridV3.reassignBtn')}</span>
-            </button>
+          {perms.canSelectForApprove && (
+            <input
+              type='checkbox'
+              aria-label={t('taskGridV3.selectApproveCellAria', { stage: stage.name })}
+              checked={isSelectedForApprove}
+              onClick={(e) => e.stopPropagation()}
+              onChange={() => toggleSelectApprove(task.id)}
+              className='h-3.5 w-3.5 accent-indigo-600 cursor-pointer'
+            />
           )}
-
-          {canUnassign && (
-            <button
-              type='button'
-              disabled={actionLoading === `unassign:${task.id}`}
-              onClick={() => handleUnassignTasks([task.id])}
-              title={t('taskGridV3.unassignTooltip')}
-              className='inline-flex items-center gap-1 rounded border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-700 px-2 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
-            >
-              {actionLoading === `unassign:${task.id}` ? (
-                <Loader2 className='h-3 w-3 animate-spin' />
-              ) : (
-                <UserMinus className='h-2.5 w-2.5' />
-              )}
-              <span>{t('taskGridV3.unassignBtn')}</span>
-            </button>
-          )}
-
-          {(task.status !== 'Unassigned' && task.status !== 'Assigned') || task.startedAt ? (
-            <button
-              type='button'
-              onClick={() => void handleToggleSubmissions(task)}
-              title={t('taskGridV3.historyTooltip')}
-              className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-xs font-semibold cursor-pointer ${
-                historyTaskId === task.id
-                  ? 'border-stone-800 bg-stone-800 text-white'
-                  : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-600'
-              }`}
-            >
-              <History className='h-3 w-3' />
-              <span>{t('taskGridV3.historyBtn')}</span>
-            </button>
-          ) : null}
-
-          <button
-            type='button'
-            data-testid={`open-task-detail-${task.id}`}
-            onClick={() => {
-              setDrawerTaskId(task.id);
-              if (
-                ((task.status !== 'Unassigned' && task.status !== 'Assigned') || task.startedAt) &&
-                !submissionsByTaskId[task.id]
-              ) {
-                void loadSubmissions(task);
-              }
-            }}
-            title={t('taskGridV3.detailBtnTooltip')}
-            aria-label={t('taskGridV3.detailBtnTooltip')}
-            className='inline-flex items-center gap-1 rounded border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 px-1.5 py-1 text-xs font-semibold cursor-pointer'
-          >
-            <Info className='h-3 w-3' aria-hidden='true' />
-          </button>
         </div>
-
-        {/* Form nhập nhận xét Yêu cầu sửa (Editor/Producer - BR-06) — chiếm toàn chiều rộng ô, nút tự xuống dòng không bị cắt */}
-        {requestingChangesTaskId === task.id && (
-          <div
-            data-testid={`request-changes-form-${task.id}`}
-            className='mt-1 w-full min-w-0 box-border rounded border border-rose-300 bg-rose-50 p-2 space-y-1.5'
-          >
-            <textarea
-              rows={2}
-              value={requestChangesComment}
-              onChange={(e) => setRequestChangesComment(e.target.value)}
-              placeholder={t('taskGridV3.requestChangesPlaceholder')}
-              aria-label={t('taskGridV3.requestChangesAria')}
-              className='block w-full min-w-0 box-border resize-y rounded border border-rose-300 bg-white px-2 py-1.5 text-xs leading-snug text-stone-900'
-            />
-            <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
-              <button
-                type='button'
-                onClick={() => {
-                  setRequestingChangesTaskId(null);
-                  setRequestChangesComment('');
-                }}
-                className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 cursor-pointer'
-              >
-                {t('taskGridV3.cancelBtn')}
-              </button>
-              <button
-                type='button'
-                disabled={actionLoading === `requestChanges:${task.id}`}
-                onClick={() => void handleRequestChanges(task)}
-                className='shrink-0 whitespace-nowrap rounded bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
-              >
-                {actionLoading === `requestChanges:${task.id}`
-                  ? t('taskGridV3.sendingBtn')
-                  : t('taskGridV3.confirmReturnBtn')}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Lịch sử các lần nộp của ô (Lát cắt 2b) */}
-        {historyTaskId === task.id && (
-          <div
-            data-testid={`task-submissions-${task.id}`}
-            className='mt-1 rounded border border-stone-200 bg-stone-50 p-2 space-y-1.5 text-xs'
-          >
-            <div className='font-bold text-stone-800'>{t('taskGridV3.historyTitle')}</div>
-            {loadingHistoryTaskId === task.id ? (
-              <div className='flex items-center gap-1 text-stone-500'>
-                <Loader2 className='h-3 w-3 animate-spin' />
-                <span>{t('taskGridV3.historyLoading')}</span>
-              </div>
-            ) : (submissionsByTaskId[task.id] || []).length === 0 ? (
-              <div className='text-stone-500 italic'>{t('taskGridV3.historyEmpty')}</div>
-            ) : (
-              <div className='space-y-1'>
-                {(submissionsByTaskId[task.id] || []).map((sub) => {
-                  const parsedPanels = parseStageTaskPanelLayout(sub.panelLayoutJson);
-                  const parsedCanvasVersions = parseStageTaskCanvasVersions(sub.canvasVersionsJson);
-                  const panelCount = task.pageId
-                    ? parsedPanels.filter((p) => !p.pageId || p.pageId === task.pageId).length
-                    : parsedPanels.length;
-                  const scriptVersionNum = sub.scriptVersionId
-                    ? scriptVersionMap[sub.scriptVersionId]
-                    : undefined;
-                  const canReplay =
-                    (sub.artworkReferenceIds?.length ?? 0) > 0 ||
-                    Object.keys(parsedCanvasVersions).length > 0;
-
-                  return (
-                    <div
-                      key={sub.id}
-                      className='rounded border border-stone-200 bg-white p-1.5 space-y-0.5'
-                    >
-                      <div className='flex items-center justify-between gap-1'>
-                        <span className='font-bold text-stone-800'>
-                          {t('taskGridV3.attemptShort', { count: sub.attemptNumber })}
-                        </span>
-                        <span
-                          className={`px-1.5 py-0.2 rounded font-semibold ${
-                            sub.status === 'Approved'
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : sub.status === 'Rejected'
-                                ? 'bg-rose-50 text-rose-700'
-                                : sub.status === 'Pending'
-                                  ? 'bg-amber-50 text-amber-800'
-                                  : 'bg-stone-100 text-stone-600'
-                          }`}
-                        >
-                          {sub.status === 'Approved'
-                            ? t('taskGridV3.subStatus.approved')
-                            : sub.status === 'Rejected'
-                              ? t('taskGridV3.subStatus.rejected')
-                              : sub.status === 'Pending'
-                                ? t('taskGridV3.subStatus.pending')
-                                : t('taskGridV3.subStatus.superseded')}
-                        </span>
-                      </div>
-                      <div className='text-stone-500'>
-                        {t('taskGridV3.submittedByWithImages', {
-                          name: getMemberName(sub.submittedByUserId),
-                          count: sub.artworkReferenceIds?.length ?? 0,
-                        })}
-                      </div>
-                      <div className='flex flex-wrap items-center justify-between gap-1 text-stone-600'>
-                        <span>
-                          {scriptVersionNum !== undefined && (
-                            <>
-                              <span className='font-semibold text-indigo-700'>
-                                {t('taskGridV3.scriptVersionLabel', { version: scriptVersionNum })}
-                              </span>
-                              {' • '}
-                            </>
-                          )}
-                          <span>{t('taskGridV3.panelCountAtSubmit', { count: panelCount })}</span>
-                        </span>
-                        {canReplay && (
-                          <button
-                            type='button'
-                            data-testid={`replay-submission-${sub.id}`}
-                            disabled={replayingSubmissionId === sub.id}
-                            onClick={() => void handleReplaySubmission(task, sub)}
-                            className='inline-flex items-center gap-0.5 rounded border border-stone-200 bg-stone-50 hover:bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-700 disabled:opacity-50 cursor-pointer'
-                            title={t('taskGridV3.replayTooltip')}
-                          >
-                            {replayingSubmissionId === sub.id ? (
-                              <Loader2 className='h-2.5 w-2.5 animate-spin' />
-                            ) : (
-                              <Eye className='h-2.5 w-2.5' />
-                            )}
-                            <span>{t('taskGridV3.replayBtn')}</span>
-                          </button>
-                        )}
-                      </div>
-                      {sub.decisionComment && (
-                        <div className='text-rose-800 bg-rose-50/70 rounded px-1.5 py-0.5 mt-0.5'>
-                          💬 {sub.decisionComment}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Impact Review (Keep / Rework) cho Producer khi ô mang cờ isInputOutdated */}
-        {canResolveImpact && (
-          <div className='mt-1 rounded border border-amber-200 bg-amber-50/70 p-1.5 space-y-1'>
-            <div className='text-xs font-semibold text-amber-900'>
-              Impact Review {prereqReadyForImpact ? '' : t('taskGridV3.impactWaitingPrereq')}
-            </div>
-            <div className='flex flex-wrap items-center gap-1'>
-              <button
-                type='button'
-                disabled={
-                  !prereqReadyForImpact || actionLoading === `resolveImpact:${task.id}:keep`
-                }
-                onClick={() => handleResolveImpact(task, true)}
-                title={
-                  prereqReadyForImpact
-                    ? t('taskGridV3.impactKeepTooltip')
-                    : t('taskGridV3.impactPrereqNotReadyTooltip')
-                }
-                className='inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-0.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
-              >
-                <Check className='h-2.5 w-2.5' />
-                <span>{t('taskGridV3.impactKeepBtn')}</span>
-              </button>
-              <button
-                type='button'
-                disabled={
-                  !prereqReadyForImpact || actionLoading === `resolveImpact:${task.id}:rework`
-                }
-                onClick={() => handleResolveImpact(task, false)}
-                title={
-                  prereqReadyForImpact
-                    ? t('taskGridV3.impactReworkTooltip')
-                    : t('taskGridV3.impactPrereqNotReadyTooltip')
-                }
-                className='inline-flex items-center gap-1 rounded bg-rose-600 hover:bg-rose-700 text-white px-2 py-0.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
-              >
-                <RotateCcw className='h-2.5 w-2.5' />
-                <span>{t('taskGridV3.impactReworkBtn')}</span>
-              </button>
-              {canSuggestImpactAi && (
-                <button
-                  type='button'
-                  data-testid={`ai-impact-btn-${task.id}`}
-                  disabled={
-                    actionLoading === `aiImpact:${task.id}` ||
-                    actionLoading === `aiImpactDecide:${task.id}`
-                  }
-                  onClick={() => void handleRequestImpactSuggestion(task)}
-                  title={t('taskGridV3.impactAiTooltip')}
-                  className='inline-flex items-center gap-1 rounded border border-orange-300 bg-white hover:bg-orange-50 text-[#C2410C] px-2 py-0.5 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-                >
-                  {actionLoading === `aiImpact:${task.id}` ? (
-                    <Loader2 className='h-2.5 w-2.5 animate-spin' />
-                  ) : (
-                    <Sparkles className='h-2.5 w-2.5' />
-                  )}
-                  <span>{t('taskGridV3.impactAiBtn')}</span>
-                </button>
-              )}
-            </div>
-            {impactAiError && (
-              <div
-                role='alert'
-                className='rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-800'
-              >
-                {impactAiError}
-              </div>
-            )}
-            {impactSuggestion && (
-              <div className='pt-1'>
-                <SuggestionCard
-                  suggestion={impactSuggestion}
-                  seriesId={seriesId}
-                  busy={actionLoading === `aiImpactDecide:${task.id}`}
-                  onDecide={(decision, reason) =>
-                    void handleDecideImpactSuggestion(task, impactSuggestion, decision, reason)
-                  }
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Form Đổi người cho ô chưa nộp (Producer — reassign: true) */}
-        {reassigningTaskId === task.id && (
-          <div
-            data-testid={`reassign-task-form-${task.id}`}
-            className='mt-1 w-full min-w-0 box-border rounded border border-orange-300 bg-orange-50/80 p-2 space-y-1.5'
-          >
-            <div className='text-xs font-bold text-stone-900'>{t('taskGridV3.reassignTitle')}</div>
-            <select
-              aria-label={t('taskGridV3.reassignSelectLabel')}
-              value={reassignUserId}
-              onChange={(e) => setReassignUserId(e.target.value)}
-              className='block w-full min-w-0 rounded border border-orange-300 bg-white px-2 py-1 text-xs text-stone-900'
-            >
-              <option value=''>{t('taskGridV3.selectMemberPlaceholder')}</option>
-              {activeMembers
-                .filter((m) => canHoldStageRole(stage.allowedRole, m.role))
-                .map((m) => (
-                  <option key={m.userId} value={m.userId}>
-                    {m.fullName || m.email.split('@')[0]} ({m.role})
-                    {m.userId === task.assigneeUserId ? t('taskGridV3.currentAssigneeSuffix') : ''}
-                  </option>
-                ))}
-            </select>
-            <input
-              type='text'
-              aria-label={t('taskGridV3.reassignBriefAria')}
-              value={reassignBrief}
-              onChange={(e) => setReassignBrief(e.target.value)}
-              placeholder={t('taskGridV3.reassignBriefPlaceholder')}
-              className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-900'
-            />
-            <input
-              type='date'
-              aria-label={t('taskGridV3.reassignDueDateAria')}
-              value={reassignDueDate}
-              onChange={(e) => setReassignDueDate(e.target.value)}
-              className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-900'
-            />
-            <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
-              <button
-                type='button'
-                onClick={() => setReassigningTaskId(null)}
-                className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 cursor-pointer'
-              >
-                {t('taskGridV3.cancelBtn')}
-              </button>
-              <button
-                type='button'
-                data-testid={`confirm-reassign-task-${task.id}`}
-                disabled={!reassignUserId || actionLoading === `reassign:${task.id}`}
-                onClick={() => void handleReassignTask(task, stage)}
-                className='shrink-0 whitespace-nowrap rounded bg-[#EA580C] hover:bg-[#C2410C] text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
-              >
-                {actionLoading === `reassign:${task.id}`
-                  ? t('taskGridV3.reassigningBtn')
-                  : t('taskGridV3.reassignConfirmBtn')}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Form nhập lý do Mở lại (Producer) */}
-        {reopeningTaskId === task.id && (
-          <div className='mt-1 w-full min-w-0 box-border rounded border border-amber-300 bg-amber-50 p-2 space-y-1.5'>
-            <textarea
-              rows={2}
-              value={reopenReason}
-              onChange={(e) => setReopenReason(e.target.value)}
-              placeholder={t('taskGridV3.reopenPlaceholder')}
-              aria-label={t('taskGridV3.reopenReasonAria')}
-              className='block w-full min-w-0 box-border resize-y rounded border border-amber-300 bg-white px-2 py-1.5 text-xs leading-snug text-stone-900'
-            />
-            <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
-              <button
-                type='button'
-                onClick={() => {
-                  setReopeningTaskId(null);
-                  setReopenReason('');
-                }}
-                className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 cursor-pointer'
-              >
-                {t('taskGridV3.cancelBtn')}
-              </button>
-              <button
-                type='button'
-                disabled={actionLoading === `reopen:${task.id}`}
-                onClick={() => handleReopenTask(task)}
-                className='shrink-0 whitespace-nowrap rounded bg-amber-700 hover:bg-amber-800 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
-              >
-                {actionLoading === `reopen:${task.id}`
-                  ? t('taskGridV3.reopeningBtn')
-                  : t('taskGridV3.confirmReopenBtn')}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -2704,9 +2182,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
       {/* Lô Closed (mọi ô đã bỏ gán / huỷ) không còn việc gì: ẩn khỏi danh sách */}
       {grid && grid.lots.some((l) => l.status !== 'Closed') && (
-        <div className='rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 space-y-2'>
+        <div className='rounded-xl border border-stone-200 bg-white px-3.5 py-2 space-y-2'>
           <button
             type='button'
+            data-testid='toggle-assigned-lots-btn'
             onClick={() => setLotsExpanded((v) => !v)}
             aria-expanded={lotsExpanded}
             className='w-full flex items-center justify-between gap-2 text-xs font-bold text-stone-800 cursor-pointer'
@@ -2728,7 +2207,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             </span>
           </button>
           {lotsExpanded && (
-            <div className='flex flex-wrap gap-2'>
+            <div className='space-y-1'>
               {grid.lots
                 .filter((l) => l.status !== 'Closed')
                 .map((lot) => {
@@ -2752,7 +2231,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                     <div
                       key={lot.id}
                       data-testid={`grid-lot-pill-${lot.id}`}
-                      className={`rounded-lg border px-2.5 py-1.5 text-xs flex items-center gap-2 ${
+                      className={`rounded-lg border px-2.5 py-1 text-xs flex items-center gap-2 min-w-0 ${
                         isLotStageDisabled
                           ? 'border-dashed border-stone-300 bg-stone-100/60 text-stone-400 opacity-50'
                           : lot.isOverdue
@@ -2762,30 +2241,34 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                               : 'border-stone-200 bg-stone-50 text-stone-700'
                       }`}
                     >
-                      <span className='font-bold'>{stg?.name || 'Stage'}</span>
+                      <span className='font-bold shrink-0'>{stg?.name || 'Stage'}</span>
                       {lot.isAutoAssigned && (
                         <span
                           data-testid={`lot-auto-badge-${lot.id}`}
                           title={lot.autoAssignReason || undefined}
-                          className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-xs font-semibold text-[#C2410C]'
+                          className='shrink-0 rounded bg-orange-50 border border-orange-200 px-1.5 py-0 text-[11px] font-semibold text-[#C2410C]'
                         >
                           {t('taskGridV3.autoAssignedBadge')}
                         </span>
                       )}
                       {isLotStageDisabled && (
-                        <span className='rounded bg-stone-200 px-1 py-0.2 text-xs font-mono text-stone-600'>
+                        <span className='shrink-0 rounded bg-stone-200 px-1 py-0 text-[11px] font-mono text-stone-600'>
                           {t('taskGridV3.stageDisabledBadge')}
                         </span>
                       )}
-                      <span>•</span>
-                      <span>{getMemberName(lot.assigneeUserId)}</span>
-                      {lotScopeText && <span className='font-medium'>{`• ${lotScopeText}`}</span>}
-                      <span className='font-mono font-semibold'>
+                      <span className='shrink-0 text-stone-400'>•</span>
+                      <span className='shrink-0 font-medium'>
+                        {getMemberName(lot.assigneeUserId)}
+                      </span>
+                      {lotScopeText && (
+                        <span className='shrink-0 font-medium text-stone-600'>{`• ${lotScopeText}`}</span>
+                      )}
+                      <span className='shrink-0 font-mono font-semibold tabular-nums'>
                         ({lot.approvedCount}/{lot.taskCount})
                       </span>
                       {lot.dueDate && (
-                        <span className='inline-flex items-center gap-0.5 text-xs text-stone-500'>
-                          <Clock className='h-3 w-3' />
+                        <span className='shrink-0 inline-flex items-center gap-0.5 text-stone-500'>
+                          <Clock className='h-3 w-3' aria-hidden='true' />
                           {new Date(lot.dueDate).toLocaleDateString(
                             lang === 'en' ? 'en-US' : 'vi-VN',
                           )}
@@ -2793,7 +2276,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       )}
                       {lot.brief && (
                         <span
-                          className='max-w-[160px] truncate text-xs italic text-stone-500'
+                          className='flex-1 min-w-0 truncate italic text-stone-500'
                           title={lot.brief}
                         >
                           “{lot.brief}”
@@ -2807,9 +2290,9 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                             editingLotId === lot.id ? setEditingLotId(null) : openEditLotForm(lot)
                           }
                           title={t('taskGridV3.editLotTooltip')}
-                          className='inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-700 cursor-pointer'
+                          className='ml-auto shrink-0 inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-700 cursor-pointer'
                         >
-                          <Pencil className='h-2.5 w-2.5' />
+                          <Pencil className='h-2.5 w-2.5' aria-hidden='true' />
                           <span>{t('taskGridV3.editLotBtn')}</span>
                         </button>
                       )}
@@ -2914,58 +2397,82 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           </p>
         </div>
       ) : (
-        <div className='overflow-auto max-h-[72vh] rounded-xl border border-stone-200 bg-white shadow-2xs min-w-0'>
-          <table className='w-full border-collapse text-left text-xs'>
+        <div
+          tabIndex={0}
+          role='region'
+          aria-label={t('taskGridV3.boardTitle')}
+          className='w-fit max-w-full overflow-auto max-h-[72vh] rounded-xl border border-stone-200 bg-white shadow-2xs min-w-0'
+        >
+          <table className='w-max table-fixed border-collapse text-left text-xs'>
             <thead className='sticky top-0 z-20'>
               <tr className='border-b border-head-line bg-head-wash'>
-                <th className='sticky left-0 top-0 z-30 bg-head-wash px-3 py-2.5 font-bold text-kraft-ink border-r border-head-line w-[116px] min-w-[104px] max-w-[132px]'>
+                <th className='sticky left-0 top-0 z-30 bg-head-wash px-2.5 py-2 font-bold text-kraft-ink border-r border-head-line w-[100px] min-w-[100px] max-w-[100px]'>
                   {t('taskGridV3.scopeColumnHeader')}
                 </th>
                 {visibleStages.map((stage) => {
-                  const unassignedCount = grid.tasks.filter(
+                  const columnUnassigned = grid.tasks.filter(
                     (t) => t.pipelineStageId === stage.id && t.status === 'Unassigned',
-                  ).length;
+                  );
+                  const unassignedCount = columnUnassigned.length;
+                  const allColumnSelected =
+                    unassignedCount > 0 &&
+                    columnUnassigned.every((t) => selectedUnassignedIds.has(t.id));
                   return (
                     <th
                       key={stage.id}
-                      className='px-2.5 py-2.5 border-r border-head-line w-[176px] min-w-[160px] max-w-[200px] align-top bg-head-wash'
+                      className='px-2 py-2 border-r border-head-line w-[152px] min-w-[152px] max-w-[152px] align-top bg-head-wash'
                     >
-                      <div className='flex items-center justify-between gap-1'>
-                        <span className='font-bold text-stone-900'>
-                          {stage.stageOrder}. {stage.name}
-                        </span>
-                        {stage.track && (
+                      <div className='flex items-center justify-between gap-1 min-w-0'>
+                        <div className='flex items-center gap-1 min-w-0'>
                           <span
-                            className={`px-1.5 py-0.2 rounded text-xs font-mono font-bold border ${
-                              stage.track === 'A'
-                                ? 'bg-sky-50 text-sky-700 border-sky-200'
-                                : 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200'
+                            className='font-bold text-stone-900 truncate'
+                            title={`${stage.stageOrder}. ${stage.name}`}
+                          >
+                            {stage.stageOrder}. {stage.name}
+                          </span>
+                          {stage.allowedRole && (
+                            <span className='shrink-0 rounded bg-stone-200/70 px-1 py-0 text-[10px] font-mono font-normal text-stone-600'>
+                              {stage.allowedRole}
+                            </span>
+                          )}
+                        </div>
+                        {canCoordinateAssign && unassignedCount > 0 && (
+                          <button
+                            type='button'
+                            onClick={() => toggleSelectStageColumn(stage.id)}
+                            aria-label={t('taskGridV3.selectColumnBtn', {
+                              count: unassignedCount,
+                            })}
+                            title={t('taskGridV3.selectColumnBtn', { count: unassignedCount })}
+                            className={`shrink-0 inline-flex items-center justify-center rounded p-0.5 transition-colors cursor-pointer ${
+                              allColumnSelected
+                                ? 'bg-orange-100 text-[#C2410C]'
+                                : 'text-stone-500 hover:bg-orange-50 hover:text-[#C2410C]'
                             }`}
                           >
-                            {t('taskGridV3.trackBadge', { track: stage.track })}
-                          </span>
+                            <CheckSquare className='h-3.5 w-3.5' aria-hidden='true' />
+                          </button>
                         )}
                       </div>
-                      <div className='mt-1 flex flex-wrap items-center gap-1 text-xs text-stone-500 font-normal'>
-                        {stage.allowedRole && (
-                          <span className='rounded bg-stone-200/70 px-1.5 py-0.2 font-mono text-stone-700'>
-                            {stage.allowedRole}
-                          </span>
-                        )}
-                        {stage.isApprovalGate && (
-                          <span className='inline-flex items-center gap-0.5 rounded bg-amber-50 border border-amber-200 px-1.5 py-0.2 text-amber-800 font-semibold'>
-                            <Shield className='h-2.5 w-2.5' /> Gate
-                          </span>
-                        )}
-                      </div>
-                      {canCoordinateAssign && unassignedCount > 0 && (
-                        <button
-                          type='button'
-                          onClick={() => toggleSelectStageColumn(stage.id)}
-                          className='mt-1.5 text-xs font-semibold text-[#C2410C] hover:underline cursor-pointer'
-                        >
-                          {t('taskGridV3.selectColumnBtn', { count: unassignedCount })}
-                        </button>
+                      {(stage.track || stage.isApprovalGate) && (
+                        <div className='mt-1 flex items-center gap-1 flex-wrap'>
+                          {stage.track && (
+                            <span
+                              className={`px-1 py-0 leading-4 rounded text-[10px] font-mono font-bold border ${
+                                stage.track === 'A'
+                                  ? 'bg-sky-50 text-sky-700 border-sky-200'
+                                  : 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200'
+                              }`}
+                            >
+                              {t('taskGridV3.trackBadge', { track: stage.track })}
+                            </span>
+                          )}
+                          {stage.isApprovalGate && (
+                            <span className='inline-flex items-center gap-0.5 rounded bg-amber-50 border border-amber-200 px-1 py-0 leading-4 text-[10px] text-amber-800 font-semibold'>
+                              <Shield className='h-2.5 w-2.5' aria-hidden='true' /> Gate
+                            </span>
+                          )}
+                        </div>
                       )}
                     </th>
                   );
@@ -2975,15 +2482,20 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             <tbody className='divide-y divide-stone-200'>
               {hasChapterRow && (
                 <tr className='bg-stone-50/60'>
-                  <td className='sticky left-0 z-10 bg-stone-100 px-3 py-2.5 font-bold text-stone-800 border-r border-stone-200'>
+                  <td className='sticky left-0 z-10 bg-stone-100 px-2.5 py-1.5 font-bold text-stone-800 border-r border-stone-200 w-[100px] min-w-[100px] max-w-[100px] truncate'>
                     {t('taskGridV3.wholeChapter')}
                   </td>
                   {visibleStages.map((stage) => (
-                    <td key={stage.id} className='p-2 border-r border-stone-200 align-top'>
+                    <td
+                      key={stage.id}
+                      className='p-1.5 border-r border-stone-200 align-middle w-[152px] min-w-[152px] max-w-[152px]'
+                    >
                       {stage.granularity === 'Chapter' || taskMap.has(`${stage.id}:__CHAPTER__`) ? (
                         renderCell(stage, null)
                       ) : (
-                        <div className='p-2 text-center text-xs text-stone-300'>—</div>
+                        <div className='min-h-[38px] flex items-center justify-center text-xs text-stone-300'>
+                          —
+                        </div>
                       )}
                     </td>
                   ))}
@@ -2992,15 +2504,18 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
               {sortedPages.map((page) => (
                 <tr key={page.id} className='hover:bg-stone-50/40'>
-                  <td className='sticky left-0 z-10 bg-white px-3 py-2.5 font-semibold text-stone-800 border-r border-stone-200'>
+                  <td className='sticky left-0 z-10 bg-white px-2.5 py-1.5 font-semibold text-stone-800 border-r border-stone-200 w-[100px] min-w-[100px] max-w-[100px] truncate'>
                     {t('taskGridV3.pageRowLabel', { number: page.pageNumber })}
                   </td>
                   {visibleStages.map((stage) => (
-                    <td key={stage.id} className='p-2 border-r border-stone-200 align-top'>
+                    <td
+                      key={stage.id}
+                      className='p-1.5 border-r border-stone-200 align-middle w-[152px] min-w-[152px] max-w-[152px]'
+                    >
                       {stage.granularity === 'Page' || taskMap.has(`${stage.id}:${page.id}`) ? (
                         renderCell(stage, page.id)
                       ) : (
-                        <div className='p-2 text-center text-xs text-stone-300'>
+                        <div className='min-h-[38px] flex items-center justify-center text-xs text-stone-300'>
                           {t('taskGridV3.chapterScopeCell')}
                         </div>
                       )}
@@ -3033,10 +2548,10 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         slides={replaySlides}
       />
 
-      {/* Task Detail Drawer: xem đầy đủ thông tin, bài nộp & artwork mà không làm giãn ô Task Grid */}
+      {/* Task Detail Drawer: xem đầy đủ thông tin, thao tác & lịch sử bài nộp khi bấm vào ô */}
       <Drawer
         isOpen={Boolean(drawerTask)}
-        onClose={() => setDrawerTaskId(null)}
+        onClose={closeTaskDetail}
         size='md'
         closeLabel={t('taskGridV3.closeBtn')}
         data-testid='task-detail-drawer'
@@ -3046,143 +2561,721 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             : ''
         }
       >
-        {drawerTask && drawerStage && (
-          <div className='p-5 space-y-4 text-xs'>
-            <div className='flex flex-wrap items-center justify-between gap-2'>
-              <StatusBadge kind='stageTask' status={drawerTask.status} />
-              {(drawerTask.attemptCount ?? 0) > 0 && (
-                <Badge tone='neutral'>
-                  {t('taskGridV3.attemptBadge', { count: drawerTask.attemptCount ?? 0 })}
-                </Badge>
-              )}
-            </div>
+        {drawerTask &&
+          drawerStage &&
+          (() => {
+            const perms = getTaskPermissions(drawerTask, drawerStage);
+            const attemptCount = drawerTask.attemptCount ?? 0;
+            const drawerLot = drawerTask.lotId ? lotById.get(drawerTask.lotId) : undefined;
+            const drawerRework = resolveReworkReasonDisplay(
+              drawerTask,
+              reworkCommentsByTask[drawerTask.id] ||
+                pickLatestDecisionComment(submissionsByTaskId[drawerTask.id]),
+            );
+            const impactSuggestion = impactSuggestionsByTask[drawerTask.id] ?? null;
+            const impactAiError = impactErrorsByTask[drawerTask.id] ?? null;
+            const hasHistory =
+              (drawerTask.status !== 'Unassigned' && drawerTask.status !== 'Assigned') ||
+              Boolean(drawerTask.startedAt);
 
-            <dl className='grid grid-cols-2 gap-3 rounded-xl border border-stone-200/80 bg-[#FAF9F5] p-3.5'>
-              <div>
-                <dt className='text-stone-500'>{t('taskGridV3.drawerStageLabel')}</dt>
-                <dd className='font-semibold text-stone-900 mt-0.5'>{drawerStage.name}</dd>
-              </div>
-              <div>
-                <dt className='text-stone-500'>{t('taskGridV3.drawerAssigneeLabel')}</dt>
-                <dd className='font-semibold text-stone-900 mt-0.5 truncate'>
-                  {drawerTask.assigneeUserId
-                    ? getMemberName(drawerTask.assigneeUserId)
-                    : t('taskGridV3.status.Unassigned')}
-                </dd>
-              </div>
-              {drawerTask.lotId && lotById.get(drawerTask.lotId)?.dueDate && (
-                <div>
-                  <dt className='text-stone-500'>{t('taskGridV3.drawerDueDateLabel')}</dt>
-                  <dd className='font-mono font-semibold text-stone-900 mt-0.5'>
-                    {new Date(lotById.get(drawerTask.lotId)!.dueDate!).toLocaleDateString(
-                      lang === 'en' ? 'en-US' : 'vi-VN',
-                    )}
-                  </dd>
+            return (
+              <div className='p-5 space-y-4 text-xs'>
+                {/* Trạng thái & badges */}
+                <div className='flex flex-wrap items-center gap-1.5'>
+                  <StatusBadge kind='stageTask' status={drawerTask.status} />
+                  {attemptCount > 0 && (
+                    <span
+                      data-testid={`task-attempt-count-${drawerTask.id}`}
+                      className='px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-xs font-mono font-semibold text-stone-700'
+                    >
+                      {t('taskGridV3.attemptBadge', { count: attemptCount })}
+                    </span>
+                  )}
+                  {drawerLot?.isAutoAssigned && (
+                    <span
+                      data-testid={`task-auto-badge-${drawerTask.id}`}
+                      title={drawerLot.autoAssignReason || undefined}
+                      className='px-1.5 py-0.5 rounded bg-orange-50 border border-orange-200 text-xs font-semibold text-[#C2410C]'
+                    >
+                      {t('taskGridV3.autoAssignedBadge')}
+                    </span>
+                  )}
                 </div>
-              )}
-              {drawerTask.lotId && lotById.get(drawerTask.lotId)?.brief && (
-                <div className='col-span-2'>
-                  <dt className='text-stone-500'>{t('taskGridV3.drawerLotBriefLabel')}</dt>
-                  <dd className='text-stone-800 mt-0.5'>{lotById.get(drawerTask.lotId)!.brief}</dd>
-                </div>
-              )}
-            </dl>
 
-            {drawerTask.isInputOutdated && (
-              <div className='rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 space-y-1'>
-                <div className='font-semibold flex items-center gap-1.5'>
-                  <AlertTriangle className='w-4 h-4 text-amber-700 shrink-0' />
-                  <span>{t('taskGridV3.inputOutdatedTitle')}</span>
-                </div>
-                {drawerTask.outdatedReason && <p>{drawerTask.outdatedReason}</p>}
-              </div>
-            )}
-
-            {(() => {
-              const drawerRework = resolveReworkReasonDisplay(
-                drawerTask,
-                reworkCommentsByTask[drawerTask.id] ||
-                  pickLatestDecisionComment(submissionsByTaskId[drawerTask.id]),
-              );
-              if (!drawerRework) return null;
-              return (
-                <div className='rounded-lg border border-rose-200 bg-rose-50 p-3 text-rose-900 space-y-1'>
-                  <div className='font-semibold'>
-                    {drawerRework.kind === 'reopen'
-                      ? t('taskGridV3.reopenReasonPrefix')
-                      : t('taskGridV3.lastDecisionLabel')}
+                {/* Thông tin cơ bản */}
+                <dl className='grid grid-cols-2 gap-3 rounded-xl border border-stone-200/80 bg-[#FAF9F5] p-3.5'>
+                  <div>
+                    <dt className='text-stone-500'>{t('taskGridV3.drawerStageLabel')}</dt>
+                    <dd className='font-semibold text-stone-900 mt-0.5'>{drawerStage.name}</dd>
                   </div>
-                  <p>{drawerRework.text}</p>
-                </div>
-              );
-            })()}
+                  <div>
+                    <dt className='text-stone-500'>{t('taskGridV3.drawerAssigneeLabel')}</dt>
+                    <dd className='font-semibold text-stone-900 mt-0.5 truncate'>
+                      {drawerTask.assigneeUserId
+                        ? getMemberName(drawerTask.assigneeUserId)
+                        : t('taskGridV3.status.Unassigned')}
+                    </dd>
+                  </div>
+                  {drawerLot?.dueDate && (
+                    <div>
+                      <dt className='text-stone-500'>{t('taskGridV3.drawerDueDateLabel')}</dt>
+                      <dd className='font-mono font-semibold text-stone-900 mt-0.5'>
+                        {new Date(drawerLot.dueDate).toLocaleDateString(
+                          lang === 'en' ? 'en-US' : 'vi-VN',
+                        )}
+                      </dd>
+                    </div>
+                  )}
+                  {drawerLot?.brief && (
+                    <div className='col-span-2'>
+                      <dt className='text-stone-500'>{t('taskGridV3.drawerLotBriefLabel')}</dt>
+                      <dd className='text-stone-800 mt-0.5'>{drawerLot.brief}</dd>
+                    </div>
+                  )}
+                </dl>
 
-            <div className='space-y-2'>
-              <div className='flex items-center justify-between'>
-                <h3 className='font-bold text-stone-900'>{t('taskGridV3.historyTitle')}</h3>
-                <Button variant='ghost' size='sm' onClick={() => void loadSubmissions(drawerTask)}>
-                  {t('taskGridV3.reloadBtn')}
-                </Button>
-              </div>
-              {loadingHistoryTaskId === drawerTask.id ? (
-                <div className='flex items-center gap-1.5 text-stone-500 py-3'>
-                  <Loader2 className='h-4 w-4 animate-spin' />
-                  <span>{t('taskGridV3.historyLoading')}</span>
-                </div>
-              ) : (submissionsByTaskId[drawerTask.id] || []).length === 0 ? (
-                <p className='text-stone-500 italic py-2'>{t('taskGridV3.historyEmpty')}</p>
-              ) : (
+                {/* Khoá duyệt bởi người khác */}
+                {perms.isLockedByOtherReviewer && drawerTask.reviewerUserId && (
+                  <div
+                    data-testid={`under-review-by-${drawerTask.id}`}
+                    className='rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-900 flex items-center gap-1.5'
+                  >
+                    <Lock className='h-3.5 w-3.5 shrink-0 text-indigo-600' aria-hidden='true' />
+                    <span>
+                      {t('taskGridV3.underReviewBy', {
+                        name: getMemberName(drawerTask.reviewerUserId),
+                      })}
+                    </span>
+                  </div>
+                )}
+
+                {/* Lý do mở lại / nhận xét yêu cầu sửa */}
+                {drawerRework && (
+                  <div
+                    data-testid={
+                      drawerRework.kind === 'reopen'
+                        ? `rework-reopen-reason-${drawerTask.id}`
+                        : `rework-decision-comment-${drawerTask.id}`
+                    }
+                    className='rounded-lg border border-rose-200 bg-rose-50 p-3 text-rose-900 space-y-1'
+                  >
+                    <div className='font-semibold'>
+                      {drawerRework.kind === 'reopen'
+                        ? t('taskGridV3.reopenReasonPrefix')
+                        : t('taskGridV3.lastDecisionLabel')}
+                    </div>
+                    <p>{drawerRework.text}</p>
+                  </div>
+                )}
+
+                {/* Cảnh báo đầu vào lỗi thời */}
+                {drawerTask.isInputOutdated && (
+                  <div className='rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 space-y-1'>
+                    <div className='font-semibold flex items-center gap-1.5'>
+                      <AlertTriangle
+                        className='w-4 h-4 text-amber-700 shrink-0'
+                        aria-hidden='true'
+                      />
+                      <span>{t('taskGridV3.inputOutdatedTitle')}</span>
+                    </div>
+                    {drawerTask.outdatedReason && <p>{drawerTask.outdatedReason}</p>}
+                  </div>
+                )}
+
+                {/* Thao tác trên ô việc */}
                 <div className='space-y-2'>
-                  {(submissionsByTaskId[drawerTask.id] || []).map((sub) => {
-                    const parsedCanvasVersions = parseStageTaskCanvasVersions(
-                      sub.canvasVersionsJson,
-                    );
-                    const canReplay =
-                      (sub.artworkReferenceIds?.length ?? 0) > 0 ||
-                      Object.keys(parsedCanvasVersions).length > 0;
-                    return (
-                      <div
-                        key={sub.id}
-                        className='rounded-xl border border-stone-200 bg-white p-3 space-y-1.5'
+                  <div className='text-xs font-bold text-stone-700'>
+                    {t('taskGridV3.drawerActionsLabel')}
+                  </div>
+                  <div className='flex flex-wrap items-center gap-1.5'>
+                    {perms.canStart && (
+                      <button
+                        type='button'
+                        disabled={
+                          !drawerTask.isStartable || actionLoading === `start:${drawerTask.id}`
+                        }
+                        onClick={() => handleStartTask(drawerTask)}
+                        title={
+                          drawerTask.isStartable
+                            ? t('taskGridV3.startCellTooltip')
+                            : t('taskGridV3.waitPrereqsTooltip')
+                        }
+                        className='inline-flex items-center gap-1 rounded bg-[#171717] hover:bg-black text-white px-2.5 py-1.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
                       >
-                        <div className='flex items-center justify-between gap-2'>
-                          <span className='font-bold text-stone-900'>
-                            {t('taskGridV3.attemptShort', { count: sub.attemptNumber })}
-                          </span>
-                          <StatusBadge kind='artworkReview' status={sub.status} />
-                        </div>
-                        <div className='text-stone-500'>
-                          {t('taskGridV3.submittedByWithImages', {
-                            name: getMemberName(sub.submittedByUserId),
-                            count: sub.artworkReferenceIds?.length ?? 0,
-                          })}
-                        </div>
-                        {sub.decisionComment && (
-                          <p className='rounded bg-rose-50 px-2 py-1 text-rose-800'>
-                            {sub.decisionComment}
-                          </p>
+                        {actionLoading === `start:${drawerTask.id}` ? (
+                          <Loader2 className='h-3 w-3 animate-spin' />
+                        ) : (
+                          <Play className='h-3 w-3 text-[#F97316]' />
                         )}
-                        {canReplay && (
-                          <div className='pt-1'>
-                            <Button
-                              variant='secondary'
-                              size='sm'
-                              loading={replayingSubmissionId === sub.id}
-                              leadingIcon={<Eye aria-hidden='true' />}
-                              onClick={() => void handleReplaySubmission(drawerTask, sub)}
-                            >
-                              {t('taskGridV3.replayBtn')}
-                            </Button>
-                          </div>
+                        <span>
+                          {drawerTask.isStartable
+                            ? t('taskGridV3.startBtn')
+                            : t('taskGridV3.waitPrereqsBtn')}
+                        </span>
+                      </button>
+                    )}
+
+                    {perms.canSubmit && (
+                      <button
+                        type='button'
+                        disabled={
+                          drawerTask.isInputOutdated || actionLoading === `submit:${drawerTask.id}`
+                        }
+                        onClick={() => handleSubmitTasks([drawerTask.id])}
+                        title={
+                          drawerTask.isInputOutdated
+                            ? t('taskGridV3.submitOutdatedTooltip')
+                            : t('taskGridV3.submitCellTooltip')
+                        }
+                        className='inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                      >
+                        {actionLoading === `submit:${drawerTask.id}` ? (
+                          <Loader2 className='h-3 w-3 animate-spin' />
+                        ) : (
+                          <Send className='h-3 w-3' />
                         )}
-                      </div>
-                    );
-                  })}
+                        <span>{t('taskGridV3.submitBtn')}</span>
+                      </button>
+                    )}
+
+                    {perms.canWithdraw && (
+                      <button
+                        type='button'
+                        data-testid={`withdraw-task-btn-${drawerTask.id}`}
+                        disabled={actionLoading === `withdraw:${drawerTask.id}`}
+                        onClick={() => void handleWithdrawTask(drawerTask)}
+                        title={t('taskGridV3.withdrawTooltip')}
+                        className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+                      >
+                        {actionLoading === `withdraw:${drawerTask.id}` ? (
+                          <Loader2 className='h-3 w-3 animate-spin' />
+                        ) : (
+                          <Undo2 className='h-3 w-3' />
+                        )}
+                        <span>{t('taskGridV3.withdrawBtn')}</span>
+                      </button>
+                    )}
+
+                    {perms.canReview && (
+                      <>
+                        <button
+                          type='button'
+                          disabled={
+                            drawerTask.isInputOutdated ||
+                            perms.isLockedByOtherReviewer ||
+                            actionLoading === `approve:${drawerTask.id}`
+                          }
+                          onClick={() => handleApproveTask(drawerTask)}
+                          title={
+                            perms.isLockedByOtherReviewer
+                              ? t('taskGridV3.underReviewBy', {
+                                  name: getMemberName(drawerTask.reviewerUserId),
+                                })
+                              : drawerTask.isInputOutdated
+                                ? t('taskGridV3.approveOutdatedTooltip')
+                                : t('taskGridV3.approveCellTooltip')
+                          }
+                          className='inline-flex items-center gap-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                        >
+                          {actionLoading === `approve:${drawerTask.id}` ? (
+                            <Loader2 className='h-3 w-3 animate-spin' />
+                          ) : (
+                            <CheckCircle2 className='h-3 w-3' />
+                          )}
+                          <span>{t('taskGridV3.approveBtn')}</span>
+                        </button>
+
+                        {requestingChangesTaskId !== drawerTask.id && (
+                          <button
+                            type='button'
+                            disabled={
+                              perms.isLockedByOtherReviewer ||
+                              actionLoading === `requestChanges:${drawerTask.id}`
+                            }
+                            onClick={() => {
+                              setRequestingChangesTaskId(drawerTask.id);
+                              setRequestChangesComment('');
+                            }}
+                            title={
+                              perms.isLockedByOtherReviewer
+                                ? t('taskGridV3.underReviewBy', {
+                                    name: getMemberName(drawerTask.reviewerUserId),
+                                  })
+                                : t('taskGridV3.requestChangesTooltip')
+                            }
+                            className='inline-flex items-center gap-1 rounded border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                          >
+                            <XCircle className='h-3 w-3' />
+                            <span>{t('taskGridV3.requestChangesBtn')}</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {perms.canReleaseOwnReview && (
+                      <button
+                        type='button'
+                        data-testid={`release-review-btn-${drawerTask.id}`}
+                        disabled={actionLoading === `releaseReview:${drawerTask.id}`}
+                        onClick={() => void handleReleaseReview(drawerTask)}
+                        title={t('taskGridV3.releaseReviewTooltip')}
+                        className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+                      >
+                        {actionLoading === `releaseReview:${drawerTask.id}` ? (
+                          <Loader2 className='h-3 w-3 animate-spin' />
+                        ) : (
+                          <Unlock className='h-3 w-3' />
+                        )}
+                        <span>{t('taskGridV3.releaseReviewBtn')}</span>
+                      </button>
+                    )}
+
+                    {perms.canForceReleaseReview && (
+                      <button
+                        type='button'
+                        data-testid={`force-release-review-btn-${drawerTask.id}`}
+                        disabled={actionLoading === `releaseReview:${drawerTask.id}`}
+                        onClick={() => void handleReleaseReview(drawerTask)}
+                        title={t('taskGridV3.forceReleaseReviewTooltip')}
+                        className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-white hover:bg-indigo-50 text-indigo-900 px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+                      >
+                        {actionLoading === `releaseReview:${drawerTask.id}` ? (
+                          <Loader2 className='h-3 w-3 animate-spin' />
+                        ) : (
+                          <Unlock className='h-3 w-3' />
+                        )}
+                        <span>{t('taskGridV3.forceReleaseReviewBtn')}</span>
+                      </button>
+                    )}
+
+                    {perms.canReopen && reopeningTaskId !== drawerTask.id && (
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setReopeningTaskId(drawerTask.id);
+                          setReopenReason('');
+                        }}
+                        title={t('taskGridV3.reopenTooltip')}
+                        className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2.5 py-1.5 text-xs font-semibold cursor-pointer'
+                      >
+                        <RotateCcw className='h-3 w-3' />
+                        <span>{t('taskGridV3.reopenBtn')}</span>
+                      </button>
+                    )}
+
+                    {perms.canReassign && reassigningTaskId !== drawerTask.id && (
+                      <button
+                        type='button'
+                        data-testid={`reassign-task-btn-${drawerTask.id}`}
+                        disabled={
+                          drawerTask.isInputOutdated ||
+                          actionLoading === `reassign:${drawerTask.id}`
+                        }
+                        onClick={() => openReassignForm(drawerTask, drawerStage)}
+                        title={
+                          drawerTask.isInputOutdated
+                            ? t('taskGridV3.reassignOutdatedTooltip')
+                            : t('taskGridV3.reassignTooltip')
+                        }
+                        className='inline-flex items-center gap-1 rounded border border-orange-300 bg-orange-50 hover:bg-orange-100 text-[#C2410C] px-2.5 py-1.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                      >
+                        <UserCheck className='h-3 w-3' />
+                        <span>{t('taskGridV3.reassignBtn')}</span>
+                      </button>
+                    )}
+
+                    {perms.canUnassign && (
+                      <button
+                        type='button'
+                        disabled={actionLoading === `unassign:${drawerTask.id}`}
+                        onClick={() => handleUnassignTasks([drawerTask.id])}
+                        title={t('taskGridV3.unassignTooltip')}
+                        className='inline-flex items-center gap-1 rounded border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-700 px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+                      >
+                        {actionLoading === `unassign:${drawerTask.id}` ? (
+                          <Loader2 className='h-3 w-3 animate-spin' />
+                        ) : (
+                          <UserMinus className='h-3 w-3' />
+                        )}
+                        <span>{t('taskGridV3.unassignBtn')}</span>
+                      </button>
+                    )}
+
+                    {hasHistory && (
+                      <button
+                        type='button'
+                        onClick={() => void handleToggleSubmissions(drawerTask)}
+                        title={t('taskGridV3.historyTooltip')}
+                        className={`inline-flex items-center gap-1 rounded border px-2.5 py-1.5 text-xs font-semibold cursor-pointer ${
+                          historyTaskId === drawerTask.id
+                            ? 'border-stone-800 bg-stone-800 text-white'
+                            : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-600'
+                        }`}
+                      >
+                        <History className='h-3 w-3' />
+                        <span>{t('taskGridV3.historyBtn')}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        )}
+
+                {/* Form nhập nhận xét Yêu cầu sửa (Editor/Producer - BR-06) */}
+                {requestingChangesTaskId === drawerTask.id && (
+                  <div
+                    data-testid={`request-changes-form-${drawerTask.id}`}
+                    className='w-full min-w-0 box-border rounded-lg border border-rose-300 bg-rose-50 p-3 space-y-2'
+                  >
+                    <textarea
+                      rows={3}
+                      value={requestChangesComment}
+                      onChange={(e) => setRequestChangesComment(e.target.value)}
+                      placeholder={t('taskGridV3.requestChangesPlaceholder')}
+                      aria-label={t('taskGridV3.requestChangesAria')}
+                      className='block w-full min-w-0 box-border resize-y rounded border border-rose-300 bg-white px-2.5 py-1.5 text-xs leading-snug text-stone-900'
+                    />
+                    <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setRequestingChangesTaskId(null);
+                          setRequestChangesComment('');
+                        }}
+                        className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 cursor-pointer'
+                      >
+                        {t('taskGridV3.cancelBtn')}
+                      </button>
+                      <button
+                        type='button'
+                        disabled={actionLoading === `requestChanges:${drawerTask.id}`}
+                        onClick={() => void handleRequestChanges(drawerTask)}
+                        className='shrink-0 whitespace-nowrap rounded bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+                      >
+                        {actionLoading === `requestChanges:${drawerTask.id}`
+                          ? t('taskGridV3.sendingBtn')
+                          : t('taskGridV3.confirmReturnBtn')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Impact Review (Keep / Rework / Smart Ripple AI) cho Producer */}
+                {perms.canResolveImpact && (
+                  <div className='rounded-lg border border-amber-200 bg-amber-50/70 p-3 space-y-2'>
+                    <div className='text-xs font-semibold text-amber-900'>
+                      Impact Review{' '}
+                      {perms.prereqReadyForImpact ? '' : t('taskGridV3.impactWaitingPrereq')}
+                    </div>
+                    <div className='flex flex-wrap items-center gap-1.5'>
+                      <button
+                        type='button'
+                        disabled={
+                          !perms.prereqReadyForImpact ||
+                          actionLoading === `resolveImpact:${drawerTask.id}:keep`
+                        }
+                        onClick={() => handleResolveImpact(drawerTask, true)}
+                        title={
+                          perms.prereqReadyForImpact
+                            ? t('taskGridV3.impactKeepTooltip')
+                            : t('taskGridV3.impactPrereqNotReadyTooltip')
+                        }
+                        className='inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                      >
+                        <Check className='h-3 w-3' />
+                        <span>{t('taskGridV3.impactKeepBtn')}</span>
+                      </button>
+                      <button
+                        type='button'
+                        disabled={
+                          !perms.prereqReadyForImpact ||
+                          actionLoading === `resolveImpact:${drawerTask.id}:rework`
+                        }
+                        onClick={() => handleResolveImpact(drawerTask, false)}
+                        title={
+                          perms.prereqReadyForImpact
+                            ? t('taskGridV3.impactReworkTooltip')
+                            : t('taskGridV3.impactPrereqNotReadyTooltip')
+                        }
+                        className='inline-flex items-center gap-1 rounded bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                      >
+                        <RotateCcw className='h-3 w-3' />
+                        <span>{t('taskGridV3.impactReworkBtn')}</span>
+                      </button>
+                      {perms.canSuggestImpactAi && (
+                        <button
+                          type='button'
+                          data-testid={`ai-impact-btn-${drawerTask.id}`}
+                          disabled={
+                            actionLoading === `aiImpact:${drawerTask.id}` ||
+                            actionLoading === `aiImpactDecide:${drawerTask.id}`
+                          }
+                          onClick={() => void handleRequestImpactSuggestion(drawerTask)}
+                          title={t('taskGridV3.impactAiTooltip')}
+                          className='inline-flex items-center gap-1 rounded border border-orange-300 bg-white hover:bg-orange-50 text-[#C2410C] px-2.5 py-1 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                        >
+                          {actionLoading === `aiImpact:${drawerTask.id}` ? (
+                            <Loader2 className='h-3 w-3 animate-spin' />
+                          ) : (
+                            <Sparkles className='h-3 w-3' />
+                          )}
+                          <span>{t('taskGridV3.impactAiBtn')}</span>
+                        </button>
+                      )}
+                    </div>
+                    {impactAiError && (
+                      <div
+                        role='alert'
+                        className='rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-800'
+                      >
+                        {impactAiError}
+                      </div>
+                    )}
+                    {impactSuggestion && (
+                      <div className='pt-1'>
+                        <SuggestionCard
+                          suggestion={impactSuggestion}
+                          seriesId={seriesId}
+                          busy={actionLoading === `aiImpactDecide:${drawerTask.id}`}
+                          onDecide={(decision, reason) =>
+                            void handleDecideImpactSuggestion(
+                              drawerTask,
+                              impactSuggestion,
+                              decision,
+                              reason,
+                            )
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Form Đổi người cho ô chưa nộp (Producer — reassign: true) */}
+                {reassigningTaskId === drawerTask.id && (
+                  <div
+                    data-testid={`reassign-task-form-${drawerTask.id}`}
+                    className='w-full min-w-0 box-border rounded-lg border border-orange-300 bg-orange-50/80 p-3 space-y-2'
+                  >
+                    <div className='text-xs font-bold text-stone-900'>
+                      {t('taskGridV3.reassignTitle')}
+                    </div>
+                    <select
+                      aria-label={t('taskGridV3.reassignSelectLabel')}
+                      value={reassignUserId}
+                      onChange={(e) => setReassignUserId(e.target.value)}
+                      className='block w-full min-w-0 rounded border border-orange-300 bg-white px-2 py-1.5 text-xs text-stone-900'
+                    >
+                      <option value=''>{t('taskGridV3.selectMemberPlaceholder')}</option>
+                      {activeMembers
+                        .filter((m) => canHoldStageRole(drawerStage.allowedRole, m.role))
+                        .map((m) => (
+                          <option key={m.userId} value={m.userId}>
+                            {m.fullName || m.email.split('@')[0]} ({m.role})
+                            {m.userId === drawerTask.assigneeUserId
+                              ? t('taskGridV3.currentAssigneeSuffix')
+                              : ''}
+                          </option>
+                        ))}
+                    </select>
+                    <input
+                      type='text'
+                      aria-label={t('taskGridV3.reassignBriefAria')}
+                      value={reassignBrief}
+                      onChange={(e) => setReassignBrief(e.target.value)}
+                      placeholder={t('taskGridV3.reassignBriefPlaceholder')}
+                      className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1.5 text-xs text-stone-900'
+                    />
+                    <input
+                      type='date'
+                      aria-label={t('taskGridV3.reassignDueDateAria')}
+                      value={reassignDueDate}
+                      onChange={(e) => setReassignDueDate(e.target.value)}
+                      className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1.5 text-xs text-stone-900'
+                    />
+                    <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
+                      <button
+                        type='button'
+                        onClick={() => setReassigningTaskId(null)}
+                        className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 cursor-pointer'
+                      >
+                        {t('taskGridV3.cancelBtn')}
+                      </button>
+                      <button
+                        type='button'
+                        data-testid={`confirm-reassign-task-${drawerTask.id}`}
+                        disabled={!reassignUserId || actionLoading === `reassign:${drawerTask.id}`}
+                        onClick={() => void handleReassignTask(drawerTask, drawerStage)}
+                        className='shrink-0 whitespace-nowrap rounded bg-[#EA580C] hover:bg-[#C2410C] text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+                      >
+                        {actionLoading === `reassign:${drawerTask.id}`
+                          ? t('taskGridV3.reassigningBtn')
+                          : t('taskGridV3.reassignConfirmBtn')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Form nhập lý do Mở lại (Producer) */}
+                {reopeningTaskId === drawerTask.id && (
+                  <div className='w-full min-w-0 box-border rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2'>
+                    <textarea
+                      rows={3}
+                      value={reopenReason}
+                      onChange={(e) => setReopenReason(e.target.value)}
+                      placeholder={t('taskGridV3.reopenPlaceholder')}
+                      aria-label={t('taskGridV3.reopenReasonAria')}
+                      className='block w-full min-w-0 box-border resize-y rounded border border-amber-300 bg-white px-2.5 py-1.5 text-xs leading-snug text-stone-900'
+                    />
+                    <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setReopeningTaskId(null);
+                          setReopenReason('');
+                        }}
+                        className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 cursor-pointer'
+                      >
+                        {t('taskGridV3.cancelBtn')}
+                      </button>
+                      <button
+                        type='button'
+                        disabled={actionLoading === `reopen:${drawerTask.id}`}
+                        onClick={() => handleReopenTask(drawerTask)}
+                        className='shrink-0 whitespace-nowrap rounded bg-amber-700 hover:bg-amber-800 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
+                      >
+                        {actionLoading === `reopen:${drawerTask.id}`
+                          ? t('taskGridV3.reopeningBtn')
+                          : t('taskGridV3.confirmReopenBtn')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Lịch sử các lần nộp của ô */}
+                {historyTaskId === drawerTask.id && (
+                  <div
+                    data-testid={`task-submissions-${drawerTask.id}`}
+                    className='rounded-xl border border-stone-200 bg-stone-50 p-3 space-y-2 text-xs'
+                  >
+                    <div className='flex items-center justify-between'>
+                      <h3 className='font-bold text-stone-900'>{t('taskGridV3.historyTitle')}</h3>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => void loadSubmissions(drawerTask)}
+                      >
+                        {t('taskGridV3.reloadBtn')}
+                      </Button>
+                    </div>
+                    {loadingHistoryTaskId === drawerTask.id ? (
+                      <div className='flex items-center gap-1.5 text-stone-500 py-2'>
+                        <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                        <span>{t('taskGridV3.historyLoading')}</span>
+                      </div>
+                    ) : (submissionsByTaskId[drawerTask.id] || []).length === 0 ? (
+                      <p className='text-stone-500 italic py-1'>{t('taskGridV3.historyEmpty')}</p>
+                    ) : (
+                      <div className='space-y-2'>
+                        {(submissionsByTaskId[drawerTask.id] || []).map((sub) => {
+                          const parsedPanels = parseStageTaskPanelLayout(sub.panelLayoutJson);
+                          const parsedCanvasVersions = parseStageTaskCanvasVersions(
+                            sub.canvasVersionsJson,
+                          );
+                          const panelCount = drawerTask.pageId
+                            ? parsedPanels.filter(
+                                (p) => !p.pageId || p.pageId === drawerTask.pageId,
+                              ).length
+                            : parsedPanels.length;
+                          const scriptVersionNum = sub.scriptVersionId
+                            ? scriptVersionMap[sub.scriptVersionId]
+                            : undefined;
+                          const canReplay =
+                            (sub.artworkReferenceIds?.length ?? 0) > 0 ||
+                            Object.keys(parsedCanvasVersions).length > 0;
+
+                          return (
+                            <div
+                              key={sub.id}
+                              className='rounded-lg border border-stone-200 bg-white p-2.5 space-y-1'
+                            >
+                              <div className='flex items-center justify-between gap-2'>
+                                <span className='font-bold text-stone-900'>
+                                  {t('taskGridV3.attemptShort', { count: sub.attemptNumber })}
+                                </span>
+                                <span
+                                  className={`px-1.5 py-0.2 rounded font-semibold ${
+                                    sub.status === 'Approved'
+                                      ? 'bg-emerald-50 text-emerald-700'
+                                      : sub.status === 'Rejected'
+                                        ? 'bg-rose-50 text-rose-700'
+                                        : sub.status === 'Pending'
+                                          ? 'bg-amber-50 text-amber-800'
+                                          : 'bg-stone-100 text-stone-600'
+                                  }`}
+                                >
+                                  {sub.status === 'Approved'
+                                    ? t('taskGridV3.subStatus.approved')
+                                    : sub.status === 'Rejected'
+                                      ? t('taskGridV3.subStatus.rejected')
+                                      : sub.status === 'Pending'
+                                        ? t('taskGridV3.subStatus.pending')
+                                        : t('taskGridV3.subStatus.superseded')}
+                                </span>
+                              </div>
+                              <div className='text-stone-500'>
+                                {t('taskGridV3.submittedByWithImages', {
+                                  name: getMemberName(sub.submittedByUserId),
+                                  count: sub.artworkReferenceIds?.length ?? 0,
+                                })}
+                              </div>
+                              <div className='flex flex-wrap items-center justify-between gap-1 text-stone-600'>
+                                <span>
+                                  {scriptVersionNum !== undefined && (
+                                    <>
+                                      <span className='font-semibold text-indigo-700'>
+                                        {t('taskGridV3.scriptVersionLabel', {
+                                          version: scriptVersionNum,
+                                        })}
+                                      </span>
+                                      {' • '}
+                                    </>
+                                  )}
+                                  <span>
+                                    {t('taskGridV3.panelCountAtSubmit', { count: panelCount })}
+                                  </span>
+                                </span>
+                                {canReplay && (
+                                  <button
+                                    type='button'
+                                    data-testid={`replay-submission-${sub.id}`}
+                                    disabled={replayingSubmissionId === sub.id}
+                                    onClick={() => void handleReplaySubmission(drawerTask, sub)}
+                                    className='inline-flex items-center gap-0.5 rounded border border-stone-200 bg-stone-50 hover:bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-700 disabled:opacity-50 cursor-pointer'
+                                    title={t('taskGridV3.replayTooltip')}
+                                  >
+                                    {replayingSubmissionId === sub.id ? (
+                                      <Loader2 className='h-2.5 w-2.5 animate-spin' />
+                                    ) : (
+                                      <Eye className='h-2.5 w-2.5' />
+                                    )}
+                                    <span>{t('taskGridV3.replayBtn')}</span>
+                                  </button>
+                                )}
+                              </div>
+                              {sub.decisionComment && (
+                                <div className='text-rose-800 bg-rose-50/70 rounded px-2 py-1 mt-0.5'>
+                                  💬 {sub.decisionComment}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
       </Drawer>
     </div>
   );

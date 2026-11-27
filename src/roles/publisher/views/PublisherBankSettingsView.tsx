@@ -67,6 +67,8 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
   const [txLoading, setTxLoading] = useState(false);
   const [transactions, setTransactions] = useState<PaymentTransactionDto[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [totalUnlockRevenueVnd, setTotalUnlockRevenueVnd] = useState(0);
+  const [totalTopupsVnd, setTotalTopupsVnd] = useState(0);
   const [selectedStatus, setSelectedStatus] = useState<PaymentStatusFilter>('All');
   const [seriesIdFilter, setSeriesIdFilter] = useState<string>(
     () => searchParams.get('seriesId') ?? '',
@@ -90,6 +92,10 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
       });
       setTransactions(res?.items ?? []);
       setPendingCount(res?.summary?.pendingCount ?? 0);
+      setTotalUnlockRevenueVnd(
+        res?.summary?.totalUnlockRevenueVnd ?? res?.summary?.totalRevenueVnd ?? 0,
+      );
+      setTotalTopupsVnd(res?.summary?.totalTopupsVnd ?? 0);
     } catch {
       // Giữ nguyên danh sách nếu lỗi mạng tạm thời
     } finally {
@@ -487,6 +493,29 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
                 />
                 <span>{t('refresh')}</span>
               </button>
+            </div>
+          </div>
+
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+            <div className='p-4 rounded-2xl bg-white border border-[#E7E7E7]'>
+              <p className='text-xs font-semibold text-[#737373]'>{t('kpi.unlockRevenue')}</p>
+              <p
+                data-testid='kpi-unlock-revenue'
+                className='text-lg font-bold text-[#171717] mt-1 tabular-nums'
+              >
+                {`${new Intl.NumberFormat(lang === 'en' ? 'en-US' : 'vi-VN').format(totalUnlockRevenueVnd)} VND`}
+              </p>
+              <p className='text-[11px] text-[#737373] mt-0.5'>{t('kpi.unlockRevenueSub')}</p>
+            </div>
+            <div className='p-4 rounded-2xl bg-white border border-[#E7E7E7]'>
+              <p className='text-xs font-semibold text-[#737373]'>{t('kpi.totalTopups')}</p>
+              <p
+                data-testid='kpi-total-topups'
+                className='text-lg font-bold text-[#171717] mt-1 tabular-nums'
+              >
+                {`${new Intl.NumberFormat(lang === 'en' ? 'en-US' : 'vi-VN').format(totalTopupsVnd)} VND`}
+              </p>
+              <p className='text-[11px] text-[#737373] mt-0.5'>{t('kpi.totalTopupsSub')}</p>
             </div>
           </div>
 

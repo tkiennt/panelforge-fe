@@ -29,6 +29,7 @@ import { parseRegion, type Box, type CanvasRegion } from './artwork-review/artwo
 import { ArtworkNotesTab, type ArtworkDraft } from './artwork-review/ArtworkNotesTab';
 import { VisualChecksTab, type VisualDecision } from './artwork-review/VisualChecksTab';
 import { useSubmissionArtworks } from './artwork-review/useSubmissionArtworks';
+import { buildRoleChapterReaderUrl } from '@/app/routePaths';
 import { DecisionBar } from './review-shared/DecisionBar';
 import { ReasonForm } from '@/shared/components/ReasonForm';
 import {
@@ -112,11 +113,13 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     decisionMadeRef.current = false;
     autoOpenedTaskRef.current = null;
     if (taskId === 'latest' && chapterId && effectiveWsId && seriesId) {
-      navigate(`/workspaces/${effectiveWsId}/series/${seriesId}/chapters/${chapterId}/reader`, {
+      const reviewRole =
+        normalizeWorkspaceRole(workspaceRole) === 'PRODUCER' ? 'producer' : 'editor';
+      navigate(buildRoleChapterReaderUrl(reviewRole, effectiveWsId, seriesId, chapterId), {
         replace: true,
       });
     }
-  }, [chapterId, taskId, effectiveWsId, seriesId, navigate]);
+  }, [chapterId, taskId, effectiveWsId, seriesId, navigate, workspaceRole]);
 
   const loadData = useCallback(async () => {
     if (!chapterId || !taskId) return;

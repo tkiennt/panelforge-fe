@@ -516,21 +516,41 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                       : t('chapterSelection.newlyCreated')}
                   </span>
 
-                  <button
-                    type='button'
-                    data-testid={`artist-enter-desk-btn-${chapter.chapterNumber}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenArtistDesk(chapter);
-                    }}
-                    disabled={Boolean(blockReason)}
-                    title={blockReason || undefined}
-                    className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-[#C2410C] text-white text-xs font-bold transition-all duration-150 cursor-pointer shadow-xs group-hover:translate-x-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-stone-900'
-                  >
-                    <LayoutTemplate className='w-3.5 h-3.5 text-orange-400' />
-                    <span>{t('chapterSelection.openDesk')}</span>
-                    <ArrowRight className='w-3 h-3 transition-transform duration-150 group-hover:translate-x-0.5' />
-                  </button>
+                  <div className='flex items-center gap-2'>
+                    <button
+                      type='button'
+                      data-testid={`artist-read-chapter-btn-${chapter.chapterNumber}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (workspaceId && seriesId) {
+                          navigate(
+                            `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapter.id}/reader`,
+                          );
+                        }
+                      }}
+                      title={t('chapterSelection.readChapterTooltip', 'Đọc thử toàn bộ chương')}
+                      className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-orange-300 text-stone-700 text-xs font-semibold transition-all duration-150 cursor-pointer shadow-2xs'
+                    >
+                      <BookOpen className='w-3.5 h-3.5 text-orange-600' />
+                      <span>{t('chapterSelection.readChapterBtn', 'Đọc demo')}</span>
+                    </button>
+
+                    <button
+                      type='button'
+                      data-testid={`artist-enter-desk-btn-${chapter.chapterNumber}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenArtistDesk(chapter);
+                      }}
+                      disabled={Boolean(blockReason)}
+                      title={blockReason || undefined}
+                      className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-[#C2410C] text-white text-xs font-bold transition-all duration-150 cursor-pointer shadow-xs group-hover:translate-x-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-stone-900'
+                    >
+                      <LayoutTemplate className='w-3.5 h-3.5 text-orange-400' />
+                      <span>{t('chapterSelection.openDesk')}</span>
+                      <ArrowRight className='w-3 h-3 transition-transform duration-150 group-hover:translate-x-0.5' />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -596,20 +616,40 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                         {chapter.pagesCount || 0}
                       </td>
                       <td className='py-3.5 px-4 text-right whitespace-nowrap'>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenArtistDesk(chapter);
-                          }}
-                          disabled={Boolean(blockReason)}
-                          title={blockReason || undefined}
-                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-[#C2410C] text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs'
-                        >
-                          <LayoutTemplate className='w-3.5 h-3.5 text-orange-400' />
-                          <span>{t('chapterSelection.openDesk')}</span>
-                          <ArrowRight className='w-3 h-3' />
-                        </button>
+                        <div className='inline-flex items-center justify-end gap-2'>
+                          <button
+                            type='button'
+                            data-testid={`artist-read-chapter-row-btn-${chapter.chapterNumber}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (workspaceId && seriesId) {
+                                navigate(
+                                  `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapter.id}/reader`,
+                                );
+                              }
+                            }}
+                            title={t('chapterSelection.readChapterTooltip', 'Đọc thử toàn bộ chương')}
+                            className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-orange-300 text-stone-700 text-xs font-semibold transition-colors cursor-pointer shadow-2xs'
+                          >
+                            <BookOpen className='w-3.5 h-3.5 text-orange-600' />
+                            <span>{t('chapterSelection.readChapterBtn', 'Đọc demo')}</span>
+                          </button>
+
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenArtistDesk(chapter);
+                            }}
+                            disabled={Boolean(blockReason)}
+                            title={blockReason || undefined}
+                            className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-[#C2410C] text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs'
+                          >
+                            <LayoutTemplate className='w-3.5 h-3.5 text-orange-400' />
+                            <span>{t('chapterSelection.openDesk')}</span>
+                            <ArrowRight className='w-3 h-3' />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

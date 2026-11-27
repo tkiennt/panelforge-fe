@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '@/lib/i18n';
 import {
+  BookOpen,
   LayoutGrid,
   Maximize2,
   Minimize2,
@@ -28,6 +29,7 @@ export interface ArtistBottomPageStripProps {
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   canEdit?: boolean;
+  onOpenReader?: () => void;
 }
 
 /**
@@ -50,6 +52,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
   isFullscreen,
   onToggleFullscreen,
   canEdit = true,
+  onOpenReader,
 }) => {
   const { t } = useTranslation('artist');
   const selectedIndex = pages.findIndex((p) => p.id === selectedPageId);
@@ -180,10 +183,24 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
       </div>
 
       {/* 2. ZOOM & FULLSCREEN CONTROLS (STITCH PILL) */}
-      <div
-        className='flex items-center gap-0.5 shrink-0 bg-[#FAF9F5] border border-[#E7E5E4] px-1.5 py-1 rounded text-xs text-stone-700'
-        data-testid='canva-bottom-bar'
-      >
+      <div className='flex items-center gap-2 shrink-0'>
+        {onOpenReader && (
+          <button
+            type='button'
+            onClick={onOpenReader}
+            data-testid='artist-bottom-strip-read-btn'
+            className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#FAF9F5] border border-[#E7E5E4] text-xs font-medium text-stone-700 hover:text-[#EA580C] hover:border-orange-300 transition-colors cursor-pointer shadow-2xs'
+            title={t('bottomPageStrip.readChapterTooltip', 'Đọc thử toàn bộ chương')}
+          >
+            <BookOpen className='w-3.5 h-3.5 text-orange-600' />
+            <span>{t('bottomPageStrip.readChapterLabel', 'Đọc demo')}</span>
+          </button>
+        )}
+
+        <div
+          className='flex items-center gap-0.5 shrink-0 bg-[#FAF9F5] border border-[#E7E5E4] px-1.5 py-1 rounded text-xs text-stone-700'
+          data-testid='canva-bottom-bar'
+        >
         <span className='sr-only' data-testid='canva-page-counter'>
           {activePageNumber} / {totalPages || 1}
         </span>
@@ -230,6 +247,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
             </button>
           </>
         )}
+        </div>
       </div>
     </footer>
   );

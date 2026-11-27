@@ -32,6 +32,7 @@ export interface FocusHeaderConfig {
   withdrawDisabledReason?: string;
   isWithdrawingStage?: boolean;
   withdrawButtonLabel?: string;
+  readerUrl?: string;
 }
 
 export interface FocusHeaderContextValue {

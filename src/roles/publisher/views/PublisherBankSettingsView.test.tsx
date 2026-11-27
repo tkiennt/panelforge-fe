@@ -12,6 +12,7 @@ vi.mock('@/services/payment.service', async (importOriginal) => {
     paymentService: {
       getBankSettings: vi.fn(),
       updateBankSettings: vi.fn(),
+      getPayments: vi.fn(),
     },
   };
 });
@@ -85,5 +86,35 @@ describe('PublisherBankSettingsView', () => {
         bankAccountName: 'STUDIO SUN',
       });
     });
+  });
+
+  it('hiển thị riêng doanh thu mở khóa và tổng tiền nạp ví', async () => {
+    vi.mocked(paymentService.getBankSettings).mockResolvedValue({
+      workspaceId: 'ws-1',
+      bankBin: '970422',
+      bankName: 'MB Bank',
+      bankAccountNo: '0123456789',
+      bankAccountName: 'STUDIO MOON',
+    });
+    vi.mocked(paymentService.getPayments).mockResolvedValue({
+      items: [],
+      totalCount: 0,
+      pageIndex: 1,
+      pageSize: 30,
+      totalPages: 1,
+      summary: {
+        totalRevenueVnd: 15000,
+        totalUnlockRevenueVnd: 15000,
+        totalTopupsVnd: 100000,
+        pendingCount: 0,
+        totalUnlockedChapters: 1,
+        paidTransactionsCount: 2,
+      },
+    });
+
+    renderView();
+
+    expect(await screen.findByTestId('kpi-unlock-revenue')).toHaveTextContent(/15[.,]000 VND/);
+    expect(screen.getByTestId('kpi-total-topups')).toHaveTextContent(/100[.,]000 VND/);
   });
 });

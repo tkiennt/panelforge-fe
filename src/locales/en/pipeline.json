@@ -487,6 +487,8 @@
     "drawerAssigneeLabel": "Assignee",
     "drawerDueDateLabel": "Due date",
     "drawerLotBriefLabel": "Lot brief",
+    "drawerActionsLabel": "Actions",
+    "openCellDetailAria": "View {stage} details ({status})",
     "sendingBtn": "Sending...",
     "confirmReturnBtn": "Confirm return",
     "historyTitle": "Submission history",

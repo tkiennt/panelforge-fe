@@ -4,6 +4,8 @@ import {
   linkTypedSpeakers,
   parseScriptTextToBlocks,
   convertScriptTextToScreenplayBlocks,
+  convertScriptTextToEditorNodes,
+  convertBlocksToEditorNodes,
   countPagesAndPanels,
   filterScriptTextByPageRange,
 } from './scriptConverterAdapter';
@@ -267,5 +269,129 @@ Tiếng còi cảnh sát vang lên từ xa.
       ],
     );
     expect(lines.map((l) => l.speakerLabel)).toEqual(['Naruto', 'Sasuke', null]);
+  });
+
+  it('nhận diện chính xác kịch bản tiếng Anh: NARRATOR và Location thành caption, không nhầm thành character', () => {
+    const englishScript = `
+Page 1
+Panel 1: [Wide shot]
+Location: Neon-lit alleyway, Downtown Tokyo - Midnight.
+NARRATOR: "In a city that never sleeps, some secrets are best left buried."
+Panel 2: [Close-up]
+Arthur: "It's still intact."
+ARTHUR (THINKING): "They have no idea what they unleashed."
+Panel 3: [High angle]
+SFX: CRASH!
+LANCELOT: "Hand it over, Arthur! There is nowhere left to run!"
+    `.trim();
+
+    const blocks = parseScriptTextToBlocks(englishScript);
+
+    // Kiểm tra Trang và Panel
+    expect(blocks.some((b) => b.type === 'page' && b.pageNumber === '01')).toBe(true);
+    expect(blocks.filter((b) => b.type === 'panel')).toHaveLength(3);
+
+    // NARRATOR và Location phải là caption, tuyệt đối KHÔNG phải là character trong dialogue
+    const captions = blocks.filter((b) => b.type === 'caption');
+    expect(captions.length).toBeGreaterThanOrEqual(2);
+    expect(captions.some((c) => c.content.includes('Neon-lit alleyway'))).toBe(true);
+    expect(captions.some((c) => c.content.includes('In a city that never sleeps'))).toBe(true);
+
+    const dialogues = blocks.filter((b) => b.type === 'dialogue');
+    expect(dialogues.some((d) => d.character === 'NARRATOR' || d.character === 'Location')).toBe(false);
+
+    // Thoại của Arthur và Lancelot
+    expect(dialogues.some((d) => d.character === 'Arthur' && d.content.includes('intact'))).toBe(true);
+    const thinkingDialogue = dialogues.find((d) => d.character === 'ARTHUR' && d.parens === 'THINKING');
+    expect(thinkingDialogue).toBeDefined();
+    expect(thinkingDialogue?.content).toContain('They have no idea');
+
+    expect(dialogues.some((d) => d.character === 'LANCELOT' && d.content.includes('Hand it over'))).toBe(true);
+
+    // SFX
+    const sfxBlock = blocks.find((b) => b.type === 'sfx');
+    expect(sfxBlock).toBeDefined();
+    expect(sfxBlock?.content).toBe('CRASH!');
+  });
+
+  it('nhận diện sluglines INT./EXT. thành action và VOICEOVER thành caption', () => {
+    const screenScript = `
+Page 1
+Panel 1: [Wide]
+INT. WAREHOUSE - NIGHT
+VOICEOVER: "The drop was supposed to be simple."
+JOHN: "Are they here yet?"
+EXT. STREET - CONTINUOUS
+Rain keeps falling.
+    `.trim();
+
+    const blocks = parseScriptTextToBlocks(screenScript);
+    const actions = blocks.filter((b) => b.type === 'action');
+    expect(actions.some((a) => a.content.includes('INT. WAREHOUSE - NIGHT'))).toBe(true);
+    expect(actions.some((a) => a.content.includes('EXT. STREET - CONTINUOUS'))).toBe(true);
+
+    const captions = blocks.filter((b) => b.type === 'caption');
+    expect(captions.some((c) => c.content.includes('The drop was supposed to be simple'))).toBe(true);
+
+    const dialogues = blocks.filter((b) => b.type === 'dialogue');
+    expect(dialogues).toHaveLength(1);
+    expect(dialogues[0].character).toBe('JOHN');
+  });
+
+  it('chuyển đổi chuẩn xác sang TipTap scriptLine nodes cho WriterSolo ScreenplayFlowEditor', () => {
+    const sampleScript = `
+! Trang 01
+" Panel 1.1: [Toàn cảnh]
+Thành phố ngập trong ánh đèn neon.
+@Minh (thì thầm): "Mọi thứ đã sẵn sàng."
+SFX: TIẾNG NỔ!
+Caption: Một đêm mưa lạnh giá.
+    `.trim();
+
+    const nodes = convertScriptTextToEditorNodes(sampleScript, {
+      characters: [{ id: 'chr-minh', name: 'Minh' }],
+    });
+
+    expect(nodes.length).toBeGreaterThanOrEqual(6);
+
+    // Page line
+    const pageNode = nodes.find((n) => n.attrs?.el === 'page');
+    expect(pageNode).toBeDefined();
+    expect(pageNode?.type).toBe('scriptLine');
+
+    // Panel line
+    const panelNode = nodes.find((n) => n.attrs?.el === 'panel');
+    expect(panelNode).toBeDefined();
+    expect(panelNode?.content?.[0]?.text).toBe('[Toàn cảnh]');
+
+    // Action line
+    const actionNode = nodes.find((n) => n.attrs?.el === 'action');
+    expect(actionNode).toBeDefined();
+    expect(actionNode?.content?.[0]?.text).toContain('Thành phố ngập trong ánh đèn neon');
+
+    // Character line
+    const charNode = nodes.find((n) => n.attrs?.el === 'character');
+    expect(charNode).toBeDefined();
+    expect(charNode?.content?.[0]?.text).toBe('MINH:');
+
+    // Parens line
+    const parensNode = nodes.find((n) => n.attrs?.el === 'parens');
+    expect(parensNode).toBeDefined();
+    expect(parensNode?.content?.[0]?.text).toBe('thì thầm');
+
+    // Dialogue line
+    const dialNode = nodes.find((n) => n.attrs?.el === 'dialogue');
+    expect(dialNode).toBeDefined();
+    expect(dialNode?.content?.[0]?.text).toBe('Mọi thứ đã sẵn sàng.');
+
+    // SFX line
+    const sfxNode = nodes.find((n) => n.attrs?.el === 'sfx');
+    expect(sfxNode).toBeDefined();
+    expect(sfxNode?.content?.[0]?.text).toBe('TIẾNG NỔ!');
+
+    // Caption line
+    const captionNode = nodes.find((n) => n.attrs?.el === 'caption');
+    expect(captionNode).toBeDefined();
+    expect(captionNode?.content?.[0]?.text).toBe('Một đêm mưa lạnh giá.');
   });
 });

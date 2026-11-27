@@ -21,7 +21,7 @@ interface ChapterReadingModeProps {
   onReviewPage: (pageId: string) => void;
 }
 
-/** UIQ-11p: Editor đọc chương liền mạch như truyện thật (trang ghép tranh + chữ, theo hướng đọc của series). */
+/** UIQ-11p: Studio roles đọc chương liền mạch như truyện thật theo hướng đọc của series. */
 export const ChapterReadingMode: React.FC<ChapterReadingModeProps> = ({
   chapterId,
   seriesId,

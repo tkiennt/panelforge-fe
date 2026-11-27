@@ -486,8 +486,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     await screen.findByText(/Họ đang di chuyển/);
 
     // Chèn mẫu định dạng nhanh để tạo thay đổi chưa lưu
-    await user.click(await screen.findByTestId('rail-ai-btn'));
-    await user.click(screen.getByTestId('quick-template-sfx'));
+    await user.click(await screen.findByTestId('script-actions-trigger'));
+    await user.click(screen.getByTestId('rail-ai-btn'));
+    await user.click(await screen.findByTestId('quick-template-sfx'));
 
     expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
 
@@ -541,8 +542,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     renderView();
     await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
     await screen.findByText(/Họ đang di chuyển/);
-    await user.click(await screen.findByTestId('rail-ai-btn'));
-    await user.click(screen.getByTestId('quick-template-sfx'));
+    await user.click(await screen.findByTestId('script-actions-trigger'));
+    await user.click(screen.getByTestId('rail-ai-btn'));
+    await user.click(await screen.findByTestId('quick-template-sfx'));
     expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
 
     // BE vừa tạo rev-11 (khôi phục / AI ở nơi khác)
@@ -799,7 +801,8 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     await screen.findByText('Biên Soạn Kịch Bản Phân Cảnh (Script Editor)');
     await screen.findByText(/Họ đang di chuyển/);
 
-    const saveBtn = await screen.findByTestId('save-script-btn');
+    fireEvent.click(await screen.findByTestId('script-actions-trigger'));
+    const saveBtn = await screen.findByTestId('flow-sheet-save-btn');
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
@@ -888,7 +891,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       renderView({ workspaceRole: 'WRITER' });
       await screen.findByText(/Họ đang di chuyển/);
 
-      const rewriteBtn = screen.getByRole('button', { name: /Viết lại bằng AI/i });
+      await user.click(await screen.findByTestId('script-actions-trigger'));
+      await user.click(screen.getByTestId('rail-ai-btn'));
+      const rewriteBtn = await screen.findByRole('button', { name: /Viết lại bằng AI/i });
       await user.click(rewriteBtn);
 
       expect(runCopilotSpy).toHaveBeenCalledWith('se-1', {
@@ -959,12 +964,16 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       renderView({ workspaceRole: 'WRITER' });
       await screen.findByText(/Họ đang di chuyển/);
 
-      await user.click(screen.getByRole('button', { name: /Viết lại bằng AI/i }));
+      await user.click(await screen.findByTestId('script-actions-trigger'));
+      await user.click(screen.getByTestId('rail-ai-btn'));
+      await user.click(await screen.findByRole('button', { name: /Viết lại bằng AI/i }));
       expect(
         await screen.findByText('Bạn chưa được phân công viết chương này.'),
       ).toBeInTheDocument();
 
-      await user.click(screen.getByRole('button', { name: /Viết lại bằng AI/i }));
+      await user.click(await screen.findByTestId('script-actions-trigger'));
+      await user.click(screen.getByTestId('rail-ai-btn'));
+      await user.click(await screen.findByRole('button', { name: /Viết lại bằng AI/i }));
       expect(runCopilotSpy).toHaveBeenCalledTimes(2);
       expect(
         (await screen.findAllByText('Kịch bản chương này đã đóng băng (Frozen).')).length,
@@ -978,7 +987,8 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       renderView({ workspaceRole: 'WRITER' });
       await screen.findByText(/Họ đang di chuyển/);
 
-      const triggerBtn = await screen.findByTestId('rail-ai-btn');
+      await user.click(await screen.findByTestId('script-actions-trigger'));
+      const triggerBtn = screen.getByTestId('rail-ai-btn');
       expect(triggerBtn).toHaveTextContent('Mẫu & AI');
       await user.click(triggerBtn);
 
@@ -987,7 +997,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       expect(screen.queryByText(/Kael/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/SHAKIIIIN/i)).not.toBeInTheDocument();
 
-      await user.click(screen.getByTestId('quick-template-dialogue'));
+      await user.click(await screen.findByTestId('quick-template-dialogue'));
 
       expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
       const sheet = screen.getByTestId('paper-editor-sheet');
@@ -1008,12 +1018,13 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
         />,
       );
 
-      const triggerBtn = await screen.findByTestId('rail-ai-btn');
+      await user.click(await screen.findByTestId('script-actions-trigger'));
+      const triggerBtn = screen.getByTestId('rail-ai-btn');
       expect(triggerBtn).toHaveTextContent('Mẫu nhanh');
       expect(within(triggerBtn).queryByText('AI')).not.toBeInTheDocument();
 
       await user.click(triggerBtn);
-      expect(screen.getByTestId('quick-template-dialogue')).toBeInTheDocument();
+      expect(await screen.findByTestId('quick-template-dialogue')).toBeInTheDocument();
       expect(screen.queryByTestId('ai-next-line-Dialogue')).not.toBeInTheDocument();
     });
 
@@ -1030,12 +1041,14 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       renderView({ workspaceRole: 'WRITER' });
       await screen.findByText(/Họ đang di chuyển/);
 
-      await user.click(await screen.findByTestId('rail-ai-btn'));
-      await user.click(screen.getByTestId('open-ai-draft-btn'));
+      await user.click(await screen.findByTestId('script-actions-trigger'));
+      await user.click(screen.getByTestId('rail-ai-btn'));
+      await user.click(await screen.findByTestId('open-ai-draft-btn'));
       expect(await screen.findByText('Trợ lý AI · Viết nháp script')).toBeInTheDocument();
 
-      await user.click(await screen.findByTestId('rail-ai-btn'));
-      await user.click(screen.getByTestId('open-ai-storyboard-btn'));
+      await user.click(await screen.findByTestId('script-actions-trigger'));
+      await user.click(screen.getByTestId('rail-ai-btn'));
+      await user.click(await screen.findByTestId('open-ai-storyboard-btn'));
       expect(await screen.findByText('Trợ lý AI · Phân khung Storyboard')).toBeInTheDocument();
     });
 
@@ -1082,8 +1095,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
       renderView({ workspaceRole: 'WRITER' });
       await screen.findByText(/Họ đang di chuyển/);
-      await user.click(await screen.findByTestId('rail-ai-btn'));
-      await user.click(screen.getByTestId('ai-next-line-Sfx'));
+      await user.click(await screen.findByTestId('script-actions-trigger'));
+      await user.click(screen.getByTestId('rail-ai-btn'));
+      await user.click(await screen.findByTestId('ai-next-line-Sfx'));
       expect((await screen.findAllByText(/ĐỒNG!/)).length).toBeGreaterThanOrEqual(1);
 
       await user.click(screen.getByRole('button', { name: 'Yêu cầu sửa' }));
@@ -1148,8 +1162,9 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       renderView({ workspaceRole: 'WRITER' });
       await screen.findByText(/Họ đang di chuyển/);
 
-      await user.click(await screen.findByTestId('rail-ai-btn'));
-      await user.click(screen.getByTestId('ai-next-line-Sfx'));
+      await user.click(await screen.findByTestId('script-actions-trigger'));
+      await user.click(screen.getByTestId('rail-ai-btn'));
+      await user.click(await screen.findByTestId('ai-next-line-Sfx'));
 
       expect(runNextLineSpy).toHaveBeenCalledWith('se-1', {
         sceneId: 'sc-1',
@@ -1206,7 +1221,8 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       );
 
       renderView({ workspaceRole: 'WRITER' });
-      const saveBtn = await screen.findByTestId('save-script-btn');
+      await user.click(await screen.findByTestId('script-actions-trigger'));
+      const saveBtn = await screen.findByTestId('flow-sheet-save-btn');
       await user.click(saveBtn);
 
       const banner = await screen.findByTestId('delete-blocked-banner');
