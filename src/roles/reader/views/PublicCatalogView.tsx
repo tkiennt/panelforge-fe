@@ -378,7 +378,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                             <span className='text-[7px] text-stone-400 font-bold uppercase leading-none'>
                               {t('workspace.reader.catalog.chapterShortBadge')}
                             </span>
-                            <span className='text-[11px] font-bold text-[#F97316] leading-none mt-0.5'>
+                            <span className='text-xs font-bold text-[#F97316] leading-none mt-0.5'>
                               {chap.chapterNumber}
                             </span>
                           </div>
@@ -398,11 +398,11 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                       </div>
                       <div className='flex items-center gap-2'>
                         {chap.publishedAt && (
-                          <span className='text-[10px] text-[#57534E]/70 font-mono'>
+                          <span className='text-xs text-[#57534E]/70 font-mono'>
                             {new Date(chap.publishedAt).toLocaleDateString(dateLocale)}
                           </span>
                         )}
-                        <span className='px-2 py-0.5 rounded bg-orange-50 text-orange-600 text-[10px] font-bold border border-orange-200 group-hover:bg-[#F97316] group-hover:text-white transition-colors flex items-center gap-1'>
+                        <span className='px-2 py-0.5 rounded bg-orange-50 text-orange-600 text-xs font-bold border border-orange-200 group-hover:bg-[#F97316] group-hover:text-white transition-colors flex items-center gap-1'>
                           <span>{t('workspace.reader.catalog.readBtn')}</span>
                           <span>→</span>
                         </span>

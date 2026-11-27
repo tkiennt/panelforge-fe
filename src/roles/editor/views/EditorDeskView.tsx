@@ -755,7 +755,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                           {isSuggestedForSelf && (
                             <span
                               data-testid={`editor-assigned-to-you-${item.assignmentId}`}
-                              className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200 text-[#C2410C] text-[11px] font-semibold'
+                              className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200 text-[#C2410C] text-xs font-semibold'
                             >
                               <User className='w-3 h-3 text-[#EA580C] shrink-0' />
                               <span>{t('desk.assignedToYouChip', 'Được phân cho bạn')}</span>
@@ -764,7 +764,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                           {item.isInputOutdated && (
                             <span
                               data-testid={`editor-input-outdated-${item.assignmentId}`}
-                              className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-semibold'
+                              className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 text-xs font-semibold'
                             >
                               <AlertCircle className='w-3 h-3 text-amber-700 shrink-0' />
                               <span>{t('chapterReview.inputOutdatedBadge')}</span>
@@ -789,7 +789,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                               className='w-4 h-4 rounded-full object-cover shrink-0'
                             />
                           ) : (
-                            <span className='w-4 h-4 rounded-full bg-[#E5E0D8] text-[#57534E] flex items-center justify-center font-bold text-[10px] shrink-0'>
+                            <span className='w-4 h-4 rounded-full bg-[#E5E0D8] text-[#57534E] flex items-center justify-center font-bold text-xs shrink-0'>
                               {item.assigneeName ? item.assigneeName.charAt(0).toUpperCase() : 'A'}
                             </span>
                           )}

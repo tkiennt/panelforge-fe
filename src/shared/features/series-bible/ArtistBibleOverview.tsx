@@ -19,6 +19,7 @@ import type {
 } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { useTranslation } from '@/lib/i18n';
+import { StatusBadge } from '@/shared/ui';
 
 interface ArtistBibleOverviewProps {
   role?: 'artist' | 'writer';
@@ -41,19 +42,6 @@ const categoryIcon = (category: BibleEntity['category']) => {
   if (category === 'locations') return MapPin;
   if (category === 'terminology') return Wrench;
   return ShieldCheck;
-};
-
-const statusTone = (status?: BibleReviewStatus | null) => {
-  if (status === 'CanonLocked') {
-    return 'border-emerald-200 bg-emerald-50 text-emerald-800';
-  }
-  if (status === 'ConceptSubmitted') {
-    return 'border-amber-200 bg-amber-50 text-amber-800';
-  }
-  if (status === 'ReworkRequired') {
-    return 'border-rose-200 bg-rose-50 text-rose-800';
-  }
-  return 'border-stone-200 bg-stone-100 text-stone-700';
 };
 
 export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
@@ -252,11 +240,11 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                             </span>
                           ) : null}
                         </div>
-                        <span
-                          className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${statusTone(status)}`}
-                        >
-                          {statusLabel(status)}
-                        </span>
+                        <StatusBadge
+                          kind='bibleReview'
+                          status={status ?? 'Draft'}
+                          label={statusLabel(status)}
+                        />
                       </div>
                     </div>
                   </div>

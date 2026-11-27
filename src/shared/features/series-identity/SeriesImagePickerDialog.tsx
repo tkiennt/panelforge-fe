@@ -406,7 +406,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
               transformOrigin: 'center center',
             }}
           />
-          <div className='absolute bottom-1.5 left-1/2 -translate-x-1/2 pointer-events-none bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-xs whitespace-nowrap shadow-xs'>
+          <div className='absolute bottom-1.5 left-1/2 -translate-x-1/2 pointer-events-none bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-full backdrop-blur-xs whitespace-nowrap shadow-xs'>
             {t('seriesIdentity.dragToCenterHint')}
           </div>
         </div>
@@ -502,7 +502,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
                 </div>
 
                 {fitMode === 'contain' ? (
-                  <p className='text-[11px] text-[#78716C] leading-relaxed'>
+                  <p className='text-xs text-[#78716C] leading-relaxed'>
                     {t('seriesIdentity.fitContainDesc')}
                   </p>
                 ) : (
@@ -539,13 +539,13 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
                       >
                         <ZoomIn className='w-3.5 h-3.5' />
                       </button>
-                      <span className='w-9 text-right font-mono text-[11px] font-semibold text-[#44403C]'>
+                      <span className='w-9 text-right font-mono text-xs font-semibold text-[#44403C]'>
                         {Math.round(zoom * 100)}%
                       </span>
                     </div>
 
                     <div className='flex items-center gap-2'>
-                      <span className='text-[11px] text-[#78716C]'>
+                      <span className='text-xs text-[#78716C]'>
                         {t('seriesIdentity.dragPanHint')}
                       </span>
                       {(zoom > 1 || pan.x !== 0 || pan.y !== 0) && (

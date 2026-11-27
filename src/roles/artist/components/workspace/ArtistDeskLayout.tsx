@@ -272,7 +272,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
           </div>
 
           {/* View Mode Toggle (Panel Mode vs Full-Page Mode) */}
-          <div className='flex bg-stone-100 p-0.5 rounded-lg text-[11px] font-medium border border-stone-200'>
+          <div className='flex bg-stone-100 p-0.5 rounded-lg text-xs font-medium border border-stone-200'>
             <button
               type='button'
               onClick={() => setViewMode('panel')}
@@ -301,7 +301,7 @@ export const ArtistDeskLayout: React.FC<ArtistDeskLayoutProps> = ({
         {/* Right: Quick Save and Primary Review CTA */}
         <div className='flex items-center gap-3'>
           {/* Quick Save Status Indicator */}
-          <div className='flex items-center gap-1 text-[11px] text-stone-400 font-mono hidden md:flex'>
+          <div className='flex items-center gap-1 text-xs text-stone-400 font-mono hidden md:flex'>
             <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
             <span>{saveTimestamp}</span>
           </div>

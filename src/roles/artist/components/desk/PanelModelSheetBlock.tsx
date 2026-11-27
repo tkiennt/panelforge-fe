@@ -235,7 +235,7 @@ export const PanelModelSheetBlock: React.FC<PanelModelSheetBlockProps> = ({
                     data-testid='model-sheet-no-image-icon'
                   />
                 )}
-                <span className='absolute bottom-0 right-0 px-1 py-0.2 rounded-tl bg-black/75 text-[9px] font-mono font-bold text-white leading-none'>
+                <span className='absolute bottom-0 right-0 px-1 py-0.2 rounded-tl bg-black/75 text-xs font-mono font-bold text-white leading-none'>
                   v{versionNum}
                 </span>
               </div>

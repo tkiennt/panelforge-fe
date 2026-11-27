@@ -115,7 +115,7 @@ const STATUS_STYLE: Record<StageTaskStatus, { labelKey: string; cls: string }> =
   },
   Cancelled: {
     labelKey: 'taskGridV3.status.Cancelled',
-    cls: 'bg-zinc-100 text-zinc-400 border-zinc-200 line-through',
+    cls: 'bg-stone-100 text-stone-400 border-stone-200 line-through',
   },
 };
 
@@ -1461,14 +1461,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         return (
           <div
             data-testid={`cancelled-task-cell-${cancelled.id}`}
-            className='w-full min-w-0 box-border p-2 rounded-lg border border-dashed border-stone-200 bg-stone-50/80 text-center text-[11px] text-stone-400 opacity-55 line-through'
+            className='w-full min-w-0 box-border p-2 rounded-lg border border-dashed border-stone-200 bg-stone-50/80 text-center text-xs text-stone-400 opacity-55 line-through'
           >
             {t('taskGridV3.cancelledCell')}
           </div>
         );
       }
       return (
-        <div className='p-2 text-center text-[11px] text-stone-400 italic'>
+        <div className='p-2 text-center text-xs text-stone-400 italic'>
           {t('taskGridV3.unassignedCell')}
         </div>
       );
@@ -1566,13 +1566,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
       >
         <div className='flex items-center justify-between gap-1.5'>
           <div className='flex items-center gap-1 flex-wrap'>
-            <span className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold ${meta.cls}`}>
+            <span className={`px-1.5 py-0.5 rounded border text-xs font-semibold ${meta.cls}`}>
               {meta.label}
             </span>
             {attemptCount > 0 && (
               <span
                 data-testid={`task-attempt-count-${task.id}`}
-                className='px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-[10px] font-mono font-semibold text-stone-700'
+                className='px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200 text-xs font-mono font-semibold text-stone-700'
               >
                 {t('taskGridV3.attemptBadge', { count: attemptCount })}
               </span>
@@ -1581,7 +1581,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               <span
                 data-testid={`task-auto-badge-${task.id}`}
                 title={taskLot.autoAssignReason || undefined}
-                className='px-1.5 py-0.5 rounded bg-orange-50 border border-orange-200 text-[10px] font-semibold text-[#C2410C]'
+                className='px-1.5 py-0.5 rounded bg-orange-50 border border-orange-200 text-xs font-semibold text-[#C2410C]'
               >
                 {t('taskGridV3.autoAssignedBadge')}
               </span>
@@ -1633,7 +1633,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
         {task.assigneeUserId && (
           <div
-            className='text-[11px] text-stone-700 truncate'
+            className='text-xs text-stone-700 truncate'
             title={getMemberName(task.assigneeUserId)}
           >
             👤 <span className='font-medium'>{getMemberName(task.assigneeUserId)}</span>
@@ -1643,7 +1643,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         {isLockedByOtherReviewer && task.reviewerUserId && (
           <div
             data-testid={`under-review-by-${task.id}`}
-            className='rounded border border-indigo-200 bg-indigo-50 px-1.5 py-1 text-[10px] font-semibold text-indigo-900 flex items-center gap-1'
+            className='rounded border border-indigo-200 bg-indigo-50 px-1.5 py-1 text-xs font-semibold text-indigo-900 flex items-center gap-1'
           >
             <Lock className='h-2.5 w-2.5 shrink-0 text-indigo-600' />
             <span className='truncate'>
@@ -1660,7 +1660,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 : `rework-decision-comment-${task.id}`
             }
             title={reworkTooltip}
-            className='rounded border border-rose-200 bg-rose-50/80 px-1.5 py-1 text-[10px] leading-snug text-rose-800 line-clamp-2'
+            className='rounded border border-rose-200 bg-rose-50/80 px-1.5 py-1 text-xs leading-snug text-rose-800 line-clamp-2'
           >
             {reworkDisplay.kind === 'reopen' ? (
               <>
@@ -1679,14 +1679,14 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         {task.isInputOutdated && (
           <div className='space-y-1'>
             <div
-              className='inline-flex items-center gap-1 rounded bg-amber-100 border border-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900'
+              className='inline-flex items-center gap-1 rounded bg-amber-100 border border-amber-300 px-1.5 py-0.5 text-xs font-semibold text-amber-900'
               title={task.outdatedReason || t('taskGridV3.prevStageChanged')}
             >
               <AlertTriangle className='h-3 w-3 shrink-0 text-amber-700' />
               <span>{t('taskGridV3.inputOutdatedTitle')}</span>
             </div>
             {task.outdatedReason && (
-              <div className='text-[10px] text-amber-800 leading-tight'>{task.outdatedReason}</div>
+              <div className='text-xs text-amber-800 leading-tight'>{task.outdatedReason}</div>
             )}
           </div>
         )}
@@ -1703,7 +1703,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   ? t('taskGridV3.startCellTooltip')
                   : t('taskGridV3.waitPrereqsTooltip')
               }
-              className='inline-flex items-center gap-1 rounded bg-[#171717] hover:bg-black text-white px-2 py-1 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+              className='inline-flex items-center gap-1 rounded bg-[#171717] hover:bg-black text-white px-2 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
             >
               {actionLoading === `start:${task.id}` ? (
                 <Loader2 className='h-3 w-3 animate-spin' />
@@ -1726,7 +1726,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   ? t('taskGridV3.submitOutdatedTooltip')
                   : t('taskGridV3.submitCellTooltip')
               }
-              className='inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+              className='inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
             >
               {actionLoading === `submit:${task.id}` ? (
                 <Loader2 className='h-3 w-3 animate-spin' />
@@ -1744,7 +1744,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               disabled={actionLoading === `withdraw:${task.id}`}
               onClick={() => void handleWithdrawTask(task)}
               title={t('taskGridV3.withdrawTooltip')}
-              className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+              className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
             >
               {actionLoading === `withdraw:${task.id}` ? (
                 <Loader2 className='h-3 w-3 animate-spin' />
@@ -1772,7 +1772,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       ? t('taskGridV3.approveOutdatedTooltip')
                       : t('taskGridV3.approveCellTooltip')
                 }
-                className='inline-flex items-center gap-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                className='inline-flex items-center gap-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
               >
                 {actionLoading === `approve:${task.id}` ? (
                   <Loader2 className='h-3 w-3 animate-spin' />
@@ -1797,7 +1797,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       ? t('taskGridV3.underReviewBy', { name: getMemberName(task.reviewerUserId) })
                       : t('taskGridV3.requestChangesTooltip')
                   }
-                  className='inline-flex items-center gap-1 rounded border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                  className='inline-flex items-center gap-1 rounded border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 px-2 py-1 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                 >
                   <XCircle className='h-2.5 w-2.5' />
                   <span>{t('taskGridV3.requestChangesBtn')}</span>
@@ -1813,7 +1813,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               disabled={actionLoading === `releaseReview:${task.id}`}
               onClick={() => void handleReleaseReview(task)}
               title={t('taskGridV3.releaseReviewTooltip')}
-              className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+              className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 px-2 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
             >
               {actionLoading === `releaseReview:${task.id}` ? (
                 <Loader2 className='h-3 w-3 animate-spin' />
@@ -1831,7 +1831,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               disabled={actionLoading === `releaseReview:${task.id}`}
               onClick={() => void handleReleaseReview(task)}
               title={t('taskGridV3.forceReleaseReviewTooltip')}
-              className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-white hover:bg-indigo-50 text-indigo-900 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+              className='inline-flex items-center gap-1 rounded border border-indigo-300 bg-white hover:bg-indigo-50 text-indigo-900 px-2 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
             >
               {actionLoading === `releaseReview:${task.id}` ? (
                 <Loader2 className='h-3 w-3 animate-spin' />
@@ -1850,7 +1850,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 setReopenReason('');
               }}
               title={t('taskGridV3.reopenTooltip')}
-              className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-1 text-[10px] font-semibold cursor-pointer'
+              className='inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-1 text-xs font-semibold cursor-pointer'
             >
               <RotateCcw className='h-2.5 w-2.5' />
               <span>{t('taskGridV3.reopenBtn')}</span>
@@ -1868,7 +1868,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   ? t('taskGridV3.reassignOutdatedTooltip')
                   : t('taskGridV3.reassignTooltip')
               }
-              className='inline-flex items-center gap-1 rounded border border-orange-300 bg-orange-50 hover:bg-orange-100 text-[#C2410C] px-2 py-1 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+              className='inline-flex items-center gap-1 rounded border border-orange-300 bg-orange-50 hover:bg-orange-100 text-[#C2410C] px-2 py-1 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
             >
               <UserCheck className='h-2.5 w-2.5' />
               <span>{t('taskGridV3.reassignBtn')}</span>
@@ -1881,7 +1881,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               disabled={actionLoading === `unassign:${task.id}`}
               onClick={() => handleUnassignTasks([task.id])}
               title={t('taskGridV3.unassignTooltip')}
-              className='inline-flex items-center gap-1 rounded border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-700 px-2 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+              className='inline-flex items-center gap-1 rounded border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-700 px-2 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
             >
               {actionLoading === `unassign:${task.id}` ? (
                 <Loader2 className='h-3 w-3 animate-spin' />
@@ -1897,7 +1897,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               type='button'
               onClick={() => void handleToggleSubmissions(task)}
               title={t('taskGridV3.historyTooltip')}
-              className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-semibold cursor-pointer ${
+              className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-xs font-semibold cursor-pointer ${
                 historyTaskId === task.id
                   ? 'border-stone-800 bg-stone-800 text-white'
                   : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-600'
@@ -1921,7 +1921,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               onChange={(e) => setRequestChangesComment(e.target.value)}
               placeholder={t('taskGridV3.requestChangesPlaceholder')}
               aria-label={t('taskGridV3.requestChangesAria')}
-              className='block w-full min-w-0 box-border resize-y rounded border border-rose-300 bg-white px-2 py-1.5 text-[11px] leading-snug text-stone-900'
+              className='block w-full min-w-0 box-border resize-y rounded border border-rose-300 bg-white px-2 py-1.5 text-xs leading-snug text-stone-900'
             />
             <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
               <button
@@ -1930,7 +1930,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   setRequestingChangesTaskId(null);
                   setRequestChangesComment('');
                 }}
-                className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-[10px] font-medium text-stone-700 cursor-pointer'
+                className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 cursor-pointer'
               >
                 {t('taskGridV3.cancelBtn')}
               </button>
@@ -1938,7 +1938,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 type='button'
                 disabled={actionLoading === `requestChanges:${task.id}`}
                 onClick={() => void handleRequestChanges(task)}
-                className='shrink-0 whitespace-nowrap rounded bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+                className='shrink-0 whitespace-nowrap rounded bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
               >
                 {actionLoading === `requestChanges:${task.id}`
                   ? t('taskGridV3.sendingBtn')
@@ -1952,7 +1952,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         {historyTaskId === task.id && (
           <div
             data-testid={`task-submissions-${task.id}`}
-            className='mt-1 rounded border border-stone-200 bg-stone-50 p-2 space-y-1.5 text-[10px]'
+            className='mt-1 rounded border border-stone-200 bg-stone-50 p-2 space-y-1.5 text-xs'
           >
             <div className='font-bold text-stone-800'>{t('taskGridV3.historyTitle')}</div>
             {loadingHistoryTaskId === task.id ? (
@@ -2030,7 +2030,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                             data-testid={`replay-submission-${sub.id}`}
                             disabled={replayingSubmissionId === sub.id}
                             onClick={() => void handleReplaySubmission(task, sub)}
-                            className='inline-flex items-center gap-0.5 rounded border border-stone-200 bg-stone-50 hover:bg-stone-100 px-1.5 py-0.5 text-[9px] font-semibold text-stone-700 disabled:opacity-50 cursor-pointer'
+                            className='inline-flex items-center gap-0.5 rounded border border-stone-200 bg-stone-50 hover:bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-700 disabled:opacity-50 cursor-pointer'
                             title={t('taskGridV3.replayTooltip')}
                           >
                             {replayingSubmissionId === sub.id ? (
@@ -2058,7 +2058,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
         {/* Impact Review (Keep / Rework) cho Producer khi ô mang cờ isInputOutdated */}
         {canResolveImpact && (
           <div className='mt-1 rounded border border-amber-200 bg-amber-50/70 p-1.5 space-y-1'>
-            <div className='text-[10px] font-semibold text-amber-900'>
+            <div className='text-xs font-semibold text-amber-900'>
               Impact Review {prereqReadyForImpact ? '' : t('taskGridV3.impactWaitingPrereq')}
             </div>
             <div className='flex flex-wrap items-center gap-1'>
@@ -2073,7 +2073,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                     ? t('taskGridV3.impactKeepTooltip')
                     : t('taskGridV3.impactPrereqNotReadyTooltip')
                 }
-                className='inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-0.5 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                className='inline-flex items-center gap-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-0.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
               >
                 <Check className='h-2.5 w-2.5' />
                 <span>{t('taskGridV3.impactKeepBtn')}</span>
@@ -2089,7 +2089,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                     ? t('taskGridV3.impactReworkTooltip')
                     : t('taskGridV3.impactPrereqNotReadyTooltip')
                 }
-                className='inline-flex items-center gap-1 rounded bg-rose-600 hover:bg-rose-700 text-white px-2 py-0.5 text-[10px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                className='inline-flex items-center gap-1 rounded bg-rose-600 hover:bg-rose-700 text-white px-2 py-0.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
               >
                 <RotateCcw className='h-2.5 w-2.5' />
                 <span>{t('taskGridV3.impactReworkBtn')}</span>
@@ -2104,7 +2104,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   }
                   onClick={() => void handleRequestImpactSuggestion(task)}
                   title={t('taskGridV3.impactAiTooltip')}
-                  className='inline-flex items-center gap-1 rounded border border-orange-300 bg-white hover:bg-orange-50 text-[#C2410C] px-2 py-0.5 text-[10px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                  className='inline-flex items-center gap-1 rounded border border-orange-300 bg-white hover:bg-orange-50 text-[#C2410C] px-2 py-0.5 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                 >
                   {actionLoading === `aiImpact:${task.id}` ? (
                     <Loader2 className='h-2.5 w-2.5 animate-spin' />
@@ -2118,7 +2118,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             {impactAiError && (
               <div
                 role='alert'
-                className='rounded border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] text-rose-800'
+                className='rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-800'
               >
                 {impactAiError}
               </div>
@@ -2144,14 +2144,12 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             data-testid={`reassign-task-form-${task.id}`}
             className='mt-1 w-full min-w-0 box-border rounded border border-orange-300 bg-orange-50/80 p-2 space-y-1.5'
           >
-            <div className='text-[10px] font-bold text-stone-900'>
-              {t('taskGridV3.reassignTitle')}
-            </div>
+            <div className='text-xs font-bold text-stone-900'>{t('taskGridV3.reassignTitle')}</div>
             <select
               aria-label={t('taskGridV3.reassignSelectLabel')}
               value={reassignUserId}
               onChange={(e) => setReassignUserId(e.target.value)}
-              className='block w-full min-w-0 rounded border border-orange-300 bg-white px-2 py-1 text-[11px] text-stone-900'
+              className='block w-full min-w-0 rounded border border-orange-300 bg-white px-2 py-1 text-xs text-stone-900'
             >
               <option value=''>{t('taskGridV3.selectMemberPlaceholder')}</option>
               {activeMembers
@@ -2169,20 +2167,20 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               value={reassignBrief}
               onChange={(e) => setReassignBrief(e.target.value)}
               placeholder={t('taskGridV3.reassignBriefPlaceholder')}
-              className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1 text-[11px] text-stone-900'
+              className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-900'
             />
             <input
               type='date'
               aria-label={t('taskGridV3.reassignDueDateAria')}
               value={reassignDueDate}
               onChange={(e) => setReassignDueDate(e.target.value)}
-              className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1 text-[11px] text-stone-900'
+              className='block w-full min-w-0 rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-900'
             />
             <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
               <button
                 type='button'
                 onClick={() => setReassigningTaskId(null)}
-                className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-[10px] font-medium text-stone-700 cursor-pointer'
+                className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 cursor-pointer'
               >
                 {t('taskGridV3.cancelBtn')}
               </button>
@@ -2191,7 +2189,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 data-testid={`confirm-reassign-task-${task.id}`}
                 disabled={!reassignUserId || actionLoading === `reassign:${task.id}`}
                 onClick={() => void handleReassignTask(task, stage)}
-                className='shrink-0 whitespace-nowrap rounded bg-[#EA580C] hover:bg-[#C2410C] text-white px-2.5 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+                className='shrink-0 whitespace-nowrap rounded bg-[#EA580C] hover:bg-[#C2410C] text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
               >
                 {actionLoading === `reassign:${task.id}`
                   ? t('taskGridV3.reassigningBtn')
@@ -2210,7 +2208,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               onChange={(e) => setReopenReason(e.target.value)}
               placeholder={t('taskGridV3.reopenPlaceholder')}
               aria-label={t('taskGridV3.reopenReasonAria')}
-              className='block w-full min-w-0 box-border resize-y rounded border border-amber-300 bg-white px-2 py-1.5 text-[11px] leading-snug text-stone-900'
+              className='block w-full min-w-0 box-border resize-y rounded border border-amber-300 bg-white px-2 py-1.5 text-xs leading-snug text-stone-900'
             />
             <div className='flex flex-wrap items-center justify-end gap-1.5 pt-0.5'>
               <button
@@ -2219,7 +2217,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   setReopeningTaskId(null);
                   setReopenReason('');
                 }}
-                className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-[10px] font-medium text-stone-700 cursor-pointer'
+                className='shrink-0 whitespace-nowrap rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 cursor-pointer'
               >
                 {t('taskGridV3.cancelBtn')}
               </button>
@@ -2227,7 +2225,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                 type='button'
                 disabled={actionLoading === `reopen:${task.id}`}
                 onClick={() => handleReopenTask(task)}
-                className='shrink-0 whitespace-nowrap rounded bg-amber-700 hover:bg-amber-800 text-white px-2.5 py-1 text-[10px] font-semibold disabled:opacity-50 cursor-pointer'
+                className='shrink-0 whitespace-nowrap rounded bg-amber-700 hover:bg-amber-800 text-white px-2.5 py-1 text-xs font-semibold disabled:opacity-50 cursor-pointer'
               >
                 {actionLoading === `reopen:${task.id}`
                   ? t('taskGridV3.reopeningBtn')
@@ -2336,7 +2334,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
             <span
               data-testid='disabled-stage-tasks-note'
               title={t('taskGridV3.disabledStageNoteTooltip')}
-              className='rounded-lg bg-stone-100/80 border border-dashed border-stone-300 px-2.5 py-1 text-[11px] text-stone-500 opacity-75'
+              className='rounded-lg bg-stone-100/80 border border-dashed border-stone-300 px-2.5 py-1 text-xs text-stone-500 opacity-75'
             >
               {t('taskGridV3.disabledStageNote', { count: disabledStageTasks.length })}
             </span>
@@ -2503,7 +2501,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
           </div>
 
           <div className='space-y-1.5'>
-            <div className='text-[11px] font-semibold text-stone-700'>
+            <div className='text-xs font-semibold text-stone-700'>
               {t('taskGridV3.selectMembersHint')}
             </div>
             <div className='flex flex-wrap gap-2'>
@@ -2533,7 +2531,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                         className='h-3.5 w-3.5 accent-[#F97316]'
                       />
                       <span>{m.fullName || m.email.split('@')[0]}</span>
-                      <span className='text-[10px] text-stone-400 font-mono'>({m.role})</span>
+                      <span className='text-xs text-stone-400 font-mono'>({m.role})</span>
                     </label>
                   );
                 })
@@ -2543,7 +2541,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
 
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
             <div>
-              <label className='block text-[11px] font-semibold text-stone-700 mb-1'>
+              <label className='block text-xs font-semibold text-stone-700 mb-1'>
                 {t('taskGridV3.lotBriefLabel')}
               </label>
               <input
@@ -2555,7 +2553,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
               />
             </div>
             <div>
-              <label className='block text-[11px] font-semibold text-stone-700 mb-1'>
+              <label className='block text-xs font-semibold text-stone-700 mb-1'>
                 {t('taskGridV3.lotDueDateLabel')}
               </label>
               <input
@@ -2653,7 +2651,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   <div
                     key={lot.id}
                     data-testid={`grid-lot-pill-${lot.id}`}
-                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] flex items-center gap-2 ${
+                    className={`rounded-lg border px-2.5 py-1.5 text-xs flex items-center gap-2 ${
                       isLotStageDisabled
                         ? 'border-dashed border-stone-300 bg-stone-100/60 text-stone-400 opacity-50'
                         : lot.isOverdue
@@ -2668,13 +2666,13 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       <span
                         data-testid={`lot-auto-badge-${lot.id}`}
                         title={lot.autoAssignReason || undefined}
-                        className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-semibold text-[#C2410C]'
+                        className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-xs font-semibold text-[#C2410C]'
                       >
                         {t('taskGridV3.autoAssignedBadge')}
                       </span>
                     )}
                     {isLotStageDisabled && (
-                      <span className='rounded bg-stone-200 px-1 py-0.2 text-[9px] font-mono text-stone-600'>
+                      <span className='rounded bg-stone-200 px-1 py-0.2 text-xs font-mono text-stone-600'>
                         {t('taskGridV3.stageDisabledBadge')}
                       </span>
                     )}
@@ -2685,7 +2683,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       ({lot.approvedCount}/{lot.taskCount})
                     </span>
                     {lot.dueDate && (
-                      <span className='inline-flex items-center gap-0.5 text-[10px] text-stone-500'>
+                      <span className='inline-flex items-center gap-0.5 text-xs text-stone-500'>
                         <Clock className='h-3 w-3' />
                         {new Date(lot.dueDate).toLocaleDateString(
                           lang === 'en' ? 'en-US' : 'vi-VN',
@@ -2694,7 +2692,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                     )}
                     {lot.brief && (
                       <span
-                        className='max-w-[160px] truncate text-[10px] italic text-stone-500'
+                        className='max-w-[160px] truncate text-xs italic text-stone-500'
                         title={lot.brief}
                       >
                         “{lot.brief}”
@@ -2708,7 +2706,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                           editingLotId === lot.id ? setEditingLotId(null) : openEditLotForm(lot)
                         }
                         title={t('taskGridV3.editLotTooltip')}
-                        className='inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold text-stone-700 cursor-pointer'
+                        className='inline-flex items-center gap-0.5 rounded border border-stone-300 bg-white hover:bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-700 cursor-pointer'
                       >
                         <Pencil className='h-2.5 w-2.5' />
                         <span>{t('taskGridV3.editLotBtn')}</span>
@@ -2736,7 +2734,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                   </div>
                   <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
                     <div>
-                      <label className='block text-[11px] font-semibold text-stone-700 mb-1'>
+                      <label className='block text-xs font-semibold text-stone-700 mb-1'>
                         {t('taskGridV3.lotBriefLabel')}
                       </label>
                       <input
@@ -2749,7 +2747,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       />
                     </div>
                     <div className='space-y-1.5'>
-                      <label className='block text-[11px] font-semibold text-stone-700'>
+                      <label className='block text-xs font-semibold text-stone-700'>
                         {t('taskGridV3.lotDueDateLabel')}
                       </label>
                       <input
@@ -2760,7 +2758,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                         onChange={(e) => setEditLotDueDate(e.target.value)}
                         className='w-full rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs text-stone-900 disabled:opacity-50'
                       />
-                      <label className='inline-flex items-center gap-1.5 text-[11px] text-stone-700 cursor-pointer'>
+                      <label className='inline-flex items-center gap-1.5 text-xs text-stone-700 cursor-pointer'>
                         <input
                           type='checkbox'
                           aria-label={t('taskGridV3.clearDueDateLabel')}
@@ -2836,7 +2834,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                         </span>
                         {stage.track && (
                           <span
-                            className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold border ${
+                            className={`px-1.5 py-0.2 rounded text-xs font-mono font-bold border ${
                               stage.track === 'A'
                                 ? 'bg-sky-50 text-sky-700 border-sky-200'
                                 : 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200'
@@ -2846,7 +2844,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                           </span>
                         )}
                       </div>
-                      <div className='mt-1 flex flex-wrap items-center gap-1 text-[10px] text-stone-500 font-normal'>
+                      <div className='mt-1 flex flex-wrap items-center gap-1 text-xs text-stone-500 font-normal'>
                         {stage.allowedRole && (
                           <span className='rounded bg-stone-200/70 px-1.5 py-0.2 font-mono text-stone-700'>
                             {stage.allowedRole}
@@ -2862,7 +2860,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                         <button
                           type='button'
                           onClick={() => toggleSelectStageColumn(stage.id)}
-                          className='mt-1.5 text-[10px] font-semibold text-[#C2410C] hover:underline cursor-pointer'
+                          className='mt-1.5 text-xs font-semibold text-[#C2410C] hover:underline cursor-pointer'
                         >
                           {t('taskGridV3.selectColumnBtn', { count: unassignedCount })}
                         </button>
@@ -2883,7 +2881,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       {stage.granularity === 'Chapter' || taskMap.has(`${stage.id}:__CHAPTER__`) ? (
                         renderCell(stage, null)
                       ) : (
-                        <div className='p-2 text-center text-[10px] text-stone-300'>—</div>
+                        <div className='p-2 text-center text-xs text-stone-300'>—</div>
                       )}
                     </td>
                   ))}
@@ -2900,7 +2898,7 @@ export const TaskGridBoard: React.FC<TaskGridBoardProps> = ({
                       {stage.granularity === 'Page' || taskMap.has(`${stage.id}:${page.id}`) ? (
                         renderCell(stage, page.id)
                       ) : (
-                        <div className='p-2 text-center text-[10px] text-stone-300'>
+                        <div className='p-2 text-center text-xs text-stone-300'>
                           {t('taskGridV3.chapterScopeCell')}
                         </div>
                       )}

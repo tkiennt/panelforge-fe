@@ -352,7 +352,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                       <History className='w-3.5 h-3.5 text-orange-600' />
                       <span>{t('readerView.scriptRefTitle', 'Kịch bản đối chiếu')}</span>
                     </span>
-                    <span className='text-[10px] font-mono px-1.5 py-0.5 bg-stone-200 text-stone-700 rounded font-semibold'>
+                    <span className='text-xs font-mono px-1.5 py-0.5 bg-stone-200 text-stone-700 rounded font-semibold'>
                       {t('readerView.pageShort', {
                         page: String(currentPage.pageNumber).padStart(2, '0'),
                       })}
@@ -397,11 +397,11 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                               })}
                             </span>
                             {hasOpenCr ? (
-                              <span className='px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold'>
+                              <span className='px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold'>
                                 {t('readerView.hasReworkFlag')}
                               </span>
                             ) : (
-                              <span className='px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold'>
+                              <span className='px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold'>
                                 {t('readerView.matchedBadge')}
                               </span>
                             )}
@@ -420,18 +420,18 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                                     <span>"{line.text}"</span>
                                   </div>
                                 ) : line.type === 'Sfx' ? (
-                                  <div className='font-mono text-orange-700 font-bold text-[10px]'>
+                                  <div className='font-mono text-orange-700 font-bold text-xs'>
                                     SFX: {line.text}
                                   </div>
                                 ) : (
-                                  <p className='text-stone-600 italic leading-relaxed text-[11px]'>
+                                  <p className='text-stone-600 italic leading-relaxed text-xs'>
                                     {line.text}
                                   </p>
                                 )}
                               </div>
                             ))
                           ) : (
-                            <p className='text-stone-400 italic text-[11px]'>
+                            <p className='text-stone-400 italic text-xs'>
                               {t('readerView.actionPanelNoDialogue')}
                             </p>
                           )}
@@ -566,7 +566,7 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                           {/* Pin overlay if rework requested */}
                           {hasOpenCr && (
                             <div className='absolute top-7 right-3 px-2 py-1 border border-dashed border-rose-600 bg-rose-500/20 rounded pointer-events-none flex items-center gap-1'>
-                              <span className='bg-rose-600 text-white font-mono text-[10px] font-bold px-1 rounded'>
+                              <span className='bg-rose-600 text-white font-mono text-xs font-bold px-1 rounded'>
                                 {t('readerView.needsReworkPin')}
                               </span>
                             </div>

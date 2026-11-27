@@ -220,7 +220,7 @@ const Kpi: React.FC<{ label: string; value: string; sub?: string; highlight?: bo
   >
     <div className='text-xs text-[#737373]'>{label}</div>
     <div className='text-xl font-bold text-[#171717] mt-1 tabular-nums'>{value}</div>
-    {sub && <div className='text-[11px] text-[#737373] mt-1'>{sub}</div>}
+    {sub && <div className='text-xs text-[#737373] mt-1'>{sub}</div>}
   </div>
 );
 

@@ -322,7 +322,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                     </div>
                   )}
                   <div>
-                    <label className='text-[11px] font-semibold text-[#171717] block mb-1'>
+                    <label className='text-xs font-semibold text-[#171717] block mb-1'>
                       {t('profile.twoFactorModal.currentPasswordLabel')}{' '}
                       <span className='font-normal text-[#888888]'>
                         {t('profile.twoFactorModal.socialLoginHint')}
@@ -337,7 +337,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className='text-[11px] font-semibold text-[#171717] block mb-1'>
+                    <label className='text-xs font-semibold text-[#171717] block mb-1'>
                       {t('profile.twoFactorModal.currentOtpLabel')}
                     </label>
                     <input
@@ -365,7 +365,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                     <button
                       type='submit'
                       disabled={isDisabling || disableCode.length !== 6}
-                      className='bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-semibold px-5 py-2 rounded-lg flex items-center gap-2 cursor-pointer'
+                      className='bg-red-600 hover:bg-red-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white text-xs font-semibold px-5 py-2 rounded-lg flex items-center gap-2 cursor-pointer'
                     >
                       {isDisabling ? (
                         <>
@@ -395,7 +395,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                         setErrorMessage(null);
                         setShowDisableForm(true);
                       }}
-                      className='w-full sm:w-auto px-3 py-2 text-xs font-medium text-[#555555] hover:text-[#171717] hover:bg-gray-100 rounded-lg transition-colors border border-[#E7E7E7] flex items-center justify-center gap-1.5 cursor-pointer'
+                      className='w-full sm:w-auto px-3 py-2 text-xs font-medium text-[#555555] hover:text-[#171717] hover:bg-stone-100 rounded-lg transition-colors border border-[#E7E7E7] flex items-center justify-center gap-1.5 cursor-pointer'
                     >
                       <ShieldOff className='w-3.5 h-3.5' />
                       {t('profile.twoFactorModal.disableBtn')}
@@ -470,7 +470,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                     {qrUri ? (
                       <QRCodeSVG value={qrUri} size={150} level='M' />
                     ) : (
-                      <div className='w-[150px] h-[150px] bg-gray-100 flex items-center justify-center text-xs text-gray-400'>
+                      <div className='w-[150px] h-[150px] bg-stone-100 flex items-center justify-center text-xs text-stone-400'>
                         {t('profile.twoFactorModal.qrPlaceholder')}
                       </div>
                     )}
@@ -487,18 +487,18 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                       <strong>{t('profile.twoFactorModal.step1GuideScanQr')}</strong>.
                     </p>
                     <div className='pt-2 border-t border-[#E7E7E7]'>
-                      <span className='text-[11px] font-semibold text-[#171717] block mb-1 flex items-center gap-1'>
+                      <span className='text-xs font-semibold text-[#171717] block mb-1 flex items-center gap-1'>
                         <Key className='w-3.5 h-3.5 text-[#888888]' />
                         {t('profile.twoFactorModal.backupKeyLabel')}
                       </span>
                       <div className='flex items-center gap-2'>
-                        <code className='bg-white px-2.5 py-1.5 rounded border border-[#E7E7E7] font-mono text-[11px] text-[#171717] tracking-wider font-semibold select-all break-all'>
+                        <code className='bg-white px-2.5 py-1.5 rounded border border-[#E7E7E7] font-mono text-xs text-[#171717] tracking-wider font-semibold select-all break-all'>
                           {formattedKey || backupKey}
                         </code>
                         <button
                           type='button'
                           onClick={handleCopyKey}
-                          className='p-1.5 rounded bg-white hover:bg-gray-100 border border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-colors cursor-pointer shrink-0'
+                          className='p-1.5 rounded bg-white hover:bg-stone-100 border border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-colors cursor-pointer shrink-0'
                           title={t('profile.twoFactorModal.copyKeyTitle')}
                         >
                           {copied ? (
@@ -535,7 +535,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                     className='w-full text-center tracking-[0.6em] text-2xl font-mono font-bold py-3 bg-[#FAF8F5] border border-[#E7E7E7] focus:border-[#F97316] focus:bg-white rounded-xl outline-none transition-all'
                     autoFocus
                   />
-                  <p className='text-center text-[11px] text-[#888888] mt-1.5'>
+                  <p className='text-center text-xs text-[#888888] mt-1.5'>
                     {t('profile.twoFactorModal.otpRefreshHint')}
                   </p>
                 </div>
@@ -552,7 +552,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                   <button
                     type='submit'
                     disabled={isVerifying || code.length !== 6}
-                    className='bg-[#F97316] hover:bg-[#EA580C] disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-semibold px-6 py-2.5 rounded-lg shadow-sm transition-all flex items-center gap-2 cursor-pointer'
+                    className='bg-[#F97316] hover:bg-[#EA580C] disabled:bg-stone-300 disabled:cursor-not-allowed text-white text-xs font-semibold px-6 py-2.5 rounded-lg shadow-sm transition-all flex items-center gap-2 cursor-pointer'
                   >
                     {isVerifying ? (
                       <>
@@ -607,7 +607,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                 </p>
               </div>
 
-              <div className='bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl p-3 max-w-sm mx-auto text-[11px] text-[#555555] flex items-center justify-center gap-2'>
+              <div className='bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl p-3 max-w-sm mx-auto text-xs text-[#555555] flex items-center justify-center gap-2'>
                 <Check className='w-4 h-4 text-emerald-600 shrink-0' />
                 <span>
                   {t('profile.twoFactorModal.protectionStatusLabel')}{' '}

@@ -72,10 +72,10 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
             </div>
             <div>
               <div className='flex items-center gap-2'>
-                <span className='px-2 py-0.5 rounded bg-[#1C1917] text-white font-mono text-[9px] font-bold'>
+                <span className='px-2 py-0.5 rounded bg-[#1C1917] text-white font-mono text-xs font-bold'>
                   DAG VISUALIZER
                 </span>
-                <span className='text-[10px] text-stone-500 font-mono'>
+                <span className='text-xs text-stone-500 font-mono'>
                   {t('dependencyGraph.subtitle')}
                 </span>
               </div>
@@ -107,7 +107,7 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
             </div>
           </div>
 
-          <div className='text-[11px] font-mono text-stone-600'>
+          <div className='text-xs font-mono text-stone-600'>
             {dependencies.length === 0 ? (
               <span className='text-stone-400 italic'>
                 {t('dependencyGraph.noPredecessorsSelected')}
@@ -147,7 +147,7 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                   <span>
                     {t('dependencyGraph.predecessorsHeading', { count: dependencies.length })}
                   </span>
-                  <span className='text-[10px] text-stone-400 font-normal'>
+                  <span className='text-xs text-stone-400 font-normal'>
                     {t('dependencyGraph.mustFinishFirst')}
                   </span>
                 </div>
@@ -169,7 +169,7 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                             {node.brief}
                           </div>
                           <span
-                            className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 ${
+                            className={`shrink-0 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1 ${
                               approved
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                 : 'bg-amber-100 text-amber-800 border border-amber-300'
@@ -188,14 +188,14 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                           </span>
                         </div>
 
-                        <div className='mt-2 pt-2 border-t border-black/5 flex flex-wrap items-center justify-between gap-1 text-[11px] text-stone-600'>
+                        <div className='mt-2 pt-2 border-t border-black/5 flex flex-wrap items-center justify-between gap-1 text-xs text-stone-600'>
                           <span>{node.contextText || t('dependencyGraph.chapterFallback')}</span>
                           {node.assigneeName && (
                             <span className='font-medium text-stone-700'>
                               👤 {node.assigneeName}
                             </span>
                           )}
-                          <span className='font-mono text-[10px] text-stone-400'>
+                          <span className='font-mono text-xs text-stone-400'>
                             #{node.id.slice(0, 8)}
                           </span>
                         </div>
@@ -214,7 +214,7 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                   </div>
                   <div className='w-0.5 h-8 bg-stone-300 rounded'></div>
                 </div>
-                <span className='text-[10px] font-mono uppercase tracking-widest text-stone-500 font-semibold px-2 py-1 bg-stone-100 rounded border border-stone-200'>
+                <span className='text-xs font-mono uppercase tracking-widest text-stone-500 font-semibold px-2 py-1 bg-stone-100 rounded border border-stone-200'>
                   {t('dependencyGraph.approvalRequired')}
                 </span>
                 <div className='md:hidden flex items-center gap-1.5'>
@@ -234,20 +234,20 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                         : t('dependencyGraph.targetTaskHeading')}
                     </span>
                   </span>
-                  <span className='text-[10px] text-stone-400 font-normal'>
+                  <span className='text-xs text-stone-400 font-normal'>
                     {t('dependencyGraph.startsAfter')}
                   </span>
                 </div>
 
                 <div className='p-4 rounded-xl border-2 border-[#F97316] bg-white text-xs space-y-3 shadow-md relative overflow-hidden'>
-                  <div className='absolute top-0 right-0 bg-[#F97316] text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded-bl-lg'>
+                  <div className='absolute top-0 right-0 bg-[#F97316] text-white font-mono text-xs font-bold px-2 py-0.5 rounded-bl-lg'>
                     {targetTask.isCreating
                       ? t('dependencyGraph.creatingBadge')
                       : t('dependencyGraph.targetBadge')}
                   </div>
 
                   <div>
-                    <span className='text-[10px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200 inline-block mb-1'>
+                    <span className='text-xs font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200 inline-block mb-1'>
                       {targetTask.stageName || 'Pipeline Stage'}
                     </span>
                     <h4 className='text-sm font-bold text-[#1C1917] leading-snug'>
@@ -255,7 +255,7 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
                     </h4>
                   </div>
 
-                  <div className='pt-2 border-t border-stone-100 text-[11px] text-stone-600 space-y-1'>
+                  <div className='pt-2 border-t border-stone-100 text-xs text-stone-600 space-y-1'>
                     <div className='flex items-center justify-between'>
                       <span>{t('dependencyGraph.contextLabel')}</span>
                       <strong className='text-stone-800'>
@@ -272,7 +272,7 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
 
                   {/* Readiness Status Box */}
                   <div
-                    className={`p-2.5 rounded-lg border text-[11px] flex items-start gap-2 ${
+                    className={`p-2.5 rounded-lg border text-xs flex items-start gap-2 ${
                       pendingCount === 0
                         ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
                         : 'bg-amber-50 border-amber-200 text-amber-900'
@@ -307,7 +307,7 @@ export const DependencyGraphModal: React.FC<DependencyGraphModalProps> = ({
               <Info className='w-3.5 h-3.5 text-[#F97316]' />
               <span>{t('dependencyGraph.rulesTitle')}</span>
             </div>
-            <ul className='list-disc list-inside space-y-0.5 text-[11px] text-stone-600 pl-1'>
+            <ul className='list-disc list-inside space-y-0.5 text-xs text-stone-600 pl-1'>
               <li>
                 {t('dependencyGraph.rule1Prefix')}{' '}
                 <strong>{t('dependencyGraph.rule1Action')}</strong>{' '}

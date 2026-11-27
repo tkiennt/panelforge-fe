@@ -157,7 +157,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
             <span>{t('catalog.tabNeedsReview')}</span>
             {totalApprovedChapters > 0 && (
               <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                className={`px-1.5 py-0.5 rounded-full text-xs font-mono font-bold ${
                   activeTab === 'needs_review'
                     ? 'bg-white text-[#EA580C]'
                     : 'bg-[#EA580C] text-white'
@@ -298,7 +298,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                         fallback={
                           <div className='w-full h-full bg-gradient-to-br from-stone-200 to-stone-300 flex flex-col items-center justify-center p-2 text-stone-500'>
                             <BookOpen className='w-8 h-8 opacity-40 mb-1' />
-                            <span className='text-[10px] text-center font-bold font-serif line-clamp-2'>
+                            <span className='text-xs text-center font-bold font-serif line-clamp-2'>
                               {s.title}
                             </span>
                           </div>
@@ -307,7 +307,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                     ) : (
                       <div className='w-full h-full bg-gradient-to-br from-orange-50 via-stone-100 to-stone-200 flex flex-col items-center justify-center p-2 text-stone-500 group-hover:bg-orange-100/50 transition-colors'>
                         <BookOpen className='w-8 h-8 text-[#C2410C]/40 mb-1' />
-                        <span className='text-[10px] text-center font-bold font-serif text-stone-700 line-clamp-2'>
+                        <span className='text-xs text-center font-bold font-serif text-stone-700 line-clamp-2'>
                           {s.title}
                         </span>
                       </div>
@@ -315,7 +315,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
 
                     {/* Floating Orange Badge if Chapters need review */}
                     {s.approvedChaptersCount > 0 && (
-                      <div className='absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md bg-[#EA580C] text-white font-bold text-[10px] tracking-wide shadow-md flex items-center gap-1 backdrop-blur-xs'>
+                      <div className='absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md bg-[#EA580C] text-white font-bold text-xs tracking-wide shadow-md flex items-center gap-1 backdrop-blur-xs'>
                         <Clock className='w-3 h-3' />
                         <span>{t('catalog.pendingBadge', { count: s.approvedChaptersCount })}</span>
                       </div>
@@ -329,7 +329,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                   <div className='space-y-2'>
                     {/* Studio Pill */}
                     <div className='flex items-center justify-between gap-2 flex-wrap'>
-                      <span className='px-2.5 py-1 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-800 font-sans font-semibold text-[11px] flex items-center gap-1.5 border border-stone-200/80 transition-colors'>
+                      <span className='px-2.5 py-1 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-800 font-sans font-semibold text-xs flex items-center gap-1.5 border border-stone-200/80 transition-colors'>
                         <Briefcase className='w-3.5 h-3.5 text-[#C2410C]' />
                         <span>{s.workspaceName}</span>
                       </span>
@@ -410,14 +410,14 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                     {s.latestChapter ? (
                       <div className='bg-[#F8F6F0] border border-[#E7E2D7] rounded-xl px-3 py-2 flex items-center justify-between text-xs gap-2'>
                         <div className='flex items-center gap-2 min-w-0'>
-                          <span className='font-mono font-bold text-stone-800 bg-white border border-stone-300 px-1.5 py-0.5 rounded text-[11px] shrink-0'>
+                          <span className='font-mono font-bold text-stone-800 bg-white border border-stone-300 px-1.5 py-0.5 rounded text-xs shrink-0'>
                             #{s.latestChapter.chapterNumber}
                           </span>
                           <span className='font-medium text-stone-700 truncate text-[11.5px]'>
                             {s.latestChapter.title || t('catalog.finalVersion')}
                           </span>
                           <span
-                            className={`px-1.5 py-0.2 rounded text-[10px] font-bold shrink-0 ${
+                            className={`px-1.5 py-0.2 rounded text-xs font-bold shrink-0 ${
                               s.latestChapter.status === 'ChapterApproved'
                                 ? 'bg-orange-100 text-orange-800 border border-orange-200'
                                 : s.latestChapter.status === 'HandedOffAndPublished'
@@ -441,7 +441,7 @@ export const PublisherSeriesCatalogView: React.FC<PublisherSeriesCatalogViewProp
                         )}
                       </div>
                     ) : (
-                      <div className='text-[11px] text-stone-400 italic py-1'>
+                      <div className='text-xs text-stone-400 italic py-1'>
                         {t('catalog.noChaptersYet')}
                       </div>
                     )}

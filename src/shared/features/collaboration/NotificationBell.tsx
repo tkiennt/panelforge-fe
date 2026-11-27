@@ -258,7 +258,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                     ✉
                   </span>
                   <div className='u074-tx' style={{ flex: 1 }}>
-                    <div className='flex items-center justify-between text-[11px] mb-0.5'>
+                    <div className='flex items-center justify-between text-xs mb-0.5'>
                       <span className='text-orange-700 font-bold'>
                         {t('notifications.types.WorkspaceInvitation')}
                       </span>
@@ -325,7 +325,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                       </span>
 
                       <div className='u074-tx' style={{ flex: 1 }}>
-                        <div className='flex items-center justify-between text-[11px] mb-0.5'>
+                        <div className='flex items-center justify-between text-xs mb-0.5'>
                           <span
                             className={
                               isOverdue

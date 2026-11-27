@@ -329,7 +329,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
             <div>
               <div className='flex items-center gap-2'>
                 <h3 className='font-bold text-sm text-stone-900'>{t('provenance.modalTitle')}</h3>
-                <span className='px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100/70 text-orange-800 border border-orange-200'>
+                <span className='px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100/70 text-orange-800 border border-orange-200'>
                   CF4
                 </span>
               </div>
@@ -377,7 +377,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                 <span>{tabItem.label}</span>
                 {tabItem.badgeCount !== undefined && tabItem.badgeCount > 0 && (
                   <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    className={`px-1.5 py-0.2 rounded-full text-xs font-mono ${
                       isActive
                         ? 'bg-orange-100 text-orange-800 font-bold'
                         : 'bg-stone-200/70 text-stone-600'
@@ -420,16 +420,16 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                             {t('provenance.snapshots.itemTitle', { number: s.snapshotNumber })}
                           </span>
                           {s.isLatest && (
-                            <span className='text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200'>
+                            <span className='text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200'>
                               {t('provenance.snapshots.latestBadge')}
                             </span>
                           )}
                         </div>
-                        <div className='text-[11px] text-stone-500 mt-1 flex items-center gap-1.5'>
+                        <div className='text-xs text-stone-500 mt-1 flex items-center gap-1.5'>
                           <Clock className='w-3 h-3 text-stone-400' />
                           <span>{formatDateTime(s.createdAt)}</span>
                         </div>
-                        <div className='text-[11px] text-stone-600 font-medium mt-0.5 flex items-center gap-1.5'>
+                        <div className='text-xs text-stone-600 font-medium mt-0.5 flex items-center gap-1.5'>
                           <User className='w-3 h-3 text-stone-400' />
                           <span>{s.createdByName || 'Producer'}</span>
                         </div>
@@ -466,7 +466,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
 
                       <div className='grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 rounded-xl border border-stone-200 bg-[#FAF8F5]'>
                         <div>
-                          <span className='text-[10px] uppercase font-bold text-stone-400 tracking-wider'>
+                          <span className='text-xs uppercase font-bold text-stone-400 tracking-wider'>
                             {t('provenance.snapshots.versionLabel')}
                           </span>
                           <p className='text-xs font-bold text-stone-800 mt-0.5'>
@@ -474,7 +474,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                           </p>
                         </div>
                         <div>
-                          <span className='text-[10px] uppercase font-bold text-stone-400 tracking-wider'>
+                          <span className='text-xs uppercase font-bold text-stone-400 tracking-wider'>
                             {t('provenance.snapshots.hashManifestLabel')}
                           </span>
                           <p className='text-xs font-mono font-bold text-stone-800 mt-0.5'>
@@ -482,7 +482,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                           </p>
                         </div>
                         <div>
-                          <span className='text-[10px] uppercase font-bold text-stone-400 tracking-wider'>
+                          <span className='text-xs uppercase font-bold text-stone-400 tracking-wider'>
                             {t('provenance.snapshots.scriptRevisionsLabel')}
                           </span>
                           <p className='text-xs font-bold text-stone-800 mt-0.5'>
@@ -492,7 +492,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                           </p>
                         </div>
                         <div>
-                          <span className='text-[10px] uppercase font-bold text-stone-400 tracking-wider'>
+                          <span className='text-xs uppercase font-bold text-stone-400 tracking-wider'>
                             {t('provenance.snapshots.effectiveBibleLabel')}
                           </span>
                           <p className='text-xs font-bold text-stone-800 mt-0.5'>
@@ -524,7 +524,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                                 <td className='px-3 py-2.5 font-bold text-stone-800'>
                                   {t('provenance.snapshots.pageNumber', { number: p.pageNumber })}
                                 </td>
-                                <td className='px-3 py-2.5 font-mono text-[11px]'>
+                                <td className='px-3 py-2.5 font-mono text-xs'>
                                   {p.artworkSha256 ? (
                                     <span className='text-stone-700 bg-stone-100 px-1.5 py-0.5 rounded'>
                                       {shortHash(p.artworkSha256, 16)}
@@ -578,7 +578,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
 
                 {/* Filter chips for revision kinds */}
                 <div className='flex items-center gap-1.5 text-xs flex-wrap'>
-                  <span className='text-stone-500 font-medium text-[11px]'>
+                  <span className='text-stone-500 font-medium text-xs'>
                     {t('provenance.report.filterByRole')}
                   </span>
                   {(
@@ -596,7 +596,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                       key={f.key}
                       type='button'
                       onClick={() => setKindFilter(f.key)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer border ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${
                         kindFilter === f.key
                           ? 'bg-orange-50 border-orange-300 text-orange-800 shadow-2xs'
                           : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
@@ -692,7 +692,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                         className={`p-3 rounded-xl border ${stat.bg} shadow-soft-xs flex flex-col justify-between`}
                       >
                         <div className='flex items-center justify-between text-stone-500'>
-                          <span className='text-[10px] uppercase font-bold tracking-wider'>
+                          <span className='text-xs uppercase font-bold tracking-wider'>
                             {stat.label}
                           </span>
                           {stat.icon}
@@ -761,7 +761,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                               {trace.revision.summary}
                             </span>
                           </div>
-                          <div className='flex items-center gap-1 text-[11px] text-stone-500 font-mono'>
+                          <div className='flex items-center gap-1 text-xs text-stone-500 font-mono'>
                             <Clock className='w-3 h-3 text-stone-400' />
                             <span>{formatDateTime(trace.revision.timestamp)}</span>
                           </div>
@@ -771,7 +771,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-3 text-xs'>
                           {/* Left Column: AI Genesis */}
                           <div className='p-3 rounded-xl border border-stone-200 bg-[#FCFBF9] space-y-2'>
-                            <span className='text-[10px] uppercase font-bold text-stone-400 tracking-wider flex items-center gap-1'>
+                            <span className='text-xs uppercase font-bold text-stone-400 tracking-wider flex items-center gap-1'>
                               <Bot className='w-3 h-3' /> {t('provenance.report.aiGenesisTitle')}
                             </span>
                             {trace.run ? (
@@ -806,7 +806,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                                     <span className='text-stone-500'>
                                       {t('provenance.report.agentPromptLabel')}
                                     </span>
-                                    <span className='font-mono text-stone-700 text-[11px]'>
+                                    <span className='font-mono text-stone-700 text-xs'>
                                       {str(detail(trace.step, 'agent'))} (
                                       {str(detail(trace.step, 'promptRef')) ?? '—'})
                                     </span>
@@ -822,7 +822,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
 
                           {/* Right Column: Human Review & Decision */}
                           <div className='p-3 rounded-xl border border-stone-200 bg-[#FCFBF9] space-y-2'>
-                            <span className='text-[10px] uppercase font-bold text-stone-400 tracking-wider flex items-center gap-1'>
+                            <span className='text-xs uppercase font-bold text-stone-400 tracking-wider flex items-center gap-1'>
                               <UserCheck className='w-3 h-3' />{' '}
                               {t('provenance.report.reviewRightsTitle')}
                             </span>
@@ -891,7 +891,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                                   <button
                                     type='button'
                                     onClick={() => setTraceId(trace.previousVersion!.id)}
-                                    className='text-[11px] font-bold text-orange-600 hover:text-orange-700 underline cursor-pointer truncate max-w-[180px]'
+                                    className='text-xs font-bold text-orange-600 hover:text-orange-700 underline cursor-pointer truncate max-w-[180px]'
                                     title={trace.previousVersion.summary}
                                   >
                                     {trace.previousVersion.summary}
@@ -904,7 +904,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                                 if (!prod) return null;
                                 return (
                                   <div className='pt-2 mt-2 border-t border-stone-200/80 space-y-1.5'>
-                                    <span className='text-[10px] uppercase font-bold text-stone-400 tracking-wider'>
+                                    <span className='text-xs uppercase font-bold text-stone-400 tracking-wider'>
                                       {t('provenance.report.executionDetailsTitle')}
                                     </span>
                                     {prod.stage != null && (
@@ -1001,7 +1001,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                           {t('provenance.report.timelineTitle')}
                         </h4>
                       </div>
-                      <span className='text-[11px] text-stone-400 font-mono'>
+                      <span className='text-xs text-stone-400 font-mono'>
                         {t('provenance.report.eventsRecorded', { count: report.timeline.length })}
                       </span>
                     </div>
@@ -1029,7 +1029,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                                 className={`absolute -left-[22px] top-1.5 w-3 h-3 rounded-full border-2 border-white ring-2 ${tone.dot}`}
                               />
                               <div className='p-2.5 rounded-xl border border-stone-200/80 bg-[#FAF8F5]/60 hover:bg-white hover:border-stone-300 transition-colors shadow-2xs'>
-                                <div className='flex items-center justify-between gap-2 text-[11px] mb-1'>
+                                <div className='flex items-center justify-between gap-2 text-xs mb-1'>
                                   <span
                                     className={`font-bold px-2 py-0.5 rounded-full border ${tone.badge}`}
                                   >
@@ -1046,7 +1046,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                                   <button
                                     type='button'
                                     onClick={() => toggleTimeline(i)}
-                                    className='mt-1 text-[11px] font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer'
+                                    className='mt-1 text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer'
                                   >
                                     {isExpanded ? (
                                       <>
@@ -1104,7 +1104,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                       <div className='flex items-center justify-between gap-2 flex-wrap'>
                         <div className='flex items-center gap-2 flex-wrap'>
                           <span
-                            className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-2xs ${
+                            className={`text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-2xs ${
                               RUN_STATUS_STYLE[r.status] ?? RUN_STATUS_STYLE.Queued
                             }`}
                           >
@@ -1113,13 +1113,13 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                           <span className='text-xs font-bold text-stone-900 bg-white px-2 py-0.5 rounded-md border border-stone-200'>
                             {r.workflowType}
                           </span>
-                          <span className='text-[11px] text-stone-500 font-mono flex items-center gap-1'>
+                          <span className='text-xs text-stone-500 font-mono flex items-center gap-1'>
                             <span>{r.provider}</span>
                             <span className='text-stone-300'>•</span>
                             <span className='text-stone-700 font-medium'>{r.model}</span>
                           </span>
                         </div>
-                        <span className='text-[11px] text-stone-400 font-mono flex items-center gap-1'>
+                        <span className='text-xs text-stone-400 font-mono flex items-center gap-1'>
                           <Clock className='w-3 h-3 text-stone-300' />
                           <span>{formatDateTime(r.createdAt)}</span>
                         </span>
@@ -1134,7 +1134,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                           <button
                             type='button'
                             onClick={() => toggleRunExpand(r.id)}
-                            className='text-[11px] font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer transition-colors pt-1'
+                            className='text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer transition-colors pt-1'
                           >
                             {isExpanded ? (
                               <>
@@ -1155,7 +1155,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                         )}
                       </div>
 
-                      <div className='flex items-center gap-2.5 text-[11px] text-stone-600 font-medium flex-wrap pt-0.5'>
+                      <div className='flex items-center gap-2.5 text-xs text-stone-600 font-medium flex-wrap pt-0.5'>
                         <span className='bg-stone-100/80 px-2.5 py-0.5 rounded-full text-stone-700 border border-stone-200/60'>
                           {t('provenance.runs.stepsCount', { count: r.stepCount })}
                         </span>
@@ -1170,7 +1170,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
                           {t('provenance.runs.rejectedCount', { count: r.rejectedCount })}
                         </span>
                         {r.errorCode && (
-                          <span className='inline-flex items-center gap-1 text-[11px] text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200 font-mono font-semibold'>
+                          <span className='inline-flex items-center gap-1 text-xs text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200 font-mono font-semibold'>
                             <AlertTriangle className='w-3 h-3 text-rose-500' />
                             <span>{t('provenance.runs.errorCode', { code: r.errorCode })}</span>
                           </span>

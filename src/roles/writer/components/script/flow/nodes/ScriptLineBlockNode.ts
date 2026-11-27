@@ -8,7 +8,9 @@ import type { Editor } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { EditorState, Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import type { BibleCategory } from '@/services/bible.service';
+import type { BibleCategory, BibleEntryDto } from '@/services/bible.service';
+import type { ChapterCastDto } from '@/services/chapterCast.service';
+import { getCharacterStatusTone } from '@/shared/lib/bibleColoring';
 import { translate } from '@/lib/i18n';
 import {
   GN_ELEMENTS,
@@ -418,6 +420,8 @@ const ghostKey = new PluginKey('scriptCharacterGhost');
 export interface ScriptTypingOptions {
   labels: GnLabels;
   bibleSpeakers?: BibleSpeakerRef[];
+  bibleEntries?: BibleEntryDto[];
+  chapterCast?: ChapterCastDto | null;
 }
 
 /**
@@ -503,6 +507,8 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
         acceptHint: '(Enter)',
       },
       bibleSpeakers: [],
+      bibleEntries: [],
+      chapterCast: null,
     };
   },
 
@@ -511,7 +517,7 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
       // Khi gõ "Panel 2: ", "Panel: ", "Khung 1: ", "Khung " ở đầu dòng:
       // Tự động chuyển node thành el: 'panel', xóa tiền tố đã gõ, giữ con trỏ để gõ tiếp chỉ dẫn khung
       new InputRule({
-        find: /^(?:panel|khung)\s*\d*[:.\-]?\s$/i,
+        find: /^(?:panel|khung)\s*\d*[:.-]?\s$/i,
         handler: ({ state, range }) => {
           const $start = state.doc.resolve(range.from);
           const node = $start.parent;
@@ -527,7 +533,7 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
       }),
       // Tương tự khi gõ "Page 1: ", "Trang 2: ", "Trang " ở đầu dòng
       new InputRule({
-        find: /^(?:page|trang)\s*\d*[:.\-]?\s$/i,
+        find: /^(?:page|trang)\s*\d*[:.-]?\s$/i,
         handler: ({ state, range }) => {
           const $start = state.doc.resolve(range.from);
           const node = $start.parent;
@@ -704,6 +710,17 @@ export const ScriptTypingBehavior = Extension.create<ScriptTypingOptions>({
                     ),
                   }),
                 );
+              } else if (el === 'character') {
+                const name = node.textContent.replace(/:+$/, '').trim();
+                if (name) {
+                  const tone = getCharacterStatusTone(name, options.bibleEntries, options.chapterCast);
+                  decos.push(
+                    Decoration.node(offset, offset + node.nodeSize, {
+                      class: `gn-char-tone-${tone}`,
+                      'data-bible-tone': tone,
+                    }),
+                  );
+                }
               }
             });
             for (const p of pages) {

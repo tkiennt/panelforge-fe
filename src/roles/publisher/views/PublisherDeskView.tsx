@@ -414,13 +414,13 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                     <div className='space-y-1.5 min-w-0'>
                       <div className='flex items-center gap-2.5 flex-wrap'>
                         {/* Studio Badge */}
-                        <span className='px-2 py-0.5 rounded bg-stone-200 text-stone-800 font-sans font-semibold text-[11px] flex items-center gap-1 border border-stone-300'>
+                        <span className='px-2 py-0.5 rounded bg-stone-200 text-stone-800 font-sans font-semibold text-xs flex items-center gap-1 border border-stone-300'>
                           <Briefcase className='w-3 h-3 text-[#C2410C]' />
                           <span>{chap.workspaceName}</span>
                         </span>
 
                         {/* Series Title */}
-                        <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-sans font-bold text-[11px] border border-amber-300'>
+                        <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-sans font-bold text-xs border border-amber-300'>
                           {chap.seriesTitle}
                         </span>
 

@@ -259,11 +259,7 @@ describe('ScriptLineBlockNode — gõ kịch bản kiểu WriterSolo', () => {
   });
 
   it('gõ "Panel 2: " hoặc "Khung 1: " ở đầu dòng action thì tự động đổi thành panel', () => {
-    const editor = createEditor([
-      line('page'),
-      line('panel'),
-      line('action', ''),
-    ]);
+    const editor = createEditor([line('page'), line('panel'), line('action', '')]);
     caretAtEndOf(editor, 2);
     // Gõ chuỗi "Panel 2: "
     const textToType = 'Panel 2: ';

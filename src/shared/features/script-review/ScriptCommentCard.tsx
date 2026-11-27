@@ -110,7 +110,7 @@ export const ScriptCommentComposer: React.FC<ScriptCommentComposerProps> = ({
 
       {quotedText && (
         <div className='mb-2 text-xs text-stone-600 bg-amber-50/90 border-l-2 border-amber-400 px-2 py-1 rounded-r'>
-          <span className='italic bg-[#FDE047] text-stone-900 px-1 py-0.5 rounded text-[11px] font-medium'>
+          <span className='italic bg-[#FDE047] text-stone-900 px-1 py-0.5 rounded text-xs font-medium'>
             {quotedText}
           </span>
         </div>
@@ -201,7 +201,7 @@ export const ScriptCommentItemCard: React.FC<ScriptCommentItemCardProps> = ({
           </div>
           <div>
             <p className='font-semibold text-stone-900 text-sm leading-tight'>{authorName}</p>
-            <p className='text-[11px] text-stone-400 mt-0.5'>
+            <p className='text-xs text-stone-400 mt-0.5'>
               {new Date(comment.createdAt).toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -211,7 +211,7 @@ export const ScriptCommentItemCard: React.FC<ScriptCommentItemCardProps> = ({
           </div>
         </div>
         {isResolved && (
-          <span className='inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0'>
+          <span className='inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0'>
             <CheckCircle2 className='w-3 h-3' />
             {t('scriptReview.comment.resolved')}
           </span>
@@ -220,7 +220,7 @@ export const ScriptCommentItemCard: React.FC<ScriptCommentItemCardProps> = ({
 
       {comment.quotedText && (
         <div className='mb-2 text-xs text-stone-600 bg-amber-50/80 border-l-2 border-amber-400 px-2.5 py-1.5 rounded-r'>
-          <span className='italic bg-[#FDE047] text-stone-900 px-1 py-0.5 rounded text-[11px] font-medium'>
+          <span className='italic bg-[#FDE047] text-stone-900 px-1 py-0.5 rounded text-xs font-medium'>
             {comment.quotedText}
           </span>
         </div>

@@ -9,6 +9,7 @@ import {
   getCategoryLabel,
   mapCategoryToTab,
 } from '@/shared/features/series-bible/bibleCategory';
+import { getBibleArtworkStatus, BIBLE_STATUS_STYLES } from '@/shared/lib/bibleColoring';
 import { applyBibleRefToLine, removeBibleRefFromLine } from './nodes/ScriptLineBlockNode';
 import {
   DRAFT_CATEGORIES,
@@ -336,22 +337,29 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
           </div>
 
           <div className='custom-scrollbar mt-2 max-h-40 space-y-1 overflow-y-auto'>
-            {filteredEntries.slice(0, 8).map((entry) => (
-              <button
-                key={entry.id}
-                type='button'
-                onClick={() => handleSelectEntry(entry)}
-                className='flex w-full items-center justify-between gap-2 rounded-lg border border-transparent p-1.5 text-left transition-colors hover:border-orange-200/60 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500'
-              >
-                <span className='flex min-w-0 items-center gap-2'>
-                  {getCategoryIcon(mapCategoryToTab(entry.category), 'h-3.5 w-3.5 text-orange-600')}
-                  <span className='truncate text-xs font-semibold'>{entry.name}</span>
-                </span>
-                <span className='shrink-0 font-mono text-xs text-stone-400'>
-                  {entry.code || getCategoryLabel(entry.category)}
-                </span>
-              </button>
-            ))}
+            {filteredEntries.slice(0, 8).map((entry) => {
+              const statusTone = getBibleArtworkStatus(entry);
+              const style = BIBLE_STATUS_STYLES[statusTone];
+              return (
+                <button
+                  key={entry.id}
+                  type='button'
+                  onClick={() => handleSelectEntry(entry)}
+                  className='flex w-full items-center justify-between gap-2 rounded-lg border border-transparent p-1.5 text-left transition-colors hover:border-orange-200/60 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500'
+                >
+                  <span className='flex min-w-0 items-center gap-2'>
+                    {getCategoryIcon(mapCategoryToTab(entry.category), 'h-3.5 w-3.5 text-orange-600')}
+                    <span className='truncate text-xs font-semibold'>{entry.name}</span>
+                  </span>
+                  <span className='shrink-0 flex items-center gap-1.5'>
+                    <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} title={style.label} />
+                    <span className='font-mono text-xs text-stone-400'>
+                      {entry.code || getCategoryLabel(entry.category)}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
             {filteredEntries.length === 0 && (
               <p className='py-2 text-center text-xs text-stone-400'>
                 {t('production.cast.noMatchingEntry', 'Không tìm thấy mục trùng khớp')}

@@ -224,7 +224,7 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
               <div className='absolute -top-1.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#EA580C] border border-white shadow-2xs flex items-center justify-center'>
                 <div className='w-0.5 h-0.5 rounded-full bg-white' />
               </div>
-              <div className='text-right font-mono font-bold text-[10px] sm:text-[11px] text-[#1C1917]'>
+              <div className='text-right font-mono font-bold text-xs sm:text-xs text-[#1C1917]'>
                 v1.3
               </div>
               <div className='text-[9.5px] sm:text-[10.5px] text-[#57534E] font-sans font-medium leading-snug mt-0.5'>

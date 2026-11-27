@@ -56,9 +56,7 @@ export const DevFloatingMenu: React.FC = () => {
       </div>
 
       <div className='space-y-2'>
-        <p className='text-[10px] text-[#A3A3A3] uppercase font-bold mb-1'>
-          Deep Links (Mock States)
-        </p>
+        <p className='text-xs text-[#A3A3A3] uppercase font-bold mb-1'>Deep Links (Mock States)</p>
 
         <button
           onClick={() =>
@@ -100,7 +98,7 @@ export const DevFloatingMenu: React.FC = () => {
         </button>
       </div>
 
-      <div className='mt-4 p-2 bg-[#10B981]/10 border border-[#10B981]/30 rounded text-[10px] text-[#10B981]'>
+      <div className='mt-4 p-2 bg-[#10B981]/10 border border-[#10B981]/30 rounded text-xs text-[#10B981]'>
         RBAC protection is currently <strong>bypassed</strong>. You have full edit access to all
         tools.
       </div>

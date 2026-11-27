@@ -43,6 +43,7 @@ import {
   DEFAULT_FRAME_TEMPLATES,
   DEFAULT_SCRIPT_LINES,
 } from '../components/desk/ArtistCanvaSidebar';
+import { getCharacterStatusTone, BIBLE_STATUS_STYLES } from '@/shared/lib/bibleColoring';
 import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip';
 import { PageStage } from '../components/desk/ArtistPageSidebar';
 import { ArtistCanvasViewport, type PageSketch } from '../components/desk/ArtistCanvasViewport';
@@ -1652,9 +1653,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         ? speaker || undefined
         : speaker || t('artist.deskView.narratorFallback');
       const resolvedCharColor = resolvedCharName
-        ? line.characterColor ||
-          (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.color) ||
-          getDeterministicColor(resolvedCharName)
+        ? (rawBibleEntries.length > 0
+            ? BIBLE_STATUS_STYLES[getCharacterStatusTone(resolvedCharName, rawBibleEntries, null)].textColor
+            : line.characterColor ||
+              (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.color) ||
+              getDeterministicColor(resolvedCharName))
         : undefined;
 
       const resolvedStageDirection =
@@ -3095,7 +3098,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   {keepOut.zones.length > 0 && (
                     <span
                       data-testid='keepout-count-badge'
-                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      className={`px-1.5 py-0.2 rounded-full text-xs font-bold ${
                         keepOut.isDrawingMode ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'
                       }`}
                     >

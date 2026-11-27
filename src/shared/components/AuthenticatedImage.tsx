@@ -143,7 +143,7 @@ export const AuthenticatedImage: React.FC<AuthenticatedImageProps> = ({
     if (fallback) return <>{fallback}</>;
     return (
       <div
-        className={`flex flex-col items-center justify-center bg-zinc-800 text-zinc-500 ${className}`}
+        className={`flex flex-col items-center justify-center bg-stone-800 text-stone-500 ${className}`}
         data-testid='authenticated-image-fallback'
         title={alt}
       >
@@ -156,7 +156,7 @@ export const AuthenticatedImage: React.FC<AuthenticatedImageProps> = ({
     return (
       <div
         ref={placeholderRef}
-        className={`flex items-center justify-center bg-zinc-900 text-zinc-400 ${className}`}
+        className={`flex items-center justify-center bg-stone-900 text-stone-400 ${className}`}
         data-testid='authenticated-image-loading'
       >
         {showLoader ? <Loader2 className='w-4 h-4 animate-spin text-[#F97316]' /> : null}

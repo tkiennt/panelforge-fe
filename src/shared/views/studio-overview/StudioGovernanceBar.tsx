@@ -57,7 +57,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
 
             return (
               <div
-                className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono flex items-center gap-1.5 ${
+                className={`px-2.5 py-1 rounded-lg border text-xs font-mono flex items-center gap-1.5 ${
                   isWarning
                     ? 'bg-amber-50 text-amber-800 border-amber-300 font-bold'
                     : 'bg-white text-stone-700 border-stone-200/80'
@@ -82,7 +82,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
           })()}
 
           {/* AI Tokens Chip */}
-          <div className='px-2.5 py-1 rounded-lg border bg-white border-stone-200/80 font-mono text-[11px] flex items-center gap-1.5 text-stone-700'>
+          <div className='px-2.5 py-1 rounded-lg border bg-white border-stone-200/80 font-mono text-xs flex items-center gap-1.5 text-stone-700'>
             <Cpu className='w-3.5 h-3.5 text-blue-500 shrink-0' />
             <span className='text-stone-500 font-sans'>
               {t('workspace.governance.aiTokenShort')}
@@ -186,13 +186,13 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                       />
                     </div>
                   )}
-                  <div className='flex items-center justify-between text-[11px] leading-relaxed text-stone-600'>
+                  <div className='flex items-center justify-between text-xs leading-relaxed text-stone-600'>
                     <span>
                       {isUnlimited
                         ? t('workspace.governance.unlimitedPlan')
                         : t('workspace.governance.usedPercent', { percent })}
                     </span>
-                    <span className='font-mono text-stone-500 text-[10px]'>
+                    <span className='font-mono text-stone-500 text-xs'>
                       {isUnlimited
                         ? t('workspace.governance.unlimited')
                         : t('workspace.governance.blockAt100')}
@@ -218,7 +218,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                     : `${formatTokens(workspaceUsage.aiTokens.quota)}`}
                 </div>
               ) : (
-                <span className='whitespace-nowrap px-2 py-0.5 text-[10px] font-medium rounded-full text-amber-700 bg-amber-50 border border-amber-200 font-mono shrink-0'>
+                <span className='whitespace-nowrap px-2 py-0.5 text-xs font-medium rounded-full text-amber-700 bg-amber-50 border border-amber-200 font-mono shrink-0'>
                   {t('workspace.governance.noQuota')}
                 </span>
               )}
@@ -245,7 +245,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                     />
                   </div>
                 )}
-                <div className='flex items-center justify-between text-[11px] leading-relaxed text-stone-600'>
+                <div className='flex items-center justify-between text-xs leading-relaxed text-stone-600'>
                   <span>
                     {workspaceUsage.aiTokens.isUnlimited
                       ? t('workspace.governance.monthlyTokens')
@@ -254,7 +254,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                         })}
                   </span>
                   <span
-                    className={`font-semibold text-[11px] ${
+                    className={`font-semibold text-xs ${
                       workspaceUsage.aiEnabled ? 'text-emerald-600' : 'text-stone-400'
                     }`}
                   >
@@ -288,7 +288,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                       })}
                 </div>
               ) : (
-                <span className='whitespace-nowrap px-2 py-0.5 text-[10px] font-medium rounded-full text-purple-700 bg-purple-50 border border-purple-200 font-mono shrink-0'>
+                <span className='whitespace-nowrap px-2 py-0.5 text-xs font-medium rounded-full text-purple-700 bg-purple-50 border border-purple-200 font-mono shrink-0'>
                   {t('workspace.governance.noQuota')}
                 </span>
               )}
@@ -317,7 +317,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                     />
                   </div>
                 )}
-                <div className='flex items-center justify-between text-[11px] leading-relaxed text-stone-600'>
+                <div className='flex items-center justify-between text-xs leading-relaxed text-stone-600'>
                   <span>
                     {workspaceUsage.images.isUnlimited
                       ? t('workspace.governance.unlimitedImages')
@@ -326,7 +326,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                         })}
                   </span>
                   <span
-                    className={`font-semibold text-[11px] ${
+                    className={`font-semibold text-xs ${
                       workspaceUsage.aiEnabled ? 'text-purple-600' : 'text-stone-400'
                     }`}
                   >

@@ -276,7 +276,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             data-testid='focus-stage-stepper'
             role='list'
             aria-label={t('navigation.focus.stageProgressAria')}
-            className='hidden md:flex items-center gap-1 px-2 py-1 rounded-full bg-[#FAF9F5] border border-[#E7E5E4] text-[11px] shrink-0'
+            className='hidden md:flex items-center gap-1 px-2 py-1 rounded-full bg-[#FAF9F5] border border-[#E7E5E4] text-xs shrink-0'
           >
             {stages.map((stage, idx) => {
               const isCompleted = isStageFlowCompleted || idx < currentStageIndex;

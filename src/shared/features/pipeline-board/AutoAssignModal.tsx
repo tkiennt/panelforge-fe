@@ -400,12 +400,12 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                       <div className='flex items-center gap-2'>
                         <span className='text-xs font-bold text-stone-900'>{group.stageName}</span>
                         {group.assignedRole && (
-                          <span className='rounded bg-stone-200/80 px-1.5 py-0.5 text-[10px] font-mono text-stone-700'>
+                          <span className='rounded bg-stone-200/80 px-1.5 py-0.5 text-xs font-mono text-stone-700'>
                             {group.assignedRole}
                           </span>
                         )}
                       </div>
-                      <span className='text-[11px] font-mono font-semibold text-stone-600'>
+                      <span className='text-xs font-mono font-semibold text-stone-600'>
                         {t('taskGridV3.autoAssign.cellCount', { count: group.totalCells })}
                       </span>
                     </div>
@@ -446,20 +446,20 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                               <div className='min-w-0 flex-1 space-y-1'>
                                 <div className='flex flex-wrap items-center gap-2'>
                                   <span className='font-semibold text-stone-900'>{scopeLabel}</span>
-                                  <span className='rounded bg-stone-100 border border-stone-200 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-stone-700'>
+                                  <span className='rounded bg-stone-100 border border-stone-200 px-1.5 py-0.5 text-xs font-mono font-semibold text-stone-700'>
                                     {t('taskGridV3.autoAssign.cellCount', {
                                       count: lot.taskIds.length,
                                     })}
                                   </span>
                                   {typeof lot.workUnits === 'number' && (
-                                    <span className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-orange-800'>
+                                    <span className='rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-xs font-mono font-semibold text-orange-800'>
                                       {t('taskGridV3.autoAssign.workUnits', {
                                         count: lot.workUnits,
                                       })}
                                     </span>
                                   )}
                                   {openLoad !== undefined && (
-                                    <span className='text-[11px] text-stone-500'>
+                                    <span className='text-xs text-stone-500'>
                                       {openLoad.openWorkUnits !== undefined
                                         ? t('taskGridV3.autoAssign.openLoadWithUnits', {
                                             tasks: openLoad.openTaskCount,
@@ -504,7 +504,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                                     scope: scopeLabel,
                                   })}
                                   onClick={() => handleRemoveLot(lot.clientKey)}
-                                  className='inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 px-2 py-1 text-[11px] font-medium text-stone-600 disabled:opacity-50 cursor-pointer'
+                                  className='inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 px-2 py-1 text-xs font-medium text-stone-600 disabled:opacity-50 cursor-pointer'
                                 >
                                   <Trash2 className='h-3 w-3' />
                                   <span>{t('taskGridV3.autoAssign.removeLotBtn')}</span>
@@ -516,7 +516,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                               <div className='space-y-1'>
                                 <label
                                   htmlFor={dueInputId}
-                                  className='block text-[11px] font-medium text-stone-600'
+                                  className='block text-xs font-medium text-stone-600'
                                 >
                                   {t('taskGridV3.autoAssign.dueDateLabel')}
                                 </label>
@@ -539,7 +539,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                                 {isDueDateInPast && (
                                   <div
                                     data-testid={`auto-assign-past-due-${lot.clientKey}`}
-                                    className='flex items-center gap-1 text-[11px] text-amber-700'
+                                    className='flex items-center gap-1 text-xs text-amber-700'
                                   >
                                     <AlertTriangle className='h-3 w-3 shrink-0' />
                                     <span>{t('taskGridV3.autoAssign.pastDueWarning')}</span>
@@ -550,7 +550,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                               <div className='space-y-1'>
                                 <label
                                   htmlFor={briefInputId}
-                                  className='block text-[11px] font-medium text-stone-600'
+                                  className='block text-xs font-medium text-stone-600'
                                 >
                                   {t('taskGridV3.autoAssign.briefLabel')}
                                 </label>

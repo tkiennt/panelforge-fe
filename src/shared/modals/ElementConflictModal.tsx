@@ -61,7 +61,7 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
           </div>
 
           {errorMessage && (
-            <div className='p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-600 font-mono text-xs'>
+            <div className='p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-600 font-mono text-xs'>
               {t('common.modals.elementConflict.serverMessage', { message: errorMessage })}
             </div>
           )}
@@ -118,7 +118,7 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
         <div className='flex justify-end pt-2 border-t border-[#E7E7E7]'>
           <button
             onClick={onClose}
-            className='px-4 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer'
+            className='px-4 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer'
           >
             {t('common.actions.close')}
           </button>

@@ -234,7 +234,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                 <span className='text-xs font-semibold text-stone-800 text-center'>
                   {t('panelFrame.uploadPanel', { panelNum })}
                 </span>
-                <span className='text-[11px] text-stone-500 text-center'>
+                <span className='text-xs text-stone-500 text-center'>
                   {t('panelFrame.dropOrClick')}
                 </span>
               </button>
