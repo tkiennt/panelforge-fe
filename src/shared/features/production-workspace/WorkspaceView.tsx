@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from '@/lib/i18n';
 import { TaskGridBoard } from '@/shared/features/pipeline-board/TaskGridBoard';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
@@ -36,9 +36,11 @@ import {
 } from '@/services/series.service';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
+import { RefreezeScriptModal } from '@/shared/modals/RefreezeScriptModal';
 import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
 import { formatDate } from '@/lib/format';
 import { ProducerSharedHeader } from './ProducerSharedHeader';
+import { buildChapterManagementUrl, buildChapterReaderUrl } from '@/app/routePaths';
 import {
   countGateWarnings,
   daysUntil,
@@ -91,6 +93,18 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     tabFromUrl === 'chapters' || tabFromUrl === 'crew' ? tabFromUrl : 'progress',
   );
 
+  useEffect(() => {
+    if (tabFromUrl === 'chapters' && workspaceId && seriesId) {
+      navigate(buildChapterManagementUrl(workspaceId, seriesId, chapterIdFromUrl ?? undefined), {
+        replace: true,
+      });
+      return;
+    }
+    const nextTab: SubTabKey =
+      tabFromUrl === 'chapters' || tabFromUrl === 'crew' ? tabFromUrl : 'progress';
+    setActiveSubtab((current) => (current === nextTab ? current : nextTab));
+  }, [chapterIdFromUrl, navigate, seriesId, tabFromUrl, workspaceId]);
+
   const normalizedWsRole = useMemo(
     () => normalizeWorkspaceRole(currentUserRole),
     [currentUserRole],
@@ -130,13 +144,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     if (normalizedWsRole) return normalizedWsRole === 'EDITOR';
     return userRoles.some((r) => r.toUpperCase() === 'EDITOR');
   }, [normalizedWsRole, userRoles]);
-
-  // Sync tab with URL
-  useEffect(() => {
-    if (tabFromUrl && ['progress', 'chapters', 'crew'].includes(tabFromUrl)) {
-      setActiveSubtab(tabFromUrl as SubTabKey);
-    }
-  }, [tabFromUrl]);
 
   // Load workspace and series metadata
   useEffect(() => {
@@ -277,6 +284,11 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     return isPreProd;
   }, [currentChapter, lockGate]);
 
+  const canRefreezeScript = useMemo(() => {
+    if (!currentChapter) return false;
+    return currentChapter.status === 'InProduction' && currentChapter.scriptStatus === 'InReview';
+  }, [currentChapter]);
+
   // Readers access barrier
   if (isReaderMode || isReaderOnly) {
     return (
@@ -378,7 +390,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         seriesTitle={seriesTitle}
         seriesFormat={seriesDetail?.format}
         currentChapter={currentChapter}
-        activeTab={activeSubtab}
         onChapterChange={(nextId) => {
           setCurrentChapterId(nextId);
           setSearchParams((prev) => {
@@ -387,7 +398,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             return next;
           });
         }}
-        onBackToChapters={() => handleSwitchSubtab('chapters')}
         loadingChapters={loadingChapters}
         actionCta={
           <div className='flex items-center gap-2'>
@@ -405,27 +415,33 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               <RefreshCw className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
             </button>
 
-            {/* Start Production CTA */}
+            {/* Start Production / Refreeze CTA */}
             <button
               type='button'
-              disabled={!canStartProduction}
+              disabled={!canStartProduction && !canRefreezeScript}
               onClick={() => setStartProductionOpen(true)}
               className={`px-4 py-2 rounded-lg text-white text-xs font-medium transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer ${
-                canStartProduction
+                canStartProduction || canRefreezeScript
                   ? 'bg-orange-600 hover:bg-orange-700'
                   : 'bg-stone-300 text-stone-500 cursor-not-allowed opacity-60'
               }`}
               title={
-                canStartProduction
-                  ? t('workbench.startProduction', 'Bắt đầu sản xuất')
-                  : t(
-                      'workbench.startProductionHint',
-                      'Chỉ khả dụng khi Kịch bản và Gate 1 được duyệt',
-                    )
+                canRefreezeScript
+                  ? 'Khóa lại kịch bản sau khi Biên kịch nộp bản sửa'
+                  : canStartProduction
+                    ? t('workbench.startProduction', 'Bắt đầu sản xuất')
+                    : t(
+                        'workbench.startProductionHint',
+                        'Chỉ khả dụng khi Kịch bản và Gate 1 được duyệt',
+                      )
               }
             >
               <Rocket className='w-3.5 h-3.5' aria-hidden='true' />
-              <span>{t('workbench.startProduction', 'Bắt đầu sản xuất')}</span>
+              <span>
+                {canRefreezeScript
+                  ? 'Khóa lại kịch bản'
+                  : t('workbench.startProduction', 'Bắt đầu sản xuất')}
+              </span>
             </button>
           </div>
         }
@@ -942,9 +958,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       <button
                         type='button'
                         onClick={() =>
-                          navigate(
-                            `/workspaces/${workspaceId}/series/${seriesId}/editor/desk?chapterId=${chap.id}`,
-                          )
+                          workspaceId &&
+                          seriesId &&
+                          navigate(buildChapterReaderUrl(workspaceId, seriesId, chap.id))
                         }
                         className='w-full py-2 rounded-lg bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer'
                       >
@@ -1341,8 +1357,25 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         />
       )}
 
-      {/* Start Production Modal */}
-      {startProductionOpen && (
+      {/* Start Production / Refreeze Modal */}
+      {startProductionOpen && currentChapter?.status === 'InProduction' && (
+        <RefreezeScriptModal
+          isOpen={startProductionOpen}
+          onClose={() => setStartProductionOpen(false)}
+          chapterId={currentChapterId}
+          chapterNumber={currentChapter?.chapterNumber || 0}
+          chapterTitle={currentChapter?.title || ''}
+          seriesId={seriesId || ''}
+          workspaceId={workspaceId || ''}
+          onSuccess={() => {
+            setStartProductionOpen(false);
+            loadChapters();
+            setRefreshKey((k) => k + 1);
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
+      {startProductionOpen && currentChapter?.status !== 'InProduction' && (
         <StartProductionModal
           isOpen={startProductionOpen}
           onClose={() => setStartProductionOpen(false)}

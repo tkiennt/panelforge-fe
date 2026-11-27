@@ -1578,4 +1578,156 @@ describe('AiAssistPanel · nâng cấp Script Writer (nhóm 1 & 2)', () => {
     fireEvent.click(storyboardBtn);
     expect(onOpenStoryboard).toHaveBeenCalledTimes(1);
   });
+
+  it('TASK-363: khi availability trả SCENE_LINES_LINKED, bật "Viết nối thêm" gọi lại availability với appendScript=true, mở khoá nút chạy và gửi appendScript: true', async () => {
+    const getAvail = vi
+      .mocked(aiAgentsService.getWorkflowAvailability)
+      .mockResolvedValueOnce({
+        chapterId: 'c1',
+        sceneId: 'sc1',
+        workflows: [
+          avail({
+            canRun: false,
+            missing: [
+              {
+                code: 'SCENE_LINES_LINKED',
+                kind: 'State',
+                message:
+                  'Scene có dòng đã gắn Panel; thay cả script bằng AI sẽ làm mất liên kết này.',
+              },
+            ],
+          }),
+        ],
+      })
+      .mockResolvedValueOnce({
+        chapterId: 'c1',
+        sceneId: 'sc1',
+        workflows: [avail({ canRun: true, missing: [] })],
+      })
+      .mockResolvedValueOnce({
+        chapterId: 'c1',
+        sceneId: 'sc1',
+        workflows: [
+          avail({
+            canRun: false,
+            missing: [
+              {
+                code: 'SCENE_LINES_LINKED',
+                kind: 'State',
+                message:
+                  'Scene có dòng đã gắn Panel; thay cả script bằng AI sẽ làm mất liên kết này.',
+              },
+            ],
+          }),
+        ],
+      });
+    const runWorkflow = vi
+      .spyOn(aiAgentsService, 'runWorkflow')
+      .mockResolvedValue({ runId: 'r-append', status: 'Completed', provider: 'Mock', model: 'm' });
+    vi.spyOn(aiAgentsService, 'getRun').mockResolvedValue(run({ id: 'r-append' }));
+
+    renderPanel({
+      scriptContext: {
+        sceneTitle: 'Cảnh 3 · Kho hàng',
+        sceneLineCount: 5,
+        linkedPanelLineCount: 2,
+      },
+    });
+
+    const toggle = await screen.findByTestId('ai-append-script-toggle');
+    expect(toggle).not.toBeChecked();
+    expect(getAvail).toHaveBeenNthCalledWith(1, 's1', 'c1', 'sc1');
+
+    typeBrief('Viết nối cảnh rượt đuổi ra ngoài bến cảng');
+    expect(screen.getByTestId('ai-run-btn')).toBeDisabled();
+
+    // Bật toggle Viết nối thêm -> gọi lại availability với appendScript=true và mở khoá nút chạy
+    fireEvent.click(toggle);
+    await waitFor(() => {
+      expect(getAvail).toHaveBeenNthCalledWith(2, 's1', 'c1', 'sc1', true);
+      expect(screen.getByTestId('ai-run-btn')).toBeEnabled();
+    });
+    expect(screen.queryByTestId('ai-script-linked-panels-warning')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ai-missing')).not.toBeInTheDocument();
+    expect(screen.getByText(/giữ nguyên dòng cũ và liên kết Panel/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('ai-run-btn'));
+    await waitFor(() => {
+      expect(runWorkflow).toHaveBeenCalledWith(
+        's1',
+        expect.objectContaining({
+          workflowType: 'Script',
+          chapterId: 'c1',
+          sceneId: 'sc1',
+          appendScript: true,
+        }),
+      );
+    });
+
+    // Tắt lại toggle -> gọi lại availability mặc định và khoá nút chạy lại
+    fireEvent.click(screen.getByTestId('ai-append-script-toggle'));
+    await waitFor(() => {
+      expect(getAvail).toHaveBeenNthCalledWith(3, 's1', 'c1', 'sc1');
+      expect(screen.getByTestId('ai-run-btn')).toBeDisabled();
+    });
+  });
+
+  it('TASK-363: khi chương đang đóng băng (SCRIPT_FROZEN + SCENE_LINES_LINKED), bật "Viết nối thêm" vẫn giữ khoá nút chạy theo BR-12', async () => {
+    vi.mocked(aiAgentsService.getWorkflowAvailability)
+      .mockResolvedValueOnce({
+        chapterId: 'c1',
+        sceneId: 'sc1',
+        workflows: [
+          avail({
+            canRun: false,
+            missing: [
+              {
+                code: 'SCRIPT_FROZEN',
+                kind: 'State',
+                message: 'Kịch bản của chương đã đóng băng.',
+              },
+              {
+                code: 'SCENE_LINES_LINKED',
+                kind: 'State',
+                message:
+                  'Scene có dòng đã gắn Panel; thay cả script bằng AI sẽ làm mất liên kết này.',
+              },
+            ],
+          }),
+        ],
+      })
+      .mockResolvedValueOnce({
+        chapterId: 'c1',
+        sceneId: 'sc1',
+        workflows: [
+          avail({
+            canRun: false,
+            missing: [
+              {
+                code: 'SCRIPT_FROZEN',
+                kind: 'State',
+                message: 'Kịch bản của chương đã đóng băng.',
+              },
+            ],
+          }),
+        ],
+      });
+
+    renderPanel();
+    const toggle = await screen.findByTestId('ai-append-script-toggle');
+    typeBrief('Thử viết nối khi đã đóng băng');
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(aiAgentsService.getWorkflowAvailability).toHaveBeenNthCalledWith(
+        2,
+        's1',
+        'c1',
+        'sc1',
+        true,
+      );
+    });
+    expect(screen.getByText('Kịch bản của chương đã đóng băng.')).toBeInTheDocument();
+    expect(screen.getByTestId('ai-run-btn')).toBeDisabled();
+  });
 });

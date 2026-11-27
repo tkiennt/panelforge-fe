@@ -1,12 +1,15 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Rocket } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { ChapterDto } from '@/services/chapter.service';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
-
-export type ProducerSubTab =
-  'progress' | 'chapters' | 'script' | 'reader' | 'handoff' | 'crew' | 'bible' | 'revenue';
+import {
+  buildChapterManagementUrl,
+  buildChapterReaderUrl,
+  buildScriptReviewUrl,
+  buildSeriesExportUrl,
+} from '@/app/routePaths';
 
 export interface ProducerSharedHeaderProps {
   workspaceId?: string;
@@ -17,7 +20,6 @@ export interface ProducerSharedHeaderProps {
   seriesFormat?: string;
   subtitle?: string;
   currentChapter?: ChapterDto | null;
-  activeTab: ProducerSubTab;
   onChapterChange?: (newChapterId: string) => void;
   onBackToChapters?: () => void;
   onStartProduction?: () => void;
@@ -61,7 +63,6 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
   seriesFormat,
   subtitle,
   currentChapter,
-  activeTab,
   onChapterChange,
   onBackToChapters,
   onStartProduction,
@@ -70,12 +71,12 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
 }) => {
   const { t } = useTranslation('pipeline');
   const navigate = useNavigate();
+  const location = useLocation();
 
   const resolvedChapter =
     currentChapter || chapters.find((c) => c.id === currentChapterId) || chapters[0] || null;
 
   const effectiveChapterId = currentChapterId || resolvedChapter?.id || '';
-  const chapterQuery = effectiveChapterId ? `?chapterId=${effectiveChapterId}` : '';
 
   const currentChapterFormattedTitle = resolvedChapter
     ? formatChapterLabel(
@@ -101,50 +102,15 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
     if (onChapterChange) {
       onChapterChange(nextId);
     } else if (workspaceId && seriesId) {
-      if (activeTab === 'script') {
-        navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${nextId}/script/review`);
-      } else if (activeTab === 'reader') {
-        navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${nextId}/reader`);
-      } else if (activeTab === 'handoff') {
-        navigate(`/workspaces/${workspaceId}/series/${seriesId}/export?chapterId=${nextId}`);
+      if (location.pathname.includes('/script/review')) {
+        navigate(buildScriptReviewUrl(workspaceId, seriesId, nextId));
+      } else if (location.pathname.endsWith('/reader')) {
+        navigate(buildChapterReaderUrl(workspaceId, seriesId, nextId));
+      } else if (location.pathname.endsWith('/export')) {
+        navigate(buildSeriesExportUrl(workspaceId, seriesId, nextId));
       } else {
-        navigate(`/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${nextId}`);
+        navigate(buildChapterManagementUrl(workspaceId, seriesId, nextId));
       }
-    }
-  };
-
-  const handleTabClick = (tabKey: 'progress' | 'chapters' | 'script' | 'reader' | 'handoff') => {
-    if (!workspaceId || !seriesId) return;
-    if (tabKey === 'progress') {
-      navigate(`/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`);
-    } else if (tabKey === 'chapters') {
-      if (onBackToChapters) {
-        onBackToChapters();
-      } else {
-        navigate(
-          `/workspaces/${workspaceId}/series/${seriesId}/workspace?tab=chapters${
-            effectiveChapterId ? `&chapterId=${effectiveChapterId}` : ''
-          }`,
-        );
-      }
-    } else if (tabKey === 'script') {
-      navigate(
-        effectiveChapterId
-          ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${effectiveChapterId}/script/review`
-          : `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
-      );
-    } else if (tabKey === 'reader') {
-      navigate(
-        effectiveChapterId
-          ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${effectiveChapterId}/reader`
-          : `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
-      );
-    } else if (tabKey === 'handoff') {
-      navigate(
-        `/workspaces/${workspaceId}/series/${seriesId}/export${
-          effectiveChapterId ? `?chapterId=${effectiveChapterId}` : ''
-        }`,
-      );
     }
   };
 
@@ -152,11 +118,7 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
     if (onBackToChapters) {
       onBackToChapters();
     } else if (workspaceId && seriesId) {
-      navigate(
-        `/workspaces/${workspaceId}/series/${seriesId}/workspace?tab=chapters${
-          effectiveChapterId ? `&chapterId=${effectiveChapterId}` : ''
-        }`,
-      );
+      navigate(buildChapterManagementUrl(workspaceId, seriesId, effectiveChapterId));
     }
   };
 
@@ -191,7 +153,7 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
           )}
         </div>
 
-        {/* Right: Chapter Selector, Subtab Bar, Action CTA */}
+        {/* Right: Chapter Selector and contextual action */}
         <div className='flex flex-wrap items-center gap-2.5'>
           {/* Chapter Selector Dropdown */}
           <div className='relative flex items-center'>
@@ -219,78 +181,6 @@ export const ProducerSharedHeader: React.FC<ProducerSharedHeaderProps> = ({
                 ))
               )}
             </select>
-          </div>
-
-          {/* Sub-tabs Navigation */}
-          <div
-            className='inline-flex p-1 rounded-lg bg-stone-100 border border-stone-200'
-            id='subtab-bar'
-          >
-            <button
-              type='button'
-              data-subtab='progress'
-              id='subtab-progress'
-              onClick={() => handleTabClick('progress')}
-              className={`subtab-btn px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                activeTab === 'progress'
-                  ? 'bg-white text-stone-900 font-semibold shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 font-medium'
-              }`}
-            >
-              {t('workbench.subtabs.progress', 'Ma trận trang')}
-            </button>
-            <button
-              type='button'
-              data-subtab='chapters'
-              id='subtab-chapters'
-              onClick={() => handleTabClick('chapters')}
-              className={`subtab-btn px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                activeTab === 'chapters'
-                  ? 'bg-white text-stone-900 font-semibold shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 font-medium'
-              }`}
-            >
-              {t('workbench.subtabs.chapters', 'Tổng quan chương')}
-            </button>
-            <button
-              type='button'
-              data-subtab='script'
-              id='subtab-script'
-              onClick={() => handleTabClick('script')}
-              className={`subtab-btn px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                activeTab === 'script'
-                  ? 'bg-white text-stone-900 font-semibold shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 font-medium'
-              }`}
-            >
-              {t('workbench.subtabs.script', 'Kịch bản')}
-            </button>
-            <button
-              type='button'
-              data-subtab='reader'
-              id='subtab-reader'
-              onClick={() => handleTabClick('reader')}
-              className={`subtab-btn px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                activeTab === 'reader'
-                  ? 'bg-white text-stone-900 font-semibold shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 font-medium'
-              }`}
-            >
-              {t('workbench.subtabs.reader', 'Đọc thử & Soát trang')}
-            </button>
-            <button
-              type='button'
-              data-subtab='handoff'
-              id='subtab-handoff'
-              onClick={() => handleTabClick('handoff')}
-              className={`subtab-btn px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                activeTab === 'handoff'
-                  ? 'bg-white text-stone-900 font-semibold shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 font-medium'
-              }`}
-            >
-              {t('workbench.subtabs.handoff', 'Bàn giao')}
-            </button>
           </div>
 
           {/* Action CTA */}

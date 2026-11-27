@@ -116,6 +116,9 @@ export interface AssignmentDto {
   updatedAt?: string | null;
   /** "Cần kiểm tra ảnh hưởng": đầu vào bị mở lại; chặn nộp/duyệt tới khi Editor/Producer quyết giữ hay làm lại. */
   impactReviewReason?: string | null;
+  /** Chỉ bật cho thay đổi hình ảnh/cấu trúc; sửa lời thoại thuần túy không bật cờ này. */
+  hasScriptImpact?: boolean;
+  impactedScriptLineId?: string | null;
 }
 
 /** POST .../assignments/{id}/transfer — chuyển giao trang/khung của việc cả chương (Artist/Letterer). */
@@ -732,6 +735,8 @@ export interface StageTaskDto {
   lotId?: string | null;
   assigneeUserId?: string | null;
   isInputOutdated: boolean;
+  /** Alias phân biệt cờ kịch bản trực quan với các loại đầu vào lỗi thời khác. */
+  hasScriptImpact?: boolean;
   outdatedReason?: string | null;
   lastDecisionComment?: string | null;
   reopenReason?: string | null;
@@ -754,6 +759,8 @@ export interface StageTaskLotDto {
   taskCount: number;
   approvedCount: number;
   rowVersion: number;
+  isAutoAssigned?: boolean;
+  autoAssignReason?: string | null;
 }
 
 export interface TaskGridDto {
@@ -829,6 +836,10 @@ export interface AutoAssignPlanDto {
 }
 
 export interface SubmitStageTasksRequest {
+  taskIds: string[];
+}
+
+export interface ApproveStageTasksRequest {
   taskIds: string[];
 }
 

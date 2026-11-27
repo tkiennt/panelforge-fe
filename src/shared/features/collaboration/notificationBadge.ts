@@ -148,14 +148,13 @@ export async function resolveNotificationTargetPath(
     }
   }
 
-  if (!resolvedSeriesId) {
-    const chap = await chapterService.getChapterById(n.chapterId).catch(() => null);
-    if (chap?.seriesId) {
-      resolvedSeriesId = chap.seriesId;
-    }
+  // Luôn tra chương: thông báo có thể thuộc Series khác Series đang mở (ctx.seriesId), dùng ctx sẽ mở nhầm Series.
+  const chap = await chapterService.getChapterById(n.chapterId).catch(() => null);
+  if (chap?.seriesId) {
+    resolvedSeriesId = chap.seriesId;
   }
 
-  if (resolvedSeriesId && !resolvedWsId) {
+  if (resolvedSeriesId && (!resolvedWsId || (chap?.seriesId && chap.seriesId !== ctx?.seriesId))) {
     const ser = await seriesService.getSeriesById(resolvedSeriesId).catch(() => null);
     if (ser?.workspaceId) {
       resolvedWsId = ser.workspaceId;

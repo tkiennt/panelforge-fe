@@ -398,7 +398,6 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                           <span>
                             {t('bibleDrawer.variant', {
                               label:
-                                entry.effectiveRevision.variantLabel ||
                                 entry.effectiveRevision.stageName ||
                                 t('bibleDrawer.defaultVariant'),
                             })}

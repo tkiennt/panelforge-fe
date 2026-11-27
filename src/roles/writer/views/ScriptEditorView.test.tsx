@@ -489,7 +489,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     await user.click(await screen.findByTestId('rail-ai-btn'));
     await user.click(screen.getByTestId('quick-template-sfx'));
 
-    expect(await screen.findByTestId('unsaved-badge')).toBeInTheDocument();
+    expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
 
     // Bấm lưu (Ctrl+S) -> gặp 409
     fireEvent.keyDown(window, { key: 's', ctrlKey: true });
@@ -543,7 +543,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     await screen.findByText(/Họ đang di chuyển/);
     await user.click(await screen.findByTestId('rail-ai-btn'));
     await user.click(screen.getByTestId('quick-template-sfx'));
-    expect(await screen.findByTestId('unsaved-badge')).toBeInTheDocument();
+    expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
 
     // BE vừa tạo rev-11 (khôi phục / AI ở nơi khác)
     vi.mocked(chapterService.getScriptWorkingCopy).mockResolvedValue(null as any);
@@ -569,7 +569,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(await screen.findByTestId('concurrency-error-banner')).toHaveTextContent(
       'Kịch bản vừa được thay đổi (khôi phục / AI / người khác). Tải lại để xem bản mới nhất.',
     );
-    expect(screen.getByTestId('unsaved-badge')).toBeInTheDocument();
+    expect(screen.getByText(/Chưa lưu/)).toBeInTheDocument();
 
     // Vẫn giữ expectedRevisionId cũ: lưu tiếp sẽ bị BE chặn 409 thay vì đè bản mới
     fireEvent.keyDown(window, { key: 's', ctrlKey: true });
@@ -989,7 +989,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
       await user.click(screen.getByTestId('quick-template-dialogue'));
 
-      expect(await screen.findByTestId('unsaved-badge')).toBeInTheDocument();
+      expect(await screen.findByText(/Chưa lưu/)).toBeInTheDocument();
       const sheet = screen.getByTestId('paper-editor-sheet');
       expect(sheet.textContent).not.toMatch(/Kael|Cổng đã đồng bộ|SHAKIIIIN/);
     });
@@ -1037,6 +1037,71 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       await user.click(await screen.findByTestId('rail-ai-btn'));
       await user.click(screen.getByTestId('open-ai-storyboard-btn'));
       expect(await screen.findByText('Trợ lý AI · Phân khung Storyboard')).toBeInTheDocument();
+    });
+
+    it('"Yêu cầu sửa" đề xuất dòng tiếp theo: ghi quyết định kèm lý do rồi chạy lại AI với revisionOfSuggestionId (BR-02)', async () => {
+      const user = userEvent.setup();
+      const base = {
+        runId: 'run-rc-1',
+        stepId: 'step-rc-1',
+        sceneId: 'sc-1',
+        kind: 'ScriptLineInsert' as const,
+        status: 'Pending' as const,
+        summary: 'Gợi ý 1 dòng Sfx tiếp theo',
+        payloadHash: 'hash-rc',
+        baseChapterVersion: 5,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-11-25T08:00:00Z',
+        decisions: [],
+        canDecide: true,
+        canAccept: true,
+      };
+      const payload = (text: string) => ({
+        schemaVersion: 1,
+        runId: 'run-rc-1',
+        sceneId: 'sc-1',
+        afterLineId: 'line-1',
+        kind: 'Sfx' as const,
+        speaker: null,
+        text,
+        reason: 'r',
+        allowedSpeakers: ['Akira'],
+      });
+      const runNextLineSpy = vi
+        .spyOn(aiAgentsService, 'runNextLine')
+        .mockResolvedValueOnce({ ...base, id: 'sug-rc-1', payload: payload('ĐỒNG!') } as any)
+        .mockResolvedValueOnce({ ...base, id: 'sug-rc-2', payload: payload('KENG! KENG!') } as any);
+      vi.spyOn(aiAgentsService, 'review').mockResolvedValueOnce({
+        suggestionId: 'sug-rc-1',
+        status: 'ChangesRequested',
+        decisionId: 'dec-rc-1',
+        resultRevisionId: null,
+        chapterVersion: 5,
+      } as any);
+
+      renderView({ workspaceRole: 'WRITER' });
+      await screen.findByText(/Họ đang di chuyển/);
+      await user.click(await screen.findByTestId('rail-ai-btn'));
+      await user.click(screen.getByTestId('ai-next-line-Sfx'));
+      expect((await screen.findAllByText(/ĐỒNG!/)).length).toBeGreaterThanOrEqual(1);
+
+      await user.click(screen.getByRole('button', { name: 'Yêu cầu sửa' }));
+      await user.type(
+        screen.getByPlaceholderText('Lý do yêu cầu sửa (bắt buộc)'),
+        'Tiếng hai thanh kiếm va nhau',
+      );
+      await user.click(screen.getByRole('button', { name: 'Xác nhận Yêu cầu sửa' }));
+
+      await waitFor(() =>
+        expect(runNextLineSpy).toHaveBeenLastCalledWith('se-1', {
+          sceneId: 'sc-1',
+          kind: 'Sfx',
+          afterLineId: 'line-1',
+          revisionOfSuggestionId: 'sug-rc-1',
+        }),
+      );
+      expect((await screen.findAllByText(/KENG! KENG!/)).length).toBeGreaterThanOrEqual(1);
     });
 
     it('bấm gợi ý dòng tiếp theo gọi POST copilot/next-line, hiện SuggestionCard chờ Accept/Reject (BR-02) và tải lại sau Accept', async () => {
@@ -1125,6 +1190,27 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       await waitFor(() => {
         expect(chapterService.getScriptWorkingCopy).toHaveBeenCalledWith('chap-1');
       });
+    });
+
+    it('hiển thị banner chặn xóa khi lưu trả về 409 CANNOT_DELETE_ACTIVE_PRODUCTION_PAGE', async () => {
+      const user = userEvent.setup();
+      vi.mocked(chapterService.saveChapterScript).mockRejectedValueOnce(
+        Object.assign(
+          new Error('Không thể xóa Trang 1 trong giai đoạn sản xuất vì đã có bản vẽ.'),
+          {
+            status: 409,
+            code: 'CANNOT_DELETE_ACTIVE_PRODUCTION_PAGE',
+            details: { blockedPageIds: ['page-1'], blockedPanelIds: [] },
+          },
+        ),
+      );
+
+      renderView({ workspaceRole: 'WRITER' });
+      const saveBtn = await screen.findByTestId('save-script-btn');
+      await user.click(saveBtn);
+
+      const banner = await screen.findByTestId('delete-blocked-banner');
+      expect(banner).toHaveTextContent(/không thể xóa/i);
     });
   });
 });

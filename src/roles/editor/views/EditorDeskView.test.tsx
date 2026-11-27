@@ -200,7 +200,7 @@ describe('EditorDeskView Component', () => {
     await waitFor(() => {
       expect(assignmentService.openReview).toHaveBeenCalledWith('chap-101', 'asg-open-me');
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/workspaces/ws-1/series/series-001/chapters/chap-101/review/asg-open-me?chapterId=chap-101',
+        '/workspaces/ws-1/series/series-001/chapters/chap-101/review/asg-open-me',
       );
       expect(onShowToast).toHaveBeenCalledWith(
         'Bắt đầu thẩm định',
@@ -232,7 +232,7 @@ describe('EditorDeskView Component', () => {
 
     expect(openReviewSpy).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/workspaces/ws-1/series/series-001/chapters/chap-101/review/asg-under-review?chapterId=chap-101',
+      '/workspaces/ws-1/series/series-001/chapters/chap-101/review/asg-under-review',
     );
   });
 
@@ -407,7 +407,7 @@ describe('EditorDeskView Component', () => {
     fireEvent.click(screen.getByTestId('editor-open-grid-review-grid-task-open'));
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/workspaces/ws-1/series/series-001/chapters/chap-101/review/grid-task-open?chapterId=chap-101',
+        '/workspaces/ws-1/series/series-001/chapters/chap-101/review/grid-task-open',
       );
     });
   });
@@ -459,5 +459,106 @@ describe('EditorDeskView Component', () => {
     await waitFor(() => {
       expect(releaseSpy).toHaveBeenCalledWith('chap-101', 'grid-task-locked');
     });
+  });
+
+  it('TASK-360: hiển thị chip "Được phân cho bạn" cho gợi ý mềm (Submitted), lọc "Của tôi / Tất cả" và không khoá ô Submitted gợi ý cho Editor khác', async () => {
+    vi.spyOn(assignmentService, 'getEditorReviewQueue').mockResolvedValue([]);
+    vi.spyOn(assignmentService, 'getTaskGridReviewQueue').mockResolvedValue([
+      {
+        taskId: 'grid-mine',
+        seriesId: 'series-001',
+        seriesTitle: 'Đại Chiến Thần Binh',
+        chapterId: 'chap-101',
+        chapterNumber: 12,
+        pipelineStageId: 'stg-pencil',
+        stageName: 'Pencil',
+        pageId: 'page-001',
+        pageNumber: 1,
+        status: 'Submitted',
+        assigneeUserId: 'usr-artist-1',
+        reviewerUserId: 'usr-editor-1',
+        attemptNumber: 1,
+        submittedAt: '2026-11-14T10:00:00Z',
+      },
+      {
+        taskId: 'grid-other-suggested',
+        seriesId: 'series-001',
+        seriesTitle: 'Đại Chiến Thần Binh',
+        chapterId: 'chap-101',
+        chapterNumber: 12,
+        pipelineStageId: 'stg-ink',
+        stageName: 'Ink',
+        pageId: 'page-002',
+        pageNumber: 2,
+        status: 'Submitted',
+        assigneeUserId: 'usr-artist-1',
+        reviewerUserId: 'usr-editor-2',
+        reviewerName: 'Biên tập Minh',
+        attemptNumber: 1,
+        submittedAt: '2026-11-14T10:05:00Z',
+      },
+      {
+        taskId: 'grid-unassigned-reviewer',
+        seriesId: 'series-001',
+        seriesTitle: 'Đại Chiến Thần Binh',
+        chapterId: 'chap-101',
+        chapterNumber: 12,
+        pipelineStageId: 'stg-color',
+        stageName: 'Color',
+        pageId: 'page-003',
+        pageNumber: 3,
+        status: 'Submitted',
+        assigneeUserId: 'usr-artist-1',
+        reviewerUserId: null,
+        attemptNumber: 1,
+        submittedAt: '2026-11-14T10:10:00Z',
+      },
+    ]);
+    vi.spyOn(seriesService, 'getSeriesById').mockResolvedValue({ id: 'series-001' } as any);
+
+    renderView({ currentUserId: 'usr-editor-1', workspaceRole: 'EDITOR' });
+
+    await waitFor(() => {
+      expect(screen.getByText('Trang 1')).toBeInTheDocument();
+      expect(screen.getByText('Trang 2')).toBeInTheDocument();
+      expect(screen.getByText('Trang 3')).toBeInTheDocument();
+    });
+
+    const scopeAllBtn = screen.getByTestId('editor-scope-all');
+    const scopeMineBtn = screen.getByTestId('editor-scope-mine');
+    expect(scopeAllBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(scopeMineBtn).toHaveAttribute('aria-pressed', 'false');
+
+    // Chỉ ô có reviewerUserId === currentUserId ở trạng thái Submitted mới hiện chip "Được phân cho bạn"
+    expect(screen.getByTestId('editor-assigned-to-you-grid-mine')).toHaveTextContent(
+      'Được phân cho bạn',
+    );
+    expect(
+      screen.queryByTestId('editor-assigned-to-you-grid-other-suggested'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('editor-assigned-to-you-grid-unassigned-reviewer'),
+    ).not.toBeInTheDocument();
+
+    // Gợi ý mềm cho Editor khác khi status = Submitted KHÔNG khoá thao tác (R2)
+    expect(
+      screen.queryByTestId('editor-locked-by-other-grid-other-suggested'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('editor-open-grid-review-grid-other-suggested')).not.toBeDisabled();
+    expect(screen.getByTestId('editor-approve-grid-grid-other-suggested')).not.toBeDisabled();
+    expect(screen.getByTestId('editor-reject-toggle-grid-other-suggested')).not.toBeDisabled();
+
+    // Lọc "Của tôi" chỉ giữ lại các mục có reviewerUserId === currentUserId
+    fireEvent.click(scopeMineBtn);
+    expect(scopeMineBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Trang 1')).toBeInTheDocument();
+    expect(screen.queryByText('Trang 2')).not.toBeInTheDocument();
+    expect(screen.queryByText('Trang 3')).not.toBeInTheDocument();
+
+    // Chuyển lại "Tất cả" hiện đủ cả 3 mục
+    fireEvent.click(scopeAllBtn);
+    expect(screen.getByText('Trang 1')).toBeInTheDocument();
+    expect(screen.getByText('Trang 2')).toBeInTheDocument();
+    expect(screen.getByText('Trang 3')).toBeInTheDocument();
   });
 });

@@ -151,6 +151,7 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
       if (
         onCellsUpdated &&
         Array.isArray(updated) &&
+        updated.length > 0 &&
         !updated.some((c) => c.status === 'Approved')
       ) {
         onCellsUpdated(
@@ -371,7 +372,9 @@ export const TaskLotWorkCard: React.FC<TaskLotWorkCardProps> = ({
             CELL_STATUS_CLS[cell.status] ?? 'bg-stone-100 text-stone-700 border-stone-300';
           const metaLabel = t(`collaboration.taskGrid.status.${cell.status}`, cell.status);
           const canStart =
-            isOwner && (cell.status === 'Assigned' || cell.status === 'ReworkRequired');
+            isOwner &&
+            roleUpper !== 'ARTIST' &&
+            (cell.status === 'Assigned' || cell.status === 'ReworkRequired');
           const canSubmit = isOwner && cell.status === 'InProgress';
           const canWithdraw = isOwner && cell.status === 'Submitted';
           const attemptCount = cell.attemptCount ?? 0;
@@ -681,6 +684,16 @@ export const TaskGridReviewCard: React.FC<TaskGridReviewCardProps> = ({
             <span className={`px-2 py-0.5 rounded-full border text-xs font-semibold ${metaCls}`}>
               {metaLabel}
             </span>
+            {item.status === 'Submitted' &&
+              Boolean(currentUserId && item.reviewerUserId === currentUserId) && (
+                <span
+                  data-testid={`grid-review-assigned-to-you-${item.taskId}`}
+                  className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-orange-200 bg-orange-50 text-xs font-semibold text-[#C2410C]'
+                >
+                  <User className='w-3 h-3 text-[#EA580C] shrink-0' />
+                  <span>{t('taskGridV3.assignedToYouChip', 'Được phân cho bạn')}</span>
+                </span>
+              )}
             {item.isInputOutdated && (
               <span
                 data-testid={`grid-review-input-outdated-${item.taskId}`}

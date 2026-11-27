@@ -132,6 +132,15 @@ describe('WorkspaceView (Quy trình sản xuất)', () => {
     expect(screen.queryByText('Trang khác')).not.toBeInTheDocument();
   });
 
+  it('không render thanh điều hướng ngang sau khi chuyển luồng sang sidebar', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Board chapter: chap-1')).toBeInTheDocument());
+
+    expect(
+      screen.queryByRole('navigation', { name: 'Luồng sản xuất chương' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('chặn quyền truy cập đối với độc giả (READER mode)', () => {
     renderComponent({ isReaderMode: true });
     expect(screen.getByText('Khu vực giới hạn')).toBeInTheDocument();

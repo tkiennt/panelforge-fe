@@ -11,6 +11,28 @@ interface AuthenticatedImageProps extends React.ImgHTMLAttributes<HTMLImageEleme
 
 // In-memory cache for blob URLs to avoid re-fetching the same hash repeatedly in the same session
 const blobCache = new Map<string, string>();
+const blobRequestCache = new Map<string, Promise<string>>();
+
+const loadBlobUrl = (src: string): Promise<string> => {
+  const cached = blobCache.get(src);
+  if (cached) return Promise.resolve(cached);
+
+  const pending = blobRequestCache.get(src);
+  if (pending) return pending;
+
+  const request = axiosClient
+    .get(src, { responseType: 'blob' })
+    .then((res) => {
+      const blobUrl = URL.createObjectURL(res.data);
+      blobCache.set(src, blobUrl);
+      return blobUrl;
+    })
+    .finally(() => {
+      blobRequestCache.delete(src);
+    });
+  blobRequestCache.set(src, request);
+  return request;
+};
 
 const isDirectUrl = (url: string): boolean => {
   return (
@@ -80,12 +102,9 @@ export const AuthenticatedImage: React.FC<AuthenticatedImageProps> = ({
     setHasError(false);
 
     const load = () =>
-      axiosClient
-        .get(src, { responseType: 'blob' })
-        .then((res) => {
+      loadBlobUrl(src)
+        .then((blobUrl) => {
           if (isCancelled) return;
-          const blobUrl = URL.createObjectURL(res.data);
-          blobCache.set(src, blobUrl);
           setResolvedUrl(blobUrl);
           setLoading(false);
         })

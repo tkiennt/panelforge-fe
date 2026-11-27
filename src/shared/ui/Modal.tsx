@@ -148,7 +148,7 @@ export const Modal = forwardRef<HTMLDialogElement, ModalProps>(function Modal(
         className,
       )}
     >
-      <header className='relative border-b border-[var(--studio-line)] px-6 py-5 pr-14'>
+      <header className='relative bg-head-wash border-b border-head-line px-6 py-5 pr-14'>
         <h2 id={titleId} className='font-serif text-lg font-bold'>
           {title}
         </h2>

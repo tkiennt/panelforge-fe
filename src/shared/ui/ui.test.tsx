@@ -4,9 +4,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Home } from 'lucide-react';
 import {
   Alert,
+  Card,
+  CardBody,
+  CardHeader,
   ConfirmDialog,
   Drawer,
   Modal,
+  PageHeader,
+  SectionHeader,
   SidebarItem,
   SidebarSection,
   Toast,
@@ -261,5 +266,114 @@ describe('Sidebar', () => {
     );
     expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('tooltip')).toHaveTextContent('Home');
+  });
+});
+
+describe('Surface primitives', () => {
+  it('renders PageHeader with page and toolbar variants, heading levels, and data-testid passthrough', () => {
+    const { rerender } = render(
+      <PageHeader
+        data-testid='page-header'
+        icon={<span data-testid='ph-icon'>Icon</span>}
+        eyebrow='Eyebrow text'
+        title='Page Title'
+        description='Page Description'
+        actions={<button>Action</button>}
+      />,
+    );
+
+    const header = screen.getByTestId('page-header');
+    expect(header).toHaveClass('border-head-line');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Page Title');
+    expect(screen.getByText('Eyebrow text')).toHaveClass('text-sienna');
+    expect(screen.getByText('Page Description')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Action' })).toBeInTheDocument();
+    // ink rule span
+    expect(header.querySelector('span[aria-hidden="true"]')).toHaveClass('bg-accent');
+
+    // Test heading level override and toolbar variant
+    rerender(
+      <PageHeader data-testid='page-header' variant='toolbar' as='h2' title='Toolbar Title' />,
+    );
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Toolbar Title');
+    expect(screen.getByTestId('page-header')).toHaveClass('bg-white/95');
+    expect(screen.getByTestId('page-header').querySelector('span[aria-hidden="true"]')).toBeNull();
+  });
+
+  it('renders SectionHeader with count chip, heading level, and data-testid', () => {
+    render(
+      <SectionHeader
+        data-testid='section-header'
+        eyebrow='Overview'
+        title='Section Title'
+        count={5}
+        actions={<button>Filter</button>}
+      />,
+    );
+    expect(screen.getByTestId('section-header')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Section Title');
+    const chip = screen.getByText('5');
+    expect(chip).toHaveClass('bg-kraft');
+    expect(chip).toHaveClass('text-kraft-ink');
+    expect(screen.getByText('Overview')).toHaveClass('text-sienna');
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument();
+  });
+
+  it('renders Card with featured border strip and semantic tone colors', () => {
+    const { rerender } = render(
+      <Card data-testid='card' featured tone='brand'>
+        <CardBody data-testid='card-body'>Body Content</CardBody>
+      </Card>,
+    );
+    const card = screen.getByTestId('card');
+    expect(card).toHaveClass('border-t-accent');
+    expect(screen.getByTestId('card-body')).toHaveTextContent('Body Content');
+
+    rerender(
+      <Card data-testid='card' featured tone='ai'>
+        <CardBody>AI Body</CardBody>
+      </Card>,
+    );
+    expect(card).toHaveClass('border-t-violet-500');
+
+    rerender(
+      <Card data-testid='card' featured tone='warning'>
+        <CardBody>Warning Body</CardBody>
+      </Card>,
+    );
+    expect(card).toHaveClass('border-t-amber-500');
+  });
+
+  it('renders CardHeader with tone inheritance and tone-specific icon tile', () => {
+    const { rerender } = render(
+      <Card tone='success'>
+        <CardHeader
+          data-testid='card-header'
+          icon={<span data-testid='icon'>Icon</span>}
+          title='Success Card'
+          subtitle='Card Subtitle'
+          actions={<button>More</button>}
+        />
+      </Card>,
+    );
+    const cardHeader = screen.getByTestId('card-header');
+    expect(cardHeader).toHaveClass('bg-head-wash');
+    const iconTile = screen.getByTestId('icon').parentElement;
+    expect(iconTile).toHaveClass('bg-emerald-100');
+    expect(iconTile).toHaveClass('text-emerald-700');
+
+    // AI tone changes band background to violet tint
+    rerender(
+      <Card tone='ai'>
+        <CardHeader
+          data-testid='card-header'
+          icon={<span data-testid='icon'>Icon</span>}
+          title='AI Card'
+        />
+      </Card>,
+    );
+    expect(cardHeader).toHaveClass('bg-violet-50/60');
+    expect(screen.getByTestId('icon').parentElement).toHaveClass('bg-violet-100');
+    expect(screen.getByTestId('icon').parentElement).toHaveClass('text-violet-700');
   });
 });

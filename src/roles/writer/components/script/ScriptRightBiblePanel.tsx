@@ -77,8 +77,7 @@ export const ScriptRightBiblePanel: React.FC<ScriptRightBiblePanelProps> = ({
       (e) =>
         e.name.toLowerCase().includes(q) ||
         (e.subtitle && e.subtitle.toLowerCase().includes(q)) ||
-        (e.effectiveRevision?.variantLabel &&
-          e.effectiveRevision.variantLabel.toLowerCase().includes(q)),
+        (e.effectiveRevision?.stageName && e.effectiveRevision.stageName.toLowerCase().includes(q)),
     );
   }, [allBibleEntries, characters, searchQuery]);
 
@@ -200,7 +199,11 @@ export const ScriptRightBiblePanel: React.FC<ScriptRightBiblePanelProps> = ({
             ) : (
               <div className='space-y-2.5'>
                 {regularChapterCharacters.map((char) => {
-                  const variant = char.effectiveRevision?.variantLabel || char.subtitle || '';
+                  const variantLabel =
+                    char.effectiveRevision?.stageName ||
+                    char.subtitle ||
+                    t('production.cast.mainCharacter', 'Mặc định');
+                  const versionNum = char.effectiveRevision?.versionNumber ?? 1;
                   const initials = char.name
                     .split(' ')
                     .map((s) => s[0])
@@ -226,10 +229,14 @@ export const ScriptRightBiblePanel: React.FC<ScriptRightBiblePanelProps> = ({
                           </div>
                           <div className='min-w-0'>
                             <h4 className='font-headline-sm text-xs font-bold text-stone-900 leading-tight group-hover:text-[#EA580C] transition-colors truncate'>
-                              {char.name}
+                              <span>{char.name}</span>
+                              <span className='font-normal text-stone-500 font-sans'>
+                                {' '}
+                                — {variantLabel} (v{versionNum})
+                              </span>
                             </h4>
                             <p className='text-xs text-stone-500 truncate'>
-                              {variant || t('production.cast.mainCharacter', 'Nhân vật')}
+                              {char.subtitle || variantLabel}
                             </p>
                           </div>
                         </div>

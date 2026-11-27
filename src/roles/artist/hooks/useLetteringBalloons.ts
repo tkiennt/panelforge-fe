@@ -604,6 +604,50 @@ export function useLetteringBalloons(
     ],
   );
 
+  const syncElementText = useCallback(
+    async (elementId: string) => {
+      if (!selectedPage?.id) return;
+      if (readOnly) {
+        notifyForbidden();
+        return;
+      }
+      const target = pageElements.find((item) => item.elementId === elementId);
+      if (!target?.scriptLineId) return;
+
+      try {
+        const res = await elementService.updateElementText(selectedPage.id, elementId, {
+          scriptLineId: target.scriptLineId,
+          expectedElementVersion: target.version,
+        });
+        const latestText = res.content ?? target.currentLineText ?? target.content ?? '';
+        updateElement(elementId, (item) => ({
+          ...item,
+          content: latestText,
+          renderedText: latestText,
+          currentLineText: latestText,
+          isStale: false,
+          version: res.elementVersion ?? item.version,
+        }));
+      } catch (err: any) {
+        await reloadElements();
+        toast.error?.(
+          t('lettering.balloons.saveContentFailed'),
+          err?.message || t('lettering.balloons.tryAgainLater'),
+        );
+      }
+    },
+    [
+      selectedPage?.id,
+      readOnly,
+      notifyForbidden,
+      pageElements,
+      updateElement,
+      reloadElements,
+      toast,
+      t,
+    ],
+  );
+
   const updateElementStyle = useCallback(
     async (elementId: string, patch: Partial<TextStyleDto> | null) => {
       if (!selectedPage?.id) return;
@@ -691,7 +735,6 @@ export function useLetteringBalloons(
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const el = pageElements.find((item) => item.elementId === elementId);
     if (!el) return;
-    setSelectedElementId(elementId);
     setDragging({
       elementId,
       startX: e.clientX,
@@ -922,6 +965,7 @@ export function useLetteringBalloons(
     moveElementTo,
     copyElement,
     updateElementText,
+    syncElementText,
     updateElementStyle,
     reloadElements,
     prefetchPages,

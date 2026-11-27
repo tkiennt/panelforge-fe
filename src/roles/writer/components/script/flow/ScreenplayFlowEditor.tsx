@@ -230,6 +230,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   lineSceneMapRef.current = lineSceneMap;
   const onCaretSceneChangeRef = useRef(onCaretSceneChange);
   onCaretSceneChangeRef.current = onCaretSceneChange;
+  /** Dòng con trỏ đứng lần báo gần nhất: chỉ báo đổi cảnh khi con trỏ thật sự sang dòng khác, để Writer chọn được
+   * cảnh khác từ ngăn kéo (vd. cảnh mới còn trống) mà không bị kéo về cảnh cũ ở lần cập nhật chọn kế tiếp. */
+  const lastCaretLineRef = useRef<string | null>(null);
 
   const firstSavedLineId = useMemo(() => {
     const first = lineSceneMap.keys().next();
@@ -415,10 +418,17 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               ? prev
               : { sceneId: matchedSceneId, afterLineId, rewriteLineId },
           );
-          if (rewriteLineId && matchedSceneId) {
+          if (
+            !loadingRef.current &&
+            rewriteLineId &&
+            matchedSceneId &&
+            rewriteLineId !== lastCaretLineRef.current
+          ) {
+            lastCaretLineRef.current = rewriteLineId;
             onCaretSceneChangeRef.current?.(matchedSceneId);
           }
         }
+
         const m = getElementMenu(ed.state);
         if (!m.open) {
           setMenu(null);
@@ -570,18 +580,22 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     if (dirtyRef.current) return;
     if (JSON.stringify(editor.getJSON()) === serverDocJson) return;
     const keepPos = editor.state.selection.from;
+    // Cờ nạp bật suốt lúc thay nội dung và khôi phục con trỏ: các transaction này không phải Writer gõ hay di chuyển
     loadingRef.current = true;
-    editor.commands.setContent(JSON.parse(serverDocJson), { emitUpdate: false });
-    loadingRef.current = false;
-    const max = editor.state.doc.content.size;
     try {
-      editor.view.dispatch(
-        editor.state.tr.setSelection(
-          TextSelection.near(editor.state.doc.resolve(Math.min(keepPos, max))),
-        ),
-      );
-    } catch {
-      // Tài liệu mới ngắn hơn: giữ vị trí mặc định
+      editor.commands.setContent(JSON.parse(serverDocJson), { emitUpdate: false });
+      const max = editor.state.doc.content.size;
+      try {
+        editor.view.dispatch(
+          editor.state.tr.setSelection(
+            TextSelection.near(editor.state.doc.resolve(Math.min(keepPos, max))),
+          ),
+        );
+      } catch {
+        // Tài liệu mới ngắn hơn: giữ vị trí mặc định
+      }
+    } finally {
+      loadingRef.current = false;
     }
   }, [editor, serverDocJson, syncRevision, markDirty]);
 
@@ -614,7 +628,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
   useEffect(() => {
     if (!registerSave) return;
-    registerSave((force = true) => handleSave(force));
+    // Nút Lưu / Ctrl+S của view là thao tác lưu chủ động: luôn lưu như Ctrl+S trong editor
+    registerSave(() => handleSave(true));
     return () => registerSave(null);
   }, [registerSave, handleSave]);
 

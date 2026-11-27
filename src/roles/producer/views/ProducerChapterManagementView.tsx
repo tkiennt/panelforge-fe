@@ -52,6 +52,7 @@ import { seriesService, type SeriesDetailDto } from '@/services/series.service';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { pageService, type PageDto } from '@/services/page.service';
 import { StartProductionModal } from '@/shared/modals/StartProductionModal';
+import { RefreezeScriptModal } from '@/shared/modals/RefreezeScriptModal';
 import { ChapterAssignmentsModal } from '../modals/ChapterAssignmentsModal';
 import { ChapterEditionsModal } from '../modals/ChapterEditionsModal';
 import { PreviewLinksModal } from '../modals/PreviewLinksModal';
@@ -65,6 +66,7 @@ import {
   renderRow,
   shortHash,
 } from '@/shared/features/script-versions/versionDiff';
+import { buildSeriesPath } from '@/app/routePaths';
 
 export interface ProducerChapterManagementViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -480,7 +482,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             </button>
             <button
               type='button'
-              onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`)}
+              onClick={() => navigate(buildSeriesPath(workspaceId, seriesId, 'chapters'))}
               className='rounded-xl border border-stone-200 bg-white px-4 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50'
             >
               Dashboard
@@ -500,7 +502,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
           <div className='flex items-center gap-2.5 min-w-0'>
             <button
               type='button'
-              onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`)}
+              onClick={() => navigate(buildSeriesPath(workspaceId, seriesId, 'chapters'))}
               className='flex h-7 w-7 items-center justify-center rounded-lg border border-stone-200 bg-stone-50 text-stone-600 hover:bg-stone-100'
               title='Dashboard'
             >
@@ -581,86 +583,6 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             )}
           </div>
 
-          {/* Sub-tabs Navigation */}
-          <div
-            className='inline-flex p-1 rounded-lg bg-stone-100 border border-stone-200 hidden md:inline-flex'
-            id='subtab-bar'
-          >
-            <button
-              type='button'
-              data-subtab='progress'
-              id='subtab-progress'
-              onClick={() =>
-                navigate(
-                  `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapterId}&tab=progress`,
-                )
-              }
-              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.progress')}
-            </button>
-            <button
-              type='button'
-              data-subtab='chapters'
-              id='subtab-chapters'
-              className='subtab-btn px-2.5 py-1 rounded-md bg-white text-stone-900 font-semibold shadow-xs text-xs cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.chapters')}
-            </button>
-            <button
-              type='button'
-              data-subtab='crew'
-              id='subtab-crew'
-              onClick={() =>
-                navigate(
-                  `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapterId}&tab=crew`,
-                )
-              }
-              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.crew')}
-            </button>
-            <button
-              type='button'
-              data-subtab='script'
-              id='subtab-script'
-              onClick={() =>
-                navigate(
-                  `/workspaces/${workspaceId}/series/${seriesId}/script?chapterId=${selectedChapterId}`,
-                )
-              }
-              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.script')}
-            </button>
-            <button
-              type='button'
-              data-subtab='reader'
-              id='subtab-reader'
-              onClick={() =>
-                navigate(
-                  `/workspaces/${workspaceId}/series/${seriesId}/editor/desk?chapterId=${selectedChapterId}`,
-                )
-              }
-              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.reader')}
-            </button>
-            <button
-              type='button'
-              data-subtab='handoff'
-              id='subtab-handoff'
-              onClick={() =>
-                navigate(
-                  `/workspaces/${workspaceId}/series/${seriesId}/export?chapterId=${selectedChapterId}`,
-                )
-              }
-              className='subtab-btn px-2.5 py-1 rounded-md text-stone-600 hover:text-stone-900 text-xs font-medium transition-colors cursor-pointer'
-            >
-              {t('pipeline.workbench.subtabs.handoff')}
-            </button>
-          </div>
-
           {/* Quick Action CTAs */}
           <div className='flex items-center gap-2'>
             {/* Gate 1 Start Production Primary Decision CTA */}
@@ -676,7 +598,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                 title={t('producer.chapterManagement.gate1CtaTitle')}
               >
                 <Play className='h-3 w-3 fill-current' />
-                <span>{t('producer.chapterManagement.gate1Cta')}</span>
+                <span>
+                  {chapter.status === 'InProduction'
+                    ? t('producer.chapterManagement.refreezeCta', 'Khóa lại kịch bản')
+                    : t('producer.chapterManagement.gate1Cta')}
+                </span>
                 {blockers.length > 0 && (
                   <span className='ml-1 rounded-full bg-rose-600 px-1.5 py-0.2 text-xs text-white font-mono'>
                     {t('producer.chapterManagement.blockersCount', { count: blockers.length })}
@@ -1207,7 +1133,14 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                         <div className='min-w-0 flex-1'>
                           <div className='flex items-center justify-between gap-1'>
                             <span className='font-bold text-xs text-stone-900 truncate'>
-                              {ent.name}
+                              <span>{ent.name}</span>
+                              <span className='font-normal text-stone-500 font-sans'>
+                                {' '}
+                                —{' '}
+                                {ent.boundRevision?.variantLabel ||
+                                  t('producer.chapterManagement.defaultVariantLabel')}{' '}
+                                (v{ent.boundRevision?.versionNumber ?? 1})
+                              </span>
                             </span>
                             <span className='font-mono text-xs text-stone-400'>{ent.code}</span>
                           </div>
@@ -1329,7 +1262,9 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                     onClick={() => setStartProductionOpen(true)}
                     className='w-full rounded-lg bg-[#EA580C] py-2 text-xs font-bold text-white hover:bg-[#C2410C]'
                   >
-                    {t('producer.chapterManagement.approveAndStartBtn')}
+                    {chapter?.status === 'InProduction'
+                      ? t('producer.chapterManagement.refreezeCta', 'Khóa lại kịch bản')
+                      : t('producer.chapterManagement.approveAndStartBtn')}
                   </button>
                 )}
               </div>
@@ -1745,8 +1680,25 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         </Modal>
       )}
 
-      {/* ── GATE 1 START PRODUCTION MODAL ── */}
-      {startProductionOpen && chapter && (
+      {/* ── GATE 1 START PRODUCTION / REFREEZE MODAL ── */}
+      {startProductionOpen && chapter && chapter.status === 'InProduction' && (
+        <RefreezeScriptModal
+          isOpen
+          workspaceId={workspaceId}
+          seriesId={seriesId}
+          chapterId={chapter.id}
+          chapterNumber={chapter.chapterNumber}
+          chapterTitle={chapter.title || undefined}
+          onClose={() => setStartProductionOpen(false)}
+          onSuccess={() => {
+            setStartProductionOpen(false);
+            void loadChapterDetails(chapter.id);
+            void loadSeriesAndChapters();
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
+      {startProductionOpen && chapter && chapter.status !== 'InProduction' && (
         <StartProductionModal
           isOpen
           workspaceId={workspaceId}

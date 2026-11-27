@@ -766,10 +766,20 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                       <span className='w-9 h-6 rounded-[50%] border-2 border-stone-700 bg-white' />
                     </span>
                     <span className='min-w-0 flex-1'>
-                      <span className='block text-xs font-bold text-stone-900'>
-                        {t('artist.letteringScript.balloonTitle', {
-                          order: el.readingOrder ?? idx + 1,
-                        })}
+                      <span className='flex items-center gap-1.5 text-xs font-bold text-stone-900'>
+                        <span>
+                          {t('artist.letteringScript.balloonTitle', {
+                            order: el.readingOrder ?? idx + 1,
+                          })}
+                        </span>
+                        {el.isStale && (
+                          <span
+                            data-testid='text-stale-badge'
+                            className='px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 text-[10px] font-semibold'
+                          >
+                            Thoại lỗi thời
+                          </span>
+                        )}
                       </span>
                       <span
                         className={`block text-xs ${el.scriptLineId ? 'text-emerald-700' : 'text-stone-500'}`}

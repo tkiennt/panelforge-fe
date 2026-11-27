@@ -75,6 +75,7 @@
       "openStageTaskReviewFailed": "Không thể mở duyệt ô công việc",
       "releaseStageTaskReviewFailed": "Không thể nhả khoá duyệt ô công việc",
       "approveStageTaskFailed": "Không thể duyệt ô công việc",
+      "approveStageTasksFailed": "Không thể duyệt các ô công việc đã chọn",
       "requestStageTaskChangesFailed": "Không thể yêu cầu sửa ô công việc",
       "getStageTaskSubmissionsFailed": "Không thể tải lịch sử nộp của ô công việc",
       "reopenStageTaskFailed": "Không thể mở lại ô công việc",
@@ -112,7 +113,9 @@
       "submitScriptFailed": "Không thể gửi duyệt kịch bản.",
       "recallScriptFailed": "Không thể rút kịch bản về sửa.",
       "startProductionFailed": "Không thể bắt đầu sản xuất chương.",
-      "unfreezeScriptFailed": "Không thể mở lại kịch bản."
+      "unfreezeScriptFailed": "Không thể mở lại kịch bản.",
+      "refreezePreviewFailed": "Không thể tải dữ liệu xem trước chốt lại kịch bản.",
+      "refreezeScriptFailed": "Không thể khóa lại kịch bản."
     },
     "element": {
       "layerBackground": "Bối cảnh (Background)",
@@ -199,6 +202,10 @@
       "getDesignQueueFailed": "Không thể tải hàng đợi thiết kế Series Bible.",
       "submitConceptArtFailed": "Không thể nộp bản vẽ Concept Art.",
       "confirmRevisionFailed": "Không thể xác nhận và khoá Canon.",
+      "endorseRevisionFailed": "Không thể cập nhật xác nhận tạo hình.",
+      "createVariantFailed": "Không thể tạo biến thể mới cho mục Bible.",
+      "cancelReplacementFailed": "Không thể huỷ bản nháp thay thế.",
+      "updateAliasesFailed": "Không thể cập nhật danh sách tên phụ.",
       "setCrowdFailed": "Không thể cập nhật cờ Quần chúng.",
       "defineEntryFailed": "Không thể định nghĩa mục Bible.",
       "getConceptCommentsFailed": "Không thể tải góp ý concept.",
@@ -227,6 +234,9 @@
       "revokeSessionFailed": "Không thể thu hồi phiên làm việc.",
       "setCoverFailed": "Tải ảnh bìa Studio thất bại.",
       "clearCoverFailed": "Xóa ảnh bìa Studio thất bại.",
+      "getAutomationSettingsFailed": "Không thể tải cấu hình Automation của Studio.",
+      "getAutomationActivityFailed": "Không thể tải hoạt động Automation gần đây của Studio.",
+      "updateAutomationSettingsFailed": "Không thể lưu cấu hình Automation của Studio.",
       "conflict": "Thao tác bị xung đột với trạng thái hiện tại (409 Conflict)."
     },
     "admin": {

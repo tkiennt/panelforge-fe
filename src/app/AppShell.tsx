@@ -59,6 +59,15 @@ import { notificationService } from '@/services/notification.service';
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 import { RouteFallback } from '@/shared/components/RouteFallback';
 import { StudioSwitcher } from '@/shared/components/StudioSwitcher';
+import {
+  buildChapterManagementUrl,
+  buildChapterReaderUrl,
+  buildEditorDeskUrl,
+  buildProductionWorkspaceUrl,
+  buildScriptReviewUrl,
+  buildSeriesExportUrl,
+  buildSeriesPath,
+} from './routePaths';
 
 export interface CurrentUser {
   name: string;
@@ -270,6 +279,7 @@ export function AppShell({
     effectiveRole === 'PRODUCER' ||
     effectiveRole === 'ADMINISTRATOR' ||
     currentUser.role === 'ADMINISTRATOR';
+  const canViewStudioAutomation = canManageStudio || effectiveRole === 'EDITOR';
   const studioTab = searchParams.get('tab') ?? 'series';
   const setStudioQuery = (key: 'tab' | 'action', value: string | null) => {
     const next = new URLSearchParams(location.search);
@@ -323,14 +333,21 @@ export function AppShell({
 
     if (effectiveRole === 'PRODUCER') {
       if (isSeriesContext) {
+        const workspacePath = buildSeriesPath(workspaceId!, seriesId!, 'workspace');
+        const isWorkspacePath = location.pathname === workspacePath;
+        const productionTab = searchParams.get('tab') ?? 'progress';
         return [
           {
             section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
             items: [
               {
                 icon: Kanban,
-                label: t('navigation.menu.progressAndTasks', 'Tiến độ & Giao việc'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
+                label: t('navigation.menu.pageMatrix', 'Ma trận trang'),
+                href: buildProductionWorkspaceUrl(workspaceId!, seriesId!, {
+                  chapterId: chapterId ?? undefined,
+                  tab: 'progress',
+                }),
+                isActive: isWorkspacePath && productionTab === 'progress',
                 badge: chapterNumberLabel
                   ? {
                       type: 'text',
@@ -340,23 +357,54 @@ export function AppShell({
                   : undefined,
               },
               {
+                icon: LayoutDashboard,
+                label: t('navigation.menu.chapterOverview', 'Tổng quan chương'),
+                href: buildChapterManagementUrl(workspaceId!, seriesId!, chapterId ?? undefined),
+                isActive:
+                  location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'chapters'),
+              },
+              {
+                icon: Users,
+                label: t('navigation.menu.crewManagement', 'Quản lý Ê-kíp'),
+                href: buildProductionWorkspaceUrl(workspaceId!, seriesId!, {
+                  chapterId: chapterId ?? undefined,
+                  tab: 'crew',
+                }),
+                isActive: isWorkspacePath && productionTab === 'crew',
+              },
+              {
                 icon: FileCheck,
-                label: t('navigation.menu.scriptAndReview', 'Kịch bản & Cổng duyệt'),
+                label: t('navigation.menu.productionScript', 'Kịch bản'),
                 href: chapterId
-                  ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapterId}/script/review`
-                  : `/workspaces/${workspaceId}/series/${seriesId}/chapters`,
+                  ? buildScriptReviewUrl(workspaceId!, seriesId!, chapterId)
+                  : buildChapterManagementUrl(workspaceId!, seriesId!),
+                isActive: location.pathname.includes('/script'),
               },
               {
                 icon: BookOpen,
-                label: t('navigation.menu.artworkReview', 'Đọc duyệt tranh'),
+                label: t('navigation.menu.readerAndReview', 'Đọc thử & Soát trang'),
                 href: chapterId
-                  ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapterId}/reader`
-                  : `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
+                  ? buildChapterReaderUrl(workspaceId!, seriesId!, chapterId)
+                  : buildProductionWorkspaceUrl(workspaceId!, seriesId!, { tab: 'progress' }),
+                isActive: location.pathname.endsWith('/reader'),
               },
               {
                 icon: Download,
-                label: t('navigation.menu.packagingAndExport', 'Đóng gói & Xuất bản'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/export`,
+                label: t('navigation.menu.handoff', 'Bàn giao'),
+                href: buildSeriesExportUrl(workspaceId!, seriesId!, chapterId ?? undefined),
+                isActive: location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'export'),
+              },
+            ],
+          },
+          {
+            section: t('navigation.sections.qualityReview', 'KIỂM DUYỆT'),
+            items: [
+              {
+                icon: ShieldCheck,
+                label: t('navigation.menu.editorReviewDesk', 'Kiểm tra & Hiệu đính'),
+                href: buildEditorDeskUrl(workspaceId!, seriesId!, {
+                  chapterId: chapterId ?? undefined,
+                }),
               },
             ],
           },
@@ -372,11 +420,6 @@ export function AppShell({
                 icon: Eye,
                 label: t('navigation.menu.revenueAndReads', 'Doanh thu & Lượt đọc'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/revenue`,
-              },
-              {
-                icon: Users,
-                label: t('navigation.sidebar.crew', 'Đội ngũ'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace?tab=crew`,
               },
             ],
           },
@@ -451,16 +494,6 @@ export function AppShell({
                 icon: LayoutDashboard,
                 label: t('navigation.menu.studioWorkspaces'),
                 href: seriesListHref,
-              },
-              {
-                icon: ShieldCheck,
-                label: t('navigation.menu.reviewDesk'),
-                href: '/editor/desk',
-              },
-              {
-                icon: Layers,
-                label: t('navigation.menu.workAndReview'),
-                href: '/my-work',
               },
             ],
           },
@@ -786,36 +819,42 @@ export function AppShell({
     }
   };
 
-  // Set isActive based on location pathname & tab query: phân biệt rõ tab=crew và trang chính không có tab
-  let bestMatch: any = null;
+  // Set isActive based on location pathname & tab query (ưu tiên item đã tính sẵn isActive kiểu boolean)
+  const explicitActiveItem = navSections
+    .flatMap((section) => section.items)
+    .find((item: any) => item.isActive === true);
+  let bestMatch: any = explicitActiveItem ?? null;
   let bestScore = -1;
   const currentTab = searchParams.get('tab');
 
-  navSections.forEach((section) => {
-    section.items.forEach((item: any) => {
-      const [itemPath, itemQuery] = String(item.href).split('?');
-      const itemSearchParams = new URLSearchParams(itemQuery || '');
-      const itemTab = itemSearchParams.get('tab');
+  if (!bestMatch) {
+    navSections.forEach((section) => {
+      section.items.forEach((item: any) => {
+        if (typeof item.isActive === 'boolean') return;
+        const [itemPath, itemQuery] = String(item.href).split('?');
+        const itemSearchParams = new URLSearchParams(itemQuery || '');
+        const itemTab = itemSearchParams.get('tab');
 
-      // Kiểm tra khớp pathname
-      const isPathMatch =
-        location.pathname === itemPath ||
-        (itemPath !== '/' && location.pathname.startsWith(`${itemPath}/`));
+        // Kiểm tra khớp pathname
+        const isPathMatch =
+          location.pathname === itemPath ||
+          (itemPath !== '/' && location.pathname.startsWith(`${itemPath}/`));
 
-      if (!isPathMatch) return;
+        if (!isPathMatch) return;
 
-      // Kiểm tra khớp tab: nếu item có tab thì tab hiện tại phải khớp; nếu URL có tab=crew thì item không được là item không tab
-      if (itemTab && itemTab !== currentTab) return;
-      if (!itemTab && currentTab === 'crew') return;
+        // Kiểm tra khớp tab: nếu item có tab thì tab hiện tại phải khớp; nếu URL có tab=crew thì item không được là item không tab
+        if (itemTab && itemTab !== currentTab) return;
+        if (!itemTab && currentTab === 'crew') return;
 
-      // Điểm ưu tiên: khớp tab cụ thể > khớp path dài hơn
-      const score = itemPath.length + (itemTab === currentTab && itemTab ? 1000 : 0);
-      if (score > bestScore) {
-        bestMatch = item;
-        bestScore = score;
-      }
+        // Điểm ưu tiên: khớp tab cụ thể > khớp path dài hơn
+        const score = itemPath.length + (itemTab === currentTab && itemTab ? 1000 : 0);
+        if (score > bestScore) {
+          bestMatch = item;
+          bestScore = score;
+        }
+      });
     });
-  });
+  }
 
   navSections.forEach((section) => {
     section.items.forEach((item: any) => {
@@ -934,9 +973,10 @@ export function AppShell({
                 <button
                   type='button'
                   onClick={() => navigate('/workspaces')}
-                  className='flex items-center gap-1.5 cursor-pointer'
+                  className='flex items-center gap-2 cursor-pointer'
                 >
-                  <span className='text-lg font-bold text-orange-600 tracking-tight'>
+                  <BrandMark size={28} className='shrink-0' />
+                  <span className='font-serif text-lg font-medium tracking-tight text-stone-900'>
                     {t('workspace.studioHub.brand')}
                   </span>
                   <span className='text-xs font-bold tracking-wider uppercase bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded'>
@@ -1048,19 +1088,24 @@ export function AppShell({
             )}
           </div>
 
-          {isStudioHome && canManageStudio && (
+          {isStudioHome && canViewStudioAutomation && (
             <nav
               className='hidden lg:flex items-center gap-6 h-full text-sm font-medium'
               aria-label={t('workspace.studioHub.tabsLabel')}
               data-testid='studio-hub-tabs'
             >
-              {(
-                [
-                  ['series', t('workspace.studioHub.tabs.series')],
-                  ['members', t('workspace.studioHub.tabs.crew')],
-                  ['schedule', t('workspace.studioHub.tabs.schedule')],
-                  ['audit', t('workspace.studioHub.tabs.audit')],
-                ] as const
+              {(canManageStudio
+                ? ([
+                    ['series', t('workspace.studioHub.tabs.series')],
+                    ['members', t('workspace.studioHub.tabs.crew')],
+                    ['schedule', t('workspace.studioHub.tabs.schedule')],
+                    ['audit', t('workspace.studioHub.tabs.audit')],
+                    ['automation', t('workspace.studioHub.tabs.automation')],
+                  ] as const)
+                : ([
+                    ['series', t('workspace.studioHub.tabs.series')],
+                    ['automation', t('workspace.studioHub.tabs.automation')],
+                  ] as const)
               ).map(([tab, label]) => (
                 <button
                   key={tab}
