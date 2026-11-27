@@ -414,24 +414,26 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
               </div>
             </div>
 
-            {canReview && <div className='flex items-center gap-2'>
-              <button
-                type='button'
-                id='btn-rework-count'
-                className='px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
-              >
-                <Flag className='w-3.5 h-3.5 text-rose-600' />
-                <span>{t('readerView.reworkCount', { count: openChangeRequests.length })}</span>
-              </button>
-              <button
-                type='button'
-                onClick={handleApprovePage}
-                className='px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs'
-              >
-                <CheckCircle2 className='w-3.5 h-3.5' />
-                <span>{t('readerView.approvePage', 'Duyệt đạt trang này')}</span>
-              </button>
-            </div>}
+            {canReview && (
+              <div className='flex items-center gap-2'>
+                <button
+                  type='button'
+                  id='btn-rework-count'
+                  className='px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                >
+                  <Flag className='w-3.5 h-3.5 text-rose-600' />
+                  <span>{t('readerView.reworkCount', { count: openChangeRequests.length })}</span>
+                </button>
+                <button
+                  type='button'
+                  onClick={handleApprovePage}
+                  className='px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs'
+                >
+                  <CheckCircle2 className='w-3.5 h-3.5' />
+                  <span>{t('readerView.approvePage', 'Duyệt đạt trang này')}</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* 3-Column Reader Canvas Layout */}
@@ -608,8 +610,8 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                         (c) => c.panelId === panel.id && String(c.status) === 'Open',
                       );
                       const artworkSrc =
-                        loadedPageImages.find((entry) => entry.page.id === currentPage.id)?.imageUrl ??
-                        null;
+                        loadedPageImages.find((entry) => entry.page.id === currentPage.id)
+                          ?.imageUrl ?? null;
 
                       return (
                         <div
@@ -722,55 +724,55 @@ export const ChapterReaderView: React.FC<ChapterReaderViewProps> = ({
                 </div>
 
                 {canReview ? (
-                <div className='bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-2'>
-                  <div className='flex items-center justify-between text-xs'>
-                    <span
-                      id='selected-panel-badge'
-                      className='font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'
-                    >
-                      {t('readerView.selectedPanelBadge', {
-                        number: selectedPanel?.panelNumber || 1,
-                      })}
-                    </span>
-                    <span className='text-xs text-stone-500 font-mono'>
-                      {t('readerView.artistLabel', {
-                        name: assignedArtistName || t('readerView.defaultArtistName'),
-                      })}
-                    </span>
-                  </div>
+                  <div className='bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-2'>
+                    <div className='flex items-center justify-between text-xs'>
+                      <span
+                        id='selected-panel-badge'
+                        className='font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200'
+                      >
+                        {t('readerView.selectedPanelBadge', {
+                          number: selectedPanel?.panelNumber || 1,
+                        })}
+                      </span>
+                      <span className='text-xs text-stone-500 font-mono'>
+                        {t('readerView.artistLabel', {
+                          name: assignedArtistName || t('readerView.defaultArtistName'),
+                        })}
+                      </span>
+                    </div>
 
-                  <textarea
-                    id='panel-comment-input'
-                    rows={3}
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder={t(
-                      'readerView.panelCommentPlaceholder',
-                      'Nhập nhận xét chi tiết cho khung tranh này...',
-                    )}
-                    className='w-full text-xs p-2 rounded-lg bg-white border border-stone-200 focus:outline-none focus:border-stone-400 placeholder-stone-400 resize-none shadow-2xs'
-                  />
+                    <textarea
+                      id='panel-comment-input'
+                      rows={3}
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder={t(
+                        'readerView.panelCommentPlaceholder',
+                        'Nhập nhận xét chi tiết cho khung tranh này...',
+                      )}
+                      className='w-full text-xs p-2 rounded-lg bg-white border border-stone-200 focus:outline-none focus:border-stone-400 placeholder-stone-400 resize-none shadow-2xs'
+                    />
 
-                  <div className='flex items-center gap-1.5 pt-1'>
-                    <button
-                      type='button'
-                      disabled={submittingComment || !commentText.trim()}
-                      onClick={() => handleAddComment('comment')}
-                      className='flex-1 py-1.5 px-2 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50'
-                    >
-                      {t('readerView.btnComment', 'Bình luận')}
-                    </button>
-                    <button
-                      type='button'
-                      disabled={submittingComment || !commentText.trim()}
-                      onClick={() => handleAddComment('rework')}
-                      className='flex-1 py-1.5 px-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50'
-                    >
-                      <Flag className='w-3 h-3' />
-                      <span>{t('readerView.btnRequestRework', 'Yêu cầu vẽ lại')}</span>
-                    </button>
+                    <div className='flex items-center gap-1.5 pt-1'>
+                      <button
+                        type='button'
+                        disabled={submittingComment || !commentText.trim()}
+                        onClick={() => handleAddComment('comment')}
+                        className='flex-1 py-1.5 px-2 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50'
+                      >
+                        {t('readerView.btnComment', 'Bình luận')}
+                      </button>
+                      <button
+                        type='button'
+                        disabled={submittingComment || !commentText.trim()}
+                        onClick={() => handleAddComment('rework')}
+                        className='flex-1 py-1.5 px-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50'
+                      >
+                        <Flag className='w-3 h-3' />
+                        <span>{t('readerView.btnRequestRework', 'Yêu cầu vẽ lại')}</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
                 ) : (
                   <div className='rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs leading-relaxed text-blue-800'>
                     {t('readerView.roles.writer.readOnlyNotice')}

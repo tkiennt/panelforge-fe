@@ -8,6 +8,7 @@ import { ChapterSelectionView } from '../components/script/chapter-selection';
 import { ScriptReviewView } from '@/roles/editor/views/ScriptReviewView';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { useTranslation } from '@/lib/i18n';
+import { buildRoleChapterReaderUrl } from '@/app/routePaths';
 
 interface ScriptChapterSelectionViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -93,7 +94,7 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
 
   const handleReadChapter = (chapter: ChapterDto) => {
     if (!workspaceId || !seriesId) return;
-    navigate(`/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapter.id}/reader`);
+    navigate(buildRoleChapterReaderUrl('writer', workspaceId, seriesId, chapter.id));
   };
 
   const handleCreateChapter = async (data: CreateChapterRequest) => {

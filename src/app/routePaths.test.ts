@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildChapterManagementUrl,
   buildChapterReaderUrl,
+  buildRoleChapterReaderUrl,
   buildProductionWorkspaceUrl,
   buildScriptReviewUrl,
   buildSeriesExportUrl,
@@ -25,6 +26,15 @@ describe('canonical Producer and Editor routes', () => {
     );
     expect(buildChapterReaderUrl('workspace 1', 'series/1', 'chapter?1')).toBe(
       '/workspaces/workspace%201/series/series%2F1/chapters/chapter%3F1/reader',
+    );
+    expect(buildRoleChapterReaderUrl('writer', 'workspace 1', 'series/1', 'chapter?1')).toBe(
+      '/workspaces/workspace%201/series/series%2F1/writer/chapters/chapter%3F1/reader',
+    );
+    expect(buildRoleChapterReaderUrl('editor', 'workspace 1', 'series/1', 'chapter?1')).toBe(
+      '/workspaces/workspace%201/series/series%2F1/editor/chapters/chapter%3F1/reader',
+    );
+    expect(buildRoleChapterReaderUrl('producer', 'workspace 1', 'series/1', 'chapter?1')).toBe(
+      '/workspaces/workspace%201/series/series%2F1/producer/chapters/chapter%3F1/reader',
     );
     expect(buildSeriesExportUrl('workspace 1', 'series/1', 'chapter?1')).toBe(
       '/workspaces/workspace%201/series/series%2F1/export?chapterId=chapter%3F1',

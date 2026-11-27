@@ -751,6 +751,34 @@
     "panelDirectionFallback": "Panel content from the scene script..."
   },
   "readerView": {
+    "chapterLabel": "Chapter {number}",
+    "chapterOption": "Chapter {number}: {title}",
+    "chapterSelectLabel": "Choose a chapter to read",
+    "manuscriptSize": "B5 manuscript",
+    "roles": {
+      "writer": {
+        "eyebrow": "Writer desk",
+        "badge": "Writer · Read only",
+        "description": "Compare the script with artwork and follow feedback without entering the review workflow.",
+        "title": "Chapter {number}: {title} — Script comparison",
+        "back": "Back to scripts",
+        "readOnlyNotice": "You are viewing as a Writer. You can compare the script and follow discussions; page approval, review comments, and rework requests belong to the Editor or fallback Producer."
+      },
+      "editor": {
+        "eyebrow": "Editor desk",
+        "badge": "Editor · Quality review",
+        "description": "Inspect every panel, leave review notes, request changes, and approve pages at Gate 2.",
+        "title": "Chapter {number}: {title} — Artwork review",
+        "back": "Back to review queue"
+      },
+      "producer": {
+        "eyebrow": "Production desk",
+        "badge": "Producer · Oversight",
+        "description": "Monitor chapter quality and use fallback review authority when necessary.",
+        "title": "Chapter {number}: {title} — Production acceptance",
+        "back": "Back to chapter management"
+      }
+    },
     "title": "Chapter {number}: {title} — Artwork Review",
     "pageIndicator": "Page {current} / {total}",
     "readingModeBtn": "Read through",

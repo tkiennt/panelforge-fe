@@ -59,6 +59,7 @@ import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { mapCategoryToTab } from '@/shared/features/series-bible/bibleCategory';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { assignmentService } from '@/services/assignment.service';
+import { buildRoleChapterReaderUrl } from '@/app/routePaths';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { SuggestionCard } from '@/shared/features/ai-agents/SuggestionCard';
 import { ScriptDiffPreview } from '../components/script/flow/ScriptDiffPreview';
@@ -2059,7 +2060,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           : t('scriptStudio.submit.writer', 'Gửi duyệt kịch bản'),
       readerUrl:
         workspaceId && seriesId && currentChapter.id
-          ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${currentChapter.id}/reader`
+          ? buildRoleChapterReaderUrl('writer', workspaceId, seriesId, currentChapter.id)
           : undefined,
     });
   }, [

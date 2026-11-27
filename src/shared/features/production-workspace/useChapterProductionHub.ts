@@ -8,7 +8,7 @@ import {
 import {
   buildBibleUrl,
   buildChapterManagementUrl,
-  buildChapterReaderUrl,
+  buildRoleChapterReaderUrl,
   buildProductionWorkspaceUrl,
   buildScriptReviewUrl,
   buildSeriesExportUrl,
@@ -54,7 +54,7 @@ export const buildReadinessResolutionUrl = (
         tab: target.section === 'team' ? 'crew' : 'progress',
       });
     case 'review':
-      return buildChapterReaderUrl(workspaceId, seriesId, chapterId);
+      return buildRoleChapterReaderUrl('producer', workspaceId, seriesId, chapterId);
     case 'delivery':
       return buildSeriesExportUrl(workspaceId, seriesId, chapterId);
     case 'bible':
