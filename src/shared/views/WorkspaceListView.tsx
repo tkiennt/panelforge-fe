@@ -176,33 +176,29 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
           const workspace = byId.get(s.workspaceId);
           if (!workspace) return [];
           return [
-            ...s.lots.map(
-              (lot): TodayTask => ({
-                workspace,
-                assignment: {
-                  id: lot.id,
-                  stageName: lot.stageName,
-                  seriesTitle: lot.seriesTitle,
-                  chapterNumber: lot.chapterNumber,
-                  scopeLabel: pages(lot.tasks.map((c) => c.pageNumber)),
-                  brief: lot.brief,
-                  dueDate: lot.dueDate,
-                },
-              }),
-            ),
-            ...s.reviewQueue.map(
-              (item): TodayTask => ({
-                workspace,
-                assignment: {
-                  id: item.taskId,
-                  stageName: `${t('workspace.myWorkHub.bucket.toReview')} · ${item.stageName}`,
-                  seriesTitle: item.seriesTitle,
-                  chapterNumber: item.chapterNumber,
-                  scopeLabel: pages([item.pageNumber]),
-                  dueDate: null,
-                },
-              }),
-            ),
+            ...s.lots.map((lot): TodayTask => ({
+              workspace,
+              assignment: {
+                id: lot.id,
+                stageName: lot.stageName,
+                seriesTitle: lot.seriesTitle,
+                chapterNumber: lot.chapterNumber,
+                scopeLabel: pages(lot.tasks.map((c) => c.pageNumber)),
+                brief: lot.brief,
+                dueDate: lot.dueDate,
+              },
+            })),
+            ...s.reviewQueue.map((item): TodayTask => ({
+              workspace,
+              assignment: {
+                id: item.taskId,
+                stageName: `${t('workspace.myWorkHub.bucket.toReview')} · ${item.stageName}`,
+                seriesTitle: item.seriesTitle,
+                chapterNumber: item.chapterNumber,
+                scopeLabel: pages([item.pageNumber]),
+                dueDate: null,
+              },
+            })),
           ];
         });
         setTodayError(false);
