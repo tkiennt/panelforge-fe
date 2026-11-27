@@ -641,6 +641,65 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
     );
   }
 
+  // Render ở cả màn trống (chưa có chương) lẫn màn chính.
+  const createChapterModal = createChapterOpen && (
+    <Modal
+      isOpen={createChapterOpen}
+      onClose={() => setCreateChapterOpen(false)}
+      title={t('chapterManagement.createTitle', 'Tạo chương mới')}
+      closeLabel='Đóng'
+    >
+      <form onSubmit={handleCreateChapter} className='space-y-3 text-xs'>
+        <div>
+          <label className='block font-semibold text-stone-700 mb-1'>Số chương</label>
+          <input
+            type='number'
+            min={1}
+            required
+            value={formChapterNumber}
+            onChange={(e) => setFormChapterNumber(Number(e.target.value))}
+            className='w-full px-3 py-2 rounded-lg border border-stone-200'
+          />
+        </div>
+        <div>
+          <label className='block font-semibold text-stone-700 mb-1'>Tên chương</label>
+          <input
+            type='text'
+            value={formTitle}
+            onChange={(e) => setFormTitle(e.target.value)}
+            placeholder='VD: Khởi đầu mới'
+            className='w-full px-3 py-2 rounded-lg border border-stone-200'
+          />
+        </div>
+        <div>
+          <label className='block font-semibold text-stone-700 mb-1'>Hạn phát hành dự kiến</label>
+          <input
+            type='date'
+            value={formTargetReleaseDate}
+            onChange={(e) => setFormTargetReleaseDate(e.target.value)}
+            className='w-full px-3 py-2 rounded-lg border border-stone-200'
+          />
+        </div>
+        <div className='flex justify-end gap-2 pt-2'>
+          <button
+            type='button'
+            onClick={() => setCreateChapterOpen(false)}
+            className='px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 cursor-pointer'
+          >
+            Hủy
+          </button>
+          <button
+            type='submit'
+            disabled={actionBusy}
+            className='px-4 py-1.5 rounded-lg bg-orange-600 text-white font-semibold cursor-pointer disabled:opacity-50'
+          >
+            {actionBusy ? 'Đang tạo...' : 'Tạo chương'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+
   if (chapters.length === 0) {
     return (
       <div className='p-8 max-w-3xl mx-auto text-center space-y-4'>
@@ -658,10 +717,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               className='px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer'
             >
               <Plus className='w-4 h-4' />
-              <span>Tạo chương đầu tiên</span>
+              <span>Tạo chương</span>
             </button>
           )}
         </div>
+        {createChapterModal}
       </div>
     );
   }
@@ -1628,63 +1688,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         </Modal>
       )}
 
-      {createChapterOpen && (
-        <Modal
-          isOpen={createChapterOpen}
-          onClose={() => setCreateChapterOpen(false)}
-          title={t('chapterManagement.createTitle', 'Tạo chương mới')}
-          closeLabel='Đóng'
-        >
-          <form onSubmit={handleCreateChapter} className='space-y-3 text-xs'>
-            <div>
-              <label className='block font-semibold text-stone-700 mb-1'>Số chương</label>
-              <input
-                type='number'
-                min={1}
-                required
-                value={formChapterNumber}
-                onChange={(e) => setFormChapterNumber(Number(e.target.value))}
-                className='w-full px-3 py-2 rounded-lg border border-stone-200'
-              />
-            </div>
-            <div>
-              <label className='block font-semibold text-stone-700 mb-1'>Tên chương</label>
-              <input
-                type='text'
-                value={formTitle}
-                onChange={(e) => setFormTitle(e.target.value)}
-                placeholder='VD: Khởi đầu mới'
-                className='w-full px-3 py-2 rounded-lg border border-stone-200'
-              />
-            </div>
-            <div>
-              <label className='block font-semibold text-stone-700 mb-1'>Hạn phát hành dự kiến</label>
-              <input
-                type='date'
-                value={formTargetReleaseDate}
-                onChange={(e) => setFormTargetReleaseDate(e.target.value)}
-                className='w-full px-3 py-2 rounded-lg border border-stone-200'
-              />
-            </div>
-            <div className='flex justify-end gap-2 pt-2'>
-              <button
-                type='button'
-                onClick={() => setCreateChapterOpen(false)}
-                className='px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 cursor-pointer'
-              >
-                Hủy
-              </button>
-              <button
-                type='submit'
-                disabled={actionBusy}
-                className='px-4 py-1.5 rounded-lg bg-orange-600 text-white font-semibold cursor-pointer disabled:opacity-50'
-              >
-                {actionBusy ? 'Đang tạo...' : 'Tạo chương'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
+      {createChapterModal}
 
       {editChapterOpen && chapter && (
         <Modal
