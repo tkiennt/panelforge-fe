@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   mergeSpecAttributes,
-  specCompleteness,
   toSpecCategory,
   specFields,
   parseBibleDetails,
@@ -20,9 +19,9 @@ describe('bibleSpec', () => {
     expect(toSpecCategory('StyleRule')).toBe('style');
   });
 
-  it('provides simplified 2-field schema for character and 1-field for location/prop', () => {
+  it('provides one unified notes field for every category', () => {
     const charKeys = specFields('character').map((f) => f.key);
-    expect(charKeys).toEqual(['age', 'artistNotes']);
+    expect(charKeys).toEqual(['artistNotes']);
 
     const locKeys = specFields('location').map((f) => f.key);
     expect(locKeys).toEqual(['artistNotes']);
@@ -35,19 +34,9 @@ describe('bibleSpec', () => {
     const merged = mergeSpecAttributes(
       'character',
       { age: '17', artistNotes: 'Ghi chú cũ', legacyNote: 'giữ nguyên' },
-      { age: ' 18 ', artistNotes: 'Ghi chú mới' },
+      { artistNotes: 'Ghi chú mới' },
     );
-    expect(merged).toEqual({ age: '18', artistNotes: 'Ghi chú mới', legacyNote: 'giữ nguyên' });
-  });
-
-  it('counts filled spec fields', () => {
-    const { filled, total } = specCompleteness('prop', { artistNotes: 'Thanh kiếm gia truyền' });
-    expect(filled).toBe(1);
-    expect(total).toBe(1);
-
-    const empty = specCompleteness('character', {});
-    expect(empty.filled).toBe(0);
-    expect(empty.total).toBe(2);
+    expect(merged).toEqual({ age: '17', artistNotes: 'Ghi chú mới', legacyNote: 'giữ nguyên' });
   });
 
   it('parses legacy bullet notes into scannable specs without losing freeform notes', () => {

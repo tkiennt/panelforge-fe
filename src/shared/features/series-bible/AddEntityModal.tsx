@@ -56,8 +56,6 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   const [variantLabel, setVariantLabel] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [description, setDescription] = useState('');
-  const [age, setAge] = useState('');
-  const [artistNotes, setArtistNotes] = useState('');
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -132,10 +130,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     const generatedCode =
       code.trim().toUpperCase() || `ENT-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const detailsPayload = JSON.stringify({
-      age: category === 'characters' && age.trim() ? age.trim() : undefined,
-      artistNotes: artistNotes.trim() ? artistNotes.trim() : undefined,
-    });
+    const designBrief = description.trim();
+    const detailsPayload = JSON.stringify({ artistNotes: designBrief });
 
     const newEntity: NewBibleEntityPayload = {
       id: `entity-${Date.now()}`,
@@ -149,8 +145,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       variantLabel: variantLabel.trim(),
       stageName: variantLabel.trim(),
       isCrowd,
-      age: category === 'characters' && age.trim() ? age.trim() : undefined,
-      artistNotes: artistNotes.trim() ? artistNotes.trim() : undefined,
+      artistNotes: designBrief,
       detailsJson: detailsPayload,
     };
 
@@ -162,8 +157,6 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     setIsCrowd(false);
     setDescription('');
     setImageUrl('');
-    setAge('');
-    setArtistNotes('');
     onClose();
   };
 
@@ -290,50 +283,6 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             <option value='terminology'>{t('bible.categories.terminology')}</option>
             <option value='style'>{t('bible.categories.style')}</option>
           </select>
-        </div>
-
-        {/* Đặc tả ngoại hình / Ghi chú cho Artist */}
-        <div className='p-3 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-3'>
-          <span className='text-xs font-bold text-stone-800 block'>
-            {t('bible.spec.groups.notes', 'Ghi chú cho Artist')}
-          </span>
-          {category === 'characters' && (
-            <div>
-              <label
-                htmlFor='bible-entity-age'
-                className='block text-xs font-medium text-stone-700 mb-1'
-              >
-                {t('bible.spec.fields.age.label', 'Tuổi')}
-              </label>
-              <input
-                id='bible-entity-age'
-                type='text'
-                placeholder={t('bible.spec.fields.age.placeholder', 'vd. 17 tuổi, 25–28')}
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316]'
-              />
-            </div>
-          )}
-          <div>
-            <label
-              htmlFor='bible-entity-artist-notes'
-              className='block text-xs font-medium text-stone-700 mb-1'
-            >
-              {t('bible.spec.fields.artistNotes.label', 'Ghi chú cho Artist (Artist Notes)')}
-            </label>
-            <textarea
-              id='bible-entity-artist-notes'
-              rows={3}
-              placeholder={t(
-                'bible.spec.fields.artistNotes.placeholder',
-                'Mô tả ngoại hình, kiểu tóc, màu mắt, vết sẹo đặc trưng, trang phục, phong cách nét vẽ và các chi tiết cấm vẽ sai...',
-              )}
-              value={artistNotes}
-              onChange={(e) => setArtistNotes(e.target.value)}
-              className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] resize-y'
-            />
-          </div>
         </div>
 
         {/* Biến thể tạo hình (Variant Label) & Cờ Quần chúng */}
@@ -544,22 +493,22 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
           </>
         )}
 
-        {/* Mô tả thiết kế */}
+        {/* Một nguồn ghi chú sáng tạo duy nhất cho Writer và Artist. */}
         <div>
           <label
             htmlFor='bible-entity-desc'
             className='block text-xs font-semibold text-stone-800 mb-1'
           >
-            {t('bible.addEntityModal.descLabel')} <span className='text-red-500'>*</span>
+            {t('bible.spec.fields.artistNotes.label')} <span className='text-red-500'>*</span>
           </label>
           <textarea
             id='bible-entity-desc'
             required
-            rows={3}
-            placeholder={t('bible.addEntityModal.descPlaceholder')}
+            rows={8}
+            placeholder={t('bible.spec.fields.artistNotes.placeholder')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors resize-none'
+            className='w-full min-h-44 max-h-96 px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-sm leading-relaxed text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors resize-y [field-sizing:content]'
           ></textarea>
         </div>
 

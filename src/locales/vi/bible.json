@@ -112,8 +112,8 @@
         "placeholder": "vd. 17 tuổi, 25–28"
       },
       "artistNotes": {
-        "label": "Ghi chú cho họa sĩ",
-        "placeholder": "Ngoại hình, trang phục, chi tiết cần giữ nhất quán…"
+        "label": "Ghi chú nhân vật & Yêu cầu thiết kế",
+        "placeholder": "Viết tự do mọi thông tin Writer muốn chuyển cho Artist: ngoại hình, tính cách, trang phục, biểu cảm, chi tiết nhận diện và điều cần tránh…"
       },
       "height": {
         "label": "Chiều cao",

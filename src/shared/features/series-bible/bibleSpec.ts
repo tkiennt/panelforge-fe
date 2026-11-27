@@ -2,8 +2,10 @@ import { translate } from '@/lib/i18n';
 
 /**
  * Đặc tả tạo hình Series Bible V2.6:
- * - age: string? (chỉ cho Character, theo biến thể)
- * - artistNotes: string? (ghi chú ngoại hình, trang phục, nét vẽ tự do)
+ * - artistNotes: string? (Character Notes & Design Brief tự do)
+ *
+ * `age` và các thuộc tính tạo hình cũ vẫn được parser đọc để bảo toàn dữ liệu,
+ * nhưng không còn là trường nhập liệu riêng trong Writer Workspace.
  */
 export type SpecCategory = 'character' | 'location' | 'prop' | 'terminology' | 'style';
 
@@ -56,10 +58,7 @@ const makeGroup = (key: string, fields: SpecField[]): SpecGroup => ({
 
 export const SPEC_SCHEMA: Record<SpecCategory, SpecGroup[]> = {
   character: [
-    makeGroup('notes', [
-      makeField('age', { hasPlaceholder: true }),
-      makeField('artistNotes', { hasPlaceholder: true, multiline: true }),
-    ]),
+    makeGroup('notes', [makeField('artistNotes', { hasPlaceholder: true, multiline: true })]),
   ],
   location: [
     makeGroup('notes', [makeField('artistNotes', { hasPlaceholder: true, multiline: true })]),
@@ -217,16 +216,6 @@ export const parseBibleDetails = (
 
 export const specFields = (category: SpecCategory): SpecField[] =>
   SPEC_SCHEMA[category].flatMap((g) => g.fields);
-
-/** Tỉ lệ trường đã điền */
-export const specCompleteness = (
-  category: SpecCategory,
-  attributes: Record<string, unknown>,
-): { filled: number; total: number } => {
-  const fields = specFields(category);
-  const filled = fields.filter((f) => String(attributes[f.key] ?? '').trim() !== '').length;
-  return { filled, total: fields.length };
-};
 
 /** Gộp giá trị form vào attributes cũ: trường để trống bị xoá, khoá ngoài schema được giữ nguyên. */
 export const mergeSpecAttributes = (

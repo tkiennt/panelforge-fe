@@ -112,8 +112,8 @@
         "placeholder": "e.g. 17, 25–28"
       },
       "artistNotes": {
-        "label": "Artist Notes",
-        "placeholder": "Appearance, outfit, and details to keep consistent…"
+        "label": "Character Notes & Design Brief",
+        "placeholder": "Write any guidance the Artist needs: appearance, personality, outfit, expressions, identifying traits, and details to avoid…"
       },
       "height": {
         "label": "Height",

@@ -506,17 +506,17 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: t('navigation.sidebar.seriesOverview', 'TỔNG QUAN'),
+            section: t('navigation.writerSections.overview', 'TỔNG QUAN'),
             items: [
               {
                 icon: Layers,
-                label: t('navigation.menu.myWork', 'Việc của tôi'),
+                label: t('navigation.menu.writerWorkspace', 'Không gian sáng tác'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
               },
             ],
           },
           {
-            section: t('navigation.sidebar.chapterWriting', 'SÁNG TÁC CHƯƠNG'),
+            section: t('navigation.writerSections.writing', 'SÁNG TÁC'),
             items: [
               {
                 icon: FileText,
@@ -526,7 +526,7 @@ export function AppShell({
             ],
           },
           {
-            section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+            section: t('navigation.writerSections.storyWorld', 'THẾ GIỚI TRUYỆN'),
             items: [
               {
                 icon: BookMarked,
@@ -534,10 +534,15 @@ export function AppShell({
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
                 badge: { type: 'text', text: 'VAULT', color: 'bg-stone-100 text-stone-600' },
               },
+            ],
+          },
+          {
+            section: t('navigation.writerSections.collaboration', 'PHỐI HỢP'),
+            items: [
               {
-                icon: Users,
-                label: t('navigation.menu.characterProfilesAndLore', 'Hồ sơ Nhân vật & Lore'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/bible?tab=entities`,
+                icon: MessageSquare,
+                label: t('navigation.menu.writerFeedback', 'Góp ý & Yêu cầu chỉnh sửa'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work?view=feedback`,
               },
             ],
           },

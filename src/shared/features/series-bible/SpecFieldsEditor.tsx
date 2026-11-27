@@ -54,11 +54,11 @@ export const SpecFieldsEditor: React.FC<SpecFieldsEditorProps> = ({
                     ) : field.multiline ? (
                       <textarea
                         id={id}
-                        rows={3}
+                        rows={8}
                         value={value}
                         placeholder={getFieldPlaceholder(field, t)}
                         onChange={(e) => onChange?.(field.key, e.target.value)}
-                        className='w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-sm text-stone-900 focus:outline-none focus:border-orange-500 resize-y'
+                        className='w-full min-h-44 max-h-96 px-3 py-2 bg-white border border-stone-300 rounded-lg text-sm leading-relaxed text-stone-900 focus:outline-none focus:border-orange-500 resize-y [field-sizing:content]'
                       />
                     ) : (
                       <input

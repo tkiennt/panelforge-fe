@@ -21,12 +21,20 @@
     "productionUtilities": "TIỆN ÍCH SẢN XUẤT",
     "qualityReview": "KIỂM DUYỆT"
   },
+  "writerSections": {
+    "overview": "TỔNG QUAN",
+    "writing": "SÁNG TÁC",
+    "storyWorld": "THẾ GIỚI TRUYỆN",
+    "collaboration": "PHỐI HỢP"
+  },
   "menu": {
     "dashboard": "Dashboard",
     "seriesDashboard": "Series Dashboard",
     "systemDashboard": "System Dashboard",
     "myWork": "Việc của tôi",
     "artistMyWork": "Công việc của tôi",
+    "writerWorkspace": "Không gian sáng tác",
+    "writerFeedback": "Góp ý & Yêu cầu chỉnh sửa",
     "workAndReview": "Công việc & Xét duyệt",
     "production": "Quy trình sản xuất",
     "script": "Kịch bản (Script)",

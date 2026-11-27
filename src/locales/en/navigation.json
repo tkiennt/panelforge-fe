@@ -21,12 +21,20 @@
     "productionUtilities": "PRODUCTION UTILITIES",
     "qualityReview": "QUALITY REVIEW"
   },
+  "writerSections": {
+    "overview": "OVERVIEW",
+    "writing": "WRITING",
+    "storyWorld": "STORY WORLD",
+    "collaboration": "COLLABORATION"
+  },
   "menu": {
     "dashboard": "Dashboard",
     "seriesDashboard": "Series Dashboard",
     "systemDashboard": "System Dashboard",
     "myWork": "My Work",
     "artistMyWork": "My Work",
+    "writerWorkspace": "Creative Workspace",
+    "writerFeedback": "Feedback & Revisions",
     "workAndReview": "Work & Review",
     "production": "Production Workflow",
     "script": "Script",

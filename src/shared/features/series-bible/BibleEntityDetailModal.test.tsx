@@ -106,7 +106,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
   it('displays Canon locked banner with approval date and no chapter range', () => {
     render(<BibleEntityDetailModal {...defaultProps} />);
 
-    expect(screen.getAllByText(/Đã khóa chuẩn/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Đã khóa Canon|Chính thức/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Ch\.\s*5\s*→\s*hết/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Đã duyệt/i)).toBeInTheDocument();
 
@@ -311,7 +311,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     const reworkBtn = screen.getByTestId('detail-rework-btn');
     expect(reworkBtn).toBeDisabled();
-    expect(screen.getAllByText('Đã khóa chuẩn').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Đã khóa Canon|Chính thức/i).length).toBeGreaterThan(0);
   });
 
   it('renders correct category type badge in header for characters and locations (Bug 1)', () => {
@@ -413,14 +413,20 @@ describe('BibleEntityDetailModal UX/UI', () => {
     );
 
     expect(screen.queryByTestId('save-spec-inline-btn')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByTestId('spec-input-age'), { target: { value: '18' } });
+    fireEvent.click(screen.getByTestId('spec-edit-artistNotes'));
+    fireEvent.change(screen.getByTestId('spec-input-artistNotes'), {
+      target: { value: 'Tóc ngắn, áo choàng xanh' },
+    });
     fireEvent.click(screen.getByTestId('save-spec-inline-btn'));
 
     await waitFor(() => expect(onSaveSpecFields).toHaveBeenCalledTimes(1));
     const [entityArg, attrs] = onSaveSpecFields.mock.calls[0];
     expect(entityArg.id).toBe('ent-inline');
     // Giữ trường cũ, thêm trường mới
-    expect(attrs).toMatchObject({ age: '18', height: '178 cm' });
+    expect(attrs).toMatchObject({
+      artistNotes: 'Tóc ngắn, áo choàng xanh',
+      height: '178 cm',
+    });
     // Không gửi nhãn hiển thị "Mặc định" (BE coi là đổi variant_label → 409)
     expect(onSaveSpecFields.mock.calls[0][2]).not.toBe('Mặc định');
     // Gửi id phiên bản đang sửa để BE giữ đúng biến thể khi có nhiều biến thể
@@ -602,13 +608,15 @@ describe('BibleEntityDetailModal UX/UI', () => {
       },
     };
 
-    it('renders the character spec schema with filled values and completeness', () => {
+    it('renders one unified character notes field without a completion counter', () => {
       render(<BibleEntityDetailModal {...defaultProps} rawEntry={draftEntry} />);
 
-      expect(screen.getByText('17')).toBeInTheDocument();
       expect(screen.getByText('tóc ngắn rối, không đeo kính')).toBeInTheDocument();
-      expect(screen.getByTestId('spec-completeness').textContent).toMatch(/^2\//);
+      expect(screen.queryByText('17')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('spec-completeness')).not.toBeInTheDocument();
       expect(screen.queryByText('Turnaround trước / nghiêng / sau')).not.toBeInTheDocument();
+      expect(screen.getByTestId('bible-workbench-primary')).toHaveClass('order-1');
+      expect(screen.getByTestId('bible-workbench-sidebar')).toHaveClass('order-2');
     });
 
     it('shows a compact handoff for Artist on a Draft visual entry', () => {
@@ -680,7 +688,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
       expect(await screen.findByText('Biến cố')).toBeInTheDocument();
       expect(screen.getByText('Đạt chuẩn')).toBeInTheDocument();
-      expect(screen.getByText('Chưa khóa chuẩn')).toBeInTheDocument();
+      expect(screen.getByText('Chưa khóa Canon')).toBeInTheDocument();
       expect(screen.queryByText(/bị chặn ở Gate 1/)).not.toBeInTheDocument();
     });
 

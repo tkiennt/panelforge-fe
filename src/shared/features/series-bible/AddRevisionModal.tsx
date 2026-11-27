@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   FileText,
-  ChevronDown,
   GitCommit,
   CheckCircle2,
   AlertCircle,
@@ -27,7 +26,6 @@ import {
   mergeSpecAttributes,
   parseBibleDetails,
   specCategoryOf,
-  specCompleteness,
   specFields,
   type SpecCategory,
 } from './bibleSpec';
@@ -126,7 +124,6 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     const specCategory: SpecCategory = revisionTarget
       ? specCategoryOf(revisionTarget)
       : 'character';
-    const [isSpecsExpanded, setIsSpecsExpanded] = useState(!isArtistConceptSubmit);
     const [isDragging, setIsDragging] = useState(false);
     const revFileInputRef = useRef<HTMLInputElement>(null);
     const isInitRef = useRef(false);
@@ -165,7 +162,6 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         setDescription(initialDescription);
         setReferenceImageUrl(initialReferenceImageUrl);
         setVariantLabel(initialVariantLabel);
-        setIsSpecsExpanded(!isArtistConceptSubmit);
 
         let initialAttrs: Record<string, any> = revisionTarget?.attributes || {};
         if (supersedeTarget?.snapshotJson) {
@@ -191,9 +187,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
           const parsed = parseBibleDetails(rawDetails);
           const combinedAttrs: Record<string, any> = {
             ...initialAttrs,
-            age: parsed.age || initialAttrs.age || revisionTarget.age || '',
             artistNotes:
-              parsed.artistNotes || initialAttrs.artistNotes || revisionTarget.artistNotes || '',
+              parsed.artistNotes ||
+              initialAttrs.artistNotes ||
+              revisionTarget.artistNotes ||
+              initialDescription ||
+              '',
           };
           setSpecValues(
             Object.fromEntries(
@@ -264,10 +263,6 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         (revisionTarget as any).detailsJson ||
         JSON.stringify(revisionTarget.attributes || {});
       const parsedDetails = parseBibleDetails(rawDetails);
-      const effectiveAge =
-        specCategory === 'character'
-          ? specValues.age?.trim() || parsedDetails.age || revisionTarget.age || ''
-          : undefined;
       const effectiveNotes =
         specValues.artistNotes?.trim() ||
         parsedDetails.artistNotes ||
@@ -275,7 +270,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         '';
 
       const detailsPayload = JSON.stringify({
-        age: effectiveAge || undefined,
+        age: parsedDetails.age || revisionTarget.age || undefined,
         artistNotes: effectiveNotes || undefined,
         attributes: updatedAttrs,
       });
@@ -297,7 +292,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         expectedVersionNumber: expectedVersionNumber ?? undefined,
         name: canEditName ? entryName.trim() || revisionTarget.name : revisionTarget.name,
         subtitle: '',
-        description: description.trim() || revisionTarget.description || '',
+        description: effectiveNotes || description.trim() || revisionTarget.description || '',
         referenceImageUrl: referenceImageUrl || undefined,
         variantLabel: payloadVariantLabel,
         stageName: payloadVariantLabel,
@@ -689,48 +684,18 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
             />
           </div>
 
-          {/* ================= COLLAPSIBLE / WRITER SPECS SECTION ================= */}
+          {/* Artist đọc đúng cùng một bản Character Notes & Design Brief của Writer. */}
           {isArtistConceptSubmit ? (
-            <div className='border border-stone-200 rounded-2xl bg-stone-50/50 overflow-hidden transition-all'>
-              <button
-                type='button'
-                onClick={() => setIsSpecsExpanded((prev) => !prev)}
-                className='w-full px-4 py-3 flex items-center justify-between text-left hover:bg-stone-100/60 transition cursor-pointer'
-              >
-                <div className='flex items-center gap-2.5 min-w-0'>
-                  <FileText className='w-4 h-4 text-stone-500 shrink-0' />
-                  <div className='min-w-0'>
-                    <span className='text-xs font-bold text-stone-800 block'>
-                      {t('bible.addRevisionModal.writerSpecsTitle')}
-                    </span>
-                    <span className='text-xs text-stone-500 truncate block'>
-                      {isSpecsExpanded
-                        ? t('bible.addRevisionModal.writerSpecsExpandedHint')
-                        : t('bible.addRevisionModal.writerSpecsCollapsedHint', {
-                            name,
-                            filled: specCompleteness(specCategory, specValues).filled,
-                            total: specCompleteness(specCategory, specValues).total,
-                          })}
-                    </span>
-                  </div>
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-stone-400 transition-transform duration-200 shrink-0 ${
-                    isSpecsExpanded ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-
-              {isSpecsExpanded && (
-                <div className='p-4 pt-2 border-t border-stone-200/70 space-y-3 bg-white'>
-                  <SpecFieldsEditor category={specCategory} values={specValues} readOnly />
-                  {description && (
-                    <p className='text-sm text-stone-700 leading-relaxed whitespace-pre-line'>
-                      {description}
-                    </p>
-                  )}
-                </div>
-              )}
+            <div className='rounded-2xl border border-stone-200 bg-white p-4'>
+              <div className='mb-2 flex items-center gap-2'>
+                <FileText className='h-4 w-4 text-stone-500' aria-hidden='true' />
+                <h3 className='text-xs font-bold text-stone-800'>
+                  {t('bible.spec.fields.artistNotes.label')}
+                </h3>
+              </div>
+              <p className='whitespace-pre-line text-sm leading-relaxed text-stone-700'>
+                {specValues.artistNotes || description || t('bible.detailModal.noSpecValue')}
+              </p>
             </div>
           ) : (
             <>
@@ -756,25 +721,12 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                 )}
               </div>
 
-              {/* Đặc tả theo danh mục (bibleSpec) */}
+              {/* Một editor ghi chú tự do duy nhất; parser vẫn giữ dữ liệu legacy. */}
               <SpecFieldsEditor
                 category={specCategory}
                 values={specValues}
                 onChange={(key, value) => setSpecValues((prev) => ({ ...prev, [key]: value }))}
               />
-
-              <div>
-                <label className='block text-xs font-semibold text-stone-800 mb-1'>
-                  {t('bible.addRevisionModal.descriptionLabel')}
-                </label>
-                <textarea
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t('bible.addRevisionModal.descriptionPlaceholder')}
-                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316] resize-y custom-scrollbar leading-relaxed'
-                />
-              </div>
 
               {/* Upload reference sheet image for Producer/Writer */}
               <div>
