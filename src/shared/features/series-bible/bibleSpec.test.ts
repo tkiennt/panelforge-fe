@@ -5,6 +5,7 @@ import {
   toSpecCategory,
   specFields,
   parseBibleDetails,
+  parseArtistNoteSpecs,
   sanitizeArtistNotes,
 } from './bibleSpec';
 
@@ -47,6 +48,20 @@ describe('bibleSpec', () => {
     const empty = specCompleteness('character', {});
     expect(empty.filled).toBe(0);
     expect(empty.total).toBe(2);
+  });
+
+  it('parses legacy bullet notes into scannable specs without losing freeform notes', () => {
+    expect(
+      parseArtistNoteSpecs(
+        '- Chiều cao: 170 cm\n- Vóc dáng / Thể chất: Cao\nLuôn giữ tỷ lệ đầu nhỏ.',
+      ),
+    ).toEqual({
+      items: [
+        { label: 'Chiều cao', value: '170 cm' },
+        { label: 'Vóc dáng / Thể chất', value: 'Cao' },
+      ],
+      note: 'Luôn giữ tỷ lệ đầu nhỏ.',
+    });
   });
 
   describe('parseBibleDetails backward compatibility', () => {
