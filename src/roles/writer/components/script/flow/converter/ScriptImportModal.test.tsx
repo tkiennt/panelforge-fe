@@ -16,11 +16,12 @@ describe('ScriptImportModal Component', () => {
   it('renders modal with title, tabs, controls when open', () => {
     render(<ScriptImportModal {...defaultProps} />);
 
-    expect(screen.getByText('Nhập văn bản thô vào kịch bản')).toBeDefined();
+    expect(screen.getByText('Nhập văn bản vào kịch bản')).toBeDefined();
     expect(screen.getByText('Dán văn bản')).toBeDefined();
-    expect(screen.getByText('Tải tệp tin')).toBeDefined();
+    expect(screen.getByText('Tải tệp')).toBeDefined();
     expect(screen.getByText('Mẫu văn xuôi')).toBeDefined();
     expect(screen.getByText('Mẫu kịch bản')).toBeDefined();
+    expect(screen.getByText('Mẫu tiếng Anh (EN)')).toBeDefined();
     expect(screen.getByPlaceholderText(/Dán văn bản thô vào đây/i)).toBeDefined();
   });
 
@@ -53,14 +54,32 @@ describe('ScriptImportModal Component', () => {
     expect(screen.getByText('Toàn cảnh')).toBeDefined();
   });
 
-  it('calls onApplyScript with insert mode when user clicks "↳ Chèn tại con trỏ"', () => {
+  it('loads English sample script and parses captions and dialogues without misidentifying narrator as character', () => {
+    render(<ScriptImportModal {...defaultProps} />);
+
+    const sampleEnglishBtn = screen.getByText('Mẫu tiếng Anh (EN)');
+    fireEvent.click(sampleEnglishBtn);
+
+    expect(screen.getByText('TRANG 01')).toBeDefined();
+    // ARTHUR should be present as character in preview (both dialogue and thinking)
+    const arthurLabels = screen.getAllByText('ARTHUR');
+    expect(arthurLabels.length).toBeGreaterThanOrEqual(1);
+    // SFX should be present
+    expect(screen.getByText('SFX: CRASH!')).toBeDefined();
+    // NARRATOR and Location must NOT be classified as dialogue speakers
+    const dialogueSpeakers = screen.queryAllByTestId('dialogue-speaker').map((el) => el.textContent?.trim());
+    expect(dialogueSpeakers).not.toContain('NARRATOR');
+    expect(dialogueSpeakers).not.toContain('Location');
+  });
+
+  it('calls onApplyScript with insert mode when user clicks "Chèn tại con trỏ"', () => {
     const onApplyScript = vi.fn();
     render(<ScriptImportModal {...defaultProps} onApplyScript={onApplyScript} />);
 
     const sampleProseBtn = screen.getByText('Mẫu văn xuôi');
     fireEvent.click(sampleProseBtn);
 
-    const insertBtn = screen.getByText('↳ Chèn tại con trỏ');
+    const insertBtn = screen.getByText('Chèn tại con trỏ');
     fireEvent.click(insertBtn);
 
     expect(onApplyScript).toHaveBeenCalledTimes(1);
@@ -69,14 +88,14 @@ describe('ScriptImportModal Component', () => {
     expect(nodes.length).toBeGreaterThan(0);
   });
 
-  it('calls onApplyScript with append mode when user clicks "+ Chèn vào cuối"', () => {
+  it('calls onApplyScript with append mode when user clicks "Chèn vào cuối"', () => {
     const onApplyScript = vi.fn();
     render(<ScriptImportModal {...defaultProps} onApplyScript={onApplyScript} />);
 
     const sampleProseBtn = screen.getByText('Mẫu văn xuôi');
     fireEvent.click(sampleProseBtn);
 
-    const appendBtn = screen.getByText('+ Chèn vào cuối');
+    const appendBtn = screen.getByText('Chèn vào cuối');
     fireEvent.click(appendBtn);
 
     expect(onApplyScript).toHaveBeenCalledTimes(1);
@@ -97,10 +116,10 @@ describe('ScriptImportModal Component', () => {
 
     // First click should request confirmation, not apply yet
     expect(onApplyScript).not.toHaveBeenCalled();
-    expect(screen.getByText('Xác nhận ghi đè tất cả?')).toBeDefined();
+    expect(screen.getByText('Xác nhận ghi đè')).toBeDefined();
 
     // Second click confirms
-    fireEvent.click(screen.getByText('Xác nhận ghi đè tất cả?'));
+    fireEvent.click(screen.getByText('Xác nhận ghi đè'));
     expect(onApplyScript).toHaveBeenCalledTimes(1);
     const [nodes, mode] = onApplyScript.mock.calls[0];
     expect(mode).toBe('replace');
@@ -112,7 +131,7 @@ describe('ScriptImportModal Component', () => {
 
     fireEvent.click(screen.getByText('Mẫu kịch bản'));
 
-    const textTabBtn = screen.getByTitle('Xem trước dạng mã kịch bản chuẩn');
+    const textTabBtn = screen.getByTitle('Xem dưới dạng mã kịch bản chuẩn');
     fireEvent.click(textTabBtn);
 
     const preElement = screen.getByText((content, element) => {

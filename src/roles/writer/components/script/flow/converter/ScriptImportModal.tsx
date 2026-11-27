@@ -2,21 +2,29 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { JSONContent } from '@tiptap/core';
 import {
+  BookOpenText,
+  CornerDownLeft,
   FileText,
+  Gauge,
   Upload,
-  Sparkles,
   RotateCcw,
   Check,
-  AlertTriangle,
   Lightbulb,
   FileCode,
   LayoutGrid,
   Layers,
+  MessageCircle,
+  Plus,
+  Replace,
   SlidersHorizontal,
+  Sparkles,
+  Volume2,
 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import { Modal } from '@/shared/ui/Modal';
 import { Button } from '@/shared/ui/Button';
 import { Badge } from '@/shared/ui/Badge';
+import { Card, CardBody, CardHeader } from '@/shared/ui/Surface';
 import { SeriesBibleContext } from './types';
 import {
   parseScriptTextToBlocks,
@@ -56,6 +64,22 @@ Tòa nhà đối diện bốc cháy dữ dội sau tiếng nổ lớn.
 SFX: BÙM!
 Caption: Mọi lối thoát dường như đã bị chặn đứng.`;
 
+const SAMPLE_ENGLISH_SCRIPT = `Page 1
+Panel 1: [Wide shot]
+Location: Neon-lit alleyway, Downtown Tokyo - Midnight.
+Rain pours over the empty street. Arthur steps out of the shadow, his trench coat soaked.
+NARRATOR: "In a city that never sleeps, some secrets are best left buried."
+
+Panel 2: [Close-up]
+Arthur inspects the ancient brass cylinder in his hand.
+ARTHUR: "It's still intact."
+ARTHUR (THINKING): "They have no idea what they unleashed."
+
+Panel 3: [High angle]
+Suddenly, glass shatters from the rooftop above!
+SFX: CRASH!
+LANCELOT: "Hand it over, Arthur! There is nowhere left to run!"`;
+
 export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
   isOpen,
   onClose,
@@ -65,10 +89,10 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
   characters,
   onShowToast,
 }) => {
+  const { t } = useTranslation('writer');
   const [activeTab, setActiveTab] = useState<'paste' | 'file'>('paste');
   const [inputContent, setInputContent] = useState('');
   const [startingPage, setStartingPage] = useState<number>(initialStartingPageNumber);
-  const [targetPanels, setTargetPanels] = useState<number>(4);
   const [autoConvertProse, setAutoConvertProse] = useState<boolean>(true);
   const [previewTab, setPreviewTab] = useState<'visual' | 'text'>('visual');
   const [confirmReplace, setConfirmReplace] = useState<boolean>(false);
@@ -116,7 +140,6 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
         mode: 'convert_raw_text',
         inputContent: trimmed,
         startingPageNumber: startingPage,
-        targetPanelsPerPage: targetPanels,
         seriesBibleContext: bibleCtx,
       });
       scriptText = converted.scriptText;
@@ -124,7 +147,6 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
 
     const blocks = parseScriptTextToBlocks(scriptText, {
       startingPageNumber: startingPage,
-      targetPanelsPerPage: targetPanels,
       characters,
     });
 
@@ -135,7 +157,6 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
 
     const editorNodes = convertBlocksToEditorNodes(blocks, {
       startingPageNumber: startingPage,
-      targetPanelsPerPage: targetPanels,
       characters,
     });
 
@@ -148,7 +169,7 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
       sfxCount,
       editorNodes,
     };
-  }, [inputContent, startingPage, targetPanels, autoConvertProse, seriesBibleContext, characters]);
+  }, [inputContent, startingPage, autoConvertProse, seriesBibleContext, characters]);
 
   if (!isOpen) return null;
 
@@ -163,13 +184,16 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
         setInputContent(text);
         setFileName(file.name);
         onShowToast?.(
-          'Đã nạp tệp kịch bản thô',
-          `Đã tải "${file.name}" (${(file.size / 1024).toFixed(1)} KB) thành công.`,
+          t('scriptImport.fileLoadedTitle'),
+          t('scriptImport.fileLoadedDesc', {
+            name: file.name,
+            size: (file.size / 1024).toFixed(1),
+          }),
         );
       }
     };
     reader.onerror = () => {
-      onShowToast?.('Lỗi tải tệp tin', 'Không thể đọc nội dung tệp tin đã chọn.');
+      onShowToast?.(t('scriptImport.fileErrorTitle'), t('scriptImport.fileErrorDesc'));
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -191,57 +215,39 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      closeLabel='Đóng'
+      closeLabel={t('scriptImport.close')}
       title={
-        <div className='flex items-center gap-2.5'>
-          <div className='flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-700'>
-            <FileText className='w-4 h-4' />
-          </div>
-          <div>
-            <h2 className='text-base font-bold text-stone-900'>Nhập văn bản thô vào kịch bản</h2>
-            <p className='text-xs text-stone-500 font-normal'>
-              Tự động phân tích văn xuôi, tiểu thuyết hoặc bản thảo thô thành định dạng kịch bản chuẩn
-            </p>
-          </div>
-        </div>
+        <span className='flex items-center gap-2.5'>
+          <span className='grid size-8 shrink-0 place-items-center rounded-lg bg-orange-100 text-orange-700'>
+            <FileText className='size-4' aria-hidden='true' />
+          </span>
+          <span>{t('scriptImport.title')}</span>
+        </span>
       }
+      description={t('scriptImport.description')}
       size='xl'
+      className='max-w-[min(1180px,calc(100vw-32px))]'
       footer={
-        <div className='flex flex-wrap items-center justify-between w-full gap-3'>
-          <div className='text-xs text-stone-600 flex items-center gap-2'>
+        <div className='flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between'>
+          <div className='flex min-w-0 items-center gap-2 text-xs text-stone-600' aria-live='polite'>
             {parsedResult.pagesCount > 0 ? (
-              <span className='inline-flex items-center gap-1.5 font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200'>
-                <Check className='w-3.5 h-3.5 text-emerald-600' />
-                Sẵn sàng chèn {parsedResult.pagesCount} trang · {parsedResult.panelsCount} khung · {parsedResult.dialoguesCount} câu thoại
-              </span>
+              <Badge tone={confirmReplace ? 'warning' : 'success'} icon={confirmReplace ? <Replace /> : <Check />}>
+                {confirmReplace
+                  ? t('scriptImport.replaceWarning')
+                  : t('scriptImport.readySummary', {
+                      pages: parsedResult.pagesCount,
+                      panels: parsedResult.panelsCount,
+                      dialogues: parsedResult.dialoguesCount,
+                    })}
+              </Badge>
             ) : (
-              <span className='text-stone-400'>Dán văn bản hoặc tải tệp để xem trước kịch bản phân tích</span>
+              <span className='text-stone-500'>{t('scriptImport.emptyFooter')}</span>
             )}
           </div>
 
-          <div className='flex items-center gap-2'>
+          <div className='flex flex-wrap items-center justify-end gap-2'>
             <Button variant='secondary' size='sm' onClick={onClose}>
-              Đóng
-            </Button>
-
-            <Button
-              variant='secondary'
-              size='sm'
-              disabled={parsedResult.editorNodes.length === 0}
-              onClick={() => handleApply('append')}
-              title='Thêm các trang kịch bản mới này vào cuối tài liệu hiện tại'
-            >
-              + Chèn vào cuối
-            </Button>
-
-            <Button
-              variant='primary'
-              size='sm'
-              disabled={parsedResult.editorNodes.length === 0}
-              onClick={() => handleApply('insert')}
-              title='Chèn ngay tại vị trí con trỏ hiện tại trong trình soạn thảo'
-            >
-              ↳ Chèn tại con trỏ
+              {t('scriptImport.close')}
             </Button>
 
             <Button
@@ -249,105 +255,137 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
               size='sm'
               disabled={parsedResult.editorNodes.length === 0}
               onClick={() => handleApply('replace')}
-              title='Thay thế toàn bộ nội dung kịch bản hiện tại'
-              className={confirmReplace ? 'animate-pulse' : ''}
+              title={t('scriptImport.replaceTitle')}
+              className='min-w-32'
+              leadingIcon={<Replace aria-hidden='true' />}
             >
-              {confirmReplace ? 'Xác nhận ghi đè tất cả?' : 'Ghi đè tất cả'}
+              {confirmReplace ? t('scriptImport.confirmReplace') : t('scriptImport.replaceAll')}
+            </Button>
+
+            <Button
+              variant='secondary'
+              size='sm'
+              disabled={parsedResult.editorNodes.length === 0}
+              onClick={() => handleApply('append')}
+              title={t('scriptImport.appendTitle')}
+              leadingIcon={<Plus aria-hidden='true' />}
+            >
+              {t('scriptImport.append')}
+            </Button>
+
+            <Button
+              variant='primary'
+              size='sm'
+              disabled={parsedResult.editorNodes.length === 0}
+              onClick={() => handleApply('insert')}
+              title={t('scriptImport.insertTitle')}
+              leadingIcon={<CornerDownLeft aria-hidden='true' />}
+            >
+              {t('scriptImport.insertAtCursor')}
             </Button>
           </div>
         </div>
       }
     >
       <div className='space-y-4'>
-        {/* Thanh công cụ cấu hình phân tích */}
-        <div className='flex flex-wrap items-center justify-between gap-3 p-3 bg-stone-50 border border-stone-200 rounded-lg text-xs'>
-          <div className='flex items-center gap-4 flex-wrap'>
-            <label className='flex items-center gap-1.5 font-medium text-stone-700 cursor-pointer'>
-              <span>Trang bắt đầu:</span>
+        <Card tone='brand'>
+          <CardHeader
+            icon={<SlidersHorizontal aria-hidden='true' />}
+            title={t('scriptImport.settingsTitle')}
+            subtitle={t('scriptImport.settingsSubtitle')}
+            actions={
+              <div className='flex flex-wrap items-center justify-end gap-2'>
+                <Button
+                  variant='secondary'
+                  size='sm'
+                  onClick={() => setInputContent(SAMPLE_NOVEL_PROSE)}
+                  title={t('scriptImport.proseSampleTitle')}
+                  leadingIcon={<Lightbulb className='text-amber-600' aria-hidden='true' />}
+                >
+                  {t('scriptImport.proseSample')}
+                </Button>
+                <Button
+                  variant='secondary'
+                  size='sm'
+                  onClick={() => setInputContent(SAMPLE_COMIC_SCRIPT)}
+                  title={t('scriptImport.scriptSampleTitle')}
+                  leadingIcon={<FileCode className='text-blue-600' aria-hidden='true' />}
+                >
+                  {t('scriptImport.scriptSample')}
+                </Button>
+                <Button
+                  variant='secondary'
+                  size='sm'
+                  onClick={() => setInputContent(SAMPLE_ENGLISH_SCRIPT)}
+                  title={t('scriptImport.englishSampleTitle')}
+                  leadingIcon={<FileText className='text-violet-600' aria-hidden='true' />}
+                >
+                  {t('scriptImport.englishSample')}
+                </Button>
+                {inputContent && (
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    onClick={() => {
+                      setInputContent('');
+                      setFileName(null);
+                    }}
+                    aria-label={t('scriptImport.clearContent')}
+                    title={t('scriptImport.clearContent')}
+                    className='size-8 min-h-8 px-0'
+                  >
+                    <RotateCcw aria-hidden='true' />
+                  </Button>
+                )}
+              </div>
+            }
+          />
+          <CardBody className='grid gap-3 py-3 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-end'>
+            <label className='grid gap-1 text-xs font-semibold text-stone-700'>
+              <span>{t('scriptImport.startingPage')}</span>
               <input
                 type='number'
                 min={1}
                 value={startingPage}
                 onChange={(e) => setStartingPage(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                className='w-14 px-2 py-1 bg-white border border-stone-300 rounded text-center font-bold text-stone-800 focus:outline-none focus:border-orange-500'
+                className='min-h-9 w-full rounded-md border border-stone-300 bg-white px-3 text-sm font-bold text-stone-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-200'
               />
             </label>
-
-            <label className='flex items-center gap-1.5 font-medium text-stone-700 cursor-pointer'>
-              <span>Số khung / trang:</span>
-              <input
-                type='number'
-                min={2}
-                max={8}
-                value={targetPanels}
-                onChange={(e) => setTargetPanels(Math.max(2, Math.min(8, parseInt(e.target.value, 10) || 4)))}
-                className='w-14 px-2 py-1 bg-white border border-stone-300 rounded text-center font-bold text-stone-800 focus:outline-none focus:border-orange-500'
-              />
-            </label>
-
-            <label className='flex items-center gap-1.5 text-stone-700 cursor-pointer'>
+            <label className='flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 text-xs text-stone-700'>
               <input
                 type='checkbox'
                 checked={autoConvertProse}
                 onChange={(e) => setAutoConvertProse(e.target.checked)}
-                className='rounded border-stone-300 text-orange-600 focus:ring-orange-500'
+                className='size-4 rounded border-stone-300 text-orange-600 focus:ring-orange-500'
               />
-              <span className='font-medium'>Tự động phân nhịp văn xuôi thành Khung hình</span>
+              <span>
+                <strong className='font-semibold text-stone-900'>{t('scriptImport.autoRhythm')}</strong>
+                <span className='ml-1 text-stone-600'>{t('scriptImport.autoRhythmHint')}</span>
+              </span>
             </label>
-          </div>
+          </CardBody>
+        </Card>
 
-          {/* Quick presets */}
-          <div className='flex items-center gap-1.5'>
-            <button
-              type='button'
-              onClick={() => setInputContent(SAMPLE_NOVEL_PROSE)}
-              className='inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-stone-700 bg-white border border-stone-200 rounded hover:bg-stone-100 transition-colors cursor-pointer'
-              title='Nạp trích đoạn tiểu thuyết có thoại và hành động'
-            >
-              <Lightbulb className='w-3 h-3 text-amber-500' />
-              <span>Mẫu văn xuôi</span>
-            </button>
-            <button
-              type='button'
-              onClick={() => setInputContent(SAMPLE_COMIC_SCRIPT)}
-              className='inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-stone-700 bg-white border border-stone-200 rounded hover:bg-stone-100 transition-colors cursor-pointer'
-              title='Nạp kịch bản truyện tranh mẫu'
-            >
-              <FileCode className='w-3 h-3 text-blue-500' />
-              <span>Mẫu kịch bản</span>
-            </button>
-            {inputContent && (
-              <button
-                type='button'
-                onClick={() => {
-                  setInputContent('');
-                  setFileName(null);
-                }}
-                className='p-1 text-stone-400 hover:text-stone-700 transition-colors'
-                title='Xóa nội dung'
-              >
-                <RotateCcw className='w-3.5 h-3.5' />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Khu vực 2 cột: Nhập liệu bên trái & Xem trước bên phải */}
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-          {/* CỘT TRÁI: Ô NHẬP LIỆU */}
-          <div className='flex flex-col space-y-2'>
-            <div className='flex items-center justify-between border-b border-stone-200 pb-2'>
-              <div className='flex items-center gap-2'>
+        <div className='grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]'>
+          <Card as='section' className='flex min-h-[28rem] flex-col xl:h-[clamp(30rem,56dvh,36rem)]'>
+            <CardHeader
+              icon={<BookOpenText aria-hidden='true' />}
+              title={t('scriptImport.sourceTitle')}
+              subtitle={fileName ? t('scriptImport.loadedFile', { name: fileName }) : t('scriptImport.sourceSubtitle')}
+              actions={
+                <div className='flex items-center rounded-lg bg-stone-100 p-1' role='tablist' aria-label={t('scriptImport.sourceTabsLabel')}>
                 <button
                   type='button'
                   onClick={() => setActiveTab('paste')}
-                  className={`px-3 py-1 text-xs font-bold rounded-md transition-colors cursor-pointer ${
+                  role='tab'
+                  aria-selected={activeTab === 'paste'}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                     activeTab === 'paste'
-                      ? 'bg-stone-800 text-white'
-                      : 'text-stone-600 hover:bg-stone-100'
+                      ? 'bg-white text-stone-900 shadow-sm'
+                      : 'text-stone-600 hover:text-stone-900'
                   }`}
                 >
-                  Dán văn bản
+                  {t('scriptImport.pasteText')}
                 </button>
                 <button
                   type='button'
@@ -355,16 +393,21 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
                     setActiveTab('file');
                     fileInputRef.current?.click();
                   }}
-                  className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-md transition-colors cursor-pointer ${
+                  role='tab'
+                  aria-selected={activeTab === 'file'}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                     activeTab === 'file'
-                      ? 'bg-stone-800 text-white'
-                      : 'text-stone-600 hover:bg-stone-100'
+                      ? 'bg-white text-stone-900 shadow-sm'
+                      : 'text-stone-600 hover:text-stone-900'
                   }`}
                 >
-                  <Upload className='w-3 h-3' />
-                  <span>Tải tệp tin</span>
+                  <Upload className='size-3.5' aria-hidden='true' />
+                  <span>{t('scriptImport.uploadFile')}</span>
                 </button>
               </div>
+              }
+            />
+            <CardBody className='flex min-h-0 flex-1 flex-col gap-2 p-0'>
               <input
                 ref={fileInputRef}
                 type='file'
@@ -372,88 +415,84 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
                 className='hidden'
                 onChange={handleFileUpload}
               />
-              {fileName && (
-                <span className='text-[11px] text-stone-500 truncate max-w-[180px]'>
-                  Tệp: <strong className='text-stone-700'>{fileName}</strong>
-                </span>
-              )}
-            </div>
-
+            <label htmlFor='script-import-source' className='sr-only'>{t('scriptImport.sourceLabel')}</label>
             <textarea
+              id='script-import-source'
               value={inputContent}
               onChange={(e) => {
                 setInputContent(e.target.value);
                 setConfirmReplace(false);
               }}
-              placeholder={`Dán văn bản thô vào đây (trích đoạn tiểu thuyết, bản thảo, kịch bản thô)...\n\nVí dụ:\nĐêm đã về khuya. Minh nhìn ra ngoài cửa sổ.\n"Chúng ta phải đi thôi!" - Minh nói.\nBỗng nhiên một tiếng nổ lớn vang lên! (BÙM!)\n\nHoặc định dạng kịch bản chuẩn:\n! Trang 01\n" Panel 1.1: [Toàn cảnh]\n@Minh: "Đi thôi!"\nSFX: BÙM!`}
-              className='w-full h-80 p-3 bg-white border border-stone-300 rounded-lg font-mono text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 resize-none leading-relaxed'
+              placeholder={t('scriptImport.placeholder')}
+              className='min-h-[22rem] w-full flex-1 resize-none border-0 bg-white p-4 font-mono text-xs leading-relaxed text-stone-800 outline-none placeholder:text-stone-400 focus:ring-2 focus:ring-inset focus:ring-orange-300'
             />
 
-            <div className='flex items-center justify-between text-[11px] text-stone-400 px-1'>
-              <span>{inputContent ? `${inputContent.length} ký tự · ${inputContent.split(/\r?\n/).length} dòng` : 'Chưa có nội dung'}</span>
-              <span>Hỗ trợ: .txt, .md, .fountain</span>
+            <div className='flex flex-wrap items-center justify-between gap-2 border-t border-stone-200 bg-stone-50 px-4 py-2 text-xs text-stone-500'>
+              <span>{inputContent ? t('scriptImport.inputStats', { characters: inputContent.length, lines: inputContent.split(/\r?\n/).length }) : t('scriptImport.noContent')}</span>
+              <span>{t('scriptImport.supportedFiles')}</span>
             </div>
-          </div>
+            </CardBody>
+          </Card>
 
-          {/* CỘT PHẢI: XEM TRƯỚC (LIVE PREVIEW) */}
-          <div className='flex flex-col space-y-2'>
-            <div className='flex items-center justify-between border-b border-stone-200 pb-2'>
-              <div className='flex items-center gap-1.5'>
-                <span className='text-xs font-bold text-stone-700'>Xem trước kết quả parse</span>
-                {parsedResult.pagesCount > 0 && (
-                  <div className='flex items-center gap-1 ml-1'>
-                    <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800'>
-                      {parsedResult.pagesCount} Trang
-                    </span>
-                    <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-stone-100 text-stone-700'>
-                      {parsedResult.panelsCount} Khung
-                    </span>
-                    <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800'>
-                      {parsedResult.dialoguesCount} Thoại
-                    </span>
-                    {parsedResult.sfxCount > 0 && (
-                      <span className='px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800'>
-                        {parsedResult.sfxCount} SFX
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className='flex items-center gap-1'>
+          <Card as='section' tone='info' className='flex min-h-[28rem] flex-col xl:h-[clamp(30rem,56dvh,36rem)]'>
+            <CardHeader
+              icon={<Sparkles aria-hidden='true' />}
+              title={t('scriptImport.previewTitle')}
+              subtitle={t('scriptImport.previewSubtitle')}
+              actions={
+                <div className='flex items-center rounded-lg bg-stone-100 p-1' role='tablist' aria-label={t('scriptImport.previewTabsLabel')}>
                 <button
                   type='button'
                   onClick={() => setPreviewTab('visual')}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                  role='tab'
+                  aria-selected={previewTab === 'visual'}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                     previewTab === 'visual'
-                      ? 'bg-stone-200 text-stone-800 font-bold'
-                      : 'text-stone-500 hover:text-stone-800'
+                      ? 'bg-white text-stone-900 shadow-sm'
+                      : 'text-stone-600 hover:text-stone-900'
                   }`}
-                  title='Xem trước dạng thẻ phân cảnh'
+                  title={t('scriptImport.visualPreviewTitle')}
                 >
-                  Trực quan
+                  {t('scriptImport.visual')}
                 </button>
                 <button
                   type='button'
                   onClick={() => setPreviewTab('text')}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                  role='tab'
+                  aria-selected={previewTab === 'text'}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                     previewTab === 'text'
-                      ? 'bg-stone-200 text-stone-800 font-bold'
-                      : 'text-stone-500 hover:text-stone-800'
+                      ? 'bg-white text-stone-900 shadow-sm'
+                      : 'text-stone-600 hover:text-stone-900'
                   }`}
-                  title='Xem trước dạng mã kịch bản chuẩn'
+                  title={t('scriptImport.scriptPreviewTitle')}
                 >
-                  Kịch bản
+                  {t('scriptImport.script')}
                 </button>
               </div>
-            </div>
+              }
+            />
 
-            {/* Nội dung Preview */}
-            <div className='h-80 overflow-y-auto p-3 bg-stone-50 border border-stone-200 rounded-lg'>
+            <CardBody className='flex min-h-0 flex-1 flex-col gap-3 bg-stone-50/70 p-3'>
+              {parsedResult.pagesCount > 0 && (
+                <div className='flex flex-wrap gap-2' aria-label={t('scriptImport.parseSummaryLabel')}>
+                  <Badge tone='brand' icon={<Layers aria-hidden='true' />}>{t('scriptImport.pagesCount', { count: parsedResult.pagesCount })}</Badge>
+                  <Badge tone='neutral' icon={<LayoutGrid aria-hidden='true' />}>{t('scriptImport.panelsCount', { count: parsedResult.panelsCount })}</Badge>
+                  <Badge tone='info' icon={<MessageCircle aria-hidden='true' />}>{t('scriptImport.dialoguesCount', { count: parsedResult.dialoguesCount })}</Badge>
+                  {parsedResult.sfxCount > 0 && <Badge tone='warning' icon={<Volume2 aria-hidden='true' />}>{t('scriptImport.sfxCount', { count: parsedResult.sfxCount })}</Badge>}
+                </div>
+              )}
+
+            <div className='min-h-[20rem] flex-1 overflow-y-auto rounded-lg border border-stone-200 bg-white p-3 [scrollbar-gutter:stable]'>
               {parsedResult.blocks.length === 0 ? (
-                <div className='h-full flex flex-col items-center justify-center text-stone-400 text-xs space-y-2'>
-                  <FileText className='w-8 h-8 text-stone-300 stroke-1' />
-                  <p>Kết quả phân tích phân cảnh sẽ hiển thị tại đây.</p>
+                <div className='flex h-full flex-col items-center justify-center space-y-3 px-6 text-center text-stone-500'>
+                  <span className='grid size-12 place-items-center rounded-full bg-stone-100 text-stone-400'>
+                    <Gauge className='size-6' aria-hidden='true' />
+                  </span>
+                  <div>
+                    <p className='text-sm font-semibold text-stone-700'>{t('scriptImport.emptyPreviewTitle')}</p>
+                    <p className='mt-1 text-xs'>{t('scriptImport.emptyPreviewDesc')}</p>
+                  </div>
                 </div>
               ) : previewTab === 'visual' ? (
                 <div className='space-y-3'>
@@ -462,10 +501,10 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
                       return (
                         <div
                           key={idx}
-                          className='px-2.5 py-1 bg-stone-800 text-white text-xs font-bold rounded flex items-center justify-between tracking-wide'
+                          className='flex items-center justify-between rounded-md bg-stone-900 px-3 py-2 text-xs font-bold tracking-wide text-white'
                         >
-                          <span>TRANG {block.pageNumber || '01'}</span>
-                          <span className='text-[10px] text-stone-400 font-normal'>Ngắt trang truyện</span>
+                          <span>{t('scriptImport.pageHeading', { number: block.pageNumber || '01' })}</span>
+                          <span className='font-normal text-stone-300'>{t('scriptImport.pageBreak')}</span>
                         </div>
                       );
                     }
@@ -474,12 +513,12 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
                       return (
                         <div
                           key={idx}
-                          className='p-2 bg-orange-50/80 border-l-4 border-orange-500 rounded-r text-xs flex items-center justify-between'
+                          className='flex items-center justify-between rounded-r-md border-l-4 border-orange-500 bg-orange-50/80 p-2.5 text-xs'
                         >
                           <span className='font-bold text-orange-900'>
-                            Khung {block.panelNumber || '1.1'}
+                            {t('scriptImport.panelHeading', { number: block.panelNumber || '1.1' })}
                             {block.cameraAngle && (
-                              <span className='ml-2 font-semibold text-orange-700 bg-orange-100/70 px-1.5 py-0.5 rounded text-[10px]'>
+                              <span className='ml-2 rounded bg-orange-100/70 px-2 py-0.5 text-xs font-semibold text-orange-700'>
                                 {block.cameraAngle}
                               </span>
                             )}
@@ -494,9 +533,12 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
                           key={idx}
                           className='ml-4 p-2 bg-white border border-stone-200 rounded-lg text-xs space-y-0.5 shadow-2xs'
                         >
-                          <div className='text-[11px] font-bold text-stone-900 uppercase tracking-wide flex items-center gap-1.5'>
+                          <div
+                            data-testid='dialogue-speaker'
+                            className='flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-stone-900'
+                          >
                             <span className='w-1.5 h-1.5 rounded-full bg-blue-600' />
-                            <span>{block.character || 'Nhân vật'}</span>
+                            <span>{block.character || t('scriptImport.characterFallback')}</span>
                           </div>
                           <p className='text-stone-800 italic pl-3'>"{block.content}"</p>
                         </div>
@@ -509,7 +551,7 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
                           key={idx}
                           className='ml-4 px-2.5 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-amber-900 tracking-wider'
                         >
-                          SFX: {block.content}
+                          {t('scriptImport.sfxPrefix')}: {block.content}
                         </div>
                       );
                     }
@@ -520,7 +562,7 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
                           key={idx}
                           className='ml-4 p-2 bg-stone-100 border border-stone-300 rounded text-xs text-stone-700 italic'
                         >
-                          <strong className='not-italic font-bold text-stone-800'>Dẫn chuyện:</strong> {block.content}
+                          <strong className='not-italic font-bold text-stone-800'>{t('scriptImport.captionPrefix')}:</strong> {block.content}
                         </div>
                       );
                     }
@@ -538,7 +580,8 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
                 </pre>
               )}
             </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
       </div>
     </Modal>

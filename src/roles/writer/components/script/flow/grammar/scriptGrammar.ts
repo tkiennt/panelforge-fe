@@ -112,5 +112,5 @@ export function completeCharacterName(
 
 /** Hậu tố Parens biến lời thoại thành Suy nghĩ (Thought). */
 export function isThoughtParens(parens: string | null | undefined): boolean {
-  return /^\s*\(?\s*(nghĩ|suy nghĩ|thought|thinking|thinks)\s*\)?\s*$/i.test(parens ?? '');
+  return /^\s*\(?\s*(nghĩ|suy nghĩ|tự nhủ|ngẫm nghĩ|thought|thinking|thinks|wondered|wonders)\s*\)?\s*$/i.test(parens ?? '');
 }

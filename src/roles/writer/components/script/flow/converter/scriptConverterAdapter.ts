@@ -15,7 +15,7 @@ export interface ConverterAdapterOptions {
 }
 
 const SPEECH_VERB_SUFFIX =
-  /\s+(?:nói|hét(?:\s+lên)?|bảo|thì thầm|gọi|kêu|hỏi|đáp|nghĩ|lẩm bẩm|says?|shouts?|whispers?)$/iu;
+  /\s+(?:nói|hét(?:\s+lên)?|bảo|thì thầm|gọi|kêu(?:\s+lên)?|hỏi|đáp|trả lời|nghĩ|tự nhủ|ngẫm nghĩ|lẩm bẩm|quát(?:\s+lên)?|says?|said|shouts?|shouted|whispers?|whispered|asks?|asked|replies|replied|thinks?|thought|yells?|yelled)$/iu;
 
 function normalizeName(value: string): string {
   return value
@@ -85,28 +85,109 @@ export interface ParsedScriptBlock {
 }
 
 const NON_SPEAKER_KEYWORDS = new Set([
+  // Tiếng Việt - Dẫn chuyện, Bối cảnh & Kỹ thuật
   'trang',
   'page',
   'panel',
   'khung',
+  'khung tranh',
   'ô',
+  'ô tranh',
   'sfx',
+  'fx',
+  'sound',
   'caption',
+  'captions',
   'lời dẫn',
   'lời dẫn truyện',
   'dẫn chuyện',
+  'dẫn',
   'người dẫn',
   'người dẫn chuyện',
+  'người kể',
+  'người kể chuyện',
+  'lời người kể',
+  'thuyết minh',
+  'hộp dẫn',
+  'hộp thoại',
+  'hộp chữ',
+  'bảng chữ',
   'bối cảnh',
   'thời gian',
   'địa điểm',
   'góc máy',
   'camera',
+  'camera angle',
   'ghi chú',
   'cảnh',
+  'phân cảnh',
   'scene',
   'âm thanh',
+  'tiếng',
+  'tiếng động',
   'note',
+  'tiêu đề',
+  'ngày',
+  // Tiếng Anh - Narration, Sluglines & Technical cues
+  'narrator',
+  'narration',
+  'narrative',
+  'voiceover',
+  'voice over',
+  'voice-over',
+  'vo',
+  'v.o.',
+  'os',
+  'o.s.',
+  'box',
+  'text box',
+  'textbox',
+  'caption box',
+  'title',
+  'title card',
+  'location',
+  'time',
+  'setting',
+  'date',
+  'shot',
+  'angle',
+  'establishing shot',
+  'int',
+  'ext',
+  'int.',
+  'ext.',
+  'int/ext',
+  'cut to',
+  'fade in',
+  'fade out',
+  // Đại từ nhân xưng & Mạo từ không phải tên riêng nhân vật
+  'the',
+  'he',
+  'she',
+  'they',
+  'it',
+  'we',
+  'you',
+  'someone',
+  'anyone',
+  'everyone',
+  'nobody',
+  'there',
+  'người',
+  'anh',
+  'cô',
+  'bọn',
+  'hắn',
+  'gã',
+  'y',
+  'thị',
+  'tôi',
+  'cậu',
+  'bà',
+  'ông',
+  'chúng',
+  'ai đó',
+  'mọi người',
 ]);
 
 /**
@@ -262,13 +343,15 @@ export function parseScriptTextToBlocks(
       continue;
     }
 
-    // 4. Nhận diện Caption: Lời dẫn truyện: ... hoặc Caption: ...
+    // 4. Nhận diện Caption, Lời dẫn, Bối cảnh, Slugline (INT./EXT.):
+    // Tiếng Việt: Lời dẫn, Dẫn chuyện, Người dẫn, Bối cảnh, Thời gian, Địa điểm
+    // Tiếng Anh: Caption, Narrator, Narration, Voiceover, V.O., Location, Time, Setting
     const captionMatch =
       trimmed.match(
-        /^(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện|Người dẫn chuyện)\s*:\s*(.*)/i,
+        /^(?:Lời dẫn truyện|Lời dẫn|Caption|Captions|Dẫn chuyện|Dẫn|Người dẫn chuyện|Người dẫn|Người kể|Người kể chuyện|Lời người kể|Thuyết minh|Hộp dẫn|Narrator|Narration|Narrative|Voiceover|Voice-over|Voice over|V\.O\.|VO|Bối cảnh|Thời gian|Địa điểm|Location|Setting|Time)\s*:\s*(.*)/i,
       ) ||
       trimmed.match(
-        /^\[(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện|Người dẫn chuyện)\s*:\s*(.*)\]$/i,
+        /^\[(?:Lời dẫn truyện|Lời dẫn|Caption|Captions|Dẫn chuyện|Dẫn|Người dẫn chuyện|Người dẫn|Người kể|Người kể chuyện|Lời người kể|Thuyết minh|Hộp dẫn|Narrator|Narration|Narrative|Voiceover|Voice-over|Voice over|V\.O\.|VO|Bối cảnh|Thời gian|Địa điểm|Location|Setting|Time)\s*:\s*(.*)\]$/i,
       );
 
     if (captionMatch) {
@@ -282,6 +365,18 @@ export function parseScriptTextToBlocks(
       continue;
     }
 
+    // Sluglines (INT./EXT.) -> Chuyển thành Action/Stage direction, KHÔNG nhầm thành thoại
+    if (/^(?:INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i.test(trimmed)) {
+      rawBlocks.push({
+        type: 'action',
+        pageNumber: String(currentPageIndex || 1).padStart(2, '0'),
+        panelNumber:
+          panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
+        content: trimmed,
+      });
+      continue;
+    }
+
     // 5. Nhận diện Thoại và Nhân vật:
     // Hỗ trợ cả:
     // - @Minh: "Thoại" hoặc @Minh: Thoại
@@ -289,6 +384,7 @@ export function parseScriptTextToBlocks(
     // - MINH: Thoại hoặc Minh: "Thoại"
     // - Minh (thì thầm): Thoại hoặc Minh / Hét: Thoại
     // - Minh nói: "Thoại"
+    // - John (thinking): "What's that?"
     const dialogueWithAt = trimmed.match(/^@([^:"“”]+?)\s*:\s*(?:["“]([^"”]+)["”]|(.+))$/u);
     if (dialogueWithAt) {
       const rawChar = dialogueWithAt[1].trim();
@@ -329,6 +425,38 @@ export function parseScriptTextToBlocks(
         });
         continue;
       }
+    }
+
+    // Hội thoại bắt đầu bằng gạch đầu dòng (vd: - "Chúng ta phải đi thôi!") hoặc ngoặc kép đứng riêng
+    const quoteDialogueMatch = trimmed.match(/^(?:[-–—]\s*)?["“]([^"”]+)["”](?:\s*[-–—]\s*(.+))?$/u);
+    if (quoteDialogueMatch) {
+      const speech = quoteDialogueMatch[1].trim();
+      const narrationOrAttribution = quoteDialogueMatch[2]?.trim();
+      let speaker: string | undefined;
+      let parens: string | undefined;
+
+      if (narrationOrAttribution) {
+        const attributionMatch = narrationOrAttribution.match(
+          /\b([A-ZÀ-Ỹ][\w\p{L}'-]+(?:\s+[A-ZÀ-Ỹ][\w\p{L}'-]+)*)\s+(?:nói|hét|bảo|thì thầm|gọi|hỏi|đáp|trả lời|nghĩ|tự nhủ|quát|said|says|shouted|whispered|asked|replied)\b/iu,
+        );
+        if (attributionMatch && !NON_SPEAKER_KEYWORDS.has(attributionMatch[1].toLowerCase())) {
+          speaker = attributionMatch[1].trim();
+          if (/(?:nghĩ|tự nhủ|ngẫm nghĩ|thought|thinks?)/i.test(narrationOrAttribution)) {
+            parens = 'suy nghĩ';
+          }
+        }
+      }
+
+      rawBlocks.push({
+        type: 'dialogue',
+        character: speaker,
+        parens,
+        pageNumber: String(currentPageIndex || 1).padStart(2, '0'),
+        panelNumber:
+          panelCountInPage > 0 ? `${currentPageIndex || 1}.${panelCountInPage}` : undefined,
+        content: speech,
+      });
+      continue;
     }
 
     // 6. Mặc định là đoạn văn mô tả hành động (Action / Stage Direction)
