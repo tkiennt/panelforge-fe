@@ -81,7 +81,8 @@
       "due": "Hạn {date}",
       "noDue": "Chưa đặt hạn",
       "more": "Còn {count} việc khác trong Công việc của tôi",
-      "error": "Không tải được danh sách việc."
+      "error": "Không tải được danh sách việc.",
+      "pageShort": "Trang"
     },
     "search": {
       "placeholder": "Tìm theo tên studio hoặc chủ sở hữu",

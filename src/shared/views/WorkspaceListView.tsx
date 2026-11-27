@@ -155,36 +155,64 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   // Việc của bạn trong Studio
   const [todayTasks, setTodayTasks] = useState<TodayTask[]>([]);
   const [todayError, setTodayError] = useState(false);
+  // UIQ-11q: một lần gọi /api/me/work cho mọi Studio (lô Task Grid + hàng chờ duyệt của Editor)
   useEffect(() => {
-    const withWork = workspaces.filter((w) => (w.pendingTasks ?? 0) > 0);
-    if (withWork.length === 0) {
+    if (isAdmin || workspaces.length === 0) {
       setTodayTasks([]);
       setTodayError(false);
       return;
     }
     let active = true;
-    Promise.allSettled(
-      withWork.map((w) =>
-        assignmentService
-          .getMyAssignments(w.id)
-          .then((list) =>
-            list
-              .filter((a) => a.status !== 'Approved')
-              .map((a): TodayTask => ({ workspace: w, assignment: a })),
-          ),
-      ),
-    ).then((results) => {
-      if (!active) return;
-      const loaded = results.filter(
-        (r): r is PromiseFulfilledResult<TodayTask[]> => r.status === 'fulfilled',
-      );
-      setTodayError(loaded.length === 0);
-      setTodayTasks(sortByDue(loaded.flatMap((r) => r.value)));
-    });
+    const pages = (nums: (number | null | undefined)[]) => {
+      const list = nums.filter((n): n is number => n != null);
+      return list.length ? `${t('workspace.shelf.today.pageShort')} ${list.join(', ')}` : null;
+    };
+    assignmentService
+      .getMyWork()
+      .then((studios) => {
+        if (!active) return;
+        const byId = new Map(workspaces.map((w) => [w.id, w]));
+        const tasks = studios.flatMap((s) => {
+          const workspace = byId.get(s.workspaceId);
+          if (!workspace) return [];
+          return [
+            ...s.lots.map(
+              (lot): TodayTask => ({
+                workspace,
+                assignment: {
+                  id: lot.id,
+                  stageName: lot.stageName,
+                  seriesTitle: lot.seriesTitle,
+                  chapterNumber: lot.chapterNumber,
+                  scopeLabel: pages(lot.tasks.map((c) => c.pageNumber)),
+                  brief: lot.brief,
+                  dueDate: lot.dueDate,
+                },
+              }),
+            ),
+            ...s.reviewQueue.map(
+              (item): TodayTask => ({
+                workspace,
+                assignment: {
+                  id: item.taskId,
+                  stageName: `${t('workspace.myWorkHub.bucket.toReview')} · ${item.stageName}`,
+                  seriesTitle: item.seriesTitle,
+                  chapterNumber: item.chapterNumber,
+                  scopeLabel: pages([item.pageNumber]),
+                  dueDate: null,
+                },
+              }),
+            ),
+          ];
+        });
+        setTodayError(false);
+        setTodayTasks(sortByDue(tasks));
+      })
+      .catch(() => active && setTodayError(true));
     return () => {
       active = false;
     };
-  }, [workspaces]);
+  }, [workspaces, isAdmin, t]);
 
   const handleOpenCreate = async () => {
     if (isAdmin) {

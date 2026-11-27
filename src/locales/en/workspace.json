@@ -81,7 +81,8 @@
       "due": "Due {date}",
       "noDue": "No due date",
       "more": "{count} more tasks in My work",
-      "error": "Could not load your tasks."
+      "error": "Could not load your tasks.",
+      "pageShort": "Page"
     },
     "search": {
       "placeholder": "Search by studio or owner name",
