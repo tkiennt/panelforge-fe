@@ -17,7 +17,7 @@ const chipClass =
 
 /**
  * Header dùng chung cho các trang ngoài Studio (/workspaces, /my-work).
- * Cùng PageContainer + max-w-7xl với phần thân để mép header thẳng hàng nội dung.
+ * Cùng PageContainer + max-w-[1840px] với phần thân để mép header thẳng hàng nội dung.
  */
 export const StudioDirectoryHeader: React.FC<StudioDirectoryHeaderProps> = ({
   currentUser,
@@ -40,7 +40,7 @@ export const StudioDirectoryHeader: React.FC<StudioDirectoryHeaderProps> = ({
 
   return (
     <header className='h-16 bg-white/95 backdrop-blur-md border-b border-stone-200 flex items-center sticky top-0 z-40 shadow-[inset_0_2px_0_var(--studio-accent)]'>
-      <PageContainer className='max-w-7xl mx-auto flex items-center justify-between gap-4'>
+      <PageContainer className='max-w-[1840px] mx-auto flex items-center justify-between gap-4'>
         <div className='flex items-center min-w-0'>
           {/* Logo dự án giống AppShell: BrandMark + chữ PanelForge + nhãn STUDIO */}
           <div className='flex items-center gap-2 select-none shrink-0'>

@@ -411,7 +411,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const gridClass =
     totalGridItems <= 2
       ? 'grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch'
-      : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch';
+      : totalGridItems === 3
+        ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch'
+        : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 items-stretch';
 
   const createButton = (
     <button
@@ -430,7 +432,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
 
       {/* 2. MAIN DIRECTORY CONTENT */}
       <main className='w-full flex-1 bg-[#FAF9F5]'>
-        <PageContainer className='py-6 md:py-8 flex flex-col gap-6 max-w-7xl mx-auto'>
+        <PageContainer className='py-6 md:py-8 flex flex-col gap-6 max-w-[1840px] mx-auto'>
           {/* Admin Role Limitation Notice */}
           {isAdmin && (
             <LucianInlineAlert

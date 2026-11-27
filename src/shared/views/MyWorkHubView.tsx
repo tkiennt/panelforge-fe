@@ -61,7 +61,7 @@ export const MyWorkHubView: React.FC<MyWorkHubViewProps> = ({ currentUser, onLog
         onLogout={onLogout}
         current={t('workspace.myWorkHub.title')}
       />
-      <PageContainer className='max-w-7xl mx-auto space-y-5 py-6 md:py-8'>
+      <PageContainer className='max-w-[1840px] mx-auto space-y-5 py-6 md:py-8'>
         <PageHeader
           icon={<ClipboardList className='h-5 w-5' aria-hidden='true' />}
           title={t('workspace.myWorkHub.title')}
