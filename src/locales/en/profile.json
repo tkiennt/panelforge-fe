@@ -148,7 +148,7 @@
     "disabledTitle": "2FA Disabled",
     "disabledDesc": "Secret key and trusted devices have been removed. You can re-enable 2FA anytime.",
     "successTitle": "2FA Activated Successfully!",
-    "successDesc": "Your account is now protected with RFC 6238 TOTP. This device will be remembered for 30 days (1 month) before requiring a 2FA code again.",
+    "successDesc": "From your next sign-in, you will enter a 6-digit code from your Authenticator app after your password. You can choose to remember the device for 30 days at that step.",
     "protectionStatusLabel": "Protection status:",
     "protectionStatusActive": "Active",
     "doneAndClose": "Done & Close"

@@ -442,14 +442,27 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
     }
   };
 
-  const is2faActive = useMemo(() => {
+  // State (không phải memo) để cập nhật ngay khi bật/tắt 2FA trong modal
+  const [is2faActive, setIs2faActive] = useState(() => {
     try {
-      const savedUser = localStorage.getItem('user');
-      return savedUser ? Boolean(JSON.parse(savedUser).isTwoFactorEnabled) : false;
+      const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      return Boolean(savedUser.isTwoFactorEnabled ?? savedUser.twoFactorEnabled);
     } catch {
       return false;
     }
-  }, []);
+  });
+  const rememberTwoFactorState = (enabled: boolean) => {
+    setIs2faActive(enabled);
+    try {
+      const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem(
+        'user',
+        JSON.stringify({ ...savedUser, isTwoFactorEnabled: enabled, twoFactorEnabled: enabled }),
+      );
+    } catch {
+      // bỏ qua
+    }
+  };
 
   const handleLogoutClick = async () => {
     try {
@@ -1573,6 +1586,8 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
         twoFactorEnabled={is2faActive}
         isTwoFactorEnabled={is2faActive}
         onClose={() => setIsTwoFactorOpen(false)}
+        onSuccess={() => rememberTwoFactorState(true)}
+        onDisabled={() => rememberTwoFactorState(false)}
       />
 
       {/* Change Password Modal */}

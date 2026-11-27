@@ -298,7 +298,8 @@ function AppContent() {
           email: u.email || '',
           role,
           canCreateStudio: !!u.canCreateStudio,
-          isTwoFactorEnabled: !!u.isTwoFactorEnabled,
+          // 'isTwoFactorEnabled' do FE ghi (getMe + modal bật/tắt) nên mới nhất; 'twoFactorEnabled' là bản BE
+          isTwoFactorEnabled: !!(u.isTwoFactorEnabled ?? u.twoFactorEnabled),
           avatarUrl: u.avatarUrl || u.avatar || null,
         });
         setCurrentRole(role);
@@ -346,8 +347,11 @@ function AppContent() {
           email: me.email,
           role,
           canCreateStudio: !!me.canCreateStudio,
+          // Trạng thái 2FA thật từ BE (trước đây không có → modal 2FA tưởng chưa bật sau khi tải lại trang)
+          isTwoFactorEnabled: !!me.twoFactorEnabled,
           avatarUrl: avatar,
         });
+        const isTwoFactorEnabled = !!me.twoFactorEnabled;
         try {
           const currentStored = JSON.parse(localStorage.getItem('user') || '{}');
           localStorage.setItem(
@@ -355,12 +359,16 @@ function AppContent() {
             JSON.stringify({
               ...currentStored,
               ...me,
+              isTwoFactorEnabled,
               avatar,
               avatarUrl: avatar,
             }),
           );
         } catch {
-          localStorage.setItem('user', JSON.stringify({ ...me, avatar, avatarUrl: avatar }));
+          localStorage.setItem(
+            'user',
+            JSON.stringify({ ...me, isTwoFactorEnabled, avatar, avatarUrl: avatar }),
+          );
         }
         // LỖI 1: Nếu bản cache activeWorkspace thuộc user khác (hoặc không khớp me.id), xoá bỏ ngay
         const validCachedWs = readCachedWorkspace(me.id);
@@ -758,7 +766,9 @@ function AppContent() {
       email: authResponse?.user?.email || '',
       role,
       canCreateStudio: authResponse?.user?.canCreateStudio,
-      isTwoFactorEnabled: authResponse?.user?.isTwoFactorEnabled,
+      isTwoFactorEnabled: !!(
+        authResponse?.user?.twoFactorEnabled ?? authResponse?.user?.isTwoFactorEnabled
+      ),
       avatarUrl: apiAvatar,
     });
     if (authResponse?.user) {

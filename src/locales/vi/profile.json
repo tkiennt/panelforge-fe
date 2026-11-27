@@ -148,7 +148,7 @@
     "disabledTitle": "Đã tắt 2FA",
     "disabledDesc": "Khóa bí mật và thiết bị tin cậy đã xóa. Có thể bật lại 2FA bất cứ lúc nào.",
     "successTitle": "Đã kích hoạt 2FA thành công!",
-    "successDesc": "Tài khoản của bạn hiện đã được bảo vệ với tiêu chuẩn quốc tế RFC 6238 TOTP. Thiết bị này sẽ được ghi nhớ trong vòng 30 ngày (1 tháng) trước khi cần nhập lại mã 2FA.",
+    "successDesc": "Từ lần đăng nhập tới, sau mật khẩu bạn sẽ nhập thêm mã 6 số từ ứng dụng Authenticator. Có thể chọn ghi nhớ thiết bị 30 ngày ngay ở bước nhập mã khi đăng nhập.",
     "protectionStatusLabel": "Trạng thái bảo vệ:",
     "protectionStatusActive": "Đang hoạt động (Active)",
     "doneAndClose": "Hoàn tất & Đóng"

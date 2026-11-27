@@ -30,6 +30,8 @@ export interface CurrentUserDto {
   fullName?: string;
   role: string;
   canCreateStudio: boolean;
+  /** GET /api/Auth/me: 2FA (TOTP) đang bật cho tài khoản. */
+  twoFactorEnabled?: boolean;
   avatar?: string | null;
   avatarUrl?: string | null;
 }
