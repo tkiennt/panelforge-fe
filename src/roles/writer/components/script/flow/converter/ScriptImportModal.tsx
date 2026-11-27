@@ -93,7 +93,6 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
   const [activeTab, setActiveTab] = useState<'paste' | 'file'>('paste');
   const [inputContent, setInputContent] = useState('');
   const [startingPage, setStartingPage] = useState<number>(initialStartingPageNumber);
-  const [autoConvertProse, setAutoConvertProse] = useState<boolean>(true);
   const [previewTab, setPreviewTab] = useState<'visual' | 'text'>('visual');
   const [confirmReplace, setConfirmReplace] = useState<boolean>(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -135,7 +134,7 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
 
     let scriptText = trimmed;
     // Nếu là văn xuôi tự nhiên và người dùng bật tự động chia khung/trang từ văn xuôi
-    if (!hasExplicitMarkers && autoConvertProse) {
+    if (!hasExplicitMarkers) {
       const converted = convertRawTextHeuristically({
         mode: 'convert_raw_text',
         inputContent: trimmed,
@@ -169,7 +168,7 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
       sfxCount,
       editorNodes,
     };
-  }, [inputContent, startingPage, autoConvertProse, seriesBibleContext, characters]);
+  }, [inputContent, startingPage, seriesBibleContext, characters]);
 
   if (!isOpen) return null;
 
@@ -340,8 +339,8 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
               </div>
             }
           />
-          <CardBody className='grid gap-3 py-3 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-end'>
-            <label className='grid gap-1 text-xs font-semibold text-stone-700'>
+          <CardBody className='py-3'>
+            <label className='grid max-w-32 gap-1 text-xs font-semibold text-stone-700'>
               <span>{t('scriptImport.startingPage')}</span>
               <input
                 type='number'
@@ -350,18 +349,6 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
                 onChange={(e) => setStartingPage(Math.max(1, parseInt(e.target.value, 10) || 1))}
                 className='min-h-9 w-full rounded-md border border-stone-300 bg-white px-3 text-sm font-bold text-stone-900 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-200'
               />
-            </label>
-            <label className='flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 text-xs text-stone-700'>
-              <input
-                type='checkbox'
-                checked={autoConvertProse}
-                onChange={(e) => setAutoConvertProse(e.target.checked)}
-                className='size-4 rounded border-stone-300 text-orange-600 focus:ring-orange-500'
-              />
-              <span>
-                <strong className='font-semibold text-stone-900'>{t('scriptImport.autoRhythm')}</strong>
-                <span className='ml-1 text-stone-600'>{t('scriptImport.autoRhythmHint')}</span>
-              </span>
             </label>
           </CardBody>
         </Card>
