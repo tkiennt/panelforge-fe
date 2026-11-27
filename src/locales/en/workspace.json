@@ -716,7 +716,7 @@
     "directory": {
       "title": "Your Studio Workspaces",
       "subtitle": "Multi-Studio Manga/Webtoon parallel production management. Track assignments, series progress, and isolated storage quotas.",
-      "createStudioBtn": "+ Create New Studio",
+      "createStudioBtn": "Create New Studio",
       "filterRoleLabel": "Filter by role:",
       "filterAll": "All Studios ({count})",
       "filterProducer": "I am Producer ({count})",
@@ -728,11 +728,13 @@
       "featuredSeries": "Featured Series:",
       "currentStudio": "Selected Studio",
       "enterStudio": "Enter Studio Hub",
-      "createNewCard": "+ Create New Studio Workspace",
+      "createNewCard": "Create New Studio Workspace",
       "createNewDesc": "Initialize an isolated Studio with dedicated storage, crew, and publication catalog",
       "startSetup": "Start Setup",
       "filterArtist": "I am Artist ({count})",
       "filterWriter": "I am Writer ({count})",
+      "filterLetterer": "I am Letterer ({count})",
+      "adminBadge": "Admin",
       "filterRole": "I am {role} ({count})",
       "rolePermissionEditor": "Role: Editorial Supervision"
     },

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from '@/shared/ui';
+import { Alert, PageHeader, SectionHeader } from '@/shared/ui';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   BookOpen,
@@ -64,7 +64,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   onShowToast,
 }) => {
   const { workspaceId, seriesId } = useParams();
-  const { t } = useTranslation('collaboration');
+  const { t, lang } = useTranslation('collaboration');
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const reviewer = isReviewerRole(workspaceRole);
@@ -73,6 +73,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const [stages, setStages] = useState<PipelineStageDto[]>([]);
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [seriesFormat, setSeriesFormat] = useState('');
+  const [seriesTitle, setSeriesTitle] = useState('');
   const [scenes, setScenes] = useState<SceneDto[]>([]);
   const [pages, setPages] = useState<PageDto[]>([]);
   const [panels, setPanels] = useState<PanelDto[]>([]);
@@ -99,8 +100,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     if (!seriesId) return;
     seriesService
       .getSeriesById(seriesId)
-      .then((s) => setSeriesFormat(s?.format ?? ''))
-      .catch(() => setSeriesFormat(''));
+      .then((s) => {
+        setSeriesFormat(s?.format ?? '');
+        setSeriesTitle(s?.title ?? '');
+      })
+      .catch(() => {
+        setSeriesFormat('');
+        setSeriesTitle('');
+      });
   }, [seriesId]);
 
   // Chương, pipeline và thành viên của Series
@@ -729,33 +736,20 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       ]
     : baseTabs;
   const isStudioTab = tab === 'studio';
-  const currentMember = members.find((m) => m.userId === currentUserId);
-  const currentMemberName =
-    currentMember?.fullName ||
-    (typeof window !== 'undefined' ? localStorage.getItem('userName') : null) ||
-    '—';
 
   return (
     <PageContainer className='space-y-6 py-6 text-[#1C1917] font-sans' data-testid='my-work-view'>
-      {/* Stitch Manga Production Workspace Banner */}
-      <header className='relative bg-white rounded-xl p-6 sm:p-8 shadow-sm overflow-hidden border border-stone-200/80'>
-        <div className='relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6'>
-          <div>
-            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#18181B] tracking-tight'>
-              {workspaceRole?.toLowerCase() === 'writer'
-                ? `${t('writerStudio.workbenchTitle')} — ${currentMemberName}`
-                : `${t('myWork.title')} — ${currentMemberName}`}
-            </h1>
-            <p className='text-sm text-stone-500 mt-1'>
-              {t('myWork.projectPrefix')}{' '}
-              <strong className='text-[#18181B] font-semibold'>
-                {seriesId ? 'PanelForge Production' : 'Workspace'}
-              </strong>{' '}
-              • {t('myWork.desc')}
-            </p>
-          </div>
-
-          <div className='flex items-center gap-2.5 flex-wrap'>
+      <PageHeader
+        icon={<BookOpen className='w-5 h-5' aria-hidden='true' />}
+        eyebrow={seriesTitle || undefined}
+        title={
+          workspaceRole?.toLowerCase() === 'writer'
+            ? t('writerStudio.workbenchTitle')
+            : t('myWork.title')
+        }
+        description={t('myWork.desc')}
+        actions={
+          <div className='flex items-center gap-2 flex-wrap justify-end'>
             {chapters.length > 0 &&
               workspaceId &&
               seriesId &&
@@ -764,9 +758,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 return (
                   <Link
                     to={`/workspaces/${workspaceId}/series/${seriesId}/script/editor?chapterId=${activeChapter.id}`}
-                    className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs transition-colors shadow-xs'
+                    className='focus-ring inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs transition-colors shadow-xs'
                   >
-                    <BookOpen className='w-4 h-4' />
+                    <BookOpen className='w-4 h-4' aria-hidden='true' />
                     <span>
                       {t('writerStudio.continueWriting', { chapter: activeChapter.chapterNumber })}
                     </span>
@@ -778,7 +772,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               onChange={(e) => selectChapter(e.target.value)}
               aria-label={t('collaboration.myWork.selectChapterAria')}
               disabled={loadingChapters && chapters.length === 0}
-              className='px-4 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] shadow-xs focus:outline-none focus:border-[#F97316] cursor-pointer'
+              className='h-9 max-w-48 truncate px-3 bg-white border border-stone-200 rounded-lg text-xs font-semibold text-[#1C1917] shadow-2xs focus:outline-none focus:border-[#F97316] cursor-pointer'
             >
               <option value='ALL_STUDIO'>{t('collaboration.myWork.allStudioOption')}</option>
               {chapters.map((c) => (
@@ -792,69 +786,25 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               type='button'
               onClick={() => void (isStudioTab ? loadStudioWork() : loadWork())}
               aria-label={t('collaboration.myWork.reload')}
-              className='p-2.5 rounded-xl border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] shadow-xs cursor-pointer transition-colors text-[#1C1917]'
+              title={t('collaboration.myWork.reload')}
+              className='focus-ring h-9 w-9 inline-flex items-center justify-center rounded-lg border border-stone-200 bg-white hover:bg-stone-50 shadow-2xs cursor-pointer transition-colors text-[#1C1917]'
             >
               <RefreshCw
+                aria-hidden='true'
                 className={`w-3.5 h-3.5 ${(isStudioTab ? loadingStudio : loadingWork) ? 'animate-spin text-[#F97316]' : ''}`}
               />
             </button>
           </div>
-        </div>
-
-        {/* KPI Quick Stats from Stitch */}
-        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-stone-200/80'>
-          <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
-            <div className='w-10 h-10 rounded-lg bg-[#EA580C]/10 flex items-center justify-center text-[#EA580C] shrink-0'>
-              <BookOpen className='w-5 h-5' />
-            </div>
-            <div>
-              <div className='font-bold text-[#18181B] text-sm sm:text-base'>
-                {counts.mine > 0
-                  ? t('writerStudio.scriptsInProgress', { count: counts.mine })
-                  : chapters.length > 0
-                    ? t('writerStudio.scriptsInProgress', { count: chapters.length })
-                    : '—'}
-              </div>
-              <div className='text-xs text-stone-500'>
-                {t('writerStudio.scriptsInProgressDesc')}
-              </div>
-            </div>
-          </div>
-          <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
-            <div className='w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0'>
-              <User className='w-5 h-5' />
-            </div>
-            <div>
-              <div className='font-bold text-[#18181B] text-sm sm:text-base'>—</div>
-              <div className='text-xs text-stone-500'>{t('myWork.characterProfiles')}</div>
-            </div>
-          </div>
-          <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
-            <div className='w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0'>
-              <CheckCircle2 className='w-5 h-5' />
-            </div>
-            <div>
-              <div className='font-bold text-[#18181B] text-sm sm:text-base'>—</div>
-              <div className='text-xs text-stone-500'>Model Sheet</div>
-            </div>
-          </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* Kịch bản Chương đang thực hiện (Stitch tab-tasks view) */}
       {chapters.length > 0 && workspaceId && seriesId && (
         <section className='space-y-3.5'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-2'>
-              <Film className='w-5 h-5 text-[#EA580C]' />
-              <h2 className='text-lg font-serif font-bold text-[#18181B]'>
-                {t('writerStudio.chaptersInProgressTitle')}
-              </h2>
-            </div>
-            <span className='text-xs text-stone-500'>
-              {t('myWork.chaptersInSeries', { count: chapters.length })}
-            </span>
-          </div>
+          <SectionHeader
+            title={t('writerStudio.chaptersInProgressTitle')}
+            count={t('myWork.chaptersInSeries', { count: chapters.length })}
+          />
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             {chapters.slice(0, 4).map((c) => {
@@ -891,7 +841,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                         </span>
                         {isActive && (
                           <span className='inline-flex items-center gap-1.5 text-xs text-amber-800 font-medium'>
-                            <span className='w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping' />
+                            <span className='w-1.5 h-1.5 rounded-full bg-amber-500' />
                             {t('writerStudio.activeStatus')}
                           </span>
                         )}
@@ -907,35 +857,19 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     <ChevronRight className='w-5 h-5 text-stone-400 group-hover:text-[#EA580C] transition-colors shrink-0' />
                   </div>
 
-                  <div className='space-y-1.5 pt-1'>
-                    <div className='flex justify-between text-xs'>
-                      <span className='text-stone-500'>{t('writerStudio.draftProgress')}</span>
-                      <span className='font-semibold font-mono text-[#18181B]'>
-                        {t('myWork.pagesCount', { count: c.pagesCount ?? 0 })}
-                      </span>
-                    </div>
-                    <div className='w-full h-2 rounded-full bg-stone-100 overflow-hidden'>
-                      <div
-                        className='h-full bg-[#EA580C] rounded-full transition-all duration-500'
-                        style={{
-                          width: c.isScriptFrozen
-                            ? '100%'
-                            : (c.pagesCount ?? 0) > 0
-                              ? '60%'
-                              : '15%',
-                        }}
-                      />
-                    </div>
+                  <div className='flex justify-between text-xs'>
+                    <span className='text-stone-500'>{t('writerStudio.draftProgress')}</span>
+                    <span className='font-semibold text-[#18181B]'>
+                      {t('myWork.pagesCount', { count: c.pagesCount ?? 0 })}
+                    </span>
                   </div>
 
                   <div className='pt-3 border-t border-stone-200/80 flex items-center justify-between text-xs text-stone-500'>
-                    <span className='font-mono'>
+                    <span>
                       {c.updatedAt
-                        ? new Intl.DateTimeFormat(undefined, {
-                            day: '2-digit',
-                            month: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
+                        ? new Intl.DateTimeFormat(lang, {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
                           }).format(new Date(c.updatedAt))
                         : '—'}
                     </span>

@@ -129,7 +129,10 @@
     "chapterProduction": "CHAPTER PRODUCTION",
     "chapterWriting": "CHAPTER CREATION",
     "seriesOverview": "OVERVIEW",
-    "crew": "Crew"
+    "crew": "Crew",
+    "profileAndSettings": "Profile & settings",
+    "readOnlyBadge": "Read-only",
+    "scriptReadOnlyTooltip": "Script — read-only (view only)"
   },
   "focus": {
     "workspaceTitle": {
