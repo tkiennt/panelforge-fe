@@ -14,6 +14,8 @@ import {
   RefreshCw,
   CheckCircle2,
   Globe,
+  Palette,
+  RotateCcw,
   User,
 } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
@@ -21,6 +23,10 @@ import { chapterService, type ChapterDto } from '@/services/chapter.service';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import { seriesService } from '@/services/series.service';
+import {
+  bibleService,
+  type BibleDesignQueueItemDto,
+} from '@/services/bible.service';
 import { formatSeriesFormat } from '@/shared/utils/seriesFormat';
 import { scriptLineService, type SceneDto } from '@/services/scriptLine.service';
 import { pageService, type PageDto } from '@/services/page.service';
@@ -44,6 +50,7 @@ import {
   type WorkOrderContext,
 } from './collaborationRules';
 import { PageContainer } from '@/shared/components/PageContainer';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { useTranslation } from '@/lib/i18n';
 
 interface MyWorkViewProps {
@@ -68,6 +75,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const reviewer = isReviewerRole(workspaceRole);
+  const normalizedRole = String(workspaceRole || '').toUpperCase();
+  const isWriter = normalizedRole === 'WRITER';
+  const isArtist = normalizedRole === 'ARTIST';
 
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [stages, setStages] = useState<PipelineStageDto[]>([]);
@@ -90,6 +100,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const [loadingStudio, setLoadingStudio] = useState(false);
   const [gridLots, setGridLots] = useState<MyTaskLotViewItem[]>([]);
   const [gridReviewItems, setGridReviewItems] = useState<TaskGridReviewItemDto[]>([]);
+  const [artistDesignQueue, setArtistDesignQueue] = useState<BibleDesignQueueItemDto[]>([]);
 
   const highlightedId = searchParams.get('taskId') || searchParams.get('assignmentId');
   const chaptersRef = useRef<ChapterDto[]>([]);
@@ -102,6 +113,25 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       .then((s) => setSeriesFormat(s?.format ?? ''))
       .catch(() => setSeriesFormat(''));
   }, [seriesId]);
+
+  useEffect(() => {
+    if (!isArtist || !seriesId) {
+      setArtistDesignQueue([]);
+      return;
+    }
+    let cancelled = false;
+    bibleService
+      .getBibleDesignQueue(seriesId)
+      .then((queue) => {
+        if (!cancelled) setArtistDesignQueue(queue || []);
+      })
+      .catch(() => {
+        if (!cancelled) setArtistDesignQueue([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isArtist, seriesId]);
 
   // Chương, pipeline và thành viên của Series
   useEffect(() => {
@@ -734,6 +764,36 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     currentMember?.fullName ||
     (typeof window !== 'undefined' ? localStorage.getItem('userName') : null) ||
     '—';
+  const artistCells = mineGridLots.flatMap((lot) => lot.tasks);
+  const artistAssignments = artistCells.length
+    ? []
+    : assignments.filter((assignment) => assignment.assigneeUserId === currentUserId);
+  const artistPrimaryLot =
+    mineGridLots.find((lot) =>
+      lot.tasks.some((cell) => ['ReworkRequired', 'InProgress', 'Assigned'].includes(cell.status)),
+    ) || mineGridLots[0];
+  const artistProductionReworks = mineGridLots.flatMap((lot) =>
+    lot.tasks
+      .filter((cell) => cell.status === 'ReworkRequired')
+      .map((cell) => ({ lot, cell })),
+  );
+  const artistRevisionCells = artistProductionReworks.map(({ cell }) => cell);
+  const artistDesignReworks = artistDesignQueue.filter(
+    (item) => item.isPriorityRework || item.reviewStatus === 'ReworkRequired',
+  );
+  const artistSummary = {
+    assigned: artistCells.length + artistAssignments.length,
+    pendingReview:
+      artistCells.filter((cell) => ['Submitted', 'UnderReview'].includes(cell.status)).length +
+      artistAssignments.filter((assignment) =>
+        ['Submitted', 'UnderReview'].includes(String(assignment.status)),
+      ).length,
+    revisions:
+      artistRevisionCells.length +
+      artistAssignments.filter((assignment) => String(assignment.status) === 'ReworkRequired')
+        .length +
+      artistDesignReworks.length,
+  };
 
   return (
     <PageContainer className='space-y-6 py-6 text-[#1C1917] font-sans' data-testid='my-work-view'>
@@ -742,21 +802,20 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         <div className='relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6'>
           <div>
             <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#18181B] tracking-tight'>
-              {workspaceRole?.toLowerCase() === 'writer'
+              {isWriter
                 ? `${t('writerStudio.workbenchTitle')} — ${currentMemberName}`
-                : `${t('myWork.title')} — ${currentMemberName}`}
+                : isArtist
+                  ? `${t('myWork.artistOverview.title')} — ${currentMemberName}`
+                  : `${t('myWork.title')} — ${currentMemberName}`}
             </h1>
             <p className='text-sm text-stone-500 mt-1'>
-              {t('myWork.projectPrefix')}{' '}
-              <strong className='text-[#18181B] font-semibold'>
-                {seriesId ? 'PanelForge Production' : 'Workspace'}
-              </strong>{' '}
-              • {t('myWork.desc')}
+              {isArtist ? t('myWork.artistOverview.desc') : t('myWork.desc')}
             </p>
           </div>
 
           <div className='flex items-center gap-2.5 flex-wrap'>
-            {chapters.length > 0 &&
+            {isWriter &&
+              chapters.length > 0 &&
               workspaceId &&
               seriesId &&
               (() => {
@@ -773,6 +832,24 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   </Link>
                 );
               })()}
+            {isArtist && workspaceId && seriesId && (
+              <>
+                <Link
+                  to={`/workspaces/${workspaceId}/series/${seriesId}/artist`}
+                  className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold text-xs transition-colors shadow-xs'
+                >
+                  <Palette className='w-4 h-4' aria-hidden='true' />
+                  <span>{t('myWork.artistOverview.openDesk')}</span>
+                </Link>
+                <Link
+                  to={`/workspaces/${workspaceId}/series/${seriesId}/bible`}
+                  className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 font-semibold text-xs transition-colors'
+                >
+                  <BookOpen className='w-4 h-4' aria-hidden='true' />
+                  <span>{t('myWork.artistOverview.openDesignRequests')}</span>
+                </Link>
+              </>
+            )}
             <select
               value={chapterId}
               onChange={(e) => selectChapter(e.target.value)}
@@ -801,8 +878,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           </div>
         </div>
 
-        {/* KPI Quick Stats from Stitch */}
-        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-stone-200/80'>
+        {isWriter && (
+          <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-stone-200/80'>
           <div className='flex items-center gap-3 bg-[#FAF9F5] p-3.5 rounded-lg border border-[#E8E3DA]'>
             <div className='w-10 h-10 rounded-lg bg-[#EA580C]/10 flex items-center justify-center text-[#EA580C] shrink-0'>
               <BookOpen className='w-5 h-5' />
@@ -838,11 +915,217 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               <div className='text-xs text-stone-500'>Model Sheet</div>
             </div>
           </div>
-        </div>
+          </div>
+        )}
+
+        {isArtist && (
+          <div className='grid grid-cols-2 xl:grid-cols-4 gap-3 mt-6 pt-5 border-t border-stone-200/80'>
+            <div className='rounded-lg border border-stone-200 bg-[#FAF9F5] px-3.5 py-3'>
+              <div className='flex items-center gap-2 text-xs font-semibold text-stone-600'>
+                <ClipboardList className='h-4 w-4 text-orange-600' aria-hidden='true' />
+                {t('myWork.artistOverview.assigned')}
+              </div>
+              <div className='mt-1 text-xl font-bold tabular-nums text-stone-900'>
+                {artistSummary.assigned}
+              </div>
+            </div>
+            <div className='rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-3'>
+              <div className='flex items-center gap-2 text-xs font-semibold text-blue-800'>
+                <Palette className='h-4 w-4' aria-hidden='true' />
+                {t('myWork.artistOverview.designRequests')}
+              </div>
+              <div className='mt-1 text-xl font-bold tabular-nums text-blue-950'>
+                {artistDesignQueue.length}
+              </div>
+            </div>
+            <div className='rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3'>
+              <div className='flex items-center gap-2 text-xs font-semibold text-amber-800'>
+                <CheckCircle2 className='h-4 w-4' aria-hidden='true' />
+                {t('myWork.artistOverview.pendingReview')}
+              </div>
+              <div className='mt-1 text-xl font-bold tabular-nums text-amber-950'>
+                {artistSummary.pendingReview}
+              </div>
+            </div>
+            <div className='rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3'>
+              <div className='flex items-center gap-2 text-xs font-semibold text-rose-800'>
+                <RotateCcw className='h-4 w-4' aria-hidden='true' />
+                {t('myWork.artistOverview.revisions')}
+              </div>
+              <div className='mt-1 text-xl font-bold tabular-nums text-rose-950'>
+                {artistSummary.revisions}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
+      {isArtist && artistPrimaryLot && workspaceId && seriesId && (
+        <section className='space-y-3' aria-labelledby='artist-continue-production'>
+          <h2 id='artist-continue-production' className='text-sm font-bold text-stone-900'>
+            {t('myWork.artistOverview.continueProduction')}
+          </h2>
+          <div className='rounded-xl border border-stone-200 bg-white p-4 shadow-xs'>
+            <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
+              <div className='min-w-0 space-y-2'>
+                <div>
+                  <h3 className='text-base font-bold text-stone-900'>
+                    {t('myWork.artistOverview.chapterTitle', {
+                      number: artistPrimaryLot.chapterNumber,
+                      title: artistPrimaryLot.chapterTitle || '',
+                    })}
+                  </h3>
+                  <p className='mt-0.5 text-xs text-stone-500'>
+                    {t('myWork.artistOverview.productionScope', {
+                      pages: artistPrimaryLot.tasks
+                        .map((task) => task.pageNumber)
+                        .filter((page): page is number => page != null)
+                        .join(', ') || '—',
+                      stage: artistPrimaryLot.stageName,
+                    })}
+                  </p>
+                </div>
+                <div
+                  className='flex flex-wrap gap-1.5'
+                  aria-label={t('myWork.artistOverview.stageAria')}
+                >
+                  {stages.map((stage) => {
+                    const active = stage.id === artistPrimaryLot.pipelineStageId;
+                    return (
+                      <span
+                        key={stage.id}
+                        className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                          active
+                            ? 'border-orange-300 bg-orange-50 text-orange-800'
+                            : 'border-stone-200 bg-stone-50 text-stone-500'
+                        }`}
+                      >
+                        {stage.name}
+                      </span>
+                    );
+                  })}
+                </div>
+                <p className='text-xs text-stone-600'>
+                  {artistPrimaryLot.brief || t('myWork.artistOverview.checkAssignment')}
+                </p>
+              </div>
+              <Link
+                to={`/workspaces/${workspaceId}/series/${seriesId}/artist?chapterId=${encodeURIComponent(artistPrimaryLot.chapterId)}`}
+                className='inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-orange-700'
+              >
+                {t('myWork.artistOverview.openDesk')}
+                <ChevronRight className='h-4 w-4' aria-hidden='true' />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isArtist && workspaceId && seriesId && artistDesignQueue.length > 0 && (
+        <section className='space-y-3' aria-labelledby='artist-design-requests'>
+          <div className='flex items-center justify-between gap-3'>
+            <h2 id='artist-design-requests' className='text-sm font-bold text-stone-900'>
+              {t('myWork.artistOverview.designSectionTitle')}
+            </h2>
+            <Link
+              to={`/workspaces/${workspaceId}/series/${seriesId}/bible`}
+              className='text-xs font-semibold text-orange-700 hover:underline'
+            >
+              {t('myWork.artistOverview.viewAllDesignRequests')}
+            </Link>
+          </div>
+          <div className='divide-y divide-stone-200 rounded-xl border border-stone-200 bg-white px-4 shadow-xs'>
+            {artistDesignQueue.slice(0, 3).map((item) => (
+              <Link
+                key={item.revisionId || item.entryId}
+                to={`/workspaces/${workspaceId}/series/${seriesId}/bible?entityId=${encodeURIComponent(item.entryId)}`}
+                className='flex items-center gap-3 py-3 transition-colors hover:bg-stone-50'
+              >
+                <div className='flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-stone-100 text-stone-500'>
+                  {item.referenceImageUrl ? (
+                    <AuthenticatedImage
+                      src={item.referenceImageUrl}
+                      alt={item.name}
+                      className='h-full w-full object-cover'
+                    />
+                  ) : (
+                    <User className='h-4 w-4' aria-hidden='true' />
+                  )}
+                </div>
+                <div className='min-w-0 flex-1'>
+                  <h3 className='truncate text-xs font-bold text-stone-900'>{item.name}</h3>
+                  <p className='truncate text-xs text-stone-500'>
+                    {t('myWork.artistOverview.designRequestMeta', {
+                      variant: item.variantLabel || t('myWork.artistOverview.defaultVariant'),
+                      chapters: item.waitingChapterNumbers?.join(', ') || '—',
+                    })}
+                  </p>
+                </div>
+                <span className='shrink-0 text-xs font-semibold text-orange-700'>
+                  {t('myWork.artistOverview.viewRequest')}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {isArtist && (
+        <section className='space-y-3 border-t border-stone-200 pt-5' aria-labelledby='artist-revisions'>
+          <h2 id='artist-revisions' className='text-sm font-bold text-stone-900'>
+            {t('myWork.artistOverview.revisionSectionTitle')}
+          </h2>
+          {artistSummary.revisions === 0 ? (
+            <div className='flex flex-col items-center justify-center rounded-xl border border-dashed border-stone-300 bg-white px-5 py-8 text-center'>
+              <CheckCircle2 className='h-5 w-5 text-emerald-600' aria-hidden='true' />
+              <p className='mt-2 text-xs text-stone-500'>
+                {t('myWork.artistOverview.noRevisions')}
+              </p>
+            </div>
+          ) : (
+            <div className='divide-y divide-rose-200 rounded-xl border border-rose-200 bg-white px-4'>
+              {artistProductionReworks.map(({ lot, cell }) => (
+                <Link
+                  key={cell.id}
+                  to={`/workspaces/${workspaceId}/series/${seriesId}/artist?chapterId=${encodeURIComponent(lot.chapterId)}&taskId=${encodeURIComponent(cell.id)}`}
+                  className='flex items-center justify-between gap-3 py-3 text-sm hover:bg-rose-50'
+                >
+                  <span className='min-w-0'>
+                    <strong className='block truncate text-stone-900'>
+                      {t('myWork.artistOverview.revisionProductionTitle', {
+                        chapter: lot.chapterNumber,
+                        page: cell.pageNumber ?? '—',
+                      })}
+                    </strong>
+                    <span className='line-clamp-1 text-xs text-rose-700'>
+                      {cell.lastDecisionComment || lot.stageName}
+                    </span>
+                  </span>
+                  <ChevronRight className='h-4 w-4 shrink-0 text-rose-700' aria-hidden='true' />
+                </Link>
+              ))}
+              {artistDesignReworks.map((item) => (
+                <Link
+                  key={item.revisionId || item.entryId}
+                  to={`/workspaces/${workspaceId}/series/${seriesId}/bible?entityId=${encodeURIComponent(item.entryId)}`}
+                  className='flex items-center justify-between gap-3 py-3 text-sm hover:bg-rose-50'
+                >
+                  <span className='min-w-0'>
+                    <strong className='block truncate text-stone-900'>{item.name}</strong>
+                    <span className='line-clamp-1 text-xs text-rose-700'>
+                      {item.reworkFeedback || t('myWork.artistOverview.designRevisionFallback')}
+                    </span>
+                  </span>
+                  <ChevronRight className='h-4 w-4 shrink-0 text-rose-700' aria-hidden='true' />
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Kịch bản Chương đang thực hiện (Stitch tab-tasks view) */}
-      {chapters.length > 0 && workspaceId && seriesId && (
+      {isWriter && chapters.length > 0 && workspaceId && seriesId && (
         <section className='space-y-3.5'>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-2'>

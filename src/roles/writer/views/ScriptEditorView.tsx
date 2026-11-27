@@ -304,6 +304,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
       : null);
   const isProducer = effectiveRole === 'PRODUCER';
+  const isArtistReference = effectiveRole === 'ARTIST';
   const canCreateChapter = isProducer;
 
   // Xác định ID người dùng hiện tại (từ prop, localStorage hoặc JWT)
@@ -2089,6 +2090,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           onSelectChapter={(chap) => handleSelectChapter(chap.id)}
           onCreateChapter={canCreateChapter ? handleCreateNewChapter : undefined}
           onShowToast={notify}
+          presentationMode={isArtistReference ? 'reference' : 'editor'}
         />
       </div>
     );
@@ -2103,7 +2105,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   return (
     <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
-      <h1 className='sr-only'>{t('writer.scriptEditor.srHeading')}</h1>
+      <h1 className='sr-only'>
+        {isArtistReference
+          ? t('writer.scriptEditor.referenceSrHeading')
+          : t('writer.scriptEditor.srHeading')}
+      </h1>
 
       {deleteBlockedError && (
         <div
@@ -2234,7 +2240,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
           <div className='h-4 w-px bg-stone-300 mx-1' />
 
-          <span className='font-mono text-stone-400 text-xs hidden sm:inline'>Ctrl+S</span>
+          {canEditScript && !isChapterLocked && (
+            <span className='font-mono text-stone-400 text-xs hidden sm:inline'>Ctrl+S</span>
+          )}
 
           {canEditScript && !isChapterLocked && (
             <button
@@ -2263,8 +2271,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         </div>
       </div>
 
+      {isArtistReference && (
+        <div
+          data-testid='artist-script-reference-banner'
+          role='status'
+          className='shrink-0 border-b border-stone-300 bg-stone-100 px-4 py-2 text-xs font-semibold text-stone-800'
+        >
+          {t('writer.scriptEditor.referenceReadOnlyBanner')}
+        </div>
+      )}
+
       {/* Kịch bản đã chốt (Gate 1): giải thích vì sao editor chỉ đọc */}
-      {isScriptFrozen && (
+      {isScriptFrozen && !isArtistReference && (
         <div
           data-testid='script-frozen-banner'
           role='status'

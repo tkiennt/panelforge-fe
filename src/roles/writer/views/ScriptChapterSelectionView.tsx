@@ -148,6 +148,7 @@ export const ScriptChapterSelectionView: React.FC<ScriptChapterSelectionViewProp
       onSelectChapter={handleSelectChapter}
       onCreateChapter={isProducer ? handleCreateChapter : undefined}
       onShowToast={notify}
+      presentationMode={effectiveRole === 'ARTIST' ? 'reference' : 'editor'}
     />
   );
 };

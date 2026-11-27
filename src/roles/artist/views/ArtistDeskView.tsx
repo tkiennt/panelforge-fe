@@ -3320,7 +3320,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             )}
           </div>
 
-          {hasCurrentPageArtwork && (
+          {currentPagePanels.length > 0 && (
             <SplitPanelStrip
               panels={currentPagePanels}
               artworks={currentPageArtworks}

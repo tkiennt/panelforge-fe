@@ -13,7 +13,6 @@ import {
   ArrowUpDown,
   RotateCcw,
   BookOpen,
-  FileText,
   Layers,
   AlertCircle,
   Loader2,
@@ -103,7 +102,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
     const total = chapters.length;
     const frozen = chapters.filter((c) => !!c.isScriptFrozen).length;
     const approved = chapters.filter(isCompletedChapter).length;
-    const inProgress = chapters.filter((c) => !c.isScriptFrozen && !isCompletedChapter(c)).length;
+    const inProgress = chapters.filter((c) => String(c.status) === 'InProduction').length;
     return { total, frozen, approved, inProgress };
   }, [chapters]);
 
@@ -129,7 +128,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
     if (statusFilter === 'frozen') {
       list = list.filter((c) => !!c.isScriptFrozen);
     } else if (statusFilter === 'in_progress') {
-      list = list.filter((c) => !c.isScriptFrozen && !isCompletedChapter(c));
+      list = list.filter((c) => String(c.status) === 'InProduction');
     } else if (statusFilter === 'approved') {
       list = list.filter(isCompletedChapter);
     }
@@ -180,7 +179,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
 
   const seriesTitle = seriesDetail?.title || t('chapterSelection.seriesFallback');
 
-  const renderStatusBadge = (chapter: ChapterDto) => {
+  const renderChapterStatusBadge = (chapter: ChapterDto) => {
     const status = String(chapter.status);
     if (status === 'ChapterApproved' || status === 'HandedOffAndPublished') {
       return (
@@ -195,30 +194,24 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
         />
       );
     }
-    if (chapter.isScriptFrozen) {
-      return (
-        <StatusBadge
-          kind='script'
-          status='Frozen'
-          label={
-            <>
-              <span>{t('chapterSelection.statusScriptFrozen')}</span>
-              {chapter.scriptContentHash && (
-                <span className='font-mono' title={`SHA-256: ${chapter.scriptContentHash}`}>
-                  #{chapter.scriptContentHash.slice(0, 8)}
-                </span>
-              )}
-            </>
-          }
-        />
-      );
-    }
     const label =
       status === 'PreProduction'
         ? t('chapterSelection.statusPreProduction')
         : t('chapterSelection.statusInProduction');
     return <StatusBadge kind='chapter' status={status || 'InProduction'} label={label} />;
   };
+
+  const renderScriptStatusBadge = (chapter: ChapterDto) => (
+    <StatusBadge
+      kind='script'
+      status={chapter.isScriptFrozen ? 'Frozen' : 'Draft'}
+      label={
+        chapter.isScriptFrozen
+          ? t('chapterSelection.statusScriptFrozen')
+          : t('chapterSelection.scriptNotFrozen')
+      }
+    />
+  );
 
   return (
     <PageContainer
@@ -230,49 +223,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
         icon={<Palette className='w-5 h-5' />}
         eyebrow={t('chapterSelection.eyebrow')}
         title={t('chapterSelection.pageTitlePrefix', { series: seriesTitle })}
-        description={
-          <span>
-            <strong className='text-stone-900 font-semibold'>
-              {t('chapterSelection.subtitleHighlight')}
-            </strong>
-            {t('chapterSelection.subtitleBody')}
-          </span>
-        }
-        actions={
-          <div className='flex items-center gap-3 flex-wrap shrink-0'>
-            <div
-              data-testid='artist-stats-total'
-              className='bg-white border border-head-line rounded-xl px-4 py-2.5 shadow-2xs min-w-[100px]'
-            >
-              <div className='text-xs uppercase font-bold tracking-wider text-stone-500'>
-                {t('chapterSelection.statsTotal')}
-              </div>
-              <div className='text-xl font-black text-stone-900 mt-0.5'>{stats.total}</div>
-            </div>
-
-            <div
-              data-testid='artist-stats-frozen'
-              className='bg-indigo-50/70 border border-indigo-200/80 rounded-xl px-4 py-2.5 shadow-2xs min-w-[110px]'
-            >
-              <div className='text-xs uppercase font-bold tracking-wider text-indigo-800 flex items-center gap-1'>
-                <Lock className='w-3 h-3' />
-                <span>{t('chapterSelection.statsFrozen')}</span>
-              </div>
-              <div className='text-xl font-black text-indigo-900 mt-0.5'>{stats.frozen}</div>
-            </div>
-
-            <div
-              data-testid='artist-stats-in-progress'
-              className='bg-amber-50/70 border border-amber-200/80 rounded-xl px-4 py-2.5 shadow-2xs min-w-[110px]'
-            >
-              <div className='text-xs uppercase font-bold tracking-wider text-amber-800 flex items-center gap-1'>
-                <Clock className='w-4 h-4' />
-                <span>{t('chapterSelection.statsInProgress')}</span>
-              </div>
-              <div className='text-xl font-black text-amber-900 mt-0.5'>{stats.inProgress}</div>
-            </div>
-          </div>
-        }
+        description={t('chapterSelection.subtitle')}
       />
 
       {/* 2. THANH CÔNG CỤ TÌM KIẾM, BỘ LỌC VÀ CHUYỂN CHẾ ĐỘ XEM */}
@@ -489,30 +440,18 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                 onClick={() => !blockReason && handleOpenArtistDesk(chapter)}
                 aria-disabled={blockReason ? 'true' : undefined}
                 title={blockReason || undefined}
-                className={`group relative rounded-2xl p-5 bg-white border border-stone-200/80 shadow-2xs transition-all duration-200 flex flex-col justify-between overflow-hidden ${
+                className={`group relative rounded-2xl p-5 bg-white border shadow-2xs transition-all duration-200 flex flex-col justify-between overflow-hidden ${
                   blockReason
-                    ? 'cursor-not-allowed opacity-70'
-                    : 'hover:border-[#F97316]/60 hover:shadow-md cursor-pointer'
+                    ? 'cursor-not-allowed border-stone-300'
+                    : 'border-stone-200/80 hover:border-[#F97316]/60 hover:shadow-md cursor-pointer'
                 }`}
               >
-                {/* Viền nhấn màu phía trên khi hover */}
-                <div className='absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#C2410C] to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
-
                 <div className='space-y-3.5'>
                   {/* Hàng Header thẻ: Huy hiệu số chương + Badge trạng thái */}
-                  <div className='flex items-center justify-between gap-2 flex-wrap'>
-                    <div className='flex items-center gap-2'>
-                      <span className='px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-stone-900 group-hover:border-[#F97316]/40 text-xs font-black font-mono tracking-tight transition-colors'>
-                        {t('chapterSelection.chapterBadgeUpper', { number: chapter.chapterNumber })}
-                      </span>
-                      {isFrozen && (
-                        <span className='text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200 inline-flex items-center gap-1'>
-                          <Lock className='w-2.5 h-2.5' />
-                          <span>{t('chapterSelection.frozenBadge')}</span>
-                        </span>
-                      )}
-                    </div>
-                    {renderStatusBadge(chapter)}
+                  <div className='flex items-center gap-2'>
+                    <span className='px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-stone-900 group-hover:border-[#F97316]/40 text-xs font-black font-mono tracking-tight transition-colors'>
+                      {t('chapterSelection.chapterBadgeUpper', { number: chapter.chapterNumber })}
+                    </span>
                   </div>
 
                   {/* Tiêu đề chương */}
@@ -521,40 +460,48 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                       {chapter.title ||
                         t('chapterSelection.chapterLabel', { number: chapter.chapterNumber })}
                     </h3>
-                    <p className='text-xs text-[#57534E] mt-1.5 line-clamp-2 leading-relaxed bg-[#FAF8F5] p-2.5 rounded-xl border border-[#EBE7DF] min-h-[3.25rem]'>
-                      {chapter.outline || t('chapterSelection.noOutlineLong')}
-                    </p>
                   </div>
 
-                  {/* Thông tin phụ: Số trang, phân cảnh & trạng thái sẵn sàng vẽ */}
-                  <div className='pt-2 border-t border-[#EBE7DF] flex items-center justify-between text-xs text-stone-500'>
-                    <div className='flex items-center gap-3'>
+                  <div className='space-y-2 rounded-xl border border-stone-200 bg-[#FAF8F5] p-3 text-xs'>
+                    <div className='flex items-center justify-between gap-3'>
+                      <span className='font-medium text-stone-500'>
+                        {t('chapterSelection.chapterStatusLabel')}
+                      </span>
+                      {renderChapterStatusBadge(chapter)}
+                    </div>
+                    <div className='flex items-center justify-between gap-3'>
+                      <span className='font-medium text-stone-500'>
+                        {t('chapterSelection.scriptStatusLabel')}
+                      </span>
+                      {renderScriptStatusBadge(chapter)}
+                    </div>
+                    <div className='flex items-center justify-between gap-3 border-t border-stone-200 pt-2'>
                       <span className='flex items-center gap-1 font-semibold text-stone-900'>
                         <Layers className='w-3.5 h-3.5 text-stone-500' />
                         <span>
                           {t('chapterSelection.pagesCount', { count: chapter.pagesCount || 0 })}
                         </span>
                       </span>
-                      <span className='flex items-center gap-1'>
-                        <FileText className='w-3.5 h-3.5 text-[#A8A29E]' />
-                        <span>
-                          {t('chapterSelection.scenesCount', { count: chapter.scenesCount || 0 })}
+                      {isFrozen ? (
+                        <span className='font-bold text-emerald-700 flex items-center gap-1'>
+                          <CheckCircle2 className='w-3 h-3 text-emerald-600' />
+                          <span>{t('chapterSelection.readyToDraw')}</span>
                         </span>
-                      </span>
+                      ) : (
+                        <span className='font-medium text-amber-800 flex items-center gap-1'>
+                          <Clock className='w-3 h-3 text-amber-600' />
+                          <span>{t('chapterSelection.scriptNotFrozen')}</span>
+                        </span>
+                      )}
                     </div>
-
-                    {isFrozen ? (
-                      <span className='font-bold text-emerald-700 flex items-center gap-1'>
-                        <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-                        <span>{t('chapterSelection.readyToDraw')}</span>
-                      </span>
-                    ) : (
-                      <span className='font-medium text-amber-800 flex items-center gap-1'>
-                        <Clock className='w-3 h-3 text-amber-600' />
-                        <span>{t('chapterSelection.scriptNotFrozen')}</span>
-                      </span>
-                    )}
                   </div>
+
+                  {blockReason && (
+                    <div className='flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900'>
+                      <AlertCircle className='mt-0.5 h-3.5 w-3.5 shrink-0' aria-hidden='true' />
+                      <span>{blockReason}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Nút vào bàn vẽ ở chân thẻ */}
@@ -581,7 +528,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                     className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-[#C2410C] text-white text-xs font-bold transition-all duration-150 cursor-pointer shadow-xs group-hover:translate-x-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-stone-900'
                   >
                     <LayoutTemplate className='w-3.5 h-3.5 text-orange-400' />
-                    <span>{t('chapterSelection.enterDesk')}</span>
+                    <span>{t('chapterSelection.openDesk')}</span>
                     <ArrowRight className='w-3 h-3 transition-transform duration-150 group-hover:translate-x-0.5' />
                   </button>
                 </div>
@@ -600,12 +547,10 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
               <thead className='bg-head-wash text-kraft-ink font-bold border-b border-head-line uppercase text-xs tracking-wider select-none'>
                 <tr>
                   <th className='py-3.5 px-4'>{t('chapterSelection.tableColChapter')}</th>
-                  <th className='py-3.5 px-4'>{t('chapterSelection.tableColTitleOutline')}</th>
-                  <th className='py-3.5 px-4'>{t('chapterSelection.tableColStatus')}</th>
+                  <th className='py-3.5 px-4'>{t('chapterSelection.tableColTitle')}</th>
+                  <th className='py-3.5 px-4'>{t('chapterSelection.tableColChapterStatus')}</th>
+                  <th className='py-3.5 px-4'>{t('chapterSelection.tableColScriptStatus')}</th>
                   <th className='py-3.5 px-4 text-center'>{t('chapterSelection.tableColPages')}</th>
-                  <th className='py-3.5 px-4 text-center'>
-                    {t('chapterSelection.tableColScenes')}
-                  </th>
                   <th className='py-3.5 px-4 text-right'>
                     {t('chapterSelection.tableColActions')}
                   </th>
@@ -623,7 +568,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                       title={blockReason || undefined}
                       className={`transition-colors group ${
                         blockReason
-                          ? 'cursor-not-allowed opacity-70'
+                          ? 'cursor-not-allowed bg-stone-50'
                           : 'hover:bg-[#FFF8F2] cursor-pointer'
                       }`}
                     >
@@ -637,18 +582,16 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                           {chapter.title ||
                             t('chapterSelection.chapterLabel', { number: chapter.chapterNumber })}
                         </div>
-                        <div className='text-xs text-stone-600 truncate mt-0.5'>
-                          {chapter.outline || t('chapterSelection.noOutlineShort')}
-                        </div>
+                        {blockReason && <div className='mt-1 text-xs text-amber-800'>{blockReason}</div>}
                       </td>
                       <td className='py-3.5 px-4 whitespace-nowrap'>
-                        {renderStatusBadge(chapter)}
+                        {renderChapterStatusBadge(chapter)}
+                      </td>
+                      <td className='py-3.5 px-4 whitespace-nowrap'>
+                        {renderScriptStatusBadge(chapter)}
                       </td>
                       <td className='py-3.5 px-4 text-center whitespace-nowrap font-bold text-stone-900'>
                         {chapter.pagesCount || 0}
-                      </td>
-                      <td className='py-3.5 px-4 text-center whitespace-nowrap text-stone-500 font-medium'>
-                        {chapter.scenesCount || 0}
                       </td>
                       <td className='py-3.5 px-4 text-right whitespace-nowrap'>
                         <button
@@ -662,7 +605,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                           className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-[#C2410C] text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs'
                         >
                           <LayoutTemplate className='w-3.5 h-3.5 text-orange-400' />
-                          <span>{t('chapterSelection.enterDesk')}</span>
+                          <span>{t('chapterSelection.openDesk')}</span>
                           <ArrowRight className='w-3 h-3' />
                         </button>
                       </td>

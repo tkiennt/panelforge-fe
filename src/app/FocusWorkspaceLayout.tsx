@@ -656,35 +656,34 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
           items: [
             {
               icon: Layers,
-              label: t('navigation.menu.myWork', 'Việc của tôi'),
+              label: t('navigation.menu.artistMyWork', 'Công việc của tôi'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
             },
           ],
         },
         {
-          section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
+          section: t('navigation.sidebar.comicProduction', 'SẢN XUẤT TRUYỆN'),
           items: [
             {
               icon: LayoutTemplate,
-              label: t('navigation.menu.panelCanvasDesk', 'Bàn vẽ Khung tranh'),
+              label: t('navigation.menu.artistDesk', 'Bàn vẽ truyện'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
               isActive: location.pathname.includes('/artist'),
             },
             {
               icon: FileText,
-              label: t('navigation.menu.scriptReadOnly', 'Kịch bản (chỉ đọc)'),
+              label: t('navigation.menu.scriptReference', 'Kịch bản tham chiếu'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
             },
           ],
         },
         {
-          section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
+          section: t('navigation.sidebar.designAssets', 'THIẾT KẾ TÀI NGUYÊN'),
           items: [
             {
               icon: BookMarked,
               label: t('navigation.menu.bible', 'Series Bible'),
               href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
-              badge: { type: 'text', text: 'VAULT', color: 'bg-blue-50 text-blue-700' },
             },
           ],
         },

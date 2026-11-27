@@ -223,7 +223,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                 onClick={openPicker}
                 data-testid={`panel-dropzone-${panelNum}`}
                 title={canUploadArtwork ? undefined : t('common.noOpenSlotForPageStage')}
-                className='group focus-ring w-full h-full flex flex-col items-center justify-center gap-1 p-2 bg-white text-stone-600 hover:text-stone-900 hover:bg-orange-50/30 cursor-pointer transition-colors border-2 border-dashed border-stone-300 hover:border-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed'
+                className='group focus-ring w-full h-full flex flex-col items-center justify-center gap-1 p-2 bg-white/15 text-stone-700 hover:text-stone-900 hover:bg-orange-50/25 cursor-pointer transition-colors border-2 border-dashed border-stone-400 hover:border-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed'
               >
                 <span
                   className='w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 group-hover:text-[#EA580C] transition-colors'

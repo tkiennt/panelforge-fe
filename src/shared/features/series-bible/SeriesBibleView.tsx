@@ -267,7 +267,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     const entityId = searchParams.get('entityId');
     if (entityId && localEntities.length > 0) {
       const found = localEntities.find((e) => e.id === entityId);
-      if (found) setSelectedEntity(found);
+      if (found) {
+        setSelectedEntity(found);
+        setWorkbenchOpen(true);
+      }
     }
   }, [searchParams, localEntities]);
 
@@ -1202,24 +1205,32 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           {/* PAGE HEADER */}
           <PageHeader
             icon={<BookOpen className='w-5 h-5' />}
-            eyebrow={t('bible.view.canonHub', 'Canon Hub')}
+            eyebrow={isArtist ? undefined : t('bible.view.canonHub', 'Canon Hub')}
             titleAriaLabel={t('bible.view.seriesBible', 'Series Bible')}
             title={
-              <div className='flex items-center gap-2'>
-                <span>{t('bible.view.pageTitle', 'Hồ sơ thiết kế & Model Sheets')}</span>
-                <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-kraft text-kraft-ink'>
-                  {t(
-                    'bible.view.knowledgeEntries',
-                    { count: localEntities.length },
-                    `${localEntities.length} mục tri thức`,
-                  )}
-                </span>
-              </div>
+              isArtist ? (
+                t('bible.view.artistPageTitle')
+              ) : (
+                <div className='flex items-center gap-2'>
+                  <span>{t('bible.view.pageTitle', 'Hồ sơ thiết kế & Model Sheets')}</span>
+                  <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-kraft text-kraft-ink'>
+                    {t(
+                      'bible.view.knowledgeEntries',
+                      { count: localEntities.length },
+                      `${localEntities.length} mục tri thức`,
+                    )}
+                  </span>
+                </div>
+              )
             }
-            description={t(
-              'bible.view.pageSubtitle',
-              'Kho quy chuẩn tạo hình, tính cách và bối cảnh chuẩn cho toàn bộ họa sĩ xưởng.',
-            )}
+            description={
+              isArtist
+                ? t('bible.view.artistPageSubtitle')
+                : t(
+                    'bible.view.pageSubtitle',
+                    'Kho quy chuẩn tạo hình, tính cách và bối cảnh chuẩn cho toàn bộ họa sĩ xưởng.',
+                  )
+            }
             actions={
               <div className='flex items-center gap-2 shrink-0'>
                 {availableSeries.length > 1 && (

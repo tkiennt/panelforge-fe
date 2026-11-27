@@ -34,6 +34,7 @@ interface ChapterSelectionViewProps {
   onSelectChapter: (chapter: ChapterDto) => void;
   onCreateChapter?: (data: CreateChapterRequest) => Promise<void>;
   onShowToast?: (title: string, desc: string) => void;
+  presentationMode?: 'editor' | 'reference';
 }
 
 type StatusFilterType = 'all' | 'in_progress' | 'frozen' | 'approved';
@@ -48,8 +49,10 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
   onSelectChapter,
   onCreateChapter,
   onShowToast,
+  presentationMode = 'editor',
 }) => {
   const { t, lang } = useTranslation('writer');
+  const isReferenceMode = presentationMode === 'reference';
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [chapterNumber, setChapterNumber] = useState<number>(() => {
@@ -207,7 +210,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
           label={
             <>
               <span>{t('chapterSelectionView.statusFrozen')}</span>
-              {chapter.scriptContentHash && (
+              {!isReferenceMode && chapter.scriptContentHash && (
                 <span
                   className='font-mono'
                   title={`SHA-256: ${chapter.scriptContentHash}`}
@@ -243,16 +246,25 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
       {/* 1. TOP-BAR: TIÊU ĐỀ & THỐNG KÊ NHANH */}
       <PageHeader
         icon={<BookOpen className='w-5 h-5' />}
-        title={t('chapterSelectionView.pageTitle', { title: seriesTitle })}
+        title={
+          isReferenceMode
+            ? t('chapterSelectionView.referencePageTitle', { title: seriesTitle })
+            : t('chapterSelectionView.pageTitle', { title: seriesTitle })
+        }
         description={
-          <span>
-            <strong className='text-stone-900 font-semibold'>
-              {t('chapterSelectionView.subtitleLead')}
-            </strong>{' '}
-            {t('chapterSelectionView.subtitleBody')}
-          </span>
+          isReferenceMode ? (
+            t('chapterSelectionView.referenceSubtitle')
+          ) : (
+            <span>
+              <strong className='text-stone-900 font-semibold'>
+                {t('chapterSelectionView.subtitleLead')}
+              </strong>{' '}
+              {t('chapterSelectionView.subtitleBody')}
+            </span>
+          )
         }
         actions={
+          isReferenceMode ? undefined : (
           <div className='flex items-center gap-3 flex-wrap shrink-0'>
             {/* Tổng số chương */}
             <div className='flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white border border-[#E5E0D8] shadow-2xs'>
@@ -306,6 +318,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
               </div>
             </div>
           </div>
+          )
         }
       />
 
@@ -599,12 +612,14 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                   </div>
 
                   {/* Body card: Đoạn tóm tắt/ghi chú */}
-                  <div className='text-xs text-stone-600 line-clamp-3 leading-relaxed italic bg-[#FAF9F5] p-3 rounded-xl border border-stone-200/80 min-h-[4.75rem]'>
-                    {chapter.outline ? `“${chapter.outline}”` : t('chapterSelectionView.noOutline')}
-                  </div>
+                  {!isReferenceMode && (
+                    <div className='text-xs text-stone-600 line-clamp-3 leading-relaxed italic bg-[#FAF9F5] p-3 rounded-xl border border-stone-200/80 min-h-[4.75rem]'>
+                      {chapter.outline ? `“${chapter.outline}”` : t('chapterSelectionView.noOutline')}
+                    </div>
+                  )}
 
                   {/* Tiến độ trang */}
-                  <div className='space-y-1.5 pt-1'>
+                  {!isReferenceMode && <div className='space-y-1.5 pt-1'>
                     <div className='flex justify-between text-xs font-medium'>
                       <span className='text-stone-500'>
                         {t('chapterSelectionView.scriptProgress')}
@@ -625,7 +640,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                         }}
                       />
                     </div>
-                  </div>
+                  </div>}
 
                   {/* Thống kê quy mô phân cảnh & trang */}
                   <div className='flex items-center gap-3 text-xs text-stone-500'>
@@ -655,11 +670,13 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                     className='inline-flex items-center gap-1 text-xs font-bold text-[#EA580C] group-hover:translate-x-0.5 transition-transform cursor-pointer'
                   >
                     <span>
-                      {chapter.isScriptFrozen
-                        ? t('chapterSelectionView.viewScript')
-                        : t('collaboration.writerStudio.openScriptChapter', {
-                            chapter: chapter.chapterNumber,
-                          })}
+                      {isReferenceMode
+                        ? t('chapterSelectionView.openReference')
+                        : chapter.isScriptFrozen
+                          ? t('chapterSelectionView.viewScript')
+                          : t('collaboration.writerStudio.openScriptChapter', {
+                              chapter: chapter.chapterNumber,
+                            })}
                     </span>
                     <ChevronRight className='w-4 h-4' />
                   </button>
@@ -735,9 +752,11 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                         className='inline-flex items-center gap-1 text-xs font-bold text-[#C2410C] group-hover:translate-x-1 transition-transform'
                       >
                         <span>
-                          {chapter.isScriptFrozen
-                            ? t('chapterSelectionView.viewScript')
-                            : t('chapterSelectionView.writeScript')}
+                          {isReferenceMode
+                            ? t('chapterSelectionView.openReference')
+                            : chapter.isScriptFrozen
+                              ? t('chapterSelectionView.viewScript')
+                              : t('chapterSelectionView.writeScript')}
                         </span>
                         <ChevronRight className='w-4 h-4' />
                       </button>
