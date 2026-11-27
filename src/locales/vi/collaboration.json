@@ -26,7 +26,12 @@
       "noRevisions": "Không có yêu cầu chỉnh sửa cần xử lý.",
       "revisionsSummary": "Có {count} yêu cầu chỉnh sửa cần bạn xử lý.",
       "revisionProductionTitle": "Chương {chapter} · Trang {page}",
-      "designRevisionFallback": "Bản vẽ cần được chỉnh sửa theo góp ý."
+      "designRevisionFallback": "Bản vẽ cần được chỉnh sửa theo góp ý.",
+      "workspaceEyebrow": "{series} / Artist Workspace",
+      "summaryAria": "Tóm tắt công việc Họa sĩ",
+      "noActiveProduction": "Chưa có công việc sản xuất đang mở",
+      "noActiveProductionDesc": "Khi được giao trang mới, công việc sẽ hiện ở đây. Bạn vẫn có thể mở bàn vẽ để xem toàn bộ chương.",
+      "noDesignRequests": "Chưa có yêu cầu thiết kế nào."
     },
     "allStudioOption": "Toàn bộ Studio (Tất cả các chương)",
     "chapterOption": "Chương {number}",
@@ -83,7 +88,9 @@
     "chaptersInSeries": "{count} chương trong series",
     "scriptLocked": "Kịch bản đã khóa",
     "noOutline": "Chưa có đề cương kịch bản tóm tắt cho chương này.",
-    "pagesCount": "{count} trang"
+    "pagesCount": "{count} trang",
+    "greeting": "Tổng quan công việc của {name}",
+    "taskListTitle": "Danh sách công việc"
   },
   "card": {
     "start": "Bắt đầu làm",

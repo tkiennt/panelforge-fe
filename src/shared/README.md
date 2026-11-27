@@ -29,6 +29,7 @@ Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng 
 - `CountChip`: chip đếm bằng màu giấy kraft dùng cho header và tab.
 - `PageHeader` / `SectionHeader` / `Card` / `CardHeader` / `CardBody`: bề mặt và phân cấp header theo DESIGN_RULES §4.8.
 - `Modal` / `Drawer` / `ConfirmDialog` / `Alert` / `Toast`: overlay và phản hồi dùng chung.
+- `features/collaboration/WorkspaceOverview.tsx`: khối tổng quan dùng chung cho màn "Công việc của tôi" của mọi vai trò (`OverviewMetrics`, `ContinueCard`, `OverviewPanel`, `OverviewRow`, `DesignStatus`, `DesignThumb`, `OverviewLinkButton`). Writer và Artist cùng bố cục: `PageHeader` → hàng số liệu (bấm để mở/cuộn tới mục) → thẻ "Tiếp tục" → hai panel → danh sách công việc. Chỉ dùng token studio, không hex cứng.
 
 ### 2.4 Modals dùng chung (`src/shared/modals/`)
 - `AuditLogModal.tsx`: Xem nhật ký kiểm toán hành động trong hệ thống.
