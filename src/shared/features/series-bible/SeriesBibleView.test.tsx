@@ -334,8 +334,8 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(screen.getAllByText(/Tần Mục/).length).toBeGreaterThan(0);
     });
 
-    // Header has name with variant: "Tần Mục · Lúc nhỏ"
-    expect(screen.getByText(/· Lúc nhỏ/i)).toBeDefined();
+    // Thẻ hiện nhãn biến thể tạo hình (UIQ-11h)
+    expect(screen.getByTestId('bible-card-variant-entry-chr-1').textContent).toContain('Lúc nhỏ');
     expect(screen.queryByText(/Ch\.1–19/i)).toBeNull();
   });
 

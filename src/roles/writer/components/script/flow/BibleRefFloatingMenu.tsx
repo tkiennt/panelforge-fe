@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Editor } from '@tiptap/core';
 import { TextSelection } from '@tiptap/pm/state';
 import { Plus, Search, Tag, X } from 'lucide-react';
@@ -276,7 +277,8 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
     closeSelectionUi();
   };
 
-  return (
+  // UIQ-11f: portal ra body để khung editor (overflow/transform) không cắt hoặc che menu.
+  return createPortal(
     <>
       {anchor && !menuOpen && (
         <button
@@ -300,7 +302,12 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
           ref={menuRef}
           role='dialog'
           aria-label={t('production.cast.referenceTitle', 'Tham chiếu Series Bible')}
-          style={{ position: 'fixed', top: anchor.top + 12, left: anchor.left }}
+          style={{
+            position: 'fixed',
+            // Giữ menu (w-80, cao tối đa ~320px) trong màn hình khi bôi đen sát mép.
+            top: Math.max(8, Math.min(anchor.top + 12, window.innerHeight - 328)),
+            left: Math.min(Math.max(anchor.left, 168), window.innerWidth - 168),
+          }}
           className='z-50 w-80 -translate-x-1/2 rounded-xl border border-stone-200/90 bg-white p-3 text-stone-900 shadow-xl animate-in fade-in zoom-in-95 duration-150'
         >
           <div className='flex items-center justify-between border-b border-stone-100 pb-2'>
@@ -428,6 +435,7 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
           )}
         </div>
       )}
-    </>
+    </>,
+    document.body,
   );
 };

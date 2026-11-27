@@ -121,6 +121,8 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     const [description, setDescription] = useState(initialDescription);
     const [referenceImageUrl, setReferenceImageUrl] = useState(initialReferenceImageUrl);
     const [specValues, setSpecValues] = useState<Record<string, string>>({});
+    // Spec BibleDetails: Age chỉ cho Nhân vật; mỗi biến thể (vd. Timeskip) có thể khác tuổi.
+    const [ageValue, setAgeValue] = useState<string>(revisionTarget?.age ?? '');
     const specCategory: SpecCategory = revisionTarget
       ? specCategoryOf(revisionTarget)
       : 'character';
@@ -157,6 +159,13 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         const mode = isNewVariantInitial || existingVariants.length === 0 ? 'new' : 'existing';
         setVariantMode(mode);
         setEntryName(revisionTarget?.name || initialName);
+        setAgeValue(
+          parseBibleDetails(
+            supersedeTarget?.snapshotJson || (revisionTarget as any)?.detailsJson || '{}',
+          ).age ||
+            revisionTarget?.age ||
+            '',
+        );
         setSubtitle(initialSubtitle);
         setSummary(initialSummary);
         setDescription(initialDescription);
@@ -247,9 +256,11 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
               : t('bible.addRevisionModal.headerDraftNewVer', { name: revisionTarget.name });
     const modalDescription = isArtistConceptSubmit
       ? t('bible.addRevisionModal.descArtistSubmit')
-      : t('bible.addRevisionModal.descVariant', {
-          variant: variantLabel || t('bible.addRevisionModal.unlabeledVariant'),
-        });
+      : variantMode === 'new' && !variantLabel.trim()
+        ? undefined
+        : t('bible.addRevisionModal.descVariant', {
+            variant: variantLabel || t('bible.addRevisionModal.unlabeledVariant'),
+          });
 
     const handleSubmit = () => {
       const updatedAttrs = mergeSpecAttributes(
@@ -270,7 +281,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         '';
 
       const detailsPayload = JSON.stringify({
-        age: parsedDetails.age || revisionTarget.age || undefined,
+        age: ageValue.trim() || undefined,
         artistNotes: effectiveNotes || undefined,
         attributes: updatedAttrs,
       });
@@ -286,7 +297,11 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         : variantLabel.trim();
 
       const canEditName = Boolean(
-        revisionTarget && !revisionTarget.isLocked && !isArtistConceptSubmit && !supersedeTarget,
+        revisionTarget &&
+          !revisionTarget.isLocked &&
+          !isArtistConceptSubmit &&
+          !supersedeTarget &&
+          variantMode !== 'new',
       );
       const submissionPayload = {
         expectedVersionNumber: expectedVersionNumber ?? undefined,
@@ -564,7 +579,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                   {t('bible.addRevisionModal.designVariantTitle')}
                 </span>
               </div>
-              {!supersedeTarget && existingVariants.length > 0 && (
+              {!supersedeTarget && !isNewVariantInitial && existingVariants.length > 0 && (
                 <div className='inline-flex rounded-xl bg-stone-200/70 p-0.5 text-xs font-medium'>
                   <button
                     type='button'
@@ -703,7 +718,10 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                 <label className='block text-xs font-semibold text-stone-800 mb-1'>
                   {t('bible.addRevisionModal.entryNameLabel')}
                 </label>
-                {!revisionTarget.isLocked && !isArtistConceptSubmit && !supersedeTarget ? (
+                {!revisionTarget.isLocked &&
+                !isArtistConceptSubmit &&
+                !supersedeTarget &&
+                variantMode !== 'new' ? (
                   <input
                     type='text'
                     value={entryName}
@@ -720,6 +738,26 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                   </div>
                 )}
               </div>
+
+              {specCategory === 'character' && (
+                <div>
+                  <label
+                    htmlFor='revision-age-input'
+                    className='block text-xs font-semibold text-stone-800 mb-1'
+                  >
+                    {t('bible.spec.fields.age.label')}
+                  </label>
+                  <input
+                    id='revision-age-input'
+                    type='text'
+                    value={ageValue}
+                    onChange={(e) => setAgeValue(e.target.value)}
+                    placeholder={t('bible.spec.fields.age.placeholder')}
+                    data-testid='revision-age-input'
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-[#F97316]'
+                  />
+                </div>
+              )}
 
               {/* Một editor ghi chú tự do duy nhất; parser vẫn giữ dữ liệu legacy. */}
               <SpecFieldsEditor

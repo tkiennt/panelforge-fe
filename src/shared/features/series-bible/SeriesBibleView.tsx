@@ -2087,8 +2087,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                     {t('bible.view.ageAndBirth', 'Độ tuổi & Ngày sinh:')}
                                   </span>
                                   <span className='font-bold text-stone-900 text-right'>
-                                    {selectedEntity.attributes?.age
-                                      ? `${selectedEntity.attributes.age}${selectedEntity.attributes.birthDate ? ` (${selectedEntity.attributes.birthDate})` : ''}`
+                                    {selectedEntity.age || selectedEntity.attributes?.age
+                                      ? `${selectedEntity.age || selectedEntity.attributes?.age}${selectedEntity.attributes?.birthDate ? ` (${selectedEntity.attributes.birthDate})` : ''}`
                                       : '—'}
                                   </span>
                                 </div>
