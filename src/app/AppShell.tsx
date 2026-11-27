@@ -943,7 +943,7 @@ export function AppShell({
 
       {/* --- RIGHT WRAPPER --- */}
       <div className='flex-1 flex flex-col min-w-0 h-full bg-[#FAF9F5] relative overflow-hidden'>
-        <header className='h-16 bg-white border-b border-stone-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-20 shadow-xs'>
+        <header className='h-16 bg-white border-b border-stone-200 flex items-center justify-between gap-3 px-4 md:px-6 shrink-0 z-20 shadow-xs'>
           <div className={`flex items-center gap-2 ${isStudioHome ? 'shrink-0' : 'min-w-0'}`}>
             {isStudioHome && (
               <div className='flex items-center shrink-0'>
@@ -1047,12 +1047,12 @@ export function AppShell({
                           ),
                         )
                       }
-                      className={`font-semibold truncate flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer shrink-0 ${
+                      className={`font-semibold min-w-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer ${
                         chapterId ? 'text-stone-600 hover:text-stone-900' : 'text-stone-900'
                       }`}
                       title={t('navigation.header.goToSeries', 'Chuyển đến Series Workspace')}
                     >
-                      <BookOpen className='w-4 h-4 text-orange-600' />
+                      <BookOpen className='w-4 h-4 text-orange-600 shrink-0' />
                       <span className='truncate'>{activeSeries?.title || 'Active Series'}</span>
                     </button>
                     {chapterNumberLabel && (

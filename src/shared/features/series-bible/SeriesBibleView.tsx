@@ -1212,7 +1212,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         </div>
 
         {/* Row 2: Category segmented tabs, search and status filter */}
-        <div className='flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pt-3 border-t border-stone-100'>
+        <div className='flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 pt-3 border-t border-stone-100'>
           {/* Segmented Tabs (acts as sidebar for test assertions) */}
           <div
             className='inline-flex p-1 rounded-lg bg-stone-100 border border-stone-200/80 text-xs flex-wrap gap-0.5'
@@ -1306,7 +1306,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           </div>
 
           {/* Search, Filter & View Controls */}
-          <div className='flex items-center gap-2.5 flex-1 md:max-w-md'>
+          <div className='flex items-center gap-2.5 flex-1 xl:max-w-md'>
             <div className='relative flex-1'>
               <Search className='w-3.5 h-3.5 absolute left-2.5 top-2.5 text-stone-400' />
               <input
@@ -1484,7 +1484,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       ? t('bible.view.listLabelRules', 'DANH SÁCH QUY TẮC')
                       : t('bible.view.listLabelAll', 'TẤT CẢ THỰC THỂ')}
             </span>
-            <span className='text-stone-400 font-mono'>
+            <span className='text-stone-400 font-mono whitespace-nowrap'>
               {t(
                 'bible.view.itemsShown',
                 { count: filteredEntities.length },
@@ -1523,8 +1523,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     }`}
                     data-testid={`bible-card-${entity.id}`}
                   >
-                    <div className='flex items-start justify-between gap-2'>
-                      <div className='flex items-center gap-2.5 min-w-0'>
+                    <div className='flex flex-wrap items-start justify-between gap-2'>
+                      <div className='flex items-center gap-2.5 min-w-0 flex-1 basis-36'>
                         <div className='w-10 h-10 rounded-lg bg-stone-900 text-orange-500 font-bold flex items-center justify-center text-xs shrink-0 border border-stone-800'>
                           {entity.category === 'characters' ? (
                             <span>{initials}</span>
@@ -1709,8 +1709,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           ) : (
             <div className='bg-white border border-stone-200/80 rounded-xl p-6 shadow-xs space-y-6'>
               {/* Header Chi tiết */}
-              <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-stone-200/80'>
-                <div className='flex items-start gap-4'>
+              <div className='flex flex-wrap items-start justify-between gap-4 pb-5 border-b border-stone-200/80'>
+                <div className='flex items-start gap-4 min-w-0 flex-1 basis-80'>
                   <div className='w-14 h-14 rounded-xl bg-stone-900 text-orange-500 font-bold text-lg flex items-center justify-center shrink-0 border border-stone-800 shadow-xs'>
                     {selectedEntity.category === 'characters' ? (
                       <span>
@@ -1730,7 +1730,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     )}
                   </div>
 
-                  <div>
+                  <div className='min-w-0'>
                     <div className='flex items-center gap-2.5 flex-wrap'>
                       <h2 className='text-xl font-bold text-stone-900 leading-tight'>
                         {selectedEntity.name}{' '}
@@ -1790,7 +1790,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 </div>
 
                 {/* Top-Right Action Buttons */}
-                <div className='flex flex-wrap items-center gap-2 shrink-0'>
+                <div className='flex flex-wrap items-center gap-2'>
                   <button
                     type='button'
                     onClick={() => {
@@ -1936,14 +1936,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     </div>
 
                     {/* Notes line bottom */}
-                    <div className='px-3.5 py-2 bg-white border-t border-stone-200/80 text-xs text-stone-600 flex items-center justify-between'>
-                      <div>
+                    <div className='px-3.5 py-2 bg-white border-t border-stone-200/80 text-xs text-stone-600 flex items-start justify-between gap-3'>
+                      <div className='min-w-0'>
                         <span className='font-semibold text-stone-800'>
                           {t('bible.view.notesLabel', 'Ghi chú:')}{' '}
                         </span>
                         <span>{selectedEntity.description || '—'}</span>
                       </div>
-                      <div className='text-stone-500 font-mono'>
+                      <div className='text-stone-500 font-mono whitespace-nowrap shrink-0'>
                         {selectedEntity.lockedAt
                           ? `Duyệt: ${new Date(selectedEntity.lockedAt).toLocaleDateString()}`
                           : t('bible.view.notApprovedYet', 'Chưa duyệt')}

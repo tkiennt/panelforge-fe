@@ -1808,15 +1808,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             )}
             {/* CARD 2: PHIÊN BẢN & NHẬT KÝ SỬA ĐỔI (VERSION & AUDIT TRAIL GỘP CHUNG) */}
             <div className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3'>
-              <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
-                <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
-                  <History className='w-4 h-4 text-stone-500' />
+              <div className='flex items-center justify-between gap-2 pb-2 border-b border-stone-200/80'>
+                <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5 min-w-0'>
+                  <History className='w-4 h-4 text-stone-500 shrink-0' />
                   <span>{t('bible.detailModal.versionsAndAudit', 'Phiên bản & Nhật ký')}</span>
                 </div>
                 <button
                   type='button'
                   onClick={() => onOpenHistory(entity)}
-                  className='text-xs font-semibold text-stone-600 hover:text-stone-900 px-2 py-0.5 rounded-md border border-stone-200 hover:bg-stone-50 transition cursor-pointer'
+                  className='text-xs font-semibold text-stone-600 hover:text-stone-900 px-2 py-0.5 rounded-md border border-stone-200 hover:bg-stone-50 transition cursor-pointer whitespace-nowrap shrink-0'
                 >
                   {t('bible.detailModal.historyQuickBtn', 'Lịch sử')}
                 </button>
@@ -2235,14 +2235,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   )}
                   <div className='bg-[#FDFCFA] border border-[#E7E2D6] rounded-xl p-4 sm:p-5 shadow-xs space-y-3'>
                     {/* Artwork Header: Tab Turnaround vs Action / Expressions + Zoom button */}
-                    <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
+                    <div className='flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-stone-200/80'>
                       <div className='flex items-center gap-2 min-w-0'>
                         <Palette className='w-4 h-4 text-stone-500 shrink-0' />
                         <span className='font-bold text-xs sm:text-sm text-[#1C1917] truncate'>
                           {visualCardInfo.title}
                         </span>
                         <span
-                          className={`text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-800 border border-stone-300`}
+                          className={`text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-800 border border-stone-300 whitespace-nowrap shrink-0`}
                         >
                           {visualCardInfo.badge}
                         </span>
