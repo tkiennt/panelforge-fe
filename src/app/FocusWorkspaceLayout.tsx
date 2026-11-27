@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -33,48 +33,13 @@ import { useTranslation } from '@/lib/i18n';
 import { CurrentUser } from './AppShell';
 import { AppShellSidebar } from './AppShellSidebar';
 import { useSidebarTheme } from './useSidebarTheme';
+import {
+  FocusHeaderContext,
+  type FocusHeaderConfig,
+  type FocusHeaderContextValue,
+} from './focusHeaderContext';
 
-export interface FocusStageItem {
-  id: string;
-  label: string;
-  key?: string;
-}
-
-export interface FocusChapterOption {
-  id: string;
-  chapterNumber: number;
-  title?: string | null;
-}
-
-export interface FocusHeaderConfig {
-  seriesTitle?: string;
-  seriesPath?: string;
-  chapters?: FocusChapterOption[];
-  currentChapterId?: string | null;
-  chapterPath?: string;
-  onSelectChapter?: (chapterId: string) => void;
-  stages?: FocusStageItem[];
-  currentStageIndex?: number;
-  isStageFlowCompleted?: boolean;
-  isSubmittingStage?: boolean;
-  onSubmitStage?: () => void;
-  submitButtonLabel?: string;
-  onWithdrawStage?: () => void;
-  showWithdrawButton?: boolean;
-  isWithdrawDisabled?: boolean;
-  withdrawDisabledReason?: string;
-  isWithdrawingStage?: boolean;
-  withdrawButtonLabel?: string;
-}
-
-interface FocusHeaderContextValue {
-  isInsideFocusLayout: boolean;
-  setHeaderConfig: React.Dispatch<React.SetStateAction<FocusHeaderConfig | null>>;
-}
-
-const FocusHeaderContext = createContext<FocusHeaderContextValue | null>(null);
-
-export const useFocusHeaderContext = () => useContext(FocusHeaderContext);
+export type { FocusChapterOption, FocusHeaderConfig, FocusStageItem } from './focusHeaderContext';
 
 export interface FocusWorkspaceLayoutProps {
   currentUser: CurrentUser;

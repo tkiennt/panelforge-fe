@@ -461,9 +461,21 @@ describe('WorkspaceListView Component', () => {
       {
         workspaceId: 'ws-a',
         workspaceName: 'Alpha Studio',
-        lots: [lot('a1', 'Ink', '2099-01-01T00:00:00Z'), lot('a2', 'Pencil', '2000-01-01T00:00:00Z')],
+        lots: [
+          lot('a1', 'Ink', '2099-01-01T00:00:00Z'),
+          lot('a2', 'Pencil', '2000-01-01T00:00:00Z'),
+        ],
         reviewQueue: [
-          { taskId: 'r1', seriesId: 's1', seriesTitle: 'Mưa', chapterId: 'c1', chapterNumber: 3, stageName: 'Color', pageNumber: 2, status: 'Submitted' },
+          {
+            taskId: 'r1',
+            seriesId: 's1',
+            seriesTitle: 'Mưa',
+            chapterId: 'c1',
+            chapterNumber: 3,
+            stageName: 'Color',
+            pageNumber: 2,
+            status: 'Submitted',
+          },
         ],
       },
     ] as any);

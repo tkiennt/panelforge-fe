@@ -464,32 +464,35 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     }
   }, [editor, comments]);
 
-  const scrollToLine = (scriptLineId?: string | null) => {
-    if (!editor || !scriptLineId) return;
-    let targetPos: number | null = null;
-    editor.state.doc.forEach((node, pos) => {
-      if (node.attrs.refId === scriptLineId) {
-        targetPos = pos;
-      }
-    });
-    if (targetPos !== null) {
-      try {
-        editor.commands.setTextSelection(targetPos + 1);
-        const dom = editor.view.nodeDOM(targetPos);
-        if (dom instanceof HTMLElement) {
-          dom.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const scrollToLine = useCallback(
+    (scriptLineId?: string | null) => {
+      if (!editor || !scriptLineId) return;
+      let targetPos: number | null = null;
+      editor.state.doc.forEach((node, pos) => {
+        if (node.attrs.refId === scriptLineId) {
+          targetPos = pos;
         }
-      } catch {
-        // fallback
+      });
+      if (targetPos !== null) {
+        try {
+          editor.commands.setTextSelection(targetPos + 1);
+          const dom = editor.view.nodeDOM(targetPos);
+          if (dom instanceof HTMLElement) {
+            dom.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        } catch {
+          // fallback
+        }
       }
-    }
-  };
+    },
+    [editor],
+  );
 
   useEffect(() => {
     if (activeLineId) {
       scrollToLine(activeLineId);
     }
-  }, [activeLineId]);
+  }, [activeLineId, scrollToLine]);
 
   useEffect(() => {
     if (activePanel?.pageNumber && activePanel?.panelNumber && editor) {

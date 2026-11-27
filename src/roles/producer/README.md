@@ -1,9 +1,11 @@
 # Role: Producer (WorkspaceRole)
 
 ## 1. Mô tả
+
 Giám đốc Sản xuất (Producer) chịu trách nhiệm vận hành Studio Workspace, quản lý danh mục bộ truyện (Series), thiết lập quy trình Pipeline, quản lý ê-kíp sản xuất và kiểm soát tiến độ bàn giao toàn studio theo chuẩn thiết kế Stitch PanelForge.
 
 ## 2. Route & Màn hình (Chuẩn thiết kế Stitch)
+
 - **Route mặc định**: `/workspaces/:workspaceId/overview` (cấp Studio) hoặc `/workspaces/:workspaceId/series/:seriesId/workspace` (cấp Series).
 - **Màn hình chính theo view Stitch**:
   - `WorkspaceView.tsx` (`/series/:seriesId/workspace`): Bàn làm việc sản xuất và ma trận tiến độ (Task Grid 2D). Sub-tab bar chuẩn đúng 5 mục:
@@ -22,6 +24,7 @@ Giám đốc Sản xuất (Producer) chịu trách nhiệm vận hành Studio Wo
   - `SeriesBibleView.tsx` (`/series/:seriesId/bible`): Thư viện thiết kế, hồ sơ nhân vật và quy tắc lore của Series.
 
 ## 3. Modals nghiệp vụ
+
 - `CreateWorkspaceModal.tsx`: Tạo Studio Workspace mới.
 - `InviteMemberModal.tsx` & `InviteResultModal.tsx`: Mời nhân sự vào Studio qua Email và phân vai trò.
 - `SeriesMembersModal.tsx`: Quản lý nhân sự và phân quyền thực hiện theo từng Series.

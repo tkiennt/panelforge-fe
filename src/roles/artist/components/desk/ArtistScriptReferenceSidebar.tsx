@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import { resolveScriptLineMeta, type ScriptLineItem } from './ArtistCanvaSidebar';
+import type { ScriptLineItem } from './ArtistCanvaSidebar';
+import { resolveScriptLineMeta } from './artistSidebarDefaults';
 import type { PanelDto } from '@/types/pipeline';
 
 export interface ArtistScriptReferenceSidebarProps {

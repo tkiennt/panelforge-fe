@@ -298,10 +298,10 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
 
       const canEditName = Boolean(
         revisionTarget &&
-          !revisionTarget.isLocked &&
-          !isArtistConceptSubmit &&
-          !supersedeTarget &&
-          variantMode !== 'new',
+        !revisionTarget.isLocked &&
+        !isArtistConceptSubmit &&
+        !supersedeTarget &&
+        variantMode !== 'new',
       );
       const submissionPayload = {
         expectedVersionNumber: expectedVersionNumber ?? undefined,

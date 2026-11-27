@@ -22,7 +22,7 @@ import {
   resolveCatalogImageUrl,
 } from '@/services/catalog.service';
 import { CONTENT_LANGUAGES } from '@/services/payment.service';
-import { formatContentLanguageName } from '@/roles/publisher/components/multilingual';
+import { formatContentLanguageName } from '@/shared/lib/multilingual';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
 import { Modal } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
@@ -412,9 +412,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                     })}
                   </span>
                 </span>
-                {detailLoading && (
-                  <RefreshCw className='w-3.5 h-3.5 text-[#F97316] animate-spin' />
-                )}
+                {detailLoading && <RefreshCw className='w-3.5 h-3.5 text-[#F97316] animate-spin' />}
               </div>
 
               {selectedSeries.chapters.length === 0 ? (
@@ -425,7 +423,8 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                 <div className='space-y-1.5'>
                   {selectedSeries.chapters.map((chap) => {
                     const priceVnd = chap.priceVnd ?? 0;
-                    const isPaid = chap.isFree === false || (chap.isLocked && priceVnd > 0) || priceVnd > 0;
+                    const isPaid =
+                      chap.isFree === false || (chap.isLocked && priceVnd > 0) || priceVnd > 0;
                     const isUnlocked = chap.isUnlocked === true;
                     const chapLangs = chap.languages ?? [];
                     return (
@@ -472,7 +471,8 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                                   <span
                                     key={l.language}
                                     className={`px-1.5 py-0.5 rounded text-[10px] font-mono uppercase border ${
-                                      l.language === (selectedSeries.language || selectedContentLang)
+                                      l.language ===
+                                      (selectedSeries.language || selectedContentLang)
                                         ? 'bg-[#1C1917] text-white border-[#1C1917]'
                                         : 'bg-[#F8F6F0] text-[#57534E] border-[#D8D2C5]'
                                     }`}

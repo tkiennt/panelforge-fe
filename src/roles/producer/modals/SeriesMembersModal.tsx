@@ -37,7 +37,7 @@ export interface SeriesMembersModalProps {
 
 const PALETTE = ['#F97316', '#6366F1', '#EC4899', '#0EA5E9', '#10B981', '#8B5CF6'];
 
-export const SERIES_ROLES = [
+const SERIES_ROLES = [
   { value: 'Writer', label: 'Writer', slug: 'writer' },
   { value: 'Artist', label: 'Artist', slug: 'artist' },
   { value: 'Letterer', label: 'Letterer', slug: 'letterer' },
@@ -45,7 +45,7 @@ export const SERIES_ROLES = [
   { value: 'Publisher', label: 'Publisher', slug: 'publisher' },
 ];
 
-export const isProducerMember = (
+const isProducerMember = (
   m?: { seriesRole?: string; studioRole?: string; role?: string; userId?: string } | null,
   wsMemberList: WorkspaceMemberDto[] = [],
 ): boolean => {
@@ -185,6 +185,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       setFilterRole('ALL');
       setStatusAlert(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ tải lại khi mở modal hoặc đổi series; loadData đọc toast (không memo) nên thêm vào sẽ tải lặp
   }, [isOpen, seriesId, workspaceId]);
 
   // Danh sách ứng viên Talent Pool (Producer luôn mặc định trong Series nên không xuất hiện ở cột ứng viên)

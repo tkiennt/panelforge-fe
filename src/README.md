@@ -2,6 +2,7 @@
 
 Tài liệu cấu trúc mã nguồn Frontend dự án **PanelForge** (`Frontend/panelforge-fe`).
 Cấu trúc được tổ chức theo kiến trúc **Role-Based Feature Directory**, đảm bảo:
+
 - **Nhìn đường dẫn biết ngay file thuộc role nào**: mọi nghiệp vụ độc lập được phân bổ vào `src/roles/<role>/`.
 - **Ranh giới kiến trúc rõ ràng**: `shared/` chỉ chứa tài nguyên dùng chung, cấm import chéo giữa các role (được enforce tự động bằng ESLint `no-restricted-imports`).
 - **Nguồn chân lý duy nhất (Single Source of Truth)**: manifest role tập trung tại `src/roles/roles.ts`.
@@ -10,16 +11,16 @@ Cấu trúc được tổ chức theo kiến trúc **Role-Based Feature Director
 
 ## 1. Bản đồ Role → Thư mục → Route
 
-| Role Key | Tên vai trò | Scope | Thư mục mã nguồn | Route mặc định / URL chính | Màn hình / Component chính |
-|---|---|---|---|---|---|
-| **ADMINISTRATOR** | System Administrator | `system` | `src/roles/admin/` | `/admin` | `AdminDashboardView`, `AdminUserManagementView`, `AdminSystemSettingsView`, `AdminAuditLogView` |
-| **PRODUCER** | Production Producer / Lead | `workspace` | `src/roles/producer/` | `dashboard` (`/workspaces/:wsId/series/:seriesId/dashboard`) | `ProducerWorkspaceView`, `DashboardView`, `MembersRolesView`, `SeriesMembersView`, `ExportView` |
-| **WRITER** | Biên kịch / Writer | `workspace` | `src/roles/writer/` | `script` (`/workspaces/:wsId/series/:seriesId/script`) | `ScriptEditorView`, `components/script/*` (ScriptLineItem, Bible & Consistency Drawers, History Modal) |
-| **ARTIST** | Họa sĩ / Artist | `workspace` | `src/roles/artist/` | `artist` (`/workspaces/:wsId/series/:seriesId/artist`) | `ArtistDeskView`, `PanelLayoutControls`, `FrameTemplateModal`, `ArtworkCanvas` |
-| **LETTERER** | Kỹ thuật chèn chữ / Letterer | `workspace` | `src/roles/letterer/` | `canvas` (`/workspaces/:wsId/series/:seriesId/canvas`) | `LettererWorkspace`, `LetteringWorkspace` (canvas bóng thoại, phông chữ, script binding) |
-| **EDITOR** | Biên tập viên / Editor | `workspace` | `src/roles/editor/` | `review` (`/review/:taskId`) | `ReviewView`, `EditorWorkspace` (đối chiếu tiêu chí duyệt, cảnh báo AI) |
-| **READER** | Độc giả / Người đọc thử | `external` | `src/roles/reader/` | `/catalog` (`/reader` chuyển về đây) | `PublicCatalogView` (`/catalog`), `PublicPreviewView` (`/review/invite/:token`; `/preview/:token` chuyển về đây) |
-| **GUEST** | Khách vãng lai / Chưa đăng nhập | `public` | `src/roles/guest/` | `/`, `/login` | `LandingPageView`, `LoginModal`, `RegisterModal` |
+| Role Key          | Tên vai trò                     | Scope       | Thư mục mã nguồn      | Route mặc định / URL chính                                   | Màn hình / Component chính                                                                                       |
+| ----------------- | ------------------------------- | ----------- | --------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| **ADMINISTRATOR** | System Administrator            | `system`    | `src/roles/admin/`    | `/admin`                                                     | `AdminDashboardView`, `AdminUserManagementView`, `AdminSystemSettingsView`, `AdminAuditLogView`                  |
+| **PRODUCER**      | Production Producer / Lead      | `workspace` | `src/roles/producer/` | `dashboard` (`/workspaces/:wsId/series/:seriesId/dashboard`) | `ProducerWorkspaceView`, `DashboardView`, `MembersRolesView`, `SeriesMembersView`, `ExportView`                  |
+| **WRITER**        | Biên kịch / Writer              | `workspace` | `src/roles/writer/`   | `script` (`/workspaces/:wsId/series/:seriesId/script`)       | `ScriptEditorView`, `components/script/*` (ScriptLineItem, Bible & Consistency Drawers, History Modal)           |
+| **ARTIST**        | Họa sĩ / Artist                 | `workspace` | `src/roles/artist/`   | `artist` (`/workspaces/:wsId/series/:seriesId/artist`)       | `ArtistDeskView`, `PanelLayoutControls`, `FrameTemplateModal`, `ArtworkCanvas`                                   |
+| **LETTERER**      | Kỹ thuật chèn chữ / Letterer    | `workspace` | `src/roles/letterer/` | `canvas` (`/workspaces/:wsId/series/:seriesId/canvas`)       | `LettererWorkspace`, `LetteringWorkspace` (canvas bóng thoại, phông chữ, script binding)                         |
+| **EDITOR**        | Biên tập viên / Editor          | `workspace` | `src/roles/editor/`   | `review` (`/review/:taskId`)                                 | `ReviewView`, `EditorWorkspace` (đối chiếu tiêu chí duyệt, cảnh báo AI)                                          |
+| **READER**        | Độc giả / Người đọc thử         | `external`  | `src/roles/reader/`   | `/catalog` (`/reader` chuyển về đây)                         | `PublicCatalogView` (`/catalog`), `PublicPreviewView` (`/review/invite/:token`; `/preview/:token` chuyển về đây) |
+| **GUEST**         | Khách vãng lai / Chưa đăng nhập | `public`    | `src/roles/guest/`    | `/`, `/login`                                                | `LandingPageView`, `LoginModal`, `RegisterModal`                                                                 |
 
 ---
 
@@ -61,6 +62,7 @@ Chỉ chứa các tài nguyên được tái sử dụng bởi nhiều role ho�
 ## 4. Quy tắc phụ thuộc Kiến trúc (Architectural Boundaries)
 
 Hệ thống được giám sát tự động bằng ESLint (`no-restricted-imports` trong `.eslintrc.cjs`):
+
 1. **Cấm import chéo giữa hai role**: `src/roles/<role-A>/` tuyệt đối không được import từ `src/roles/<role-B>/`. Nếu cần chia sẻ component/modal, bắt buộc phải đưa vào `src/shared/`.
 2. **Cấm `shared/` import từ `roles/`**: Các component dùng chung trong `src/shared/components/`, `features/`, `modals/` không được phụ thuộc ngược vào bất kỳ role nào.
 3. **Cấm `services/` import component**: Các file service nghiệp vụ (`*.service.ts`) chỉ thực hiện gọi HTTP và logic dữ liệu, tuyệt đối không phụ thuộc vào tầng giao diện (UI components / views / roles).

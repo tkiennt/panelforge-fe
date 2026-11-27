@@ -155,8 +155,8 @@ export const RefreezeScriptModal: React.FC<RefreezeScriptModalProps> = ({
   const artistOptions = useMemo(() => members.filter(isArtistMember), [members]);
   const lettererOptions = useMemo(() => members.filter(isLettererMember), [members]);
 
-  const addedPages = preview?.addedPages ?? [];
-  const removedPages = preview?.removedPages ?? [];
+  const addedPages = useMemo(() => preview?.addedPages ?? [], [preview]);
+  const removedPages = useMemo(() => preview?.removedPages ?? [], [preview]);
   const visualImpacts = preview?.visualImpacts ?? [];
   const textImpacts = preview?.textImpacts ?? [];
 

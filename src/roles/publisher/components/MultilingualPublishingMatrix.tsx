@@ -21,7 +21,7 @@ import {
   formatContentLanguageName,
   formatEditionPricingLabel,
   getEditionStatusDisplay,
-} from './multilingual';
+} from '@/shared/lib/multilingual';
 
 export type SeriesPublishingTab = 'matrix' | 'editions' | 'pricing' | 'chapters';
 
@@ -178,8 +178,7 @@ export const MultilingualPublishingMatrix: React.FC<MultilingualPublishingMatrix
                     </p>
                   </div>
                   <span className='text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200'>
-                    {card.published}/{card.totalChapters}{' '}
-                    {isEn ? 'published' : 'đã xuất bản'}
+                    {card.published}/{card.totalChapters} {isEn ? 'published' : 'đã xuất bản'}
                   </span>
                 </div>
 
@@ -472,7 +471,9 @@ export const MultilingualPublishingMatrix: React.FC<MultilingualPublishingMatrix
                         ) : (
                           <Clock className='w-3 h-3 text-amber-600' />
                         )}
-                        <span>{totalPages} {isEn ? 'pages' : 'trang'}</span>
+                        <span>
+                          {totalPages} {isEn ? 'pages' : 'trang'}
+                        </span>
                       </div>
                     </td>
                     {visibleLanguages.map((langCode) => {

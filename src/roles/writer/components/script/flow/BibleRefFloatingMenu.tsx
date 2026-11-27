@@ -355,7 +355,10 @@ export const BibleRefFloatingMenu: React.FC<BibleRefFloatingMenuProps> = ({
                   className='flex w-full items-center justify-between gap-2 rounded-lg border border-transparent p-1.5 text-left transition-colors hover:border-orange-200/60 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500'
                 >
                   <span className='flex min-w-0 items-center gap-2'>
-                    {getCategoryIcon(mapCategoryToTab(entry.category), 'h-3.5 w-3.5 text-orange-600')}
+                    {getCategoryIcon(
+                      mapCategoryToTab(entry.category),
+                      'h-3.5 w-3.5 text-orange-600',
+                    )}
                     <span className='truncate text-xs font-semibold'>{entry.name}</span>
                   </span>
                   <span className='shrink-0 flex items-center gap-1.5'>

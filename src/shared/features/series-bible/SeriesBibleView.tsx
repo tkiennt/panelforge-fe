@@ -49,13 +49,12 @@ import {
 } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
 import { AddEntityModal } from './AddEntityModal';
+import { BibleEntityDetailModal, DefineStubModal } from './BibleEntityDetailModal';
 import {
-  BibleEntityDetailModal,
-  DefineStubModal,
   getRevisionVariantLabel,
   groupRevisionsIntoVariants,
   type CharacterVariant,
-} from './BibleEntityDetailModal';
+} from './revisionVariants';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { EmptyFolderState } from '@/shared/components/lucian';

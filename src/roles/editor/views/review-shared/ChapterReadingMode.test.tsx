@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ChapterReadingMode, pageStepForKey, toReadingDirection } from './ChapterReadingMode';
+import { ChapterReadingMode } from './ChapterReadingMode';
+import { pageStepForKey, toReadingDirection } from './readingDirection';
 
 vi.mock('@/services/pipeline.service', () => ({
   pipelineService: { getSeriesPipeline: vi.fn().mockResolvedValue({ stages: [] }) },
@@ -47,12 +48,14 @@ describe('ChapterReadingMode', () => {
         onReviewPage={vi.fn()}
       />,
     );
-    const ids = [...screen.getByTestId('reading-vertical').querySelectorAll('[data-testid^="reading-page-"]')].map(
-      (el) => el.getAttribute('data-testid'),
-    );
+    const ids = [
+      ...screen.getByTestId('reading-vertical').querySelectorAll('[data-testid^="reading-page-"]'),
+    ].map((el) => el.getAttribute('data-testid'));
     expect(ids).toEqual(['reading-page-1', 'reading-page-2', 'reading-page-3']);
     // Trang chưa có tranh/chữ hiện ô trống thay vì bị bỏ qua
-    await waitFor(() => expect(screen.getAllByText(/chưa có bản vẽ|has no artwork/i)).toHaveLength(3));
+    await waitFor(() =>
+      expect(screen.getAllByText(/chưa có bản vẽ|has no artwork/i)).toHaveLength(3),
+    );
   });
 
   it('right-to-left: the left button turns to the next page; clicking a page returns to review', async () => {

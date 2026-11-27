@@ -8,25 +8,7 @@ import { pipelineService } from '@/services/pipeline.service';
 import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
 import { buildPageComposite } from '@/shared/utils/compositePageRenderer';
 import { loadPreviousStageArtworks } from '@/shared/utils/stageArtworks';
-
-export type ReadingDirectionValue = 'RightToLeft' | 'LeftToRight' | 'Vertical';
-
-/** Enum BE: 0 RightToLeft, 1 LeftToRight, 2 Vertical; BE thường trả tên enum. */
-export const toReadingDirection = (value: unknown): ReadingDirectionValue => {
-  if (value === 'Vertical' || value === 2 || value === '2') return 'Vertical';
-  if (value === 'LeftToRight' || value === 1 || value === '1') return 'LeftToRight';
-  return 'RightToLeft';
-};
-
-/** Trang kế/trước theo phím mũi tên: đọc phải sang trái thì mũi tên trái là trang sau. */
-export const pageStepForKey = (key: string, direction: ReadingDirectionValue): -1 | 0 | 1 => {
-  if (direction === 'Vertical') return 0;
-  const forwardKey = direction === 'RightToLeft' ? 'ArrowLeft' : 'ArrowRight';
-  const backKey = direction === 'RightToLeft' ? 'ArrowRight' : 'ArrowLeft';
-  if (key === forwardKey) return 1;
-  if (key === backKey) return -1;
-  return 0;
-};
+import { pageStepForKey, toReadingDirection } from './readingDirection';
 
 interface ChapterReadingModeProps {
   chapterId: string;
@@ -86,7 +68,9 @@ export const ChapterReadingMode: React.FC<ChapterReadingModeProps> = ({
             elements: snapshot.elements ?? [],
             drawText: true,
             getAccessUrl: async (assetRefId) =>
-              resolveArtworkUrl((await artworkService.getArtworkAccessLink(chapterId, assetRefId)).url),
+              resolveArtworkUrl(
+                (await artworkService.getArtworkAccessLink(chapterId, assetRefId)).url,
+              ),
           });
           dataUrl = rendered.dataUrl;
         }
@@ -131,7 +115,10 @@ export const ChapterReadingMode: React.FC<ChapterReadingModeProps> = ({
       >
         {src === undefined ? (
           <div className='flex aspect-[2/3] items-center justify-center text-stone-400'>
-            <Loader2 className='h-5 w-5 animate-spin' aria-label={t('readerView.readingModeLoading')} />
+            <Loader2
+              className='h-5 w-5 animate-spin'
+              aria-label={t('readerView.readingModeLoading')}
+            />
           </div>
         ) : src ? (
           <img
@@ -189,7 +176,9 @@ export const ChapterReadingMode: React.FC<ChapterReadingModeProps> = ({
             type='button'
             onClick={() => setIndex((i) => i + leftStep)}
             disabled={leftStep === 1 ? !canForward : !canBack}
-            aria-label={leftStep === 1 ? t('readerView.readingModeNext') : t('readerView.readingModePrev')}
+            aria-label={
+              leftStep === 1 ? t('readerView.readingModeNext') : t('readerView.readingModePrev')
+            }
             data-testid='reading-left'
             className='rounded-full p-2 text-stone-100 hover:bg-white/10 disabled:opacity-30 cursor-pointer'
           >
@@ -202,7 +191,9 @@ export const ChapterReadingMode: React.FC<ChapterReadingModeProps> = ({
             type='button'
             onClick={() => setIndex((i) => i - leftStep)}
             disabled={leftStep === 1 ? !canBack : !canForward}
-            aria-label={leftStep === 1 ? t('readerView.readingModePrev') : t('readerView.readingModeNext')}
+            aria-label={
+              leftStep === 1 ? t('readerView.readingModePrev') : t('readerView.readingModeNext')
+            }
             data-testid='reading-right'
             className='rounded-full p-2 text-stone-100 hover:bg-white/10 disabled:opacity-30 cursor-pointer'
           >

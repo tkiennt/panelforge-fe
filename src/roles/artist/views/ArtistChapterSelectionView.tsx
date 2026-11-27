@@ -582,7 +582,9 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                           {chapter.title ||
                             t('chapterSelection.chapterLabel', { number: chapter.chapterNumber })}
                         </div>
-                        {blockReason && <div className='mt-1 text-xs text-amber-800'>{blockReason}</div>}
+                        {blockReason && (
+                          <div className='mt-1 text-xs text-amber-800'>{blockReason}</div>
+                        )}
                       </td>
                       <td className='py-3.5 px-4 whitespace-nowrap'>
                         {renderChapterStatusBadge(chapter)}

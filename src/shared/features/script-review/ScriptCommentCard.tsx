@@ -5,7 +5,7 @@ import { Check, CheckCircle2, MessageSquare, X } from 'lucide-react';
 import type { ScriptCommentDto } from '@/services/chapter.service';
 
 /** Lấy chữ cái đầu làm avatar */
-export function getAuthorInitial(name?: string | null): string {
+function getAuthorInitial(name?: string | null): string {
   if (!name || !name.trim()) return 'U';
   const parts = name.trim().split(/\s+/);
   const lastPart = parts[parts.length - 1];
@@ -13,7 +13,7 @@ export function getAuthorInitial(name?: string | null): string {
 }
 
 /** Lấy tên hiển thị của người dùng hiện tại */
-export function getCurrentUserName(): string {
+function getCurrentUserName(): string {
   try {
     const raw = localStorage.getItem('user');
     if (raw) {
@@ -25,33 +25,6 @@ export function getCurrentUserName(): string {
     // fallback
   }
   return translate('features.scriptReview.comment.editorFallback');
-}
-
-/** Render văn bản có highlight đoạn trích màu vàng giống Google Docs / mẫu thiết kế */
-export function renderQuotedHighlight(
-  fullText: string,
-  quotedText?: string | null,
-): React.ReactNode {
-  if (!quotedText || !quotedText.trim() || !fullText.includes(quotedText.trim())) {
-    return fullText;
-  }
-  const needle = quotedText.trim();
-  const idx = fullText.indexOf(needle);
-  if (idx === -1) return fullText;
-
-  const before = fullText.slice(0, idx);
-  const match = fullText.slice(idx, idx + needle.length);
-  const after = fullText.slice(idx + needle.length);
-
-  return (
-    <>
-      {before}
-      <mark className='bg-[#FDE047] text-stone-900 px-0.5 rounded-xs font-inherit select-text'>
-        {match}
-      </mark>
-      {after}
-    </>
-  );
 }
 
 export interface ScriptCommentComposerProps {
