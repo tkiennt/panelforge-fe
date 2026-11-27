@@ -1,5 +1,5 @@
 // src/roles/writer/components/script/flow/nodes/ScriptLineBlockNode.test.ts
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { Editor } from '@tiptap/core';
 import type { JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -20,8 +20,13 @@ const line = (el: GnElement, text = ''): JSONContent => ({
   ...(text ? { content: [{ type: 'text', text }] } : {}),
 });
 
+const editors: Editor[] = [];
+afterEach(() => {
+  editors.splice(0).forEach((e) => e.destroy());
+});
+
 function createEditor(lines: JSONContent[], options?: { bibleSpeakers?: { name: string }[] }) {
-  return new Editor({
+  const editor = new Editor({
     extensions: [
       StarterKit.configure({
         document: false,
@@ -44,6 +49,8 @@ function createEditor(lines: JSONContent[], options?: { bibleSpeakers?: { name: 
     ],
     content: { type: 'doc', content: lines },
   });
+  editors.push(editor);
+  return editor;
 }
 
 /** Đặt con trỏ ở cuối dòng thứ `index`. */
