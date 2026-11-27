@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from '@/lib/i18n';
 import { TaskGridBoard } from '@/shared/features/pipeline-board/TaskGridBoard';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
@@ -40,6 +40,7 @@ import { RefreezeScriptModal } from '@/shared/modals/RefreezeScriptModal';
 import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
 import { formatDate } from '@/lib/format';
 import { ProducerSharedHeader } from './ProducerSharedHeader';
+import { buildChapterManagementUrl, buildChapterReaderUrl } from '@/app/routePaths';
 import {
   countGateWarnings,
   daysUntil,
@@ -92,6 +93,18 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     tabFromUrl === 'chapters' || tabFromUrl === 'crew' ? tabFromUrl : 'progress',
   );
 
+  useEffect(() => {
+    if (tabFromUrl === 'chapters' && workspaceId && seriesId) {
+      navigate(buildChapterManagementUrl(workspaceId, seriesId, chapterIdFromUrl ?? undefined), {
+        replace: true,
+      });
+      return;
+    }
+    const nextTab: SubTabKey =
+      tabFromUrl === 'chapters' || tabFromUrl === 'crew' ? tabFromUrl : 'progress';
+    setActiveSubtab((current) => (current === nextTab ? current : nextTab));
+  }, [chapterIdFromUrl, navigate, seriesId, tabFromUrl, workspaceId]);
+
   const normalizedWsRole = useMemo(
     () => normalizeWorkspaceRole(currentUserRole),
     [currentUserRole],
@@ -131,13 +144,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     if (normalizedWsRole) return normalizedWsRole === 'EDITOR';
     return userRoles.some((r) => r.toUpperCase() === 'EDITOR');
   }, [normalizedWsRole, userRoles]);
-
-  // Sync tab with URL
-  useEffect(() => {
-    if (tabFromUrl && ['progress', 'chapters', 'crew'].includes(tabFromUrl)) {
-      setActiveSubtab(tabFromUrl as SubTabKey);
-    }
-  }, [tabFromUrl]);
 
   // Load workspace and series metadata
   useEffect(() => {
@@ -384,7 +390,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         seriesTitle={seriesTitle}
         seriesFormat={seriesDetail?.format}
         currentChapter={currentChapter}
-        activeTab={activeSubtab}
         onChapterChange={(nextId) => {
           setCurrentChapterId(nextId);
           setSearchParams((prev) => {
@@ -393,7 +398,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             return next;
           });
         }}
-        onBackToChapters={() => handleSwitchSubtab('chapters')}
         loadingChapters={loadingChapters}
         actionCta={
           <div className='flex items-center gap-2'>
@@ -954,9 +958,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       <button
                         type='button'
                         onClick={() =>
-                          navigate(
-                            `/workspaces/${workspaceId}/series/${seriesId}/editor/desk?chapterId=${chap.id}`,
-                          )
+                          workspaceId &&
+                          seriesId &&
+                          navigate(buildChapterReaderUrl(workspaceId, seriesId, chap.id))
                         }
                         className='w-full py-2 rounded-lg bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer'
                       >

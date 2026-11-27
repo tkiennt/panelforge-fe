@@ -54,10 +54,15 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     // Drawer starts closed (w-0) so user sees only the blank paper initially
     const drawer = screen.getByTestId('canva-secondary-drawer');
     expect(drawer).toHaveClass('w-0');
+    expect(drawer).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByTestId('canva-tab-pages')).toHaveAttribute('aria-expanded', 'false');
 
     // Clicking Pages tab opens drawer
     fireEvent.click(screen.getByTestId('canva-tab-pages'));
-    expect(drawer).toHaveClass('w-[330px]');
+    expect(drawer).toHaveClass('w-[340px]');
+    expect(drawer).toHaveAttribute('aria-hidden', 'false');
+    expect(screen.getByTestId('canva-tab-pages')).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('canva-tab-pages')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('Quản Lý Trang (2)')).toBeInTheDocument();
   });
 
@@ -106,7 +111,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
 
     // Drawer opens and switches to Bible
     const drawer = screen.getByTestId('canva-secondary-drawer');
-    expect(drawer).toHaveClass('w-[330px]');
+    expect(drawer).toHaveClass('w-[340px]');
     expect(screen.getByTestId('canva-drawer-bible')).toBeInTheDocument();
     expect(screen.getByText(/Tra cứu nhân vật & bối cảnh/i)).toBeInTheDocument();
     expect(screen.getByText('Minh Triết (Nhân vật chính)')).toBeInTheDocument();
@@ -132,7 +137,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
 
     // Click tab 'pages' -> Drawer opens
     fireEvent.click(screen.getByTestId('canva-tab-pages'));
-    expect(drawer).toHaveClass('w-[330px]');
+    expect(drawer).toHaveClass('w-[340px]');
 
     // Click tab 'pages' again -> Drawer closes (Canva behavior)
     fireEvent.click(screen.getByTestId('canva-tab-pages'));
@@ -140,7 +145,35 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
 
     // Click drawer toggle button at bottom -> Drawer opens back
     fireEvent.click(screen.getByTestId('canva-drawer-toggle'));
-    expect(drawer).toHaveClass('w-[330px]');
+    expect(drawer).toHaveClass('w-[340px]');
+  });
+
+  it('supports vertical toolbar navigation and closes the drawer with Escape', () => {
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+      />,
+    );
+
+    const pagesButton = screen.getByTestId('canva-tab-pages');
+    const scriptButton = screen.getByTestId('canva-tab-script');
+    const drawer = screen.getByTestId('canva-secondary-drawer');
+
+    pagesButton.focus();
+    fireEvent.keyDown(pagesButton, { key: 'ArrowDown' });
+    expect(scriptButton).toHaveFocus();
+
+    fireEvent.click(scriptButton);
+    expect(drawer).not.toHaveClass('w-0');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(drawer).toHaveClass('w-0');
   });
 
   it('handles page selection, addition, and eye visibility toggle', () => {
@@ -464,7 +497,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     fireEvent.click(screen.getByTestId('canva-tab-history'));
     const drawer = screen.getByTestId('canva-secondary-drawer');
     // Compact drawer width
-    expect(drawer).toHaveClass('w-[280px]');
+    expect(drawer).toHaveClass('w-[340px]');
 
     expect(screen.getByTestId('canva-drawer-history')).toBeInTheDocument();
     expect(screen.getByTestId('history-entry-v3')).toHaveTextContent('v3');

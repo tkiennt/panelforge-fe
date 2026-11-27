@@ -753,6 +753,7 @@
     "backToMatrix": "Quay lại Ma trận trang",
     "shonenFormat": "Quy chuẩn Shonen",
     "subtabs": {
+      "navigationLabel": "Luồng sản xuất chương",
       "progress": "Ma trận trang",
       "chapters": "Tổng quan chương",
       "crew": "Quản lý Ê-kíp",

@@ -68,6 +68,43 @@ export const buildEditorDeskUrl = (
   return buildSeriesPath(workspaceId, seriesId, `editor/desk${qStr ? `?${qStr}` : ''}`);
 };
 
+export const buildProductionWorkspaceUrl = (
+  workspaceId: string,
+  seriesId: string,
+  params?: {
+    chapterId?: string;
+    tab?: 'progress' | 'chapters' | 'crew';
+  },
+): string => {
+  const query = new URLSearchParams();
+  if (params?.chapterId) query.set('chapterId', params.chapterId);
+  if (params?.tab) query.set('tab', params.tab);
+  const qStr = query.toString();
+  return buildSeriesPath(workspaceId, seriesId, `workspace${qStr ? `?${qStr}` : ''}`);
+};
+
+export const buildChapterReaderUrl = (
+  workspaceId: string,
+  seriesId: string,
+  chapterId: string,
+): string =>
+  buildSeriesPath(
+    workspaceId,
+    seriesId,
+    `chapters/${encodeURIComponent(chapterId)}/reader`,
+  );
+
+export const buildSeriesExportUrl = (
+  workspaceId: string,
+  seriesId: string,
+  chapterId?: string,
+): string => {
+  const query = new URLSearchParams();
+  if (chapterId) query.set('chapterId', chapterId);
+  const qStr = query.toString();
+  return buildSeriesPath(workspaceId, seriesId, `export${qStr ? `?${qStr}` : ''}`);
+};
+
 export const buildScriptReviewUrl = (
   workspaceId: string,
   seriesId: string,

@@ -25,9 +25,21 @@ export const isReviewerRole = (role?: string | null): boolean => {
 
 const status = (value: unknown): string => String(value);
 
-/** Việc của Artist trên Page/Panel cần artwork mới nộp được (cổng nộp của Backend). */
-export const needsArtwork = (a: Pick<AssignmentDto, 'assignedRole' | 'entityType'>): boolean =>
-  normalizeRole(a.assignedRole) === 'ARTIST' && status(a.entityType) !== 'Chapter';
+/** Việc của Artist trên Page/Panel cần artwork mới nộp được, ngoại trừ công đoạn Letter. */
+export const needsArtwork = (
+  a: Pick<AssignmentDto, 'assignedRole' | 'entityType' | 'stageName'>,
+  displayStageName?: string,
+): boolean => {
+  const stage = `${a.stageName || ''} ${displayStageName || ''}`.toLowerCase();
+  const isLetterStage = ['letter', 'lettering', 'dialogue', 'thoại'].some((key) =>
+    stage.includes(key),
+  );
+  return (
+    normalizeRole(a.assignedRole) === 'ARTIST' &&
+    status(a.entityType) !== 'Chapter' &&
+    !isLetterStage
+  );
+};
 
 /** Page mà việc này làm trên đó. Việc cấp Panel suy ra từ StageProgress (có sau khi Start); cấp Chapter thì không có. */
 export const resolvePageId = (
@@ -127,6 +139,7 @@ export interface WorkContext {
   changeRequests: Pick<ChangeRequestDto, 'status'>[];
   /** null = chưa biết (đang tải) hoặc không áp dụng */
   hasCurrentArtwork: boolean | null;
+  stageName?: string;
 }
 
 export interface WorkActions {
@@ -168,7 +181,7 @@ export const getWorkActions = (a: AssignmentDto, ctx: WorkContext): WorkActions 
       submitBlockedReason = translate('collaboration.rules.submitBlockedOpenCr', {
         count: openCount,
       });
-    } else if (needsArtwork(a) && ctx.hasCurrentArtwork === false) {
+    } else if (needsArtwork(a, ctx.stageName) && ctx.hasCurrentArtwork === false) {
       submitBlockedReason = translate('collaboration.rules.submitBlockedNoArtwork');
     }
   }
@@ -182,7 +195,7 @@ export const getWorkActions = (a: AssignmentDto, ctx: WorkContext): WorkActions 
     isAssignee,
     isReviewer: reviewer,
     canStart: isAssignee && (st === 'Assigned' || st === 'ReworkRequired'),
-    canUploadArtwork: isAssignee && st === 'InProgress' && needsArtwork(a),
+    canUploadArtwork: isAssignee && st === 'InProgress' && needsArtwork(a, ctx.stageName),
     canSubmit: isAssignee && st === 'InProgress' && submitBlockedReason === null,
     submitBlockedReason: isAssignee ? submitBlockedReason : null,
     canOpenReview: canReviewThis && st === 'Submitted',

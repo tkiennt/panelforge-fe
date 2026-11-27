@@ -23,6 +23,32 @@ export const DEFAULT_ARTIST_STAGES: FocusStageItem[] = [
   { id: 'stage-letter', label: 'Letter', key: 'lettering' },
 ];
 
+export function buildArtistFocusStages(stages: PipelineStageDto[]): FocusStageItem[] {
+  const enabled = [...stages]
+    .filter((stage) => stage.isEnabled !== false)
+    .sort((a, b) => a.stageOrder - b.stageOrder);
+  const find = (kind: 'pencil' | 'ink' | 'color' | 'lettering') =>
+    enabled.find((stage) => getArtistStageKind(stage) === kind);
+  const pencil = find('pencil');
+  const ink = find('ink');
+  const color = find('color');
+  const lettering =
+    find('lettering') ||
+    enabled.find((stage) => {
+      const name = stage.name.toLowerCase();
+      return (
+        stageKindOf(stage.name) === 'letter' || name.includes('dialogue') || name.includes('thoại')
+      );
+    });
+
+  return [
+    { id: pencil?.id || 'stage-pencil', label: 'Pencil', key: 'pencil' },
+    { id: ink?.id || 'stage-ink', label: 'Ink', key: 'ink' },
+    ...(color ? [{ id: color.id, label: 'Color', key: 'color' }] : []),
+    { id: lettering?.id || 'stage-letter', label: 'Letter', key: 'lettering' },
+  ];
+}
+
 // Placeholder sheets shown before a chapter's real pages load (B5 at 600 dpi).
 export const DEFAULT_INITIAL_PAGES: PageDto[] = Array.from({ length: 6 }, (_, i) => ({
   id: `page-default-${i + 1}`,

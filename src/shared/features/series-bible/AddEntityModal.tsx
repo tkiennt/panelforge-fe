@@ -22,7 +22,11 @@ import {
 
 export type NewBibleEntityPayload = BibleEntity & {
   variantLabel: string;
+  stageName?: string;
   isCrowd?: boolean;
+  age?: string;
+  artistNotes?: string;
+  detailsJson?: string;
 };
 
 interface AddEntityModalProps {
@@ -47,31 +51,18 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   const { t } = useTranslation();
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [subtitle, setSubtitle] = useState('');
   const [category, setCategory] = useState<BibleCategory>('characters');
   const [isCrowd, setIsCrowd] = useState(false);
   const [variantLabel, setVariantLabel] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [description, setDescription] = useState('');
-  // Contextual attributes per category
-  const [attrField1, setAttrField1] = useState('');
-  const [attrField2, setAttrField2] = useState('');
+  const [age, setAge] = useState('');
+  const [artistNotes, setArtistNotes] = useState('');
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Step 3: Character Sheet Gallery (Turnaround & Expressions)
-  const [gallery, setGallery] = useState<Array<{ url: string; label: string; sha256?: string }>>(
-    [],
-  );
-  const [uploadingGallery, setUploadingGallery] = useState(false);
-  const [galleryAngleKey, setGalleryAngleKey] = useState<
-    'front' | 'threeQuarter' | 'profile' | 'back' | 'expressions' | 'costume'
-  >('front');
-  const galleryLabel = t(`bible.addEntityModal.galleryAngles.${galleryAngleKey}`);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [tempCodes, setTempCodes] = useState<TempBibleCodeItem[]>([]);
   useEffect(() => {
@@ -126,52 +117,6 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     }
   };
 
-  const handleGalleryUpload = async (file: File) => {
-    if (!file) return;
-
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      onShowToast(
-        t('bible.addEntityModal.invalidFormatTitle'),
-        t('bible.addEntityModal.invalidFormatDesc'),
-      );
-      return;
-    }
-
-    const maxBytes = 10 * 1024 * 1024;
-    if (file.size > maxBytes) {
-      onShowToast(
-        t('bible.addEntityModal.sizeExceededTitle'),
-        t('bible.addEntityModal.gallerySizeExceededDesc'),
-      );
-      return;
-    }
-
-    if (!seriesId) {
-      const localUrl = URL.createObjectURL(file);
-      setGallery((prev) => [...prev, { url: localUrl, label: galleryLabel }]);
-      onShowToast(t('bible.addEntityModal.galleryLocalTitle'), `${galleryLabel} - ${file.name}`);
-      return;
-    }
-
-    setUploadingGallery(true);
-    try {
-      const res = await bibleService.uploadReferenceImage(seriesId, file);
-      setGallery((prev) => [...prev, { url: res.url, label: galleryLabel, sha256: res.sha256 }]);
-      onShowToast(
-        t('bible.addEntityModal.galleryUploadedTitle'),
-        `${galleryLabel} (${Math.round(res.sizeBytes / 1024)} KB)`,
-      );
-    } catch (err: any) {
-      onShowToast(
-        t('bible.addEntityModal.uploadErrorTitle'),
-        err.message || t('bible.addEntityModal.galleryUploadError'),
-      );
-    } finally {
-      setUploadingGallery(false);
-    }
-  };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragActive(false);
@@ -187,52 +132,38 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     const generatedCode =
       code.trim().toUpperCase() || `ENT-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const attributes: Record<string, any> = {};
-    if (category === 'characters' || category === 'character') {
-      if (attrField1.trim()) attributes.age = attrField1.trim();
-      if (attrField2.trim()) attributes.height = attrField2.trim();
-    } else if (category === 'locations' || category === 'location') {
-      if (attrField1.trim()) attributes.environmentType = attrField1.trim();
-      if (attrField2.trim()) attributes.scale = attrField2.trim();
-    } else if (category === 'prop') {
-      if (attrField1.trim()) attributes.sizeWeight = attrField1.trim();
-      if (attrField2.trim()) attributes.material = attrField2.trim();
-    } else if (category === 'terminology') {
-      if (attrField1.trim()) attributes.termType = attrField1.trim();
-      if (attrField2.trim()) attributes.origin = attrField2.trim();
-    } else if (category === 'style' || category === 'rule') {
-      if (attrField1.trim()) attributes.colorPalette = attrField1.trim();
-      if (attrField2.trim()) attributes.lineArtRules = attrField2.trim();
-    }
+    const detailsPayload = JSON.stringify({
+      age: category === 'characters' && age.trim() ? age.trim() : undefined,
+      artistNotes: artistNotes.trim() ? artistNotes.trim() : undefined,
+    });
 
     const newEntity: NewBibleEntityPayload = {
       id: `entity-${Date.now()}`,
       code: generatedCode,
       name: name.trim(),
-      subtitle: subtitle.trim() || '',
       category: category,
       tags: ['CANON', String(category).toUpperCase()],
       description: description.trim(),
       imageUrl: imageUrl.trim() || '',
       status: 'Draft',
       variantLabel: variantLabel.trim(),
+      stageName: variantLabel.trim(),
       isCrowd,
-      gallery: gallery.length > 0 ? gallery : undefined,
-      attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
+      age: category === 'characters' && age.trim() ? age.trim() : undefined,
+      artistNotes: artistNotes.trim() ? artistNotes.trim() : undefined,
+      detailsJson: detailsPayload,
     };
 
     onAdd(newEntity);
     removeTempBibleCode(generatedCode);
     setName('');
     setCode('');
-    setSubtitle('');
     setVariantLabel('');
     setIsCrowd(false);
     setDescription('');
     setImageUrl('');
-    setGallery([]);
-    setAttrField1('');
-    setAttrField2('');
+    setAge('');
+    setArtistNotes('');
     onClose();
   };
 
@@ -338,115 +269,70 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
           </div>
         </div>
 
-        {/* Danh mục & Phụ đề */}
-        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-          <div>
-            <label
-              htmlFor='bible-entity-category'
-              className='block text-xs font-semibold text-stone-800 mb-1'
-            >
-              {t('bible.addEntityModal.categoryLabel')} <span className='text-red-500'>*</span>
-            </label>
-            <select
-              id='bible-entity-category'
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value as BibleCategory);
-                setAttrField1('');
-                setAttrField2('');
-              }}
-              className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 font-medium focus:outline-none focus:border-[#F97316] cursor-pointer'
-            >
-              <option value='characters'>{t('bible.categories.characters')}</option>
-              <option value='locations'>{t('bible.categories.locations')}</option>
-              <option value='terminology'>{t('bible.categories.terminology')}</option>
-              <option value='style'>{t('bible.categories.style')}</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor='bible-entity-subtitle'
-              className='block text-xs font-semibold text-stone-800 mb-1'
-            >
-              {t('bible.addEntityModal.subtitleLabel')}
-            </label>
-            <input
-              id='bible-entity-subtitle'
-              type='text'
-              placeholder={t('bible.addEntityModal.subtitlePlaceholder')}
-              value={subtitle}
-              onChange={(e) => setSubtitle(e.target.value)}
-              className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] transition-colors'
-            />
-          </div>
+        {/* Danh mục */}
+        <div>
+          <label
+            htmlFor='bible-entity-category'
+            className='block text-xs font-semibold text-stone-800 mb-1'
+          >
+            {t('bible.addEntityModal.categoryLabel')} <span className='text-red-500'>*</span>
+          </label>
+          <select
+            id='bible-entity-category'
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value as BibleCategory);
+            }}
+            className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 font-medium focus:outline-none focus:border-[#F97316] cursor-pointer'
+          >
+            <option value='characters'>{t('bible.categories.characters')}</option>
+            <option value='locations'>{t('bible.categories.locations')}</option>
+            <option value='terminology'>{t('bible.categories.terminology')}</option>
+            <option value='style'>{t('bible.categories.style')}</option>
+          </select>
         </div>
 
-        {/* Contextual Attributes Inputs per Category */}
-        <div className='p-3 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-2.5'>
+        {/* Đặc tả ngoại hình / Ghi chú cho Artist */}
+        <div className='p-3 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-3'>
           <span className='text-xs font-bold text-stone-800 block'>
-            {category === 'characters'
-              ? t('bible.addEntityModal.attrTitleCharacters')
-              : category === 'locations'
-                ? t('bible.addEntityModal.attrTitleLocations')
-                : category === 'terminology'
-                  ? t('bible.addEntityModal.attrTitleTerminology')
-                  : t('bible.addEntityModal.attrTitleStyle')}
+            {t('bible.spec.groups.notes', 'Ghi chú cho Artist')}
           </span>
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+          {category === 'characters' && (
             <div>
-              <label className='block text-xs font-medium text-stone-700 mb-1'>
-                {category === 'characters'
-                  ? t('bible.addEntityModal.attr1LabelCharacters')
-                  : category === 'locations'
-                    ? t('bible.addEntityModal.attr1LabelLocations')
-                    : category === 'terminology'
-                      ? t('bible.addEntityModal.attr1LabelTerminology')
-                      : t('bible.addEntityModal.attr1LabelStyle')}
+              <label
+                htmlFor='bible-entity-age'
+                className='block text-xs font-medium text-stone-700 mb-1'
+              >
+                {t('bible.spec.fields.age.label', 'Tuổi')}
               </label>
               <input
+                id='bible-entity-age'
                 type='text'
-                placeholder={
-                  category === 'characters'
-                    ? t('bible.addEntityModal.attr1PlaceholderCharacters')
-                    : category === 'locations'
-                      ? t('bible.addEntityModal.attr1PlaceholderLocations')
-                      : category === 'terminology'
-                        ? t('bible.addEntityModal.attr1PlaceholderTerminology')
-                        : t('bible.addEntityModal.attr1PlaceholderStyle')
-                }
-                value={attrField1}
-                onChange={(e) => setAttrField1(e.target.value)}
+                placeholder={t('bible.spec.fields.age.placeholder', 'vd. 17 tuổi, 25–28')}
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
                 className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316]'
               />
             </div>
-
-            <div>
-              <label className='block text-xs font-medium text-stone-700 mb-1'>
-                {category === 'characters'
-                  ? t('bible.addEntityModal.attr2LabelCharacters')
-                  : category === 'locations'
-                    ? t('bible.addEntityModal.attr2LabelLocations')
-                    : category === 'terminology'
-                      ? t('bible.addEntityModal.attr2LabelTerminology')
-                      : t('bible.addEntityModal.attr2LabelStyle')}
-              </label>
-              <input
-                type='text'
-                placeholder={
-                  category === 'characters'
-                    ? t('bible.addEntityModal.attr2PlaceholderCharacters')
-                    : category === 'locations'
-                      ? t('bible.addEntityModal.attr2PlaceholderLocations')
-                      : category === 'terminology'
-                        ? t('bible.addEntityModal.attr2PlaceholderTerminology')
-                        : t('bible.addEntityModal.attr2PlaceholderStyle')
-                }
-                value={attrField2}
-                onChange={(e) => setAttrField2(e.target.value)}
-                className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316]'
-              />
-            </div>
+          )}
+          <div>
+            <label
+              htmlFor='bible-entity-artist-notes'
+              className='block text-xs font-medium text-stone-700 mb-1'
+            >
+              {t('bible.spec.fields.artistNotes.label', 'Ghi chú cho Artist (Artist Notes)')}
+            </label>
+            <textarea
+              id='bible-entity-artist-notes'
+              rows={3}
+              placeholder={t(
+                'bible.spec.fields.artistNotes.placeholder',
+                'Mô tả ngoại hình, kiểu tóc, màu mắt, vết sẹo đặc trưng, trang phục, phong cách nét vẽ và các chi tiết cấm vẽ sai...',
+              )}
+              value={artistNotes}
+              onChange={(e) => setArtistNotes(e.target.value)}
+              className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#F97316] resize-y'
+            />
           </div>
         </div>
 
@@ -652,115 +538,6 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                     onChange={(e) => setImageUrl(e.target.value)}
                     className='w-full px-3 py-1.5 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
                   />
-                </div>
-              )}
-            </div>
-
-            {/* Step 3: Turnaround / Expression Sketch Gallery */}
-            <div className='space-y-2.5 pt-3 border-t border-[#E7E7E7]'>
-              <div className='flex items-center justify-between'>
-                <label className='font-semibold text-[#171717] flex items-center gap-1.5'>
-                  <span>{t('bible.addEntityModal.galleryTitle')}</span>
-                </label>
-                <span className='text-xs font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded'>
-                  {t('bible.addEntityModal.galleryCount', { count: gallery.length })}
-                </span>
-              </div>
-              <p className='text-xs text-[#737373]'>{t('bible.addEntityModal.gallerySubtitle')}</p>
-
-              {/* Upload controls */}
-              <div className='flex items-center gap-2'>
-                <select
-                  value={galleryAngleKey}
-                  onChange={(e) =>
-                    setGalleryAngleKey(
-                      e.target.value as
-                        'front' | 'threeQuarter' | 'profile' | 'back' | 'expressions' | 'costume',
-                    )
-                  }
-                  className='h-8 px-2.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-semibold text-stone-800 cursor-pointer focus:outline-none focus:border-[#F97316]'
-                >
-                  <option value='front'>{t('bible.addEntityModal.galleryAngles.front')}</option>
-                  <option value='threeQuarter'>
-                    {t('bible.addEntityModal.galleryAngles.threeQuarter')}
-                  </option>
-                  <option value='profile'>{t('bible.addEntityModal.galleryAngles.profile')}</option>
-                  <option value='back'>{t('bible.addEntityModal.galleryAngles.back')}</option>
-                  <option value='expressions'>
-                    {t('bible.addEntityModal.galleryAngles.expressions')}
-                  </option>
-                  <option value='costume'>{t('bible.addEntityModal.galleryAngles.costume')}</option>
-                </select>
-
-                <input
-                  type='file'
-                  ref={galleryInputRef}
-                  accept='image/png,image/jpeg,image/webp'
-                  className='hidden'
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      void handleGalleryUpload(e.target.files[0]);
-                      e.target.value = '';
-                    }
-                  }}
-                />
-
-                <button
-                  type='button'
-                  onClick={() => galleryInputRef.current?.click()}
-                  disabled={uploadingGallery}
-                  className='h-8 px-3 rounded-lg bg-[#FAF8F5] hover:bg-[#F3F1EB] border border-[#E7E7E7] text-stone-800 font-semibold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
-                >
-                  {uploadingGallery ? (
-                    <>
-                      <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
-                      <span>{t('bible.addEntityModal.galleryAdding')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className='w-3.5 h-3.5 text-[#F97316]' />
-                      <span>{t('bible.addEntityModal.galleryAddBtn')}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Thumbnails grid */}
-              {gallery.length > 0 && (
-                <div className='grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1'>
-                  {gallery.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className='p-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl flex items-center gap-2 relative group hover:border-[#F97316]/50 transition-colors'
-                    >
-                      <div className='w-11 h-11 rounded-lg overflow-hidden bg-stone-900 shrink-0 border border-stone-200'>
-                        <AuthenticatedImage
-                          src={item.url}
-                          alt={item.label}
-                          className='w-full h-full object-cover'
-                        />
-                      </div>
-                      <div className='min-w-0 flex-1'>
-                        <div
-                          className='text-xs font-bold text-stone-900 truncate'
-                          title={item.label}
-                        >
-                          {item.label}
-                        </div>
-                        <div className='text-xs text-[#737373] font-mono'>
-                          {t('bible.addEntityModal.galleryThumbLabel', { number: idx + 1 })}
-                        </div>
-                      </div>
-                      <button
-                        type='button'
-                        onClick={() => setGallery((prev) => prev.filter((_, i) => i !== idx))}
-                        className='p-1 rounded-md text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors'
-                        title={t('bible.addEntityModal.galleryDeleteTitle')}
-                      >
-                        <Trash2 className='w-3 h-3' />
-                      </button>
-                    </div>
-                  ))}
                 </div>
               )}
             </div>

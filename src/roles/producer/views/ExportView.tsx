@@ -186,7 +186,6 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
         seriesTitle={seriesTitle}
         seriesFormat={seriesFormat}
         currentChapter={selectedChapter}
-        activeTab='handoff'
         onChapterChange={(nextId) => setChapterId(nextId)}
       />
 

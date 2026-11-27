@@ -28,10 +28,7 @@ import {
   revokeArtworkUrls,
 } from '../utils/panelArtworkCarry';
 import { getRoleDefaultPath } from '@/roles/roles';
-import {
-  formatChapterLabel,
-  stageKindOf,
-} from '@/shared/features/pipeline-board/productionBoard.utils';
+import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
 import { getArtistStageKind } from '../utils/artistStage';
 import {
   FocusStageItem,
@@ -46,7 +43,6 @@ import {
   DEFAULT_FRAME_TEMPLATES,
   DEFAULT_SCRIPT_LINES,
 } from '../components/desk/ArtistCanvaSidebar';
-import { ArtistScriptReferenceSidebar } from '../components/desk/ArtistScriptReferenceSidebar';
 import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip';
 import { PageStage } from '../components/desk/ArtistPageSidebar';
 import { ArtistCanvasViewport, type PageSketch } from '../components/desk/ArtistCanvasViewport';
@@ -70,6 +66,7 @@ import { classifyScriptLine } from '@/shared/utils/textStyle';
 import {
   DEFAULT_ARTIST_STAGES,
   DEFAULT_INITIAL_PAGES,
+  buildArtistFocusStages,
   extractBibleVisualDetails,
   getBibleCategoryTag,
   getDeterministicColor,
@@ -185,7 +182,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [seriesTitle, setSeriesTitle] = useState<string | undefined>(undefined);
   const [pages, setPages] = useState<PageDto[]>(DEFAULT_INITIAL_PAGES);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(DEFAULT_INITIAL_PAGES[0].id);
-  const [isRightScriptSidebarOpen, setIsRightScriptSidebarOpen] = useState<boolean>(true);
 
   // Tiến độ công đoạn (Stage progression trên Header)
   const [artistStages, setArtistStages] = useState<FocusStageItem[]>(DEFAULT_ARTIST_STAGES);
@@ -259,7 +255,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
   const tabFromUrl = searchParams.get('tab') as CanvaSidebarTab | null;
   const isLettererRoute = location.pathname.includes('/letterer');
-  const defaultTab = initialSidebarTab || tabFromUrl || (isLettererRoute ? 'lettering' : undefined);
+  const defaultTab = initialSidebarTab || tabFromUrl || (isLettererRoute ? 'lettering' : 'script');
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<CanvaSidebarTab | undefined>(defaultTab);
   const [isSidebarDrawerOpen, setIsSidebarDrawerOpen] = useState<boolean | undefined>(
@@ -300,55 +296,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       .getSeriesPipeline(seriesId)
       .then((pipeline) => {
         if (!alive || !Array.isArray(pipeline?.stages)) return;
-        const enabledSorted = [...pipeline.stages]
-          .filter((s) => s.isEnabled !== false)
-          .sort((a, b) => a.stageOrder - b.stageOrder);
-
-        // Bố cục tranh không phải 1 stage mà nằm chung với Pencil.
-        // Thanh header của Artist chuẩn hoá gồm đúng 3 trạng thái: Pencil -> Ink -> Letter
-        const artistPencil = enabledSorted.find(
-          (s) => getArtistStageKind(s) === 'pencil' || stageKindOf(s.name || '') === 'pencil',
-        );
-        const artistInk = enabledSorted.find(
-          (s) => getArtistStageKind(s) === 'ink' || stageKindOf(s.name || '') === 'ink',
-        );
-        const artistColor = enabledSorted.find((s) => getArtistStageKind(s) === 'color');
-        const artistLetter = enabledSorted.find(
-          (s) =>
-            getArtistStageKind(s) === 'lettering' ||
-            stageKindOf(s.name || '') === 'letter' ||
-            (s.name || '').toLowerCase().includes('dialogue') ||
-            (s.name || '').toLowerCase().includes('thoại'),
-        );
-
-        const normalizedArtistStages: FocusStageItem[] = [
-          {
-            id: artistPencil?.id || 'stage-pencil',
-            label: 'Pencil',
-            key: 'pencil',
-          },
-          {
-            id: artistInk?.id || 'stage-ink',
-            label: 'Ink',
-            key: 'ink',
-          },
-          ...(artistColor
-            ? [
-                {
-                  id: artistColor.id,
-                  label: 'Color',
-                  key: 'color',
-                },
-              ]
-            : []),
-          {
-            id: artistLetter?.id || 'stage-letter',
-            label: 'Letter',
-            key: 'lettering',
-          },
-        ];
-
-        setArtistStages(normalizedArtistStages);
+        setArtistStages(buildArtistFocusStages(pipeline.stages));
       })
       .catch(() => {
         // Giữ bộ công đoạn mặc định nếu chưa kết nối quy trình
@@ -382,32 +330,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           const fetchedGridTasks = (grid?.tasks ?? []).filter((t) => t.status !== 'Cancelled');
           if (alive) {
             setGridStages(grid?.stages ?? []);
-            const enabledColorFromGrid = (grid?.stages ?? []).find(
-              (s) =>
-                s.isEnabled !== false &&
-                getArtistStageKind({
-                  name: s.name,
-                  slug: s.name.toLowerCase(),
-                  allowedRole: s.allowedRole,
-                }) === 'color',
-            );
-            if (enabledColorFromGrid) {
-              setArtistStages((prev) => {
-                if (prev.some((st) => st.key === 'color' || st.id === enabledColorFromGrid.id)) {
-                  return prev;
-                }
-                const letterIdx = prev.findIndex((st) => st.key === 'lettering');
-                const colorItem: FocusStageItem = {
-                  id: enabledColorFromGrid.id,
-                  label: 'Color',
-                  key: 'color',
-                };
-                if (letterIdx >= 0) {
-                  return [...prev.slice(0, letterIdx), colorItem, ...prev.slice(letterIdx)];
-                }
-                return [...prev, colorItem];
-              });
-            }
           }
           if (alive && fetchedGridTasks.length > 0) {
             setGridTasks(fetchedGridTasks);
@@ -1627,6 +1549,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           code: e.code || `BE-${e.id.slice(0, 4)}`,
           name: e.name,
           subtitle: e.subtitle || undefined,
+          variantLabel:
+            e.effectiveRevision?.stageName || undefined,
+          versionNumber: e.effectiveRevision?.versionNumber ?? undefined,
           category,
           tag: getBibleCategoryTag(e.category, e.subtitle),
           description: e.description || '',
@@ -1851,8 +1776,27 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       );
       return;
     }
-    const remaining = pages.filter((p) => p.id !== pageId);
+    const remaining = pages
+      .filter((p) => p.id !== pageId)
+      .sort((a, b) => a.pageNumber - b.pageNumber)
+      .map((page, index) => ({ ...page, pageNumber: index + 1 }));
     setPages(remaining);
+    const pageNumberById = new Map(remaining.map((page) => [page.id, page.pageNumber]));
+    setPanelPageMap((prev) =>
+      Object.fromEntries(
+        Object.entries(prev)
+          .filter(([, location]) => location.pageId !== pageId)
+          .map(([panelId, location]) => [
+            panelId,
+            {
+              ...location,
+              pageNumber: location.pageId
+                ? (pageNumberById.get(location.pageId) ?? location.pageNumber)
+                : location.pageNumber,
+            },
+          ]),
+      ),
+    );
     if (selectedPageId === pageId) {
       setSelectedPageId(remaining[0]?.id || null);
     }
@@ -2636,8 +2580,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return (
       stagePageCells.find(
         (cell) =>
-          cell.isInputOutdated &&
-          (me ? cell.assigneeUserId === me : Boolean(cell.assigneeUserId)),
+          cell.isInputOutdated && (me ? cell.assigneeUserId === me : Boolean(cell.assigneeUserId)),
       ) ?? null
     );
   }, [gridTasks, isLettererRole, selectedPage, currentStage?.id]);
@@ -2931,9 +2874,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           className='shrink-0 border-b border-amber-300 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-950 flex items-center gap-2'
         >
           <AlertTriangle className='w-4 h-4 text-[#D97706] shrink-0' aria-hidden='true' />
-          <span>
-            Kịch bản đang được mở khóa để chỉnh sửa — lưu ý trước khi nộp bài mới.
-          </span>
+          <span>Kịch bản đang được mở khóa để chỉnh sửa — lưu ý trước khi nộp bài mới.</span>
         </div>
       )}
 
@@ -2944,8 +2885,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           className='shrink-0 border-b border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-700 flex items-center gap-2'
         >
           <span className='inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 shrink-0'>
-            <Flag className='w-3 h-3' aria-hidden='true' />
-            ⚑ Kịch bản thay đổi
+            <Flag className='w-3 h-3' aria-hidden='true' />⚑ Kịch bản thay đổi
           </span>
           <span>
             {currentVisualImpactCell.outdatedReason ||
@@ -3370,22 +3310,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             canEdit={!isPageReadOnly}
           />
         </div>
-
-        {/* 3. SIDEBAR THAM CHIẾU KỊCH BẢN (THU GỌN ĐƯỢC, BÊN CẠNH CANVAS) */}
-        {!(isSidebarDrawerOpen && (activeSidebarTab ?? 'script') === 'script') && (
-          <ArtistScriptReferenceSidebar
-            isOpen={isRightScriptSidebarOpen}
-            onToggle={() => setIsRightScriptSidebarOpen((v) => !v)}
-            pageId={selectedPage?.id ?? null}
-            pageNumber={selectedPage?.pageNumber || 1}
-            panels={currentPagePanels}
-            scriptLines={resolvedScriptLines ?? DEFAULT_SCRIPT_LINES}
-            selectedPanelId={selectedPanelId}
-            selectedPanelNumber={selectedPanelNumber}
-            onSelectPanel={handleSelectPanelById}
-            isLoading={isLoadingScript}
-          />
-        )}
       </div>
 
       {previewArtwork && (

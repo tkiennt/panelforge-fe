@@ -103,7 +103,7 @@ import { formatChapterOption } from '../utils/chapterFormat';
  */
 const getBibleEntryNameWithStage = (entry?: BibleEntryDto | null): string => {
   if (!entry) return '';
-  const variant = entry.effectiveRevision?.variantLabel?.trim() || entry.subtitle?.trim();
+  const variant = entry.effectiveRevision?.stageName?.trim() || entry.subtitle?.trim();
   return variant ? `${entry.name} (${variant})` : entry.name;
 };
 
@@ -890,7 +890,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               ? `Trang ${blockedNums.join(', ')} đã có bản vẽ hoặc công đoạn đang thực hiện nên không thể xóa.`
               : err.message;
           setDeleteBlockedError(detailMsg);
-          notify(t('scriptStudio.save.deleteBlocked', 'Không xóa được trang đang sản xuất'), detailMsg);
+          notify(
+            t('scriptStudio.save.deleteBlocked', 'Không xóa được trang đang sản xuất'),
+            detailMsg,
+          );
           return false;
         }
         if (
@@ -2246,19 +2249,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       )}
 
       {/* Bảo vệ trang đang sản xuất: hiển thị các trang đã có công đoạn đang vẽ để Writer không xóa nhầm */}
-      {currentChapter?.status === 'InProduction' && !isScriptFrozen && protectedPageNumbers.length > 0 && (
-        <div
-          data-testid='production-protected-pages-bar'
-          title='Trang này đã có bản vẽ hoặc công đoạn đang sản xuất nên không thể xóa.'
-          className='shrink-0 border-b border-amber-200 bg-amber-50/70 px-4 py-1.5 text-xs text-amber-900 flex items-center gap-2'
-        >
-          <Lock className='w-3.5 h-3.5 text-[#D97706] shrink-0' aria-hidden='true' />
-          <span>
-            Trang đã có bản vẽ (được khóa xóa):{' '}
-            <strong>{protectedPageNumbers.map((n) => `Trang ${n}`).join(', ')}</strong>
-          </span>
-        </div>
-      )}
+      {currentChapter?.status === 'InProduction' &&
+        !isScriptFrozen &&
+        protectedPageNumbers.length > 0 && (
+          <div
+            data-testid='production-protected-pages-bar'
+            title='Trang này đã có bản vẽ hoặc công đoạn đang sản xuất nên không thể xóa.'
+            className='shrink-0 border-b border-amber-200 bg-amber-50/70 px-4 py-1.5 text-xs text-amber-900 flex items-center gap-2'
+          >
+            <Lock className='w-3.5 h-3.5 text-[#D97706] shrink-0' aria-hidden='true' />
+            <span>
+              Trang đã có bản vẽ (được khóa xóa):{' '}
+              <strong>{protectedPageNumbers.map((n) => `Trang ${n}`).join(', ')}</strong>
+            </span>
+          </div>
+        )}
 
       {/* Gate 1 bị chặn: còn biến thể Bible chưa khoá Canon (F#24) */}
       {isStartBlocked && (chapterCast?.gate?.blockers?.length ?? 0) > 0 && (

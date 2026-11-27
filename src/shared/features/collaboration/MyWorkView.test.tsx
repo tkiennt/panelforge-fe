@@ -106,7 +106,7 @@ describe('MyWorkView – Lát cắt 4 (Clean Cutover)', () => {
       </MemoryRouter>,
     );
 
-  it('Artist xuyên chương đọc lô từ getMyTaskLots (không gọi review-queue để tránh 403) và Bắt đầu / Nộp ô trực tiếp', async () => {
+  it('Artist xuyên chương mở Artist Desk thay vì hiện nút Bắt đầu thừa, và vẫn nộp ô đang làm', async () => {
     vi.mocked(assignmentService.getMyTaskLots).mockResolvedValue([
       {
         id: 'lot-1',
@@ -150,10 +150,9 @@ describe('MyWorkView – Lát cắt 4 (Clean Cutover)', () => {
     expect(await screen.findByText('Vẽ chì trang 1-2')).toBeInTheDocument();
     expect(assignmentService.getTaskGridReviewQueue).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByTestId('start-lot-cell-cell-start'));
-    await waitFor(() => {
-      expect(assignmentService.startStageTask).toHaveBeenCalledWith('chap-1', 'cell-start');
-    });
+    expect(screen.queryByTestId('start-lot-cell-cell-start')).not.toBeInTheDocument();
+    expect(document.querySelector('a[href*="/artist?chapterId=chap-1"]')).toBeInTheDocument();
+    expect(assignmentService.startStageTask).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('submit-lot-cell-cell-submit'));
     await waitFor(() => {
