@@ -499,18 +499,25 @@ describe('SeriesBibleView UX/UI improvements', () => {
       target: { value: 'Tạo biến thể thiếu niên cho nhân vật' },
     });
 
+    // CI chậm: chỉ bấm khi nút đã bật, nếu không cú bấm rơi vào nút đang khoá và không gọi API.
+    await waitFor(() => {
+      expect(screen.getByTestId('save-revision-submit-btn')).not.toBeDisabled();
+    });
     fireEvent.click(screen.getByTestId('save-revision-submit-btn'));
 
-    await waitFor(() => {
-      expect(bibleService.createVariant).toHaveBeenCalledWith(
-        'series-123',
-        mockEntries[0].id,
-        expect.objectContaining({
-          variantLabel: 'Thiếu niên',
-          summary: 'Tạo biến thể thiếu niên cho nhân vật',
-        }),
-      );
-    });
+    await waitFor(
+      () => {
+        expect(bibleService.createVariant).toHaveBeenCalledWith(
+          'series-123',
+          mockEntries[0].id,
+          expect.objectContaining({
+            variantLabel: 'Thiếu niên',
+            summary: 'Tạo biến thể thiếu niên cho nhân vật',
+          }),
+        );
+      },
+      { timeout: 3000 },
+    );
   });
 
   it('shows the backend duplicate-label conflict and keeps the variant form open', async () => {

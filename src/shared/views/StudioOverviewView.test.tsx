@@ -222,7 +222,8 @@ describe('StudioOverviewView Library UX/UI', () => {
   });
 
   it('shows <1% low storage usage, omits AI images meter, and navigates to members tab via header link', async () => {
-    vi.spyOn(workspaceService, 'getWorkspaceUsage').mockResolvedValueOnce({
+    // Mọi lần gọi đều trả số liệu này: view có thể nạp usage hơn một lần, `Once` làm lần sau rơi về mockUsage.
+    vi.spyOn(workspaceService, 'getWorkspaceUsage').mockResolvedValue({
       ...mockUsage,
       storage: { used: 22334669, quota: 10737418240, percentUsed: 0.21, isUnlimited: false },
       aiTokens: { used: 91118, quota: 1000000, percentUsed: 9.1, isUnlimited: false },
@@ -231,8 +232,9 @@ describe('StudioOverviewView Library UX/UI', () => {
 
     renderWithRouter();
 
-    const storageCell = await screen.findByTestId('series-resource-storage');
-    expect(storageCell).toHaveTextContent('<1%');
+    await waitFor(() => {
+      expect(screen.getByTestId('series-resource-storage')).toHaveTextContent('<1%');
+    });
     expect(screen.getByTestId('series-resource-ai-tokens')).toHaveTextContent('9.1%');
     expect(screen.queryByTestId('series-resource-ai-images')).not.toBeInTheDocument();
 
