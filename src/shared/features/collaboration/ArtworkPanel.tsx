@@ -476,6 +476,8 @@ export const PageArtCrop: React.FC<{
 const MAX_BYTES = 25 * 1024 * 1024;
 const ACCEPTED = ['image/png', 'image/jpeg', 'image/webp'];
 
+type UploadScope = { kind: 'page' } | { kind: 'panel'; panelId: string };
+
 interface ArtworkPanelProps {
   chapterId: string;
   pageId: string | null;
@@ -525,6 +527,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
   const fileInput = useRef<HTMLInputElement>(null);
   const panelFileInput = useRef<HTMLInputElement>(null);
   const [activeUploadPanelId, setActiveUploadPanelId] = useState<string | null>(null);
+  const [uploadMode, setUploadMode] = useState<'page' | 'panel'>(() =>
+    assignedPanelId ? 'panel' : 'page',
+  );
 
   const [phase, setPhase] = useState<'idle' | 'hashing' | 'uploading'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -544,6 +549,13 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [zoomed]);
 
+  useEffect(() => {
+    if (assignedPanelId) {
+      setUploadMode('panel');
+      setActiveUploadPanelId(assignedPanelId);
+    }
+  }, [assignedPanelId]);
+
   // Theo thời gian tải lên; trong cùng phạm vi (Page, Panel, Stage) thứ tự này trùng thứ tự version
   const mine = artworks
     .filter((a) => a.pageId === pageId && a.pipelineStageId === stageId)
@@ -553,9 +565,26 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
         a.versionNumber - b.versionNumber,
     );
 
-  const handleFile = async (file: File | undefined, targetPanelId?: string) => {
+  const selectUploadMode = (mode: 'page' | 'panel') => {
+    setUploadMode(mode);
+    setActiveUploadPanelId(null);
+    setError(null);
+    if (fileInput.current) fileInput.current.value = '';
+    if (panelFileInput.current) panelFileInput.current.value = '';
+  };
+
+  const handleFile = async (file: File | undefined, scope: UploadScope) => {
     if (!file || !pageId) return;
     setError(null);
+
+    if (scope.kind === 'page' && assignedPanelId) {
+      setError(t('artworkPanel.pageUploadNotAllowedError'));
+      return;
+    }
+    if (scope.kind === 'panel' && assignedPanelId && scope.panelId !== assignedPanelId) {
+      setError(t('artworkPanel.panelUploadNotAllowedError'));
+      return;
+    }
 
     if (!ACCEPTED.includes(file.type)) {
       setError(t('artworkPanel.invalidFormatError'));
@@ -570,7 +599,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       setPhase('hashing');
       const sha256 = await computeFileSha256(file);
       setPhase('uploading');
-      const effectivePanelId = targetPanelId ?? (assignedPanelId || undefined);
+      const effectivePanelId = scope.kind === 'panel' ? scope.panelId : undefined;
       const result = await artworkService.uploadArtwork(
         chapterId,
         pageId,
@@ -859,8 +888,41 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
         </span>
 
         {canUpload && (
-          <div className='flex items-center gap-1.5'>
-            {!assignedPanelId ? (
+          <div className='flex items-center gap-2 flex-wrap'>
+            {!assignedPanelId && panels.length > 0 && (
+              <div
+                role='group'
+                aria-label={t('artworkPanel.uploadModeLabel')}
+                className='inline-flex rounded-lg border border-stone-200 bg-stone-100 p-0.5'
+              >
+                <button
+                  type='button'
+                  aria-pressed={uploadMode === 'page'}
+                  onClick={() => selectUploadMode('page')}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-1 ${
+                    uploadMode === 'page'
+                      ? 'bg-white text-stone-950 shadow-2xs'
+                      : 'text-stone-600 hover:text-stone-950'
+                  }`}
+                >
+                  {t('artworkPanel.uploadModePage')}
+                </button>
+                <button
+                  type='button'
+                  aria-pressed={uploadMode === 'panel'}
+                  onClick={() => selectUploadMode('panel')}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-1 ${
+                    uploadMode === 'panel'
+                      ? 'bg-white text-stone-950 shadow-2xs'
+                      : 'text-stone-600 hover:text-stone-950'
+                  }`}
+                >
+                  {t('artworkPanel.uploadModePanel')}
+                </button>
+              </div>
+            )}
+
+            {!assignedPanelId && uploadMode === 'page' ? (
               <>
                 <input
                   ref={fileInput}
@@ -868,14 +930,14 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   accept={ACCEPTED.join(',')}
                   className='hidden'
                   data-testid='artwork-file-input'
-                  onChange={(e) => void handleFile(e.target.files?.[0])}
+                  onChange={(e) => void handleFile(e.target.files?.[0], { kind: 'page' })}
                 />
                 <button
                   type='button'
                   disabled={busy || !pageId}
                   onClick={() => fileInput.current?.click()}
                   data-testid='artwork-upload-btn'
-                  className='px-2.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer transition-colors shadow-2xs'
+                  className='px-2.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer transition-colors shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2'
                 >
                   {busy ? (
                     <Loader2 className='w-3 h-3 animate-spin' />
@@ -887,11 +949,11 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                       ? t('artworkPanel.phaseHashing')
                       : phase === 'uploading'
                         ? t('artworkPanel.phaseUploading')
-                        : t('artworkPanel.uploadBtn')}
+                        : t('artworkPanel.uploadPageBtn')}
                   </span>
                 </button>
               </>
-            ) : (
+            ) : assignedPanelId ? (
               <button
                 type='button'
                 disabled={busy || !pageId}
@@ -917,6 +979,8 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         })}
                 </span>
               </button>
+            ) : (
+              <span className='text-xs text-stone-500'>{t('artworkPanel.selectPanelHint')}</span>
             )}
             <input
               ref={panelFileInput}
@@ -924,12 +988,12 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
               accept={ACCEPTED.join(',')}
               className='hidden'
               data-testid='panel-artwork-file-input'
-              onChange={(e) =>
-                void handleFile(
-                  e.target.files?.[0],
-                  activeUploadPanelId ?? assignedPanelId ?? undefined,
-                )
-              }
+              onChange={(e) => {
+                const panelId = activeUploadPanelId ?? assignedPanelId;
+                if (panelId) {
+                  void handleFile(e.target.files?.[0], { kind: 'panel', panelId });
+                }
+              }}
             />
           </div>
         )}
@@ -1084,21 +1148,23 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           <span>Bible</span>
                         </button>
                       )}
-                      {canUpload && (!assignedPanelId || assignedPanelId === p.id) && (
-                        <button
-                          type='button'
-                          disabled={busy}
-                          data-testid={`upload-panel-btn-${p.id}`}
-                          onClick={() => {
-                            setActiveUploadPanelId(p.id);
-                            panelFileInput.current?.click();
-                          }}
-                          className='px-2.5 py-1 rounded-md bg-stone-900 text-white hover:bg-stone-800 border border-stone-900 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs'
-                        >
-                          <Upload className='w-3.5 h-3.5' />
-                          <span>{t('artworkPanel.uploadPanelBtn')}</span>
-                        </button>
-                      )}
+                      {canUpload &&
+                        uploadMode === 'panel' &&
+                        (!assignedPanelId || assignedPanelId === p.id) && (
+                          <button
+                            type='button'
+                            disabled={busy}
+                            data-testid={`upload-panel-btn-${p.id}`}
+                            onClick={() => {
+                              setActiveUploadPanelId(p.id);
+                              panelFileInput.current?.click();
+                            }}
+                            className='px-2.5 py-1 rounded-md bg-stone-900 text-white hover:bg-stone-800 border border-stone-900 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs'
+                          >
+                            <Upload className='w-3.5 h-3.5' />
+                            <span>{t('artworkPanel.uploadPanelBtn')}</span>
+                          </button>
+                        )}
                     </div>
                   </div>
 

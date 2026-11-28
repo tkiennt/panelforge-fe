@@ -11,18 +11,14 @@ interface ArtistLayoutToolbarProps {
   isSavingLayout: boolean;
   readOnly?: boolean;
   layoutLockedReason?: string;
+  uploadMode?: 'page' | 'panel';
+  canUsePanelMode?: boolean;
+  onUploadModeChange?: (mode: 'page' | 'panel') => void;
   onUploadSketch: (file: File) => void;
   onOpenTemplates: () => void;
   onSplitPanels: () => void;
   onSaveLayout: () => void;
 }
-
-const STEP_KEYS = [
-  'layoutToolbar.steps.pageImage',
-  'layoutToolbar.steps.extract',
-  'layoutToolbar.steps.review',
-  'layoutToolbar.steps.saved',
-] as const;
 
 export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
   currentStep,
@@ -33,6 +29,9 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
   isSavingLayout,
   readOnly = false,
   layoutLockedReason,
+  uploadMode = 'page',
+  canUsePanelMode = false,
+  onUploadModeChange,
   onUploadSketch,
   onOpenTemplates,
   onSplitPanels,
@@ -74,106 +73,114 @@ export const ArtistLayoutToolbar: React.FC<ArtistLayoutToolbarProps> = ({
       className='w-full min-h-12 shrink-0 border-b border-[#E7E5E4] bg-white px-3 py-2 flex flex-wrap items-center justify-between gap-2'
       data-testid='artist-layout-toolbar'
     >
-      <div className='flex min-w-0 items-center gap-3'>
-        <span className='shrink-0 text-xs font-bold text-stone-900'>
-          {t('layoutToolbar.processingTitle')}
-        </span>
-        {!layoutLockedReason && (
-          <ol className='hidden xl:flex items-center gap-1.5 text-xs text-stone-500 whitespace-nowrap'>
-            {STEP_KEYS.map((key, index) => {
-              const step = index + 1;
-              const label = t(key);
-              return (
-                <li
-                  key={key}
-                  aria-current={step === currentStep ? 'step' : undefined}
-                  className={`inline-flex items-center gap-1 ${
-                    step < currentStep
-                      ? 'text-emerald-700 font-medium'
-                      : step === currentStep
-                        ? 'font-bold text-stone-900'
-                        : 'text-stone-500'
-                  }`}
-                >
-                  <span>{label}</span>
-                  {step < currentStep && <Check className='h-3 w-3' aria-hidden='true' />}
-                  {step < STEP_KEYS.length && (
-                    <span className='text-stone-300' aria-hidden='true'>
-                      →
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        )}
+      <div
+        role='group'
+        aria-label={t('layoutToolbar.uploadModeLabel')}
+        className='inline-flex shrink-0 rounded-lg border border-stone-200 bg-stone-100 p-0.5'
+      >
+        <button
+          type='button'
+          aria-pressed={uploadMode === 'page'}
+          onClick={() => onUploadModeChange?.('page')}
+          data-testid='upload-mode-page'
+          className={`focus-ring rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+            uploadMode === 'page'
+              ? 'bg-white text-stone-950 shadow-2xs'
+              : 'text-stone-600 hover:text-stone-950'
+          }`}
+        >
+          {t('bottomDock.uploadModePage')}
+        </button>
+        <button
+          type='button'
+          aria-pressed={uploadMode === 'panel'}
+          disabled={!canUsePanelMode}
+          title={!canUsePanelMode ? t('layoutToolbar.panelModeUnavailable') : undefined}
+          onClick={() => onUploadModeChange?.('panel')}
+          data-testid='upload-mode-panel'
+          className={`focus-ring rounded-md px-2.5 py-1 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+            uploadMode === 'panel'
+              ? 'bg-white text-stone-950 shadow-2xs'
+              : 'text-stone-600 hover:text-stone-950'
+          }`}
+        >
+          {t('bottomDock.uploadModePanel')}
+        </button>
       </div>
 
       <div className='flex flex-wrap items-center justify-start gap-1.5 min-w-0'>
-        <span title={layoutLockedReason} className='shrink-0'>
-          <button
-            type='button'
-            disabled={isLayoutDisabled}
-            title={layoutLockedReason}
-            onClick={() => !isLayoutDisabled && sketchInputRef.current?.click()}
-            data-testid='btn-upload-sketch-simple'
-            className={buttonClass(1)}
-          >
-            <Upload className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
-            {t('layoutToolbar.uploadPageImage')}
-          </button>
-        </span>
-        <span title={layoutLockedReason} className='shrink-0'>
-          <button
-            type='button'
-            disabled={isLayoutDisabled}
-            title={layoutLockedReason}
-            onClick={() => !isLayoutDisabled && onOpenTemplates()}
-            data-testid='btn-open-templates-simple'
-            className={buttonClass(2)}
-          >
-            <LayoutTemplate className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
-            {t('layoutToolbar.chooseTemplate')}
-          </button>
-        </span>
-        <span title={splitReason} className='shrink-0'>
-          <button
-            type='button'
-            onClick={onSplitPanels}
-            disabled={Boolean(splitReason) || isDetectingPanels}
-            title={splitReason}
-            aria-describedby={splitReason ? 'artist-split-disabled-reason' : undefined}
-            data-testid='btn-split-panels-simple'
-            className={buttonClass(2)}
-          >
-            {isDetectingPanels ? (
-              <Loader2 className='h-3.5 w-3.5 animate-spin' aria-hidden='true' />
-            ) : (
-              <Scissors className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
-            )}
-            {isDetectingPanels
-              ? t('layoutToolbar.splittingPanels')
-              : t('layoutToolbar.extractPanels')}
-          </button>
-        </span>
-        <span title={saveReason} className='shrink-0'>
-          <button
-            type='button'
-            onClick={onSaveLayout}
-            disabled={Boolean(saveReason) || isSavingLayout}
-            title={saveReason}
-            aria-describedby={saveReason ? 'artist-save-disabled-reason' : undefined}
-            data-testid='canvas-btn-save-layout'
-            className={buttonClass(3, true)}
-          >
-            {isSavingLayout ? (
-              <Loader2 className='h-3.5 w-3.5 animate-spin' aria-hidden='true' />
-            ) : (
-              <Check className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
-            )}
-            {t('layoutToolbar.saveLayout')}
-          </button>
-        </span>
+        {uploadMode === 'panel' ? (
+          <span className='text-xs text-stone-500'>{t('layoutToolbar.panelModeHint')}</span>
+        ) : (
+          <>
+            <span title={layoutLockedReason} className='shrink-0'>
+              <button
+                type='button'
+                disabled={isLayoutDisabled}
+                title={layoutLockedReason}
+                onClick={() => !isLayoutDisabled && sketchInputRef.current?.click()}
+                data-testid='btn-upload-sketch-simple'
+                className={buttonClass(1)}
+              >
+                <Upload className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
+                {t('layoutToolbar.uploadPageImage')}
+              </button>
+            </span>
+            <span title={layoutLockedReason} className='shrink-0'>
+              <button
+                type='button'
+                disabled={isLayoutDisabled}
+                title={layoutLockedReason}
+                onClick={() => !isLayoutDisabled && onOpenTemplates()}
+                data-testid='btn-open-templates-simple'
+                className={buttonClass(2)}
+              >
+                <LayoutTemplate className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
+                {t('layoutToolbar.chooseTemplate')}
+              </button>
+            </span>
+            <span title={splitReason} className='shrink-0'>
+              <button
+                type='button'
+                onClick={onSplitPanels}
+                disabled={Boolean(splitReason) || isDetectingPanels}
+                title={splitReason}
+                aria-describedby={splitReason ? 'artist-split-disabled-reason' : undefined}
+                data-testid='btn-split-panels-simple'
+                className={buttonClass(2)}
+              >
+                {isDetectingPanels ? (
+                  <Loader2 className='h-3.5 w-3.5 animate-spin' aria-hidden='true' />
+                ) : (
+                  <Scissors className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
+                )}
+                {isDetectingPanels
+                  ? t('layoutToolbar.splittingPanels')
+                  : t('layoutToolbar.extractPanels')}
+              </button>
+            </span>
+          </>
+        )}
+        {(uploadMode === 'page' || isLayoutDirty) && (
+          <span title={saveReason} className='shrink-0'>
+            <button
+              type='button'
+              onClick={onSaveLayout}
+              disabled={Boolean(saveReason) || isSavingLayout}
+              title={saveReason}
+              aria-describedby={saveReason ? 'artist-save-disabled-reason' : undefined}
+              data-testid='canvas-btn-save-layout'
+              className={buttonClass(3, true)}
+            >
+              {isSavingLayout ? (
+                <Loader2 className='h-3.5 w-3.5 animate-spin' aria-hidden='true' />
+              ) : (
+                <Check className='h-3.5 w-3.5 hidden 2xl:inline' aria-hidden='true' />
+              )}
+              {t('layoutToolbar.saveLayout')}
+            </button>
+          </span>
+        )}
       </div>
       <span id='artist-split-disabled-reason' className='sr-only'>
         {splitReason}

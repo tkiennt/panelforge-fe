@@ -77,4 +77,44 @@ describe('ArtistLayoutToolbar', () => {
     expect(screen.getByTestId('canvas-btn-save-layout')).toBeDisabled();
     expect(screen.getByTestId('canvas-btn-save-layout')).toHaveAttribute('title', lockedReason);
   });
+
+  it('chỉ hiển thị hành động thuộc chế độ tải ảnh đang chọn', () => {
+    const onUploadModeChange = vi.fn();
+    const { rerender } = render(
+      <ArtistLayoutToolbar
+        {...handlers}
+        currentStep={4}
+        hasSketch={true}
+        hasPanels={true}
+        isLayoutDirty={false}
+        isDetectingPanels={false}
+        isSavingLayout={false}
+        uploadMode='page'
+        canUsePanelMode
+        onUploadModeChange={onUploadModeChange}
+      />,
+    );
+
+    expect(screen.getByTestId('btn-upload-sketch-simple')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('upload-mode-panel'));
+    expect(onUploadModeChange).toHaveBeenCalledWith('panel');
+
+    rerender(
+      <ArtistLayoutToolbar
+        {...handlers}
+        currentStep={4}
+        hasSketch={true}
+        hasPanels={true}
+        isLayoutDirty={false}
+        isDetectingPanels={false}
+        isSavingLayout={false}
+        uploadMode='panel'
+        canUsePanelMode
+        onUploadModeChange={onUploadModeChange}
+      />,
+    );
+
+    expect(screen.queryByTestId('btn-upload-sketch-simple')).not.toBeInTheDocument();
+    expect(screen.getByText('Chọn một khung trên trang để tải hoặc thay ảnh')).toBeInTheDocument();
+  });
 });

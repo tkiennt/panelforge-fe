@@ -247,6 +247,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [isSubmittingEdition, setIsSubmittingEdition] = useState<boolean>(false);
 
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
+  const [artworkUploadMode, setArtworkUploadMode] = useState<'page' | 'panel'>('page');
   const [selectedPanelNumberOverride, setSelectedPanelNumberOverride] = useState<number | null>(
     null,
   );
@@ -1869,6 +1870,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     () => (selectedPage ? panelsByPageId[selectedPage.id] || [] : []),
     [selectedPage, panelsByPageId],
   );
+  const handleArtworkUploadModeChange = useCallback((mode: 'page' | 'panel') => {
+    setArtworkUploadMode(mode);
+    setSelectedPanelId(null);
+    setSelectedPanelNumberOverride(null);
+  }, []);
+
+  useEffect(() => {
+    if (currentPagePanels.length === 0 && artworkUploadMode === 'panel') {
+      handleArtworkUploadModeChange('page');
+    }
+  }, [artworkUploadMode, currentPagePanels.length, handleArtworkUploadModeChange]);
+
   const selectedPanelNumber = useMemo(() => {
     if (!selectedPanelId) return selectedPanelNumberOverride;
     const found = currentPagePanels.find((p) => p.id === selectedPanelId);
@@ -2214,6 +2227,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const handleUploadPanelArtwork = useCallback(
     async (panelId: string, panelNum: number, file: File) => {
       if (!selectedPage) return;
+      if (artworkUploadMode !== 'panel') {
+        toast.error(t('layoutToolbar.panelModeRequired'));
+        return;
+      }
       if (!canUploadCurrentPageArtwork) {
         toast.error(t('artist.deskView.noUploadPermission'));
         return;
@@ -2297,6 +2314,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     },
     [
       selectedPage,
+      artworkUploadMode,
       canUploadCurrentPageArtwork,
       currentChapterId,
       artistStages,
@@ -2458,6 +2476,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // ảnh từng khung, và tốn quota cho một bản không dùng tới.
   const handleUploadFullPageSketch = (file: File) => {
     if (!selectedPage) return;
+    if (artworkUploadMode !== 'page') {
+      toast.error(t('layoutToolbar.pageModeRequired'));
+      return;
+    }
     if (isInkOrColorStage) {
       toast.error(t('artist.deskView.onlyPencilCanEditLayout'));
       return;
@@ -3299,6 +3321,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               layoutLockedReason={
                 isInkOrColorStage ? t('artist.deskView.onlyPencilCanEditLayout') : undefined
               }
+              uploadMode={artworkUploadMode}
+              canUsePanelMode={currentPagePanels.length > 0}
+              onUploadModeChange={handleArtworkUploadModeChange}
               onCanvasClick={() => {
                 balloons.setSelectedElementId(null);
                 handleSelectPanelById(null);
@@ -3319,7 +3344,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   templateCode={currentTemplate?.code}
                   artworks={currentPageArtworks}
                   isLayoutSaved={isCurrentPageLayoutSaved}
-                  canUploadArtwork={canUploadCurrentPageArtwork}
+                  canUploadArtwork={canUploadCurrentPageArtwork && artworkUploadMode === 'panel'}
+                  canSelectPanel={artworkUploadMode === 'panel'}
                   selectedPanelId={selectedPanelId}
                   onSelectPanel={handleSelectPanelById}
                   onUploadArtwork={handleUploadPanelArtwork}
@@ -3411,7 +3437,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             )}
           </div>
 
-          {currentPagePanels.length > 0 && (
+          {currentPagePanels.length > 0 && artworkUploadMode === 'panel' && (
             <SplitPanelStrip
               panels={currentPagePanels}
               artworks={currentPageArtworks}
