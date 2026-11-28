@@ -111,14 +111,34 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
   const [inviteBusyId, setInviteBusyId] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [invitationsLoaded, setInvitationsLoaded] = useState(false);
   useEffect(() => {
     if (isAdmin) return;
     let active = true;
-    workspaceService.getPendingInvitations().then((list) => active && setInvitations(list || []));
+    workspaceService
+      .getPendingInvitations()
+      .then((list) => active && setInvitations(list || []))
+      .finally(() => active && setInvitationsLoaded(true));
     return () => {
       active = false;
     };
   }, [isAdmin]);
+
+  // Độc giả (không thuộc Studio, không có lời mời, không được tạo Studio) không có gì để làm ở đây:
+  // đưa về thư viện truyện. Áp dụng cho mọi đường vào (đăng nhập Google, mở lại tab, "/" → /workspaces).
+  const isPublisher = currentUser?.role?.toUpperCase() === 'PUBLISHER';
+  const isReaderOnly =
+    !isAdmin &&
+    !isPublisher &&
+    !canCreate &&
+    !loading &&
+    !loadError &&
+    invitationsLoaded &&
+    workspaces.length === 0 &&
+    invitations.length === 0;
+  useEffect(() => {
+    if (isReaderOnly) navigate('/catalog', { replace: true });
+  }, [isReaderOnly, navigate]);
 
   const handleAcceptInvitation = async (inv: PendingInvitation) => {
     setInviteBusyId(inv.workspaceId);
@@ -478,18 +498,34 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </Alert>
           ) : workspaces.length === 0 ? (
             /* Empty State */
-            <div className='mt-4 bg-head-wash/60 border-2 border-dashed border-head-line rounded-2xl p-10 flex flex-col sm:flex-row items-center gap-8 text-center sm:text-left'>
-              <BlankPageSketch />
-              <div className='flex-1'>
-                <h1 className='text-2xl font-serif font-bold text-stone-900 mb-2 tracking-tight'>
-                  {t('workspace.emptyTitle')}
-                </h1>
-                <p className='text-sm text-stone-600 leading-relaxed max-w-prose'>
-                  {canCreate ? t('workspace.shelf.emptyCreate') : t('workspace.shelf.emptyInvite')}
-                </p>
+            <>
+              {invitations.length > 0 && (
+                <PendingInvitations
+                  invitations={invitations}
+                  busyId={inviteBusyId}
+                  error={inviteError}
+                  t={t}
+                  roleLabel={(r) => roleLabel(normalizeWorkspaceRole(r))}
+                  timeAgo={timeAgo}
+                  onAccept={(inv) => void handleAcceptInvitation(inv)}
+                  onReject={(inv) => void handleRejectInvitation(inv)}
+                />
+              )}
+              <div className='mt-4 bg-head-wash/60 border-2 border-dashed border-head-line rounded-2xl p-10 flex flex-col sm:flex-row items-center gap-8 text-center sm:text-left'>
+                <BlankPageSketch />
+                <div className='flex-1'>
+                  <h1 className='text-2xl font-serif font-bold text-stone-900 mb-2 tracking-tight'>
+                    {t('workspace.emptyTitle')}
+                  </h1>
+                  <p className='text-sm text-stone-600 leading-relaxed max-w-prose'>
+                    {canCreate
+                      ? t('workspace.shelf.emptyCreate')
+                      : t('workspace.shelf.emptyInvite')}
+                  </p>
+                </div>
+                {canCreate && createButton}
               </div>
-              {canCreate && createButton}
-            </div>
+            </>
           ) : (
             <>
               {/* PAGE HEADER (§4.8.2 — directly on paper background, no hollow wrapper card) */}
