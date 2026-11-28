@@ -449,8 +449,14 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
           path='/catalog'
           element={
             <PublicCatalogView
-              onBackToWorkspaces={() => navigate(isAuthenticated ? '/workspaces' : '/')}
-              onOpenLogin={() => navigate(`/login?redirect=${encodeURIComponent('/catalog')}`)}
+              onBackToWorkspaces={isAuthenticated ? () => navigate('/workspaces') : undefined}
+              onOpenLogin={
+                isAuthenticated
+                  ? undefined
+                  : () => navigate(`/login?redirect=${encodeURIComponent('/catalog')}`)
+              }
+              readerName={isAuthenticated ? currentUserInfo?.name || undefined : undefined}
+              onLogout={isAuthenticated ? handleLogout : undefined}
             />
           }
         />
