@@ -221,9 +221,94 @@ describe('ArtworkPanel Component', () => {
     expect(screen.getByText(/Ảnh theo từng khung/i)).toBeInTheDocument();
     expect(screen.getByText('Đọc #1')).toBeInTheDocument();
     expect(screen.getByText('Đọc #2')).toBeInTheDocument();
+    expect(screen.getByTestId('artwork-upload-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('upload-panel-btn-p-1')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Từng khung' }));
+
+    expect(screen.queryByTestId('artwork-upload-btn')).not.toBeInTheDocument();
     expect(screen.getByTestId('upload-panel-btn-p-1')).toBeInTheDocument();
     expect(screen.getByTestId('upload-panel-btn-p-2')).toBeInTheDocument();
     expect(screen.getByText(/Khung #1/)).toBeInTheDocument();
+  });
+
+  it('tách payload tải cả trang khỏi payload từng khung', async () => {
+    const mockPanels = [
+      {
+        id: 'p-1',
+        pageId: 'page-101',
+        panelNumber: 1,
+        readingOrder: 1,
+        boundingBox: '{"x":10,"y":10,"width":80,"height":35}',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+    vi.mocked(artworkService.uploadArtwork)
+      .mockResolvedValueOnce({
+        versionNumber: 1,
+        fileName: 'full-page.png',
+        sizeBytes: 2048,
+        reused: false,
+      } as any)
+      .mockResolvedValueOnce({
+        versionNumber: 1,
+        fileName: 'panel-1.png',
+        sizeBytes: 1024,
+        reused: false,
+        panelId: 'p-1',
+      } as any);
+
+    render(
+      <ArtworkPanel
+        chapterId='chap-1'
+        pageId='page-101'
+        stageId='stage-thumbnail'
+        artworks={[]}
+        panels={mockPanels}
+        canUpload={true}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    const fullPageFile = new File(['page'], 'full-page.png', { type: 'image/png' });
+    fireEvent.change(screen.getByTestId('artwork-file-input'), {
+      target: { files: [fullPageFile] },
+    });
+
+    await waitFor(() => {
+      expect(artworkService.uploadArtwork).toHaveBeenNthCalledWith(
+        1,
+        'chap-1',
+        'page-101',
+        fullPageFile,
+        'stage-thumbnail',
+        'hash-computed',
+        undefined,
+        undefined,
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Từng khung' }));
+    expect(screen.queryByTestId('artwork-file-input')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('upload-panel-btn-p-1'));
+    const panelFile = new File(['panel'], 'panel-1.png', { type: 'image/png' });
+    fireEvent.change(screen.getByTestId('panel-artwork-file-input'), {
+      target: { files: [panelFile] },
+    });
+
+    await waitFor(() => {
+      expect(artworkService.uploadArtwork).toHaveBeenNthCalledWith(
+        2,
+        'chap-1',
+        'page-101',
+        panelFile,
+        'stage-thumbnail',
+        'hash-computed',
+        undefined,
+        'p-1',
+      );
+    });
   });
 
   it('khi người dùng giữ việc theo khung (assignedPanelId), ẩn nút tải ảnh cả trang, chỉ hiện nút tải cho đúng khung của mình và gửi kèm panelId', async () => {

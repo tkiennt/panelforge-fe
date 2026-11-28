@@ -1107,6 +1107,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('1 / 1');
       });
       fireEvent.click(screen.getByTestId(`canva-template-card-${tplGuid}`));
+      fireEvent.click(await screen.findByTestId('upload-mode-panel'));
 
       // Bố cục nháp: nạp ảnh vào khung 2 → giữ ở máy, chưa gọi server
       fireEvent.drop(await screen.findByTestId('panel-dropzone-2'), {
@@ -1155,8 +1156,8 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     expect(saveBtn).toBeInTheDocument();
     expect(saveBtn).toHaveTextContent('Lưu bố cục');
 
-    // Bố cục nháp: khung trống đã là giấy trắng kèm ô nạp ảnh (ảnh giữ ở máy tới khi lưu)
-    expect(screen.getByTestId('panel-dropzone-1')).toBeEnabled();
+    // Chế độ Cả trang không cho nạp ảnh vào từng khung.
+    expect(screen.getByTestId('panel-dropzone-1')).toBeDisabled();
 
     // Verify smooth template switching in draft mode (switch to 4-Koma without any modal blocking)
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
@@ -1182,6 +1183,8 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     fireEvent.click(screen.getByTestId('canvas-btn-save-layout'));
 
     expect(screen.getByTestId('canvas-btn-save-layout')).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('upload-mode-panel'));
 
     // Dropzone is now enabled for each panel
     expect(screen.getByTestId('panel-dropzone-1')).toBeInTheDocument();
@@ -1410,6 +1413,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
       await waitFor(() => {
         expect(screen.getByTestId('panel-dropzone-1')).toBeInTheDocument();
       });
+      fireEvent.click(screen.getByTestId('upload-mode-panel'));
 
       const mockFile = new File(['image byte content'], 'fail-test.png', { type: 'image/png' });
       fireEvent.drop(screen.getByTestId('panel-dropzone-1'), {
@@ -1923,6 +1927,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
           expect(startSpy).toHaveBeenCalledWith('chap-1', 'cell-p1-pencil');
           expect(screen.queryByTestId('artist-page-readonly-banner')).not.toBeInTheDocument();
         });
+        fireEvent.click(screen.getByTestId('upload-mode-panel'));
         expect(screen.getByTestId('panel-dropzone-1')).not.toBeDisabled();
 
         // Switch to Page 2 (status InProgress) -> editable & upload enabled
@@ -1990,6 +1995,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
       await waitFor(() => {
         expect(screen.getByTestId('panel-dropzone-1')).toBeInTheDocument();
       });
+      fireEvent.click(screen.getByTestId('upload-mode-panel'));
 
       const mockFile = new File(['image byte content'], 'forbidden.png', { type: 'image/png' });
       fireEvent.drop(screen.getByTestId('panel-dropzone-1'), {
@@ -2257,6 +2263,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         expect(screen.getByTestId('canva-tab-templates')).toHaveAttribute('aria-disabled', 'true');
 
         // Nạp tranh vào khung vẫn hoạt động bình thường
+        fireEvent.click(screen.getByTestId('upload-mode-panel'));
         const dropzone = screen.getByTestId('panel-dropzone-1');
         expect(dropzone).not.toBeDisabled();
 
