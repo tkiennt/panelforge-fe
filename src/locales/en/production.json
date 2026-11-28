@@ -2133,7 +2133,9 @@
     "chart": {
       "percentByChapter": "Progress by chapter",
       "chapterTick": "Ch. {number}",
-      "percentComplete": "% complete"
+      "percentComplete": "% complete",
+      "burndown": "Remaining work by day",
+      "remaining": "Remaining"
     },
     "kpi": {
       "ariaLabel": "Series metrics",

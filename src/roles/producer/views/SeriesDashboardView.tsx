@@ -21,6 +21,7 @@ import {
 } from '@/services/series.service';
 import { buildChapterManagementUrl } from '@/app/routePaths';
 import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
+import { StatLineChart, type StatLinePoint } from '@/shared/ui/charts/StatLineChart';
 import { hasAnyValue } from '@/shared/ui/charts/chartData';
 
 /**
@@ -68,6 +69,11 @@ export const SeriesDashboardView: React.FC = () => {
     label: t('seriesDashboard.chart.chapterTick', { number: c.chapterNumber }),
     value: Math.round(c.percentComplete),
   }));
+  const burndownData: StatLinePoint[] = (progress?.burndown ?? []).map((p) => ({
+    periodStart: p.date,
+    value: p.remaining,
+  }));
+  const hasBurndown = burndownData.some((p) => p.value > 0);
   const inProduction = chapters.filter((c) => c.status === 'InProduction').length;
   const avgPercent = chapters.length
     ? Math.round(chapters.reduce((sum, c) => sum + c.percentComplete, 0) / chapters.length)
@@ -152,6 +158,21 @@ export const SeriesDashboardView: React.FC = () => {
                     formatValue={(n) => `${n}%`}
                     valueLabel={t('seriesDashboard.chart.percentComplete')}
                     ariaLabel={t('seriesDashboard.chart.percentByChapter')}
+                  />
+                </CardBody>
+              </Card>
+            )}
+            {hasBurndown && (
+              <Card>
+                <CardHeader title={t('seriesDashboard.chart.burndown')} />
+                <CardBody>
+                  <StatLineChart
+                    data={burndownData}
+                    granularity='Day'
+                    locale={lang}
+                    valueLabel={t('seriesDashboard.chart.remaining')}
+                    formatValue={numberFmt.format}
+                    ariaLabel={t('seriesDashboard.chart.burndown')}
                   />
                 </CardBody>
               </Card>
