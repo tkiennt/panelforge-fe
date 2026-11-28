@@ -237,5 +237,17 @@
     "publish": "Publish {lang} edition",
     "publishBlocked": "Set pricing before publishing.",
     "publishWithChapterHint": "The original edition is released with the chapter: use \"Publish chapter\" on the Publisher desk so it appears in the Catalog."
+  },
+  "charts": {
+    "viewsBySeries": "Reads by series",
+    "viewsByChapter": "Reads by chapter",
+    "viewsByChapterOf": "Reads by chapter · {title}",
+    "revenueBySeries": "Revenue by series",
+    "revenueByChapter": "Revenue by chapter",
+    "viewsByLanguage": "Reads by language edition",
+    "other": "Other",
+    "topNote": "Top {count} series; the rest are grouped into \"Other\". Full numbers are in the table below.",
+    "ariaLabel": "Bar chart: {title}",
+    "chapterTick": "Ch.{number}"
   }
 }

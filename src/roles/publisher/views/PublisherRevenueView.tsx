@@ -5,6 +5,11 @@ import { useTranslation } from '@/lib/i18n';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { monetizationService, type PublisherRevenueDto } from '@/services/payment.service';
 import { publisherService } from '@/services/publisher.service';
+import { Card, CardBody, CardHeader } from '@/shared/ui';
+import { StatBarChart } from '@/shared/ui/charts/StatBarChart';
+import { hasAnyValue, rankWithOther } from '@/shared/ui/charts/chartData';
+
+const TOP_SERIES = 8;
 
 interface WorkspaceOption {
   id: string;
@@ -55,6 +60,15 @@ export const PublisherRevenueView: React.FC = () => {
   }, [workspaceId, search, t]);
 
   const s = data?.summary;
+  const revenueBySeries = rankWithOther(
+    (data?.series ?? []).map((r) => ({
+      key: r.seriesId,
+      label: r.seriesTitle,
+      value: r.totalRevenueVnd,
+    })),
+    TOP_SERIES,
+    t('charts.other'),
+  );
 
   return (
     <div className='p-6 max-w-7xl mx-auto space-y-6'>
@@ -149,6 +163,28 @@ export const PublisherRevenueView: React.FC = () => {
           <AlertTriangle className='w-4 h-4' />
           {error}
         </div>
+      )}
+
+      {!loading && hasAnyValue(revenueBySeries) && (
+        <Card>
+          <CardHeader
+            title={t('charts.revenueBySeries')}
+            subtitle={
+              (data?.series.length ?? 0) > TOP_SERIES
+                ? t('charts.topNote', { count: TOP_SERIES })
+                : undefined
+            }
+          />
+          <CardBody>
+            <StatBarChart
+              data={revenueBySeries}
+              variant='ranked'
+              valueLabel={t('revenue.total')}
+              formatValue={fmt}
+              ariaLabel={t('charts.ariaLabel', { title: t('charts.revenueBySeries') })}
+            />
+          </CardBody>
+        </Card>
       )}
 
       {loading ? (
