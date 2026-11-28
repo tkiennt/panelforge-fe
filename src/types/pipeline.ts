@@ -684,6 +684,21 @@ export interface ChapterReviewStatsDto {
   approved: number;
   rejected: number;
   firstPassApproved: number;
+  /** Việc đã giao (ô lưới V3 + Assignment V2) của chương. */
+  tasksTotal?: number;
+  tasksApproved?: number;
+  tasksInProgress?: number;
+  tasksRework?: number;
+  tasksOverdue?: number;
+}
+
+/** Trạng thái thiết kế Series Bible theo revision mới nhất của mỗi mục (BE BibleReviewSummaryDto). */
+export interface BibleReviewSummaryDto {
+  entries: number;
+  draft: number;
+  conceptSubmitted: number;
+  reworkRequired: number;
+  canonLocked: number;
 }
 
 export interface ReviewDecisionPointDto {
@@ -700,6 +715,7 @@ export interface SeriesReviewStatsDto {
   /** 30 ngày gần nhất (UTC), cũ → mới. */
   decisions: ReviewDecisionPointDto[];
   avgReviewHours?: number | null;
+  bible?: BibleReviewSummaryDto | null;
 }
 
 export interface EditorReviewQueueItemDto {

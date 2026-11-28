@@ -766,6 +766,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     </RequireWorkspaceRole>
                   }
                 />
+                {/* Legacy route redirects to editor/dashboard?chapter=:chapterId (AG-12) */}
                 <Route
                   path='editor/dashboard/:chapterId'
                   element={
