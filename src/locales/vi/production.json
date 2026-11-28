@@ -2130,6 +2130,11 @@
     "eyebrow": "Series · {title}",
     "title": "Tổng quan series",
     "subtitle": "Tiến độ mọi chương của bộ truyện. Chọn một chương để xem chi tiết.",
+    "chart": {
+      "percentByChapter": "Tiến độ theo chương",
+      "chapterTick": "Ch. {number}",
+      "percentComplete": "% hoàn thành"
+    },
     "kpi": {
       "ariaLabel": "Chỉ số series",
       "chapters": "Chương",

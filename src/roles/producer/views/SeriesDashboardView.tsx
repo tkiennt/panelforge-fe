@@ -20,6 +20,8 @@ import {
   type SeriesProgressDto,
 } from '@/services/series.service';
 import { buildChapterManagementUrl } from '@/app/routePaths';
+import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
+import { hasAnyValue } from '@/shared/ui/charts/chartData';
 
 /**
  * Tổng quan cấp Series (UC-16, BR-32): tiến độ mọi chương của một bộ truyện.
@@ -61,6 +63,11 @@ export const SeriesDashboardView: React.FC = () => {
   const chapters: ChapterProgressDto[] = [...(progress?.chapters ?? [])].sort(
     (a, b) => a.chapterNumber - b.chapterNumber,
   );
+  const percentByChapterData: StatBarDatum[] = chapters.map((c) => ({
+    key: c.chapterId,
+    label: t('seriesDashboard.chart.chapterTick', { number: c.chapterNumber }),
+    value: Math.round(c.percentComplete),
+  }));
   const inProduction = chapters.filter((c) => c.status === 'InProduction').length;
   const avgPercent = chapters.length
     ? Math.round(chapters.reduce((sum, c) => sum + c.percentComplete, 0) / chapters.length)
@@ -134,6 +141,22 @@ export const SeriesDashboardView: React.FC = () => {
           </section>
 
           {/* AG-5..AG-7 (agy): biểu đồ % theo chương, burndown, tải việc ê-kíp đặt ở đây. */}
+          <div className='grid grid-cols-1 xl:grid-cols-2 gap-4'>
+            {hasAnyValue(percentByChapterData) && (
+              <Card>
+                <CardHeader title={t('seriesDashboard.chart.percentByChapter')} />
+                <CardBody>
+                  <StatBarChart
+                    variant='sequence'
+                    data={percentByChapterData}
+                    formatValue={(n) => `${n}%`}
+                    valueLabel={t('seriesDashboard.chart.percentComplete')}
+                    ariaLabel={t('seriesDashboard.chart.percentByChapter')}
+                  />
+                </CardBody>
+              </Card>
+            )}
+          </div>
 
           <Card>
             <CardHeader

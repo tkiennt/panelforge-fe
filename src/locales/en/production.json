@@ -2130,6 +2130,11 @@
     "eyebrow": "Series · {title}",
     "title": "Series overview",
     "subtitle": "Progress of every chapter in this series. Pick a chapter for details.",
+    "chart": {
+      "percentByChapter": "Progress by chapter",
+      "chapterTick": "Ch. {number}",
+      "percentComplete": "% complete"
+    },
     "kpi": {
       "ariaLabel": "Series metrics",
       "chapters": "Chapters",
