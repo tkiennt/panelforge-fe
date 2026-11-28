@@ -973,6 +973,13 @@
     }
   },
   "dashboard": {
+    "chart": {
+      "chapterTick": "Ch.{{number}}",
+      "queueByChapter": "Waiting by chapter",
+      "queue": "Waiting",
+      "decisions30d": "Reviews, last 30 days",
+      "decisions": "Reviews"
+    },
     "kpi": {
       "ariaLabel": "Review metrics",
       "queue": "Waiting review",

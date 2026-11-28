@@ -7,6 +7,9 @@ import { assignmentService } from '@/services/assignment.service';
 import { seriesService, type SeriesDetailDto } from '@/services/series.service';
 import { buildEditorDashboardUrl, buildEditorDeskUrl } from '@/app/routePaths';
 import type { ChapterReviewStatsDto, SeriesReviewStatsDto } from '@/types';
+import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
+import { StatLineChart, type StatLinePoint } from '@/shared/ui/charts/StatLineChart';
+import { hasAnyValue } from '@/shared/ui/charts/chartData';
 import { ReviewKpiStrip } from './ReviewKpiStrip';
 import { sumReviewStats } from './reviewStats';
 
@@ -54,6 +57,17 @@ export const EditorSeriesDashboardView: React.FC = () => {
     (a, b) => a.chapterNumber - b.chapterNumber,
   );
   const totals = sumReviewStats(chapters);
+  const queueByChapterData: StatBarDatum[] = chapters.map((c) => ({
+    key: c.chapterId,
+    label: t('dashboard.chart.chapterTick', { number: c.chapterNumber }),
+    value: c.waitingReview + c.inReview,
+  }));
+  const decisionsData: StatLinePoint[] = (stats?.decisions ?? []).map((d) => ({
+    periodStart: d.date,
+    value: d.approved + d.rejected,
+  }));
+  const hasQueue = hasAnyValue(queueByChapterData);
+  const hasDecisions = decisionsData.some((d) => d.value > 0);
 
   const scriptLabel = (status: string) => {
     const key = `dashboard.scriptStatus.${status}`;
@@ -98,7 +112,39 @@ export const EditorSeriesDashboardView: React.FC = () => {
         <>
           <ReviewKpiStrip totals={totals} avgReviewHours={stats.avgReviewHours} />
 
-          {/* AG-8 (agy): biểu đồ "Chờ duyệt theo chương" và "Lượt quyết định 30 ngày" đặt ở đây. */}
+          {(hasQueue || hasDecisions) && (
+            <div className='grid grid-cols-1 xl:grid-cols-2 gap-4'>
+              {hasQueue && (
+                <Card>
+                  <CardHeader title={t('dashboard.chart.queueByChapter')} />
+                  <CardBody>
+                    <StatBarChart
+                      variant='sequence'
+                      data={queueByChapterData}
+                      valueLabel={t('dashboard.chart.queue')}
+                      formatValue={n.format}
+                      ariaLabel={t('dashboard.chart.queueByChapter')}
+                    />
+                  </CardBody>
+                </Card>
+              )}
+              {hasDecisions && (
+                <Card>
+                  <CardHeader title={t('dashboard.chart.decisions30d')} />
+                  <CardBody>
+                    <StatLineChart
+                      data={decisionsData}
+                      granularity='Day'
+                      locale={lang}
+                      valueLabel={t('dashboard.chart.decisions')}
+                      formatValue={n.format}
+                      ariaLabel={t('dashboard.chart.decisions30d')}
+                    />
+                  </CardBody>
+                </Card>
+              )}
+            </div>
+          )}
 
           <Card>
             <CardHeader

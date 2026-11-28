@@ -86,4 +86,26 @@ describe('EditorSeriesDashboardView', () => {
     expect(rows[0].textContent).toContain('Tập 1');
     expect(rows[1].textContent).toContain('Tập 2');
   });
+
+  it('shows 30-day decisions chart when there are decisions', async () => {
+    vi.mocked(assignmentService.getSeriesReviewStats).mockResolvedValueOnce({
+      seriesId: 's1',
+      generatedAt: '2026-11-28T00:00:00Z',
+      chapters: [row(1)],
+      decisions: [{ date: '2026-11-20T00:00:00Z', approved: 2, rejected: 1 }],
+      avgReviewHours: null,
+    });
+    render(
+      <MemoryRouter initialEntries={['/workspaces/w1/series/s1/editor/dashboard']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/editor/dashboard'
+            element={<EditorSeriesDashboardView />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Lượt duyệt 30 ngày')).toBeTruthy();
+  });
 });

@@ -973,6 +973,13 @@
     }
   },
   "dashboard": {
+    "chart": {
+      "chapterTick": "Ch.{{number}}",
+      "queueByChapter": "Chờ duyệt theo chương",
+      "queue": "Chờ duyệt",
+      "decisions30d": "Lượt duyệt 30 ngày",
+      "decisions": "Lượt duyệt"
+    },
     "kpi": {
       "ariaLabel": "Số liệu duyệt",
       "queue": "Chờ duyệt",
