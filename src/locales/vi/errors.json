@@ -271,7 +271,9 @@
       "emailSettingsSaveFailed": "Không lưu được cấu hình email.",
       "emailTestFailed": "Không gửi được email thử.",
       "emailSettingsHistoryFailed": "Không tải được lịch sử cấu hình email.",
-      "emailSettingsRestoreFailed": "Không khôi phục được cấu hình email."
+      "emailSettingsRestoreFailed": "Không khôi phục được cấu hình email.",
+      "emailTemplatesLoadFailed": "Không tải được mẫu email.",
+      "emailTemplateSaveFailed": "Không lưu được mẫu email."
     },
     "auth": {
       "unauthorized": "Phiên đăng nhập đã hết hạn hoặc token không hợp lệ (401 Unauthorized). Vui lòng đăng nhập lại.",

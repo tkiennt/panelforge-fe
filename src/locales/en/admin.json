@@ -905,6 +905,45 @@
       "by": "{date} · {name}",
       "loading": "Loading history…",
       "retry": "Retry"
+    },
+    "templates": {
+      "title": "Email templates",
+      "description": "Edit the subject and body of each system email. Every save is written to the system log.",
+      "loading": "Loading templates…",
+      "retry": "Retry",
+      "type": "Email type",
+      "subject": "Subject",
+      "body": "Body (HTML)",
+      "placeholders": "Available variables (click to insert into the body):",
+      "required": "required",
+      "preview": "Preview with sample data",
+      "previewTitle": "Email preview",
+      "useDefault": "Use default template",
+      "save": "Save template",
+      "saved": "Email template saved.",
+      "customized": "Customized",
+      "default": "Default template",
+      "changed": "Last saved {date} by {name}",
+      "errors": {
+        "subject": "Enter a one-line subject.",
+        "body": "Enter the email body.",
+        "missing": "The body must contain {placeholders}.",
+        "unknown": "Unsupported variables: {placeholders}."
+      },
+      "keys": {
+        "EmailVerification": "Sign-up email verification",
+        "PasswordReset": "Password reset",
+        "ChangePasswordOtp": "Change-password OTP",
+        "StudioInviteNewAccount": "Studio invite (new account)",
+        "StudioInviteExistingAccount": "Added to Studio (existing account)"
+      },
+      "sample": {
+        "name": "Alex Nguyen",
+        "code": "482913",
+        "validFor": "15 minutes",
+        "studio": "Orange Ink Studio",
+        "role": "Artist"
+      }
     }
   }
 }

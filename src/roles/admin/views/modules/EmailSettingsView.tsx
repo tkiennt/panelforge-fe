@@ -16,6 +16,7 @@ import {
 } from '../components/AdminUi';
 import { adminFieldClass, useAdminToast } from '../components/adminUiStyles';
 import { EMAIL_SETTINGS_HISTORY_KEY, EmailSettingsHistoryCard } from './EmailSettingsHistoryCard';
+import { EmailTemplatesCard } from './EmailTemplatesCard';
 
 const QUERY_KEY = ['adminEmailSettings'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -269,6 +270,11 @@ export const EmailSettingsView: React.FC = () => {
           setDraft(null);
           showToast(t('admin.emailSettings.history.restored', { date }));
         }}
+        onError={(message) => showToast(message, 'error')}
+      />
+
+      <EmailTemplatesCard
+        onSaved={(message) => showToast(message)}
         onError={(message) => showToast(message, 'error')}
       />
     </div>

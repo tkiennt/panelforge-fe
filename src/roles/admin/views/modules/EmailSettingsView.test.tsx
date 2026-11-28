@@ -16,6 +16,7 @@ vi.mock('@/services/admin.service', () => ({
     sendTestEmail: vi.fn(),
     getEmailSettingsHistory: vi.fn(),
     restoreEmailSettings: vi.fn(),
+    getEmailTemplates: vi.fn().mockResolvedValue([]),
   },
 }));
 

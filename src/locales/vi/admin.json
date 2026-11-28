@@ -905,6 +905,45 @@
       "by": "{date} · {name}",
       "loading": "Đang tải lịch sử…",
       "retry": "Thử lại"
+    },
+    "templates": {
+      "title": "Mẫu nội dung email",
+      "description": "Sửa tiêu đề và nội dung từng loại email hệ thống. Mỗi lần lưu được ghi vào nhật ký hệ thống.",
+      "loading": "Đang tải mẫu email…",
+      "retry": "Thử lại",
+      "type": "Loại email",
+      "subject": "Tiêu đề",
+      "body": "Nội dung (HTML)",
+      "placeholders": "Biến dùng được (bấm để chèn vào nội dung):",
+      "required": "bắt buộc",
+      "preview": "Xem trước với dữ liệu mẫu",
+      "previewTitle": "Xem trước email",
+      "useDefault": "Dùng mẫu mặc định",
+      "save": "Lưu mẫu",
+      "saved": "Đã lưu mẫu email.",
+      "customized": "Đã chỉnh sửa",
+      "default": "Mẫu mặc định",
+      "changed": "Lưu lần cuối {date} bởi {name}",
+      "errors": {
+        "subject": "Nhập tiêu đề trên một dòng.",
+        "body": "Nhập nội dung email.",
+        "missing": "Nội dung phải có {placeholders}.",
+        "unknown": "Biến không hỗ trợ: {placeholders}."
+      },
+      "keys": {
+        "EmailVerification": "Xác thực email khi đăng ký",
+        "PasswordReset": "Đặt lại mật khẩu",
+        "ChangePasswordOtp": "Mã OTP đổi mật khẩu",
+        "StudioInviteNewAccount": "Mời vào Studio (tài khoản mới)",
+        "StudioInviteExistingAccount": "Thêm vào Studio (đã có tài khoản)"
+      },
+      "sample": {
+        "name": "Nguyễn Văn An",
+        "code": "482913",
+        "validFor": "15 phút",
+        "studio": "Studio Mực Cam",
+        "role": "Artist"
+      }
     }
   }
 }

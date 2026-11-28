@@ -303,6 +303,20 @@ export interface AdminEmailSettingsDto {
   changedByName: string | null;
 }
 
+/** Mẫu một loại email hệ thống; biến viết dạng `{{ten}}`. `isCustomized = false`: đang dùng mẫu mặc định. */
+export interface AdminEmailTemplateDto {
+  key: string;
+  subject: string;
+  bodyHtml: string;
+  defaultSubject: string;
+  defaultBodyHtml: string;
+  placeholders: string[];
+  requiredPlaceholders: string[];
+  isCustomized: boolean;
+  changedAt: string | null;
+  changedByName: string | null;
+}
+
 /** Một phiên bản trong lịch sử cấu hình SMTP (append-only), không kèm mật khẩu. */
 export interface AdminEmailSettingsVersionDto {
   id: string;
@@ -775,6 +789,36 @@ export const adminService = {
     } catch (error: any) {
       throw new Error(
         extractError(error, translate('errors.services.admin.emailSettingsHistoryFailed')),
+      );
+    }
+  },
+
+  /** GET /api/admin/email-templates — mẫu đang dùng của từng loại email hệ thống. */
+  getEmailTemplates: async (): Promise<AdminEmailTemplateDto[]> => {
+    try {
+      const { data } = await axiosClient.get('/admin/email-templates');
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.emailTemplatesLoadFailed')),
+      );
+    }
+  },
+
+  /** PUT /api/admin/email-templates/{key} — lưu mẫu (append-only, có audit). */
+  updateEmailTemplate: async (
+    key: string,
+    request: { subject: string; bodyHtml: string },
+  ): Promise<AdminEmailTemplateDto> => {
+    try {
+      const { data } = await axiosClient.put(
+        `/admin/email-templates/${encodeURIComponent(key)}`,
+        request,
+      );
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.emailTemplateSaveFailed')),
       );
     }
   },
