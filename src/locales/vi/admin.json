@@ -554,6 +554,30 @@
       "hint": "Nhập 0 để không giới hạn. Hạn mức thấp hơn mức đã dùng sẽ chặn Studio dùng thêm.",
       "invalid": "Nhập cả ba mức, mỗi mức từ 0 trở lên.",
       "saved": "Đã cập nhật hạn mức “{name}”."
+    },
+    "reconcile": {
+      "title": "Đối soát dung lượng",
+      "description": "Quét kho file, tính lại dung lượng từng Studio từ những file còn được dùng và liệt kê file mồ côi. Không xoá file nào.",
+      "scan": "Quét kho",
+      "rescan": "Quét lại",
+      "apply": "Cập nhật dung lượng",
+      "idle": "Chưa quét. Bấm \"Quét kho\" để xem số liệu; bước này chỉ đọc, chưa ghi gì.",
+      "scanned": "Đã quét {{files}} file, tổng {{size}} lúc {{time}}.",
+      "applied": "Đã cập nhật dung lượng",
+      "unattributed": "{{count}} file ({{size}}) không thuộc Studio nào còn tồn tại.",
+      "colStudio": "Studio",
+      "colRecorded": "Đang ghi",
+      "colComputed": "Tính lại",
+      "colOrphans": "File mồ côi",
+      "colMissing": "Thiếu file",
+      "colDerived": "Ảnh thu nhỏ & file xuất",
+      "allMatch": "Dung lượng mọi Studio khớp với kho, không có file mồ côi.",
+      "filesAndSize": "{{count}} file · {{size}}",
+      "samplesTitle": "Danh sách file mồ côi ({{count}})",
+      "samplesTruncated": "Chỉ hiện 200 file đầu tiên.",
+      "confirmTitle": "Cập nhật dung lượng đã tính lại?",
+      "confirmDescription": "{{count}} Studio sẽ được ghi dung lượng mới theo file còn được dùng.",
+      "confirmNote": "File mồ côi vẫn nằm trong kho và không bị xoá. Hệ thống quét lại một lần trước khi ghi; nếu có Studio vừa tải file lên, hãy chạy lại."
     }
   }
 }

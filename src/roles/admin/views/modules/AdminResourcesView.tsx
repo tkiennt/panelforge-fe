@@ -26,6 +26,7 @@ import {
   AdminToast,
 } from '../components/AdminUi';
 import { adminFieldClass, adminTable, useAdminToast } from '../components/adminUiStyles';
+import { StorageReconcileCard } from './StorageReconcileCard';
 
 type QuotaInputs = Record<QuotaResourceType, string>;
 
@@ -594,6 +595,8 @@ export const AdminResourcesView: React.FC = () => {
           </table>
         </div>
       </div>
+
+      <StorageReconcileCard onApplied={load} />
 
       {policyForm && (
         <AdminModal

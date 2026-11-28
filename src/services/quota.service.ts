@@ -71,6 +71,39 @@ export interface UpdateWorkspaceResourcesRequest {
   monthlyImageQuota: number | null;
 }
 
+/** OPS-22: báo cáo đối soát kho file. Không xoá file nào; applied = đã ghi dung lượng tính lại. */
+export interface StorageReconcileWorkspaceDto {
+  workspaceId: string;
+  name: string;
+  recordedBytes: number;
+  /** Tổng file gốc còn được dùng (artwork, ảnh bìa, ảnh Bible). */
+  computedBytes: number;
+  orphanFiles: number;
+  orphanBytes: number;
+  /** Ảnh thu nhỏ và file xuất bản, không tính vào hạn mức. */
+  derivedBytes: number;
+  /** File DB còn trỏ tới nhưng kho không có. */
+  missingFiles: number;
+}
+
+export interface StorageOrphanFileDto {
+  key: string;
+  sizeBytes: number;
+  workspaceId: string | null;
+}
+
+export interface StorageReconcileReportDto {
+  scannedAt: string;
+  applied: boolean;
+  scannedFiles: number;
+  scannedBytes: number;
+  workspaces: StorageReconcileWorkspaceDto[];
+  unattributedFiles: number;
+  unattributedBytes: number;
+  orphanSamples: StorageOrphanFileDto[];
+  orphanSamplesTruncated: boolean;
+}
+
 const call = async <T>(request: () => Promise<{ data: T }>, fallbackKey: string): Promise<T> => {
   try {
     return (await request()).data;
@@ -127,5 +160,10 @@ export const quotaService = {
     call<AdminWorkspaceResourceDto>(
       () => axiosClient.put(`/Admin/workspaces/${workspaceId}/resources`, body),
       'errors.services.quota.saveResourcesFailed',
+    ),
+  reconcileStorage: (apply: boolean) =>
+    call<StorageReconcileReportDto>(
+      () => axiosClient.post('/Admin/storage/reconcile', null, { params: { apply } }),
+      'errors.services.quota.reconcileFailed',
     ),
 };

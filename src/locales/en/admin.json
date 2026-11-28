@@ -554,6 +554,30 @@
       "hint": "Enter 0 for unlimited. A quota below current usage blocks further use.",
       "invalid": "Enter all three values, each 0 or more.",
       "saved": "Updated quotas for “{name}”."
+    },
+    "reconcile": {
+      "title": "Storage reconciliation",
+      "description": "Scan file storage, recalculate each studio's usage from files still in use, and list orphan files. No files are deleted.",
+      "scan": "Scan storage",
+      "rescan": "Scan again",
+      "apply": "Update usage",
+      "idle": "Not scanned yet. Select \"Scan storage\" to see the numbers; this step only reads.",
+      "scanned": "Scanned {{files}} files, {{size}} in total, at {{time}}.",
+      "applied": "Usage updated",
+      "unattributed": "{{count}} files ({{size}}) belong to no existing studio.",
+      "colStudio": "Studio",
+      "colRecorded": "Recorded",
+      "colComputed": "Recalculated",
+      "colOrphans": "Orphan files",
+      "colMissing": "Missing files",
+      "colDerived": "Thumbnails & exports",
+      "allMatch": "Every studio's usage matches storage, and there are no orphan files.",
+      "filesAndSize": "{{count}} files · {{size}}",
+      "samplesTitle": "Orphan files ({{count}})",
+      "samplesTruncated": "Only the first 200 files are shown.",
+      "confirmTitle": "Update recalculated usage?",
+      "confirmDescription": "{{count}} studios will get new usage based on files still in use.",
+      "confirmNote": "Orphan files stay in storage and are not deleted. Storage is scanned once more before saving; if a studio uploads during that time, run it again."
     }
   }
 }
