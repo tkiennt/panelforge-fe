@@ -34,8 +34,8 @@
         "desc": "Models, quotas, and AI usage history"
       },
       "storage": {
-        "label": "Storage & Quota",
-        "desc": "Storage usage and quotas per Studio"
+        "label": "Resources",
+        "desc": "Storage Quota, AI Quota and increase requests"
       },
       "sessionPolicy": {
         "label": "Session Policy",
@@ -49,6 +49,22 @@
         "label": "Reader Analytics",
         "desc": "Reads and readers across series"
       }
+    },
+    "resources": {
+      "storageUsed": "Storage used",
+      "tokensMonth": "AI tokens this month",
+      "imagesMonth": "{count} AI images",
+      "attention": "Studios near/over quota",
+      "pendingRequests": "Pending resource requests"
+    },
+    "attention": {
+      "title": "Requires attention",
+      "viewAll": "View resources",
+      "loading": "Loading…",
+      "none": "No Studio is near its quota and no requests are pending.",
+      "pending": "{count} resource increase requests pending",
+      "storage": "Storage",
+      "tokens": "AI"
     }
   },
   "ui": {
@@ -83,10 +99,10 @@
       "dashboard": "Overview",
       "users": "Users & Roles",
       "aiConfig": "AI Configuration",
-      "storage": "Resources & Quotas",
       "sessionPolicy": "Session Policy",
       "audit": "Audit Logs",
-      "analytics": "Reader Analytics"
+      "analytics": "Reader Analytics",
+      "resources": "Resources & quotas"
     }
   },
   "users": {
@@ -482,78 +498,138 @@
     }
   },
   "resources": {
-    "title": "Resources & Quotas",
-    "description": "Grants for new studios, pending quota increase requests and each studio's usage.",
+    "title": "Resources",
+    "description": "Allocate Storage Quota and AI Quota per Studio, set the default policy and review resource increase requests. Allocation only, no purchasing.",
     "refresh": "Refresh",
+    "retry": "Retry",
     "loading": "Loading…",
-    "unlimited": "Unlimited",
-    "cancel": "Cancel",
     "save": "Save",
-    "types": {
+    "cancel": "Cancel",
+    "unlimited": "Unlimited",
+    "aiDisabled": "AI disabled",
+    "tabsAria": "Resource sections",
+    "tabs": {
+      "allocation": "Studio allocation",
+      "policy": "Default policy",
+      "requests": "Increase requests",
+      "reconcile": "Storage reconcile"
+    },
+    "stats": {
+      "storageUsed": "Storage used",
+      "storageHint": "Actual stored bytes across all Studios",
+      "tokensMonth": "AI tokens this month",
+      "aiEnabledHint": "{enabled}/{total} Studios with AI enabled",
+      "attention": "Studios needing attention",
+      "attentionHint": "{near} near limit · {exhausted} exhausted",
+      "pendingRequests": "Pending requests"
+    },
+    "health": {
+      "Ok": "Normal",
+      "NearLimit": "Near limit",
+      "Exhausted": "Quota exhausted"
+    },
+    "type": {
       "Storage": "Storage",
       "AiTokens": "AI tokens / month",
       "AiImages": "AI images / month"
     },
-    "inputLabels": {
-      "Storage": "Storage (GB)",
-      "AiTokens": "AI tokens per month",
-      "AiImages": "AI images per month"
+    "requestStatus": {
+      "Pending": "Pending",
+      "Approved": "Approved",
+      "Rejected": "Rejected",
+      "Cancelled": "Cancelled"
     },
-    "requests": {
-      "title": "Pending quota increase requests",
-      "description": "Producers send these from the studio resource bar. Approving changes the quota immediately and notifies the Producer.",
+    "allocation": {
+      "searchPlaceholder": "Search Studio, Producer, email",
+      "filterAria": "Filter by resource status",
+      "filterAll": "All Studios",
+      "filterAttention": "Needs attention",
+      "count": "{filtered}/{total} Studios",
       "colStudio": "Studio",
-      "colType": "Type",
-      "colChange": "Current → Requested",
-      "colReason": "Reason",
-      "colRequester": "Requested by",
+      "colStorage": "Storage Usage",
+      "colTokens": "AI tokens",
+      "colImages": "AI images",
+      "colReset": "AI reset",
+      "colStatus": "Status",
       "colActions": "Actions",
-      "empty": "No pending requests.",
-      "approve": "Approve",
-      "reject": "Reject"
+      "membersSeries": "{members} members · {series} Series",
+      "storageAria": "Storage of {name}",
+      "tokensAria": "AI tokens of {name}",
+      "imagesAria": "AI images of {name}",
+      "pendingLink": "{count} pending",
+      "configure": "Configure",
+      "empty": "No Studios yet.",
+      "noResults": "No Studios match the filters.",
+      "clearFilters": "Clear filters"
     },
-    "review": {
-      "approveTitle": "Approve quota increase",
-      "rejectTitle": "Reject request",
-      "summary": "Currently {current}, requested {requested}.",
-      "grantedHint": "Amount to grant. It can be lower than requested.",
-      "noteLabel": "Note to the Producer",
-      "invalidGranted": "Enter an amount greater than 0.",
-      "noteRequired": "A rejection reason is required.",
-      "approved": "Approved the request from “{name}”.",
-      "rejected": "Rejected the request from “{name}”."
+    "configure": {
+      "title": "Configure Resource Allocation",
+      "zeroHint": "Enter 0 for unlimited.",
+      "storageLegend": "Storage Quota",
+      "aiLegend": "AI Quota",
+      "current": "Current",
+      "storageQuota": "Storage Quota (GB)",
+      "storageUsed": "In use: {used}",
+      "belowUsageWarning": "The new quota is below current usage. Existing files are kept, but the Studio cannot store new data until it cleans up or the quota is raised.",
+      "aiEnabled": "Enable AI for this Studio",
+      "tokenQuota": "AI tokens / month",
+      "imageQuota": "AI images / month",
+      "reason": "Adjustment reason",
+      "reasonHint": "Recorded in the Audit Log with the old and new values.",
+      "saved": "Updated resources of {name}."
     },
     "policy": {
-      "title": "Quotas for new studios",
-      "description": "Applies to studios created from now on. Existing studios keep their current grants.",
-      "edit": "Edit policy",
-      "modalTitle": "Edit quotas for new studios",
-      "hint": "Every value must be greater than 0. To remove a limit, edit that studio directly.",
-      "invalid": "Enter all three values, each greater than 0.",
-      "saved": "Quota policy saved.",
-      "fromSettings": "No policy saved yet: using the server configuration values.",
-      "updatedBy": "Last changed by {name} at {date}."
+      "title": "Default resource policy",
+      "description": "Applies to newly created Studios. Existing Studio quotas are not changed.",
+      "notConfigured": "No policy saved yet: showing system defaults. Save to fix the policy.",
+      "storage": "Default Storage Quota (GB)",
+      "tokens": "AI tokens / month",
+      "images": "AI images / month",
+      "warn": "Warning threshold (%)",
+      "warnHint": "Studios at this level are flagged \"Near limit\".",
+      "aiEnabled": "Enable AI for new Studios",
+      "resetNote": "AI Quota resets on the 1st of every month (UTC). Storage Quota does not reset.",
+      "discard": "Discard",
+      "updatedAt": "Last updated {time} by {name}",
+      "saved": "Default resource policy saved.",
+      "positiveHint": "Every value must be greater than 0. To remove a limit, edit that studio directly."
     },
-    "table": {
-      "title": "Usage by studio",
-      "searchPlaceholder": "Search studio or owner",
+    "requests": {
+      "searchPlaceholder": "Search Studio, requester, reason",
+      "statusFilter": "Filter by status",
+      "typeFilter": "Filter by resource type",
+      "allStatuses": "All statuses",
+      "allTypes": "All types",
       "colStudio": "Studio",
-      "colPending": "Pending",
+      "colChange": "Current → Requested",
+      "colReason": "Reason",
+      "colRequested": "Requested by",
+      "colStatus": "Status",
       "colActions": "Actions",
-      "empty": "No studios yet.",
-      "noResults": "No matching studios.",
-      "clearSearch": "Clear search",
-      "noAiConfig": "AI not granted",
-      "aiOff": "AI is off",
-      "pendingCount": "{count} request(s)",
-      "edit": "Edit quotas",
-      "progressAria": "{label}: {percent}% used"
+      "reviewNote": "{name}: {note}",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approveTitle": "Approve resource increase",
+      "rejectTitle": "Reject resource increase",
+      "approveHint": "Grants the requested amount by default; you can grant less. Approving applies the new quota now, notifies the Producer and writes the audit log.",
+      "note": "Note",
+      "approved": "Approved the request of {name}.",
+      "rejected": "Rejected the request of {name}.",
+      "empty": "No requests.",
+      "noResults": "No requests match the search.",
+      "granted": "Granted {value}",
+      "grantedGb": "Amount to grant (GB)",
+      "grantedAmount": "Amount to grant"
     },
-    "edit": {
-      "title": "Edit quotas for “{name}”",
-      "hint": "Enter 0 for unlimited. A quota below current usage blocks further use.",
-      "invalid": "Enter all three values, each 0 or more.",
-      "saved": "Updated quotas for “{name}”."
+    "validation": {
+      "nonNegative": "Enter a non-negative number.",
+      "nonNegativeInt": "Enter a non-negative whole number.",
+      "threshold": "Threshold must be between 1 and 99.",
+      "reasonRequired": "Please enter a reason.",
+      "rejectNoteRequired": "A reason is required to reject.",
+      "positive": "Enter a number greater than 0.",
+      "positiveInt": "Enter a whole number greater than 0.",
+      "grantedAboveCurrent": "The granted amount must be higher than the current quota."
     },
     "reconcile": {
       "title": "Storage reconciliation",

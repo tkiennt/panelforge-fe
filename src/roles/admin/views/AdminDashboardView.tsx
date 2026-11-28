@@ -11,8 +11,11 @@ import {
   ChevronRight,
   AlertCircle,
   Eye,
+  Inbox,
 } from 'lucide-react';
 import { adminService, SystemStatsResponse } from '@/services/admin.service';
+import { formatBytes, quotaService, AdminResourceOverviewDto } from '@/services/quota.service';
+import { HealthBadge } from './modules/resources/ResourceUi';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 import { AdminButton, AdminCard, AdminPageHeader, AdminStat } from './components/AdminUi';
@@ -25,6 +28,8 @@ interface AdminDashboardViewProps {
   onNavigateToSessionPolicy?: () => void;
   onNavigateToStorage?: () => void;
   onNavigateToAnalytics?: () => void;
+  /** Mở Tài nguyên với query phụ (view=requests, filter=attention…). */
+  onNavigateToResources?: (extra?: Record<string, string>) => void;
 }
 
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
@@ -34,6 +39,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   onNavigateToSessionPolicy,
   onNavigateToStorage,
   onNavigateToAnalytics,
+  onNavigateToResources,
 }) => {
   const { t, lang } = useTranslation();
   const locale = lang === 'en' ? 'en-US' : 'vi-VN';
@@ -42,20 +48,31 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [error, setError] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
+  const [resources, setResources] = useState<AdminResourceOverviewDto | null>(null);
+
   const fetchStats = useCallback(async () => {
     setLoading(true);
     setError(false);
-    try {
-      const data = await adminService.getSystemStats();
-      setStats(data);
-      setLastRefreshed(new Date());
-    } catch (err) {
-      console.error('Failed to load admin stats:', err);
+    // Hai nguồn độc lập: một bên lỗi vẫn hiện bên còn lại.
+    const [statsResult, resourceResult] = await Promise.allSettled([
+      adminService.getSystemStats(),
+      quotaService.getResources(),
+    ]);
+    if (statsResult.status === 'fulfilled') setStats(statsResult.value);
+    if (resourceResult.status === 'fulfilled') setResources(resourceResult.value);
+    if (statsResult.status === 'rejected' || resourceResult.status === 'rejected') {
+      console.error('Failed to load admin overview:', statsResult, resourceResult);
       setError(true);
-    } finally {
-      setLoading(false);
+    } else {
+      setLastRefreshed(new Date());
     }
+    setLoading(false);
   }, []);
+
+  const attention = (resources?.studios ?? [])
+    .filter((s) => s.health !== 'Ok')
+    .sort((a, b) => (a.health === b.health ? 0 : a.health === 'Exhausted' ? -1 : 1))
+    .slice(0, 6);
 
   useEffect(() => {
     fetchStats();
@@ -168,6 +185,107 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           icon={<Layers className='w-5 h-5' />}
         />
       </div>
+
+      <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
+        <AdminStat
+          label={t('admin.overview.resources.storageUsed')}
+          value={resources ? formatBytes(resources.totalStorageUsedBytes, locale) : value()}
+          icon={<HardDrive className='w-5 h-5' />}
+        />
+        <AdminStat
+          label={t('admin.overview.resources.tokensMonth')}
+          value={resources ? resources.totalTokensUsedThisMonth.toLocaleString(locale) : value()}
+          hint={
+            resources
+              ? t('admin.overview.resources.imagesMonth', {
+                  count: resources.totalImagesThisMonth.toLocaleString(locale),
+                })
+              : undefined
+          }
+          icon={<Cpu className='w-5 h-5' />}
+        />
+        <AdminStat
+          label={t('admin.overview.resources.attention')}
+          value={
+            resources
+              ? (resources.nearLimitStudios + resources.exhaustedStudios).toLocaleString(locale)
+              : value()
+          }
+          icon={<AlertCircle className='w-5 h-5' />}
+        />
+        <AdminStat
+          label={t('admin.overview.resources.pendingRequests')}
+          value={resources ? resources.pendingRequests.toLocaleString(locale) : value()}
+          icon={<Inbox className='w-5 h-5' />}
+        />
+      </div>
+
+      <AdminCard
+        title={t('admin.overview.attention.title')}
+        actions={
+          <AdminButton size='sm' onClick={() => onNavigateToResources?.({ filter: 'attention' })}>
+            {t('admin.overview.attention.viewAll')}
+          </AdminButton>
+        }
+        bodyClassName='p-2'
+      >
+        {!resources ? (
+          <p className='px-3 py-4 text-sm text-admin-muted'>
+            {loading ? t('admin.overview.attention.loading') : '—'}
+          </p>
+        ) : attention.length === 0 && resources.pendingRequests === 0 ? (
+          <p className='px-3 py-4 text-sm text-admin-muted'>{t('admin.overview.attention.none')}</p>
+        ) : (
+          <ul className='divide-y divide-admin-line'>
+            {resources.pendingRequests > 0 && (
+              <li>
+                <button
+                  type='button'
+                  onClick={() => onNavigateToResources?.({ view: 'requests' })}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm hover:bg-admin-hover cursor-pointer',
+                    adminFocusRing,
+                  )}
+                >
+                  <Inbox className='w-4 h-4 text-admin-accent-text shrink-0' aria-hidden />
+                  <span className='flex-1 min-w-0'>
+                    {t('admin.overview.attention.pending', { count: resources.pendingRequests })}
+                  </span>
+                  <ChevronRight className='w-4 h-4 text-admin-muted shrink-0' aria-hidden />
+                </button>
+              </li>
+            )}
+            {attention.map((s) => (
+              <li key={s.workspaceId}>
+                <button
+                  type='button'
+                  onClick={() => onNavigateToResources?.({ filter: 'attention' })}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm hover:bg-admin-hover cursor-pointer',
+                    adminFocusRing,
+                  )}
+                >
+                  <HealthBadge health={s.health} />
+                  <span className='flex-1 min-w-0 truncate font-medium' title={s.name}>
+                    {s.name}
+                  </span>
+                  <span className='text-xs text-admin-muted tabular-nums shrink-0'>
+                    {[
+                      s.storage.percentUsed != null &&
+                        `${t('admin.overview.attention.storage')} ${Math.round(s.storage.percentUsed)}%`,
+                      s.aiTokens?.percentUsed != null &&
+                        `${t('admin.overview.attention.tokens')} ${Math.round(s.aiTokens.percentUsed)}%`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                  <ChevronRight className='w-4 h-4 text-admin-muted shrink-0' aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </AdminCard>
 
       <AdminCard title={t('admin.overview.actionsTitle')} bodyClassName='p-2'>
         <ul className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-1'>

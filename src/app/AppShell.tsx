@@ -113,7 +113,7 @@ const getRoleNavConfig = (
       section: t('admin.nav.groups.config'),
       items: [
         { icon: Cpu, label: t('admin.nav.items.aiConfig'), href: '/admin?tab=ai-config' },
-        { icon: HardDrive, label: t('admin.nav.items.storage'), href: '/admin?tab=storage' },
+        { icon: HardDrive, label: t('admin.nav.items.resources'), href: '/admin?tab=resources' },
         {
           icon: Shield,
           label: t('admin.nav.items.sessionPolicy'),

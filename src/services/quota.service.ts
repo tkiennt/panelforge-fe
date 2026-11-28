@@ -9,6 +9,10 @@ export interface QuotaPolicyDto {
   storageQuotaBytes: number;
   monthlyTokenQuota: number;
   monthlyImageQuota: number;
+  /** Studio mới có bật AI sẵn không. */
+  aiEnabledByDefault: boolean;
+  /** Ngưỡng "Gần hết" (%) ở màn Tài nguyên, 1..99. */
+  warningThresholdPercent: number;
   /** true khi Admin chưa lưu chính sách: đang dùng cấu hình server. */
   isFromSettings: boolean;
   updatedAt: string | null;
@@ -19,6 +23,8 @@ export interface UpdateQuotaPolicyRequest {
   storageQuotaBytes: number;
   monthlyTokenQuota: number;
   monthlyImageQuota: number;
+  aiEnabledByDefault: boolean;
+  warningThresholdPercent: number;
 }
 
 export interface QuotaIncreaseRequestDto {
@@ -47,28 +53,61 @@ export interface SubmitQuotaIncreaseRequest {
   reason: string;
 }
 
-/** Quota 0 = không giới hạn. */
+export type ResourceHealth = 'Ok' | 'NearLimit' | 'Exhausted';
+
+/** quota 0 = không giới hạn (isUnlimited, percentUsed null). */
+export interface UsageMeter {
+  used: number;
+  quota: number;
+  isUnlimited: boolean;
+  percentUsed: number | null;
+}
+
+/** Một Studio ở màn Tài nguyên. aiTokens/aiImages null = Studio chưa có cấu hình AI. */
 export interface AdminWorkspaceResourceDto {
   workspaceId: string;
   name: string;
   ownerName: string;
   ownerEmail: string;
-  storageQuotaBytes: number;
-  usedStorageBytes: number;
-  hasAiConfig: boolean;
+  memberCount: number;
+  seriesCount: number;
+  createdAt: string;
+  storage: UsageMeter;
   aiEnabled: boolean;
-  monthlyTokenQuota: number;
-  usedTokensCurrentMonth: number;
-  monthlyImageQuota: number;
-  usedImagesCurrentMonth: number;
+  aiTokens: UsageMeter | null;
+  aiImages: UsageMeter | null;
+  /** Đầu tháng UTC kế tiếp, lúc bộ đếm AI về 0. */
+  aiNextResetAt: string;
   pendingRequestCount: number;
+  health: ResourceHealth;
 }
 
-/** null = giữ nguyên, 0 = không giới hạn. */
+export interface AdminResourceOverviewDto {
+  totalStudios: number;
+  totalStorageUsedBytes: number;
+  totalTokensUsedThisMonth: number;
+  totalImagesThisMonth: number;
+  aiEnabledStudios: number;
+  nearLimitStudios: number;
+  exhaustedStudios: number;
+  pendingRequests: number;
+  warningThresholdPercent: number;
+  studios: AdminWorkspaceResourceDto[];
+}
+
+/** null = giữ nguyên, 0 = không giới hạn. reason bắt buộc (ghi Nhật ký hệ thống). */
 export interface UpdateWorkspaceResourcesRequest {
   storageQuotaBytes: number | null;
   monthlyTokenQuota: number | null;
   monthlyImageQuota: number | null;
+  aiEnabled: boolean | null;
+  reason: string;
+}
+
+export interface QuotaRequestFilter {
+  status?: QuotaIncreaseRequestStatus;
+  resourceType?: QuotaResourceType;
+  search?: string;
 }
 
 /** OPS-22: báo cáo đối soát kho file. Không xoá file nào; applied = đã ghi dung lượng tính lại. */
@@ -148,9 +187,9 @@ export const quotaService = {
       () => axiosClient.put('/Admin/quota-policy', body),
       'errors.services.quota.savePolicyFailed',
     ),
-  getRequests: (status?: QuotaIncreaseRequestStatus) =>
+  getRequests: (filter: QuotaRequestFilter = {}) =>
     call<QuotaIncreaseRequestDto[]>(
-      () => axiosClient.get('/Admin/quota-requests', { params: status ? { status } : undefined }),
+      () => axiosClient.get('/Admin/quota-requests', { params: filter }),
       'errors.services.quota.loadRequestsFailed',
     ),
   approveRequest: (id: string, grantedQuota: number | null, note: string | null) =>
@@ -164,7 +203,7 @@ export const quotaService = {
       'errors.services.quota.reviewFailed',
     ),
   getResources: () =>
-    call<AdminWorkspaceResourceDto[]>(
+    call<AdminResourceOverviewDto>(
       () => axiosClient.get('/Admin/resources'),
       'errors.services.quota.loadResourcesFailed',
     ),
@@ -184,3 +223,13 @@ export const quotaService = {
       'errors.services.quota.deleteOrphansFailed',
     ),
 };
+
+export const GB = 1024 * 1024 * 1024;
+
+export function formatBytes(bytes: number, locale: string): string {
+  if (!bytes || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  const n = bytes / Math.pow(1024, i);
+  return `${n.toLocaleString(locale, { maximumFractionDigits: i === 0 ? 0 : 1 })} ${units[i]}`;
+}

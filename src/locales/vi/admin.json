@@ -34,8 +34,8 @@
         "desc": "Model, quota và lịch sử sử dụng AI"
       },
       "storage": {
-        "label": "Lưu trữ & quota",
-        "desc": "Dung lượng và hạn mức từng Studio"
+        "label": "Tài nguyên",
+        "desc": "Storage Quota, AI Quota và yêu cầu tăng"
       },
       "sessionPolicy": {
         "label": "Chính sách phiên",
@@ -49,6 +49,22 @@
         "label": "Thống kê độc giả",
         "desc": "Lượt đọc và độc giả các bộ truyện"
       }
+    },
+    "resources": {
+      "storageUsed": "Storage đã dùng",
+      "tokensMonth": "AI Token tháng này",
+      "imagesMonth": "{count} ảnh AI",
+      "attention": "Studio gần/hết quota",
+      "pendingRequests": "Yêu cầu tài nguyên chờ duyệt"
+    },
+    "attention": {
+      "title": "Cần xử lý",
+      "viewAll": "Xem tài nguyên",
+      "loading": "Đang tải…",
+      "none": "Không có Studio nào gần hết quota và không có yêu cầu chờ duyệt.",
+      "pending": "{count} yêu cầu tăng tài nguyên đang chờ duyệt",
+      "storage": "Storage",
+      "tokens": "AI"
     }
   },
   "ui": {
@@ -83,10 +99,10 @@
       "dashboard": "Tổng quan",
       "users": "Người dùng & quyền",
       "aiConfig": "Cấu hình AI",
-      "storage": "Tài nguyên & hạn mức",
       "sessionPolicy": "Chính sách phiên",
       "audit": "Nhật ký hệ thống",
-      "analytics": "Thống kê độc giả"
+      "analytics": "Thống kê độc giả",
+      "resources": "Tài nguyên & hạn mức"
     }
   },
   "users": {
@@ -482,78 +498,138 @@
     }
   },
   "resources": {
-    "title": "Tài nguyên & hạn mức",
-    "description": "Mức cấp cho Studio mới, yêu cầu tăng hạn mức đang chờ và mức dùng của từng Studio.",
+    "title": "Tài nguyên",
+    "description": "Cấp phát Storage Quota và AI Quota cho từng Studio, đặt chính sách mặc định và duyệt yêu cầu tăng tài nguyên. Cấp phát, không mua bán.",
     "refresh": "Làm mới",
+    "retry": "Thử lại",
     "loading": "Đang tải…",
-    "unlimited": "Không giới hạn",
-    "cancel": "Hủy",
     "save": "Lưu",
-    "types": {
-      "Storage": "Dung lượng",
-      "AiTokens": "Token AI / tháng",
+    "cancel": "Huỷ",
+    "unlimited": "Không giới hạn",
+    "aiDisabled": "AI đang tắt",
+    "tabsAria": "Các mục tài nguyên",
+    "tabs": {
+      "allocation": "Cấp phát theo Studio",
+      "policy": "Chính sách mặc định",
+      "requests": "Yêu cầu tăng",
+      "reconcile": "Đối soát dung lượng"
+    },
+    "stats": {
+      "storageUsed": "Storage đã dùng",
+      "storageHint": "Tổng dung lượng thực đã lưu của mọi Studio",
+      "tokensMonth": "AI Token tháng này",
+      "aiEnabledHint": "{enabled}/{total} Studio bật AI",
+      "attention": "Studio cần chú ý",
+      "attentionHint": "{near} gần hết · {exhausted} đã hết",
+      "pendingRequests": "Yêu cầu chờ duyệt"
+    },
+    "health": {
+      "Ok": "Bình thường",
+      "NearLimit": "Gần hết",
+      "Exhausted": "Đã hết quota"
+    },
+    "type": {
+      "Storage": "Storage",
+      "AiTokens": "AI Token / tháng",
       "AiImages": "Ảnh AI / tháng"
     },
-    "inputLabels": {
-      "Storage": "Dung lượng (GB)",
-      "AiTokens": "Token AI mỗi tháng",
-      "AiImages": "Ảnh AI mỗi tháng"
+    "requestStatus": {
+      "Pending": "Chờ duyệt",
+      "Approved": "Đã duyệt",
+      "Rejected": "Đã từ chối",
+      "Cancelled": "Đã huỷ"
     },
-    "requests": {
-      "title": "Yêu cầu tăng hạn mức đang chờ",
-      "description": "Producer gửi từ thanh tài nguyên của Studio. Duyệt sẽ đổi hạn mức ngay và báo cho Producer.",
+    "allocation": {
+      "searchPlaceholder": "Tìm Studio, Producer, email",
+      "filterAria": "Lọc theo trạng thái tài nguyên",
+      "filterAll": "Tất cả Studio",
+      "filterAttention": "Cần chú ý",
+      "count": "{filtered}/{total} Studio",
       "colStudio": "Studio",
-      "colType": "Loại",
-      "colChange": "Hiện tại → Xin",
-      "colReason": "Lý do",
-      "colRequester": "Người gửi",
+      "colStorage": "Storage Usage",
+      "colTokens": "AI Token",
+      "colImages": "Ảnh AI",
+      "colReset": "Reset AI",
+      "colStatus": "Trạng thái",
       "colActions": "Thao tác",
-      "empty": "Không có yêu cầu nào đang chờ.",
-      "approve": "Duyệt",
-      "reject": "Từ chối"
+      "membersSeries": "{members} thành viên · {series} Series",
+      "storageAria": "Storage của {name}",
+      "tokensAria": "AI Token của {name}",
+      "imagesAria": "Ảnh AI của {name}",
+      "pendingLink": "{count} yêu cầu chờ",
+      "configure": "Cấu hình",
+      "empty": "Chưa có Studio nào.",
+      "noResults": "Không có Studio khớp bộ lọc.",
+      "clearFilters": "Xoá bộ lọc"
     },
-    "review": {
-      "approveTitle": "Duyệt tăng hạn mức",
-      "rejectTitle": "Từ chối yêu cầu",
-      "summary": "Đang cấp {current}, xin lên {requested}.",
-      "grantedHint": "Mức sẽ cấp. Có thể cấp thấp hơn mức xin.",
-      "noteLabel": "Ghi chú gửi Producer",
-      "invalidGranted": "Nhập mức cấp lớn hơn 0.",
-      "noteRequired": "Cần ghi lý do từ chối.",
-      "approved": "Đã duyệt yêu cầu của “{name}”.",
-      "rejected": "Đã từ chối yêu cầu của “{name}”."
+    "configure": {
+      "title": "Cấu hình Resource Allocation",
+      "zeroHint": "Nhập 0 để không giới hạn.",
+      "storageLegend": "Storage Quota",
+      "aiLegend": "AI Quota",
+      "current": "Hiện tại",
+      "storageQuota": "Storage Quota (GB)",
+      "storageUsed": "Đang dùng: {used}",
+      "belowUsageWarning": "Quota mới thấp hơn dung lượng đang dùng. File hiện có được giữ nguyên, nhưng Studio sẽ không tải thêm được dữ liệu mới cho đến khi dọn bớt hoặc được tăng quota.",
+      "aiEnabled": "Bật AI cho Studio",
+      "tokenQuota": "AI Token / tháng",
+      "imageQuota": "Ảnh AI / tháng",
+      "reason": "Lý do điều chỉnh",
+      "reasonHint": "Ghi vào Nhật ký hệ thống cùng giá trị cũ và mới.",
+      "saved": "Đã cập nhật tài nguyên của {name}."
     },
     "policy": {
-      "title": "Hạn mức cho Studio mới",
-      "description": "Áp cho Studio tạo từ nay về sau. Studio đã có giữ nguyên mức đang cấp.",
-      "edit": "Sửa chính sách",
-      "modalTitle": "Sửa hạn mức cho Studio mới",
-      "hint": "Mọi mức phải lớn hơn 0. Muốn bỏ giới hạn thì sửa riêng từng Studio.",
-      "invalid": "Nhập cả ba mức, mỗi mức lớn hơn 0.",
-      "saved": "Đã lưu chính sách hạn mức.",
-      "fromSettings": "Chưa lưu chính sách: đang dùng giá trị trong cấu hình máy chủ.",
-      "updatedBy": "Sửa lần cuối bởi {name} lúc {date}."
+      "title": "Chính sách tài nguyên mặc định",
+      "description": "Áp dụng cho Studio tạo mới. Quota của Studio đã có không bị thay đổi.",
+      "notConfigured": "Chưa lưu chính sách: đang hiển thị giá trị mặc định của hệ thống. Lưu để cố định chính sách.",
+      "storage": "Storage Quota mặc định (GB)",
+      "tokens": "AI Token / tháng",
+      "images": "Ảnh AI / tháng",
+      "warn": "Ngưỡng cảnh báo (%)",
+      "warnHint": "Studio đạt mức này được đánh dấu \"Gần hết\".",
+      "aiEnabled": "Bật AI cho Studio mới",
+      "resetNote": "AI Quota reset vào ngày 1 hằng tháng (UTC). Storage Quota không reset.",
+      "discard": "Hoàn tác",
+      "updatedAt": "Cập nhật lần cuối {time} bởi {name}",
+      "saved": "Đã lưu chính sách tài nguyên mặc định.",
+      "positiveHint": "Mọi mức phải lớn hơn 0. Muốn bỏ giới hạn thì sửa riêng từng Studio."
     },
-    "table": {
-      "title": "Mức dùng theo Studio",
-      "searchPlaceholder": "Tìm Studio hoặc chủ sở hữu",
+    "requests": {
+      "searchPlaceholder": "Tìm Studio, người gửi, lý do",
+      "statusFilter": "Lọc theo trạng thái",
+      "typeFilter": "Lọc theo loại tài nguyên",
+      "allStatuses": "Mọi trạng thái",
+      "allTypes": "Mọi loại",
       "colStudio": "Studio",
-      "colPending": "Chờ duyệt",
+      "colChange": "Hiện tại → Yêu cầu",
+      "colReason": "Lý do",
+      "colRequested": "Người gửi",
+      "colStatus": "Trạng thái",
       "colActions": "Thao tác",
-      "empty": "Chưa có Studio nào.",
-      "noResults": "Không có Studio phù hợp.",
-      "clearSearch": "Xóa tìm kiếm",
-      "noAiConfig": "Chưa cấp AI",
-      "aiOff": "AI đang tắt",
-      "pendingCount": "{count} yêu cầu",
-      "edit": "Sửa hạn mức",
-      "progressAria": "{label}: đã dùng {percent}%"
+      "reviewNote": "{name}: {note}",
+      "approve": "Duyệt",
+      "reject": "Từ chối",
+      "approveTitle": "Duyệt yêu cầu tăng tài nguyên",
+      "rejectTitle": "Từ chối yêu cầu tăng tài nguyên",
+      "approveHint": "Mặc định cấp đúng mức xin, có thể cấp thấp hơn. Duyệt sẽ đặt ngay hạn mức mới, báo cho Producer và ghi Nhật ký hệ thống.",
+      "note": "Ghi chú",
+      "approved": "Đã duyệt yêu cầu của {name}.",
+      "rejected": "Đã từ chối yêu cầu của {name}.",
+      "empty": "Không có yêu cầu nào.",
+      "noResults": "Không có yêu cầu khớp tìm kiếm.",
+      "granted": "Đã cấp {value}",
+      "grantedGb": "Mức cấp (GB)",
+      "grantedAmount": "Mức cấp"
     },
-    "edit": {
-      "title": "Sửa hạn mức “{name}”",
-      "hint": "Nhập 0 để không giới hạn. Hạn mức thấp hơn mức đã dùng sẽ chặn Studio dùng thêm.",
-      "invalid": "Nhập cả ba mức, mỗi mức từ 0 trở lên.",
-      "saved": "Đã cập nhật hạn mức “{name}”."
+    "validation": {
+      "nonNegative": "Nhập số không âm.",
+      "nonNegativeInt": "Nhập số nguyên không âm.",
+      "threshold": "Ngưỡng phải từ 1 đến 99.",
+      "reasonRequired": "Vui lòng nhập lý do.",
+      "rejectNoteRequired": "Từ chối phải ghi lý do.",
+      "positive": "Nhập số lớn hơn 0.",
+      "positiveInt": "Nhập số nguyên lớn hơn 0.",
+      "grantedAboveCurrent": "Mức cấp phải lớn hơn mức đang cấp."
     },
     "reconcile": {
       "title": "Đối soát dung lượng",
