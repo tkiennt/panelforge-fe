@@ -288,6 +288,21 @@ describe('BibleEntityDetailModal UX/UI', () => {
     // Must not duplicate with fallback 'Giai đoạn khởi đầu'
     expect(screen.queryByText('Giai đoạn khởi đầu')).not.toBeInTheDocument();
   });
+
+  it('keeps all character eras available in one Artist workbench', () => {
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        isProducer={false}
+        isArtist
+        rawEntry={mockRawEntry}
+      />,
+    );
+
+    expect(screen.getByTestId('variant-selector')).toBeInTheDocument();
+    expect(screen.getByText('Các era / biến thể của nhân vật')).toBeInTheDocument();
+  });
+
   it('disables rework button when revision is CanonLocked', () => {
     const rawWithLocked: BibleEntryDto = {
       ...mockRawEntry,
@@ -516,7 +531,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     // Column 1: variant selector
     expect(screen.getByTestId('variant-selector')).toBeInTheDocument();
-    expect(screen.getByText('Biến thể thiết kế')).toBeInTheDocument();
+    expect(screen.getByText('Các era / biến thể của nhân vật')).toBeInTheDocument();
 
     // Column 2: Hero Artwork Canvas
     expect(screen.getByTestId('auth-image')).toBeInTheDocument();

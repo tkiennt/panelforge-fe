@@ -326,6 +326,7 @@ interface BibleEntityDetailModalProps {
   entity: BibleEntity;
   rawEntry?: BibleEntryDto;
   latestSavedRevision?: BibleEntryRevisionDto | null;
+  initialRevisionId?: string;
   isProducer: boolean;
   isArtist?: boolean;
   isWriter?: boolean;
@@ -378,6 +379,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   entity,
   rawEntry,
   latestSavedRevision,
+  initialRevisionId,
   isProducer,
   isArtist = false,
   isWriter = false,
@@ -522,6 +524,17 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       .then((revs) => {
         if (active && revs && revs.length > 0) {
           setAllRevisions(revs);
+          const initialRevision = initialRevisionId
+            ? revs.find((revision) => revision.id === initialRevisionId)
+            : null;
+          if (initialRevision) {
+            setSelectedVersionId(initialRevision.id);
+            setSelectedVariantKey(
+              `variant-${getRevisionVariantLabel(initialRevision)
+                .toLocaleLowerCase()
+                .replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+            );
+          }
         }
       })
       .catch((err) => {
@@ -535,6 +548,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     entity.id,
     rawEntry?.effectiveRevision?.id,
     rawEntry?.effectiveRevision?.versionNumber,
+    initialRevisionId,
   ]);
 
   // Sidebar: chương nào trong kịch bản dùng mục này (cùng quy tắc Gate 1, BR-21)
@@ -1637,16 +1651,24 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       {/* ================= WORKSPACE BODY CONTAINER ================= */}
       <div className='space-y-4'>
         {/* ================= TẦNG 1: THANH CHỌN BIẾN THỂ (VARIANT TABS / PILLS NGANG TRÊN CÙNG) ================= */}
-        {!isArtistUser && (
+        {variants.length > 0 && (
           <section
             data-testid='variant-selector'
             className='flex flex-col justify-between gap-3 rounded-xl border border-stone-200/90 bg-white p-3 shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)] md:flex-row md:items-center'
-            aria-label={t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}
+            aria-label={
+              entity.category === 'characters'
+                ? t('bible.detailModal.characterErasTitle')
+                : t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')
+            }
           >
             <div className='flex items-center gap-2 overflow-x-auto py-0.5 custom-scrollbar min-w-0'>
               <div className='flex items-center gap-1.5 text-xs font-bold text-stone-600 uppercase tracking-wider mr-1 shrink-0'>
                 <Layers className='w-4 h-4 text-[#EA580C]' />
-                <span>{t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}</span>
+                <span>
+                  {entity.category === 'characters'
+                    ? t('bible.detailModal.characterErasTitle')
+                    : t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}
+                </span>
               </div>
 
               {variants.map((variant) => {

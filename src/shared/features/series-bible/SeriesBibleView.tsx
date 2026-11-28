@@ -236,6 +236,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [defineTarget, setDefineTarget] = useState<BibleEntity | null>(null);
   // Bàn làm việc chi tiết (phiên bản concept, góp ý, đặc tả, vẽ lại) cho mục đang chọn
   const [workbenchOpen, setWorkbenchOpen] = useState(false);
+  const [workbenchRevisionId, setWorkbenchRevisionId] = useState<string | undefined>();
 
   // Popover API menu cho các thao tác phụ trên header chi tiết thực thể
   const entityActionsMenuId = useId();
@@ -1650,8 +1651,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               rawEntries={rawEntries}
               designQueue={designQueue}
               stats={bibleStats}
-              onOpenEntity={(entity) => {
+              onOpenEntity={(entity, revisionId) => {
                 setSelectedEntity(entity);
+                setWorkbenchRevisionId(revisionId);
                 setWorkbenchOpen(true);
               }}
             />
@@ -2480,6 +2482,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           entities={localEntities}
           onSelectEntity={setSelectedEntity}
           rawEntry={rawEntries[selectedEntity.id]}
+          initialRevisionId={workbenchRevisionId}
           isProducer={isProducer}
           isArtist={isArtist}
           isWriter={isWriter}
@@ -2488,7 +2491,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           canEndorse={canEndorse}
           canRequestRework={canRequestRework}
           seriesId={effectiveSeries?.id}
-          onClose={() => setWorkbenchOpen(false)}
+          onClose={() => {
+            setWorkbenchOpen(false);
+            setWorkbenchRevisionId(undefined);
+          }}
           onOpenHistory={(e) => {
             void handleOpenHistory(e);
           }}
