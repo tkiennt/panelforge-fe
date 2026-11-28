@@ -10,14 +10,11 @@ import {
   ChevronRight,
   Clock,
   Edit2,
-  FileText,
   Globe,
   History,
   LayoutGrid,
   Lock,
-  MessageSquare,
   MoreHorizontal,
-  Palette,
   Plus,
   RefreshCw,
   Rocket,
@@ -51,6 +48,8 @@ import { TypeToConfirmModal } from '@/shared/components/lucian';
 import { ProductionMetricsList } from '../components/chapter-overview/ProductionMetricsList';
 import { StageProgressBars } from '../components/chapter-overview/StageProgressBars';
 import { ActionCenterList } from '../components/chapter-overview/ActionCenterList';
+import { ScriptSummaryCard } from '../components/chapter-overview/ScriptSummaryCard';
+import { BibleSummaryCard } from '../components/chapter-overview/BibleSummaryCard';
 import {
   Alert,
   Badge,
@@ -70,27 +69,12 @@ import {
   notifyChapterHubChanged,
   useChapterReadiness,
 } from '@/shared/features/production-workspace/useChapterProductionHub';
-import {
-  buildBibleUrl,
-  buildProductionWorkspaceUrl,
-  buildScriptReviewUrl,
-  buildSeriesExportUrl,
-} from '@/app/routePaths';
+import { buildProductionWorkspaceUrl, buildSeriesExportUrl } from '@/app/routePaths';
 
 export interface ProducerChapterManagementViewProps {
   onShowToast?: (title: string, desc: string) => void;
   workspaceRole?: string | null;
 }
-
-const CATEGORY_LABELS: Record<string, string> = {
-  Character: 'Nhân vật',
-  Location: 'Bối cảnh',
-  Prop: 'Đạo cụ',
-  Costume: 'Trang phục',
-  Term: 'Thuật ngữ',
-  Rule: 'Quy tắc',
-  Event: 'Sự kiện',
-};
 
 const REVIEW_ACTION_LABEL_KEYS: Record<string, string> = {
   ProducerApproved: 'producer.chapterManagement.reviewAction.ProducerApproved',
@@ -1259,238 +1243,19 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 
         {/* 4. TWO-COLUMN SUMMARY: SCRIPT SUMMARY + CHAPTER REFERENCES */}
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 items-start'>
-          {/* SCRIPT SUMMARY CARD */}
-          <Card as='section' data-testid='overview-script-summary'>
-            <CardHeader
-              icon={<FileText aria-hidden='true' />}
-              title={t('producer.chapterManagement.overview.scriptSummaryTitle')}
-              actions={
-                <StatusBadge
-                  kind='script'
-                  status={readiness?.script.scriptStatus || chapter?.scriptStatus || 'Draft'}
-                />
-              }
-            />
-            <CardBody className='space-y-3.5'>
-              {/* Version Context: Latest vs Approved vs Production */}
-              <div className='grid grid-cols-3 gap-2.5'>
-                <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
-                  <div className='text-xs text-stone-500'>
-                    {t('producer.chapterManagement.overview.latestVersion')}
-                  </div>
-                  <div className='text-sm font-bold font-mono text-stone-900 mt-0.5'>
-                    {readiness?.script.latestVersionNumber
-                      ? `v${readiness.script.latestVersionNumber}`
-                      : t('producer.chapterManagement.overview.notSaved')}
-                  </div>
-                </div>
-                <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
-                  <div className='text-xs text-stone-500'>
-                    {t('producer.chapterManagement.overview.submittedVersion')}
-                  </div>
-                  <div className='text-sm font-bold font-mono text-stone-900 mt-0.5'>
-                    {readiness?.script.approvedVersionNumber
-                      ? `v${readiness.script.approvedVersionNumber}`
-                      : '—'}
-                  </div>
-                </div>
-                <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
-                  <div className='text-xs text-stone-500'>
-                    {t('producer.chapterManagement.overview.productionVersion')}
-                  </div>
-                  <div className='text-sm font-bold font-mono text-accent-dark mt-0.5'>
-                    {readiness?.script.productionVersionNumber
-                      ? `v${readiness.script.productionVersionNumber}`
-                      : t('producer.chapterManagement.overview.notFrozen')}
-                  </div>
-                </div>
-              </div>
-
-              {/* Structural & Review Counters */}
-              <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs'>
-                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
-                  <div className='text-stone-500'>
-                    {t('producer.chapterManagement.overview.scenesLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-stone-900 mt-0.5'>
-                    {readiness?.script.sceneCount ?? 0}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
-                  <div className='text-stone-500'>
-                    {t('producer.chapterManagement.overview.pagesPanelsLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-stone-900 mt-0.5'>
-                    {readiness?.script.pageCount ?? 0} / {readiness?.script.panelCount ?? 0}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
-                  <div className='text-stone-500'>
-                    {t('producer.chapterManagement.overview.openCommentsLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-stone-900 mt-0.5 flex items-center gap-1'>
-                    <MessageSquare className='w-3.5 h-3.5 text-stone-400' aria-hidden='true' />
-                    {readiness?.script.unresolvedCommentsCount ?? 0}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
-                  <div className='text-stone-500'>
-                    {t('producer.chapterManagement.overview.consistencyAlertsLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-stone-900 mt-0.5'>
-                    {readiness?.script.openFindingsCount ?? 0}
-                  </div>
-                </div>
-              </div>
-
-              <div className='pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2'>
-                <span className='text-xs text-stone-500'>
-                  {readiness?.script.lastUpdatedAt
-                    ? t('producer.chapterManagement.overview.updatedAt', {
-                        date: new Date(readiness.script.lastUpdatedAt).toLocaleString(dateLocale),
-                      })
-                    : ''}
-                </span>
-                {chapter && (
-                  <Button
-                    variant='secondary'
-                    size='sm'
-                    data-testid='open-script-workspace-btn'
-                    trailingIcon={<ArrowRight aria-hidden='true' />}
-                    onClick={() =>
-                      navigate(buildScriptReviewUrl(workspaceId, seriesId, chapter.id))
-                    }
-                  >
-                    {t('producer.chapterManagement.overview.openScriptBtn')}
-                  </Button>
-                )}
-              </div>
-            </CardBody>
-          </Card>
-
-          {/* CHAPTER-SCOPED SERIES BIBLE SUMMARY CARD */}
-          <Card as='section' tone='ai' data-testid='overview-bible-summary'>
-            <CardHeader
-              icon={<Palette aria-hidden='true' />}
-              title={t('producer.chapterManagement.overview.bibleSummaryTitle')}
-              actions={
-                (readiness?.bible.requiredTotal ?? 0) > 0 ? (
-                  <span className='text-xs font-mono font-bold text-stone-800'>
-                    {t('producer.chapterManagement.overview.bibleRequiredCount', {
-                      ready: readiness?.bible.readyCount ?? 0,
-                      total: readiness?.bible.requiredTotal ?? 0,
-                    })}
-                  </span>
-                ) : (
-                  <span className='text-xs font-medium text-stone-500'>
-                    {t('producer.chapterManagement.overview.bibleNoRequired')}
-                  </span>
-                )
-              }
-            />
-            <CardBody className='space-y-3.5'>
-              <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs'>
-                <div className='rounded-lg bg-emerald-50/60 px-3 py-2 border border-emerald-200/60'>
-                  <div className='text-emerald-700'>
-                    {t('producer.chapterManagement.overview.bibleLockedLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-emerald-900 mt-0.5'>
-                    {readiness?.bible.readyCount ?? 0}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-amber-50/60 px-3 py-2 border border-amber-200/60'>
-                  <div className='text-amber-800'>
-                    {t('producer.chapterManagement.overview.bibleMissingLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-amber-900 mt-0.5'>
-                    {(readiness?.bible.missingArtCount ?? 0) +
-                      (readiness?.bible.missingDefinitionCount ?? 0)}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-blue-50/60 px-3 py-2 border border-blue-200/60'>
-                  <div className='text-blue-800'>
-                    {t('producer.chapterManagement.overview.biblePendingLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-blue-900 mt-0.5'>
-                    {readiness?.bible.pendingApprovalCount ?? 0}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
-                  <div className='text-stone-600'>
-                    {t('producer.chapterManagement.overview.bibleCrowdLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-stone-800 mt-0.5'>
-                    {readiness?.bible.crowdOptionalCount ?? 0}
-                  </div>
-                </div>
-              </div>
-
-              {/* Category breakdown pills */}
-              {(readiness?.bible.byCategory?.length ?? 0) > 0 && (
-                <div className='flex flex-wrap gap-1.5'>
-                  {readiness!.bible.byCategory.map((cat) => (
-                    <Badge key={cat.category} tone='neutral'>
-                      {CATEGORY_LABELS[cat.category] || cat.category}:{' '}
-                      {cat.required > 0
-                        ? `${cat.ready}/${cat.required}`
-                        : t('producer.chapterManagement.overview.bibleNoRequiredShort')}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
-              {/* Quick contextual links for missing required references */}
-              {missingBibleEntities.length > 0 && chapter && (
-                <div className='space-y-1.5 pt-1'>
-                  <div className='text-xs font-semibold text-stone-500 uppercase tracking-wide'>
-                    {t('producer.chapterManagement.overview.bibleNeedsLockHeading')}
-                  </div>
-                  <div className='flex flex-wrap gap-1.5'>
-                    {missingBibleEntities.slice(0, 6).map((ent) => (
-                      <button
-                        key={ent.bibleEntryId}
-                        type='button'
-                        onClick={() =>
-                          navigate(
-                            `${buildScriptReviewUrl(workspaceId, seriesId, chapter.id)}?tab=entities&entityId=${encodeURIComponent(ent.bibleEntryId)}`,
-                          )
-                        }
-                        className='inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-50 border border-rose-200 text-xs font-medium text-rose-800 hover:bg-rose-100 cursor-pointer'
-                      >
-                        <span>{ent.name}</span>
-                        <ArrowRight className='w-3 h-3' />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className='pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2'>
-                <button
-                  type='button'
-                  onClick={() => navigate(buildBibleUrl(workspaceId, seriesId))}
-                  className='text-xs font-semibold text-stone-600 hover:text-stone-900 cursor-pointer'
-                >
-                  {t('producer.chapterManagement.overview.seriesBibleLibraryLink')}
-                </button>
-                {chapter && (
-                  <Button
-                    variant='secondary'
-                    size='sm'
-                    data-testid='open-chapter-references-btn'
-                    trailingIcon={<ArrowRight aria-hidden='true' />}
-                    onClick={() =>
-                      navigate(
-                        `${buildScriptReviewUrl(workspaceId, seriesId, chapter.id)}?tab=entities`,
-                      )
-                    }
-                  >
-                    {t('producer.chapterManagement.overview.viewChapterReferencesBtn')}
-                  </Button>
-                )}
-              </div>
-            </CardBody>
-          </Card>
+          <ScriptSummaryCard
+            chapter={chapter}
+            readiness={readiness}
+            workspaceId={workspaceId}
+            seriesId={seriesId}
+          />
+          <BibleSummaryCard
+            chapter={chapter}
+            readiness={readiness}
+            missingBibleEntities={missingBibleEntities}
+            workspaceId={workspaceId}
+            seriesId={seriesId}
+          />
         </div>
 
         {/* 5. SECONDARY ZONE: Production Scope (when PreProduction) or Gate Summary (when InProduction) */}
