@@ -1,21 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from '@/lib/i18n';
 import {
   ShieldCheck,
   Eye,
   Clock,
-  Layers,
   Lock,
   RotateCcw,
   Search,
   CheckCircle2,
   AlertCircle,
-  Calendar,
   User,
   ShieldAlert,
-  SlidersHorizontal,
   Palette,
+  X,
 } from 'lucide-react';
 import {
   EditorQualityGate,
@@ -29,10 +27,13 @@ import { bibleService } from '@/services/bible.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { workspaceService } from '@/services/workspace.service';
-import { buildScriptReviewUrl, buildSeriesPath, buildTaskReviewUrl } from '@/app/routePaths';
-import { Badge, Card, CardBody, CardHeader } from '@/shared/ui';
-import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
-import { hasAnyValue } from '@/shared/ui/charts/chartData';
+import {
+  buildEditorDashboardUrl,
+  buildScriptReviewUrl,
+  buildSeriesPath,
+  buildTaskReviewUrl,
+} from '@/app/routePaths';
+import { Alert, Badge, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/shared/ui';
 
 export interface EditorDeskViewProps {
   currentUserId?: string | null;
@@ -47,6 +48,7 @@ type DeskQueueItem = EditorReviewQueueItemDto & {
   reviewerName?: string | null;
   isInputOutdated?: boolean;
   awaitingStageName?: string | null;
+  priority?: any;
 };
 
 const inferGateFromStage = (stageName: string): 'gate1' | 'gate2' => {
@@ -64,50 +66,6 @@ const inferGateFromStage = (stageName: string): 'gate1' | 'gate2' => {
   return 'gate2';
 };
 
-/**
- * Đếm số lượng bài nộp theo stageSlug (nhãn stageName), sắp theo stageOrder ascending (AG-3).
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function buildReviewQueueByStage(
-  items: Array<{
-    stageSlug?: string | null;
-    stageName?: string | null;
-    stageOrder?: number | null;
-  }>,
-): StatBarDatum[] {
-  const stageMap = new Map<string, { key: string; label: string; order: number; count: number }>();
-
-  for (const item of items) {
-    const slug = item.stageSlug?.trim();
-    if (!slug) continue;
-    const existing = stageMap.get(slug);
-    if (existing) {
-      existing.count += 1;
-      if (!existing.label && item.stageName?.trim()) {
-        existing.label = item.stageName.trim();
-      }
-      if (existing.order === 0 && typeof item.stageOrder === 'number' && item.stageOrder > 0) {
-        existing.order = item.stageOrder;
-      }
-    } else {
-      stageMap.set(slug, {
-        key: slug,
-        label: item.stageName?.trim() || slug,
-        order: typeof item.stageOrder === 'number' ? item.stageOrder : 0,
-        count: 1,
-      });
-    }
-  }
-
-  return Array.from(stageMap.values())
-    .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
-    .map(({ key, label, count }) => ({
-      key,
-      label,
-      value: count,
-    }));
-}
-
 export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
   currentUserId,
   workspaceRole,
@@ -115,20 +73,24 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 }) => {
   const { t, lang } = useTranslation('review');
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isProducer = normalizeWorkspaceRole(workspaceRole) === 'PRODUCER';
   const {
     workspaceId,
     seriesId,
-    chapterId: paramChapterId,
+    chapterId: routeChapterId,
   } = useParams<{
     workspaceId: string;
     seriesId: string;
     chapterId?: string;
   }>();
 
+  const paramChapterId = searchParams.get('chapterId') || routeChapterId || undefined;
+
   // State
   const [queueItems, setQueueItems] = useState<DeskQueueItem[]>([]);
   const [seriesInfo, setSeriesInfo] = useState<SeriesDetailDto | null>(null);
+  const [chaptersList, setChaptersList] = useState<ChapterDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeGate, setActiveGate] = useState<EditorQualityGate>('all');
@@ -151,11 +113,16 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
       setLoading(true);
       setError(null);
 
+      let gridFailed = false;
+      let legacyFailed = false;
+
       const [gridItems, legacyItems, series, bible, chapterPage] = await Promise.all([
         workspaceId && typeof assignmentService.getTaskGridReviewQueue === 'function'
-          ? assignmentService
-              .getTaskGridReviewQueue(workspaceId, { seriesId })
-              .catch(() => [] as TaskGridReviewItemDto[])
+          ? assignmentService.getTaskGridReviewQueue(workspaceId, { seriesId }).catch((err) => {
+              console.error('Task grid review queue failed:', err);
+              gridFailed = true;
+              return [] as TaskGridReviewItemDto[];
+            })
           : Promise.resolve([] as TaskGridReviewItemDto[]),
         typeof assignmentService.getEditorReviewQueue === 'function'
           ? assignmentService
@@ -163,12 +130,21 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                 gate: activeGate !== 'all' ? activeGate : undefined,
                 status: statusFilter !== 'all' ? statusFilter : undefined,
               })
-              .catch(() => [] as EditorReviewQueueItemDto[])
+              .catch((err) => {
+                console.error('Editor review queue failed:', err);
+                legacyFailed = true;
+                return [] as EditorReviewQueueItemDto[];
+              })
           : Promise.resolve([] as EditorReviewQueueItemDto[]),
         seriesService.getSeriesById(seriesId).catch(() => null),
         bibleService.getSeriesBible(seriesId).catch(() => null),
         chapterService.getChaptersBySeries(seriesId, 1, 100).catch(() => null),
       ]);
+
+      if (gridFailed && legacyFailed) {
+        setError(t('desk.errors.loadQueue'));
+        return;
+      }
 
       const memberList =
         workspaceId && (gridItems || []).some((g) => Boolean(g.assigneeUserId))
@@ -197,7 +173,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
           stageName: g.stageName,
           stageSlug: g.stageName.toLowerCase(),
           stageOrder: 0,
-          stageColorCode: null,
+          stageColorCode: null as any,
           gate,
           status: g.status === 'UnderReview' ? 'UnderReview' : 'Submitted',
           entityType: g.pageId ? 'Page' : 'Chapter',
@@ -215,11 +191,11 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
           assigneeAvatarUrl: m?.avatarUrl ?? null,
           latestSubmissionId: null,
           submissionAttempt: g.attemptNumber ?? 1,
-          submittedAt: g.submittedAt ?? new Date().toISOString(),
+          submittedAt: g.submittedAt ?? null,
           isSelfSubmission: Boolean(currentUserId && g.assigneeUserId === currentUserId),
           openChangeRequestsCount: 0,
           dueDate: null,
-          priority: 'Medium',
+          priority: null,
           createdAt: g.submittedAt ?? new Date().toISOString(),
           artworkReferenceIds: [],
         };
@@ -234,6 +210,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
       // D12: duyệt kịch bản không còn đi qua Assignment — bỏ việc kịch bản cũ khỏi hàng đợi
       const filteredLegacy = (legacyItems || []).filter((i) => i.stageSlug !== 'script');
       setQueueItems([...filteredGrid, ...filteredLegacy]);
+      setChaptersList(chapterPage?.items ?? []);
       setScriptsInReview(
         (chapterPage?.items ?? [])
           .filter((c) => c.scriptStatus === 'InReview')
@@ -436,8 +413,6 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     };
   }, [queueItems]);
 
-  const queueByStage = useMemo(() => buildReviewQueueByStage(queueItems), [queueItems]);
-
   // Filtered Items (Client-side search and optional chapter filter)
   const filteredItems = useMemo(() => {
     let result = queueItems;
@@ -467,164 +442,143 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     return result;
   }, [queueItems, paramChapterId, scopeFilter, currentUserId, searchQuery]);
 
-  // Date formatter
-  const formatDate = (isoString?: string | null) => {
-    if (!isoString) return t('desk.justNow');
-    try {
-      const d = new Date(isoString);
-      return d.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-GB', {
-        month: 'numeric',
+  // Date formatter using Intl (D3 & D8)
+  const dateTimeFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(lang, {
         day: 'numeric',
+        month: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-      });
+      }),
+    [lang],
+  );
+
+  const formatDate = (isoString?: string | null) => {
+    if (!isoString) return '—';
+    try {
+      const d = new Date(isoString);
+      if (Number.isNaN(d.getTime())) return '—';
+      return dateTimeFormatter.format(d);
     } catch {
-      return isoString;
+      return '—';
     }
   };
 
+  // Chapter filter chip label
+  const filteredChapterNumber = useMemo(() => {
+    if (!paramChapterId) return null;
+    const fromQueue = queueItems.find((i) => i.chapterId === paramChapterId)?.chapterNumber;
+    if (fromQueue != null) return fromQueue;
+    const fromScripts = scriptsInReview.find((c) => c.id === paramChapterId)?.chapterNumber;
+    if (fromScripts != null) return fromScripts;
+    const fromList = chaptersList.find((c) => c.id === paramChapterId)?.chapterNumber;
+    if (fromList != null) return fromList;
+    return null;
+  }, [paramChapterId, queueItems, scriptsInReview, chaptersList]);
+
+  const handleClearChapterFilter = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('chapterId');
+      return next;
+    });
+  };
+
   return (
-    <div className='flex flex-col min-h-full bg-[#FAF8F5] text-[#1C1917] font-sans'>
-      {/* Studio Workbench Header (Clean Editorial Header, integrated with Focus Studio) */}
-      <div className='px-4 sm:px-6 lg:px-8 pt-6 pb-4 border-b border-[#E5E0D8] bg-[#FCFBF8] shadow-2xs'>
-        <div className='max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4'>
-          <div>
-            <div className='flex items-center gap-2.5'>
-              <h1 className='text-lg font-serif font-bold text-[#1C1917] tracking-tight'>
-                {t('desk.title', 'Bàn Thẩm Định Biên Tập (Editor Desk)')}
-              </h1>
-              <span className='text-xs text-[#57534E] font-medium'>
-                · {seriesInfo?.title || t('desk.defaultSeriesTitle')}
-              </span>
-            </div>
-            <p className='text-xs text-[#78716C] mt-0.5'>{t('desk.subtitle')}</p>
-          </div>
-
-          {/* Quick Refresh */}
-          <div className='flex items-center gap-2 self-start md:self-auto'>
-            <button
-              type='button'
-              onClick={() => navigate(buildSeriesPath(workspaceId, seriesId, 'bible?tab=review'))}
-              className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer'
-            >
-              <Palette className='w-3.5 h-3.5 text-[#C2410C]' />
-              <span>{t('desk.bibleReview', { count: pendingBibleConcepts })}</span>
-            </button>
-            <button
-              type='button'
-              onClick={loadData}
-              disabled={loading}
-              className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
-              title={t('desk.refreshQueueTitle')}
-            >
-              <RotateCcw
-                className={`w-3.5 h-3.5 text-[#C2410C] ${loading ? 'animate-spin' : ''}`}
-              />
-              <span>{t('desk.refresh')}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Minimalist Summary KPIs Row (Clean Paper Strip) */}
-        <div className='max-w-7xl mx-auto mt-4 pt-3 border-t border-[#E5E0D8]/70 flex items-center justify-between gap-4 flex-wrap text-xs'>
-          <div className='flex items-center gap-4 sm:gap-6 flex-wrap'>
-            <div className='flex items-center gap-1.5'>
-              <span className='w-2 h-2 rounded-full bg-amber-500' />
-              <span className='text-[#57534E] font-medium'>{t('desk.kpiPending')}</span>
-              <span className='font-bold text-[#1C1917]'>{metrics.submittedCount}</span>
-            </div>
-            <div className='flex items-center gap-1.5'>
-              <span className='w-2 h-2 rounded-full bg-sky-500' />
-              <span className='text-[#57534E] font-medium'>{t('desk.kpiUnderReview')}</span>
-              <span className='font-bold text-[#1C1917]'>{metrics.underReviewCount}</span>
-            </div>
-            <div className='flex items-center gap-1.5'>
-              <span className='text-[#57534E] font-medium'>Gate 1: Storyboard:</span>
-              <span className='font-bold text-[#1C1917]'>{metrics.gate1Count}</span>
-            </div>
-            <div className='flex items-center gap-1.5'>
-              <span className='text-[#57534E] font-medium'>Gate 2: Composite:</span>
-              <span className='font-bold text-[#1C1917]'>{metrics.gate2Count}</span>
-            </div>
-            {metrics.selfSubmissionCount > 0 && (
-              <div className='flex items-center gap-1.5 text-rose-700 bg-rose-50/80 px-2 py-0.5 rounded-md border border-rose-200/60'>
-                <ShieldAlert className='w-3 h-3 text-rose-600' />
-                <span className='font-medium'>{t('desk.kpiFourEyes')}</span>
-                <span className='font-bold'>{metrics.selfSubmissionCount}</span>
+    <div className='flex flex-col min-h-full bg-stone-50 text-stone-900 font-sans'>
+      {/* Studio Workbench Header (PageHeader) */}
+      <div className='px-4 sm:px-6 lg:px-8 pt-4 pb-2 border-b border-stone-200 bg-white shadow-2xs'>
+        <div className='max-w-7xl mx-auto'>
+          <PageHeader
+            icon={<ShieldCheck className='w-5 h-5 text-orange-600' aria-hidden='true' />}
+            eyebrow={seriesInfo?.title || t('desk.defaultSeriesTitle')}
+            title={t('desk.title')}
+            description={t('desk.subtitle')}
+            actions={
+              <div className='flex items-center gap-2 self-start sm:self-auto flex-wrap'>
+                <Link
+                  to={buildEditorDashboardUrl(workspaceId || '', seriesId || '')}
+                  className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-600 hover:text-stone-900 hover:bg-stone-100 border border-stone-300 bg-white shadow-2xs transition-colors'
+                >
+                  <span>{t('desk.seriesOverview')}</span>
+                </Link>
+                <button
+                  type='button'
+                  onClick={() =>
+                    navigate(buildSeriesPath(workspaceId, seriesId, 'bible?tab=review'))
+                  }
+                  className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-600 hover:text-stone-900 hover:bg-stone-100 border border-stone-300 bg-white shadow-2xs transition-colors cursor-pointer'
+                >
+                  <Palette className='w-3.5 h-3.5 text-orange-600' />
+                  <span>{t('desk.bibleReview', { count: pendingBibleConcepts })}</span>
+                </button>
+                <button
+                  type='button'
+                  onClick={loadData}
+                  disabled={loading}
+                  className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-600 hover:text-stone-900 hover:bg-stone-100 border border-stone-300 bg-white shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
+                  title={t('desk.refreshQueueTitle')}
+                >
+                  <RotateCcw
+                    className={`w-3.5 h-3.5 text-orange-600 ${loading ? 'animate-spin' : ''}`}
+                  />
+                  <span>{t('desk.refresh')}</span>
+                </button>
               </div>
-            )}
-          </div>
-
-          <div className='text-xs text-[#78716C] font-mono'>
-            {t('desk.totalSubmissions', { count: metrics.total })}
-          </div>
+            }
+          />
         </div>
       </div>
 
       {/* Main Container */}
       <main className='flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 space-y-5'>
-        {/* Review Queue by Stage Bar Chart (AG-3) */}
-        {!loading && hasAnyValue(queueByStage) && (
-          <Card>
-            <CardHeader title={t('charts.queueByStage')} />
-            <CardBody>
-              <StatBarChart
-                data={queueByStage}
-                variant='sequence'
-                valueLabel={t('charts.submissions')}
-                formatValue={(n) => n.toString()}
-                ariaLabel={t('charts.ariaLabel', { title: t('charts.queueByStage') })}
-              />
-            </CardBody>
-          </Card>
-        )}
-
-        {/* Filter & Search Bar (Sleek Segmented Track) */}
-        <div className='flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#FCFBF8] p-2.5 rounded-xl border border-[#D8D2C5] shadow-2xs'>
+        {/* Filter & Search Bar */}
+        <div className='flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-stone-300 shadow-2xs'>
           {/* Segmented Gate Switcher */}
-          <div className='flex items-center gap-1 p-1 bg-[#F3F0E9] rounded-lg border border-[#E5E0D8] overflow-x-auto'>
+          <div className='flex items-center gap-1 p-1 bg-stone-100 rounded-lg border border-stone-200 overflow-x-auto'>
             <button
               type='button'
               onClick={() => setActiveGate('all')}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                 activeGate === 'all'
-                  ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
-                  : 'text-[#57534E] hover:text-[#1C1917]'
+                  ? 'bg-white text-stone-900 shadow-xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              {t('desk.gateAll', 'Tất cả cổng')} ({metrics.total})
+              {t('desk.gateAll')} ({metrics.total})
             </button>
             <button
               type='button'
               onClick={() => setActiveGate('gate1')}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 activeGate === 'gate1'
-                  ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
-                  : 'text-[#57534E] hover:text-[#1C1917]'
+                  ? 'bg-white text-stone-900 shadow-xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              {t('desk.gate1', 'Gate 1: Storyboard')} ({metrics.gate1Count})
+              {t('desk.gate1')} ({metrics.gate1Count})
             </button>
             <button
               type='button'
               onClick={() => setActiveGate('gate2')}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 activeGate === 'gate2'
-                  ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
-                  : 'text-[#57534E] hover:text-[#1C1917]'
+                  ? 'bg-white text-stone-900 shadow-xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              {t('desk.gate2', 'Gate 2: Composite')} ({metrics.gate2Count})
+              {t('desk.gate2')} ({metrics.gate2Count})
             </button>
           </div>
 
           {/* Search & Status Filter */}
           <div className='flex items-center gap-2.5 flex-wrap md:flex-nowrap'>
-            {/* Scope Filter: Tất cả / Của tôi (R2) */}
+            {/* Scope Filter: Tất cả / Của tôi */}
             <div
               role='group'
-              aria-label={t('desk.scopeFilterAria', 'Lọc theo người được phân')}
-              className='inline-flex items-center gap-1 p-1 bg-[#F3F0E9] rounded-lg border border-[#E5E0D8]'
+              aria-label={t('desk.scopeFilterAria')}
+              className='inline-flex items-center gap-1 p-1 bg-stone-100 rounded-lg border border-stone-200'
             >
               <button
                 type='button'
@@ -633,11 +587,11 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                 onClick={() => setScopeFilter('all')}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                   scopeFilter === 'all'
-                    ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
-                    : 'text-[#57534E] hover:text-[#1C1917]'
+                    ? 'bg-white text-stone-900 shadow-xs font-bold'
+                    : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                {t('desk.scopeAll', 'Tất cả')}
+                {t('desk.scopeAll')}
               </button>
               <button
                 type='button'
@@ -646,11 +600,11 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                 onClick={() => setScopeFilter('mine')}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                   scopeFilter === 'mine'
-                    ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
-                    : 'text-[#57534E] hover:text-[#1C1917]'
+                    ? 'bg-white text-stone-900 shadow-xs font-bold'
+                    : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                {t('desk.scopeMine', 'Của tôi')}
+                {t('desk.scopeMine')}
               </button>
             </div>
 
@@ -659,100 +613,121 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
               aria-label={t('desk.filterStatusAria')}
-              className='px-3 py-1.5 bg-[#F3F0E9] border border-[#E5E0D8] rounded-lg text-xs font-medium text-[#1C1917] focus:outline-none focus:border-[#C2410C] cursor-pointer'
+              className='px-3 py-1.5 bg-stone-100 border border-stone-200 rounded-lg text-xs font-medium text-stone-900 focus:outline-none focus:border-orange-600 cursor-pointer'
             >
               <option value='all'>{t('desk.filterStatusAll')}</option>
               <option value='Submitted'>{t('desk.filterStatusSubmitted')}</option>
               <option value='UnderReview'>{t('desk.filterStatusUnderReview')}</option>
             </select>
 
+            {/* Chapter filter chip (D4) */}
+            {paramChapterId && (
+              <span
+                data-testid='editor-chapter-filter-chip'
+                className='inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-stone-200 text-stone-800 shrink-0'
+              >
+                <span>
+                  {filteredChapterNumber != null
+                    ? t('desk.chapterFilterChip', { number: filteredChapterNumber })
+                    : t('desk.chapterFilterChipGeneric')}
+                </span>
+                <button
+                  type='button'
+                  onClick={handleClearChapterFilter}
+                  className='hover:text-stone-950 cursor-pointer p-0.5 rounded-full hover:bg-stone-300 inline-flex items-center justify-center'
+                  aria-label={t('desk.clearChapterFilter')}
+                >
+                  <X className='w-3 h-3' />
+                </button>
+              </span>
+            )}
+
             {/* Search Input */}
             <div className='relative flex-1 md:w-64'>
-              <Search className='w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#78716C]' />
+              <Search className='w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-500' />
               <input
                 type='text'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('desk.searchPlaceholder')}
-                className='w-full pl-9 pr-3 py-1.5 bg-[#F3F0E9] border border-[#E5E0D8] rounded-lg text-xs text-[#1C1917] placeholder-[#78716C] focus:outline-none focus:border-[#C2410C]'
+                className='w-full pl-9 pr-3 py-1.5 bg-stone-100 border border-stone-200 rounded-lg text-xs text-stone-900 placeholder-stone-500 focus:outline-none focus:border-orange-600'
               />
             </div>
           </div>
         </div>
 
-        {/* Error Alert */}
+        {/* Error Alert (D9) */}
         {error && (
-          <div className='p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center justify-between shadow-2xs'>
-            <div className='flex items-center gap-2'>
-              <AlertCircle className='w-4 h-4 text-red-600 shrink-0' />
-              <span>{error}</span>
-            </div>
-            <button
-              type='button'
-              onClick={loadData}
-              className='px-2.5 py-1 bg-white border border-red-300 rounded font-semibold text-red-700 hover:bg-red-50 transition-colors cursor-pointer'
-            >
-              {t('desk.retry')}
-            </button>
-          </div>
+          <Alert
+            tone='danger'
+            action={
+              <button
+                type='button'
+                onClick={loadData}
+                className='px-2.5 py-1 bg-white border border-rose-300 rounded-md font-semibold text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer text-xs'
+              >
+                {t('desk.retry')}
+              </button>
+            }
+          >
+            {error}
+          </Alert>
         )}
 
         {/* Loading Spinner */}
         {loading && (
-          <div className='p-12 text-center bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xs'>
-            <RotateCcw className='w-7 h-7 text-[#C2410C] animate-spin mx-auto mb-2.5' />
-            <p className='text-xs font-semibold text-[#57534E]'>{t('desk.loadingQueue')}</p>
+          <div className='p-12 text-center bg-white border border-stone-300 rounded-2xl shadow-2xs'>
+            <RotateCcw className='w-7 h-7 text-orange-600 animate-spin mx-auto mb-2.5' />
+            <p className='text-xs font-semibold text-stone-600'>{t('desk.loadingQueue')}</p>
           </div>
         )}
 
         {/* D12: Kịch bản chờ duyệt — Editor mở để góp ý theo dòng */}
         {!loading && !error && scriptsInReview.length > 0 && (
-          <section className='mb-6' data-testid='scripts-in-review'>
-            <h2 className='mb-2 text-sm font-semibold text-stone-800'>
-              {t('scriptReview.desk.scriptsInReview', { count: scriptsInReview.length })}
-            </h2>
-            <ul className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
-              {scriptsInReview
-                .filter((c) => !paramChapterId || c.id === paramChapterId)
-                .map((c) => (
-                  <li
-                    key={c.id}
-                    className='flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3'
-                  >
-                    <div className='min-w-0'>
-                      <p className='truncate text-sm font-semibold text-stone-900'>
-                        {t('scriptReview.header.title', { number: c.chapterNumber })}
-                        {c.title ? `: ${c.title}` : ''}
-                      </p>
-                      <p className='text-xs text-stone-500'>{formatDate(c.scriptSubmittedAt)}</p>
-                    </div>
-                    <button
-                      type='button'
-                      onClick={() => navigate(buildScriptReviewUrl(workspaceId, seriesId, c.id))}
-                      className='shrink-0 rounded-full bg-[#EA580C] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C]'
+          <Card data-testid='scripts-in-review' className='mb-6'>
+            <CardHeader
+              title={t('scriptReview.desk.scriptsInReview', { count: scriptsInReview.length })}
+            />
+            <CardBody>
+              <ul className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
+                {scriptsInReview
+                  .filter((c) => !paramChapterId || c.id === paramChapterId)
+                  .map((c) => (
+                    <li
+                      key={c.id}
+                      className='flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3'
                     >
-                      {t('scriptReview.desk.openComments')}
-                    </button>
-                  </li>
-                ))}
-            </ul>
-          </section>
+                      <div className='min-w-0'>
+                        <p className='truncate text-sm font-semibold text-stone-900'>
+                          {t('scriptReview.header.title', { number: c.chapterNumber })}
+                          {c.title ? `: ${c.title}` : ''}
+                        </p>
+                        <p className='text-xs text-stone-500'>{formatDate(c.scriptSubmittedAt)}</p>
+                      </div>
+                      <button
+                        type='button'
+                        onClick={() => navigate(buildScriptReviewUrl(workspaceId, seriesId, c.id))}
+                        className='shrink-0 rounded-full bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-700 transition-colors cursor-pointer'
+                      >
+                        {t('scriptReview.desk.openComments')}
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </CardBody>
+          </Card>
         )}
 
         {/* Empty State */}
         {!loading && !error && filteredItems.length === 0 && (
-          <div className='p-12 text-center bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xs space-y-2.5'>
-            <div className='w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 mx-auto'>
-              <CheckCircle2 className='w-5 h-5' />
-            </div>
-            <h2 className='text-sm font-serif font-bold text-[#1C1917]'>{t('desk.emptyTitle')}</h2>
-            <p className='text-xs text-[#78716C] max-w-md mx-auto leading-relaxed'>
-              {t('desk.emptyDesc')}
-            </p>
-          </div>
+          <EmptyState
+            icon={<CheckCircle2 className='w-5 h-5 text-emerald-600' />}
+            title={t('desk.emptyTitle')}
+            description={t('desk.emptyDesc')}
+          />
         )}
 
-        {/* Queue Items Grid (Clean Editorial Paper Cards) */}
+        {/* Queue Items Grid */}
         {!loading && !error && filteredItems.length > 0 && (
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
             {filteredItems.map((item) => {
@@ -781,51 +756,49 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
               return (
                 <div
                   key={item.assignmentId}
-                  className={`relative flex flex-col justify-between bg-[#FCFBF8] border rounded-xl p-4 sm:p-5 shadow-soft-sm transition-all hover:shadow-md ${
+                  className={`relative flex flex-col justify-between bg-white border rounded-xl p-4 sm:p-5 shadow-xs transition-all hover:shadow-md ${
                     item.isSelfSubmission
                       ? 'border-rose-300 bg-rose-50/20'
-                      : 'border-[#D8D2C5] hover:border-[#F97316]'
+                      : 'border-stone-300 hover:border-orange-500'
                   }`}
                 >
                   {/* Top: Metadata & Title */}
                   <div>
                     {/* Gate & Status Row */}
                     <div className='flex items-center justify-between text-xs mb-2 pt-1'>
-                      <span className='font-semibold flex items-center gap-1.5 text-[#57534E]'>
+                      <span className='font-semibold flex items-center gap-1.5 text-stone-600'>
                         {item.stageSlug === 'script'
-                          ? t('desk.gate1Script', 'Gate 1: Kịch bản')
+                          ? t('desk.gate1Script')
                           : isGate1
-                            ? t('desk.gate1', 'Gate 1: Storyboard')
-                            : t('desk.gate2', 'Gate 2: Composite')}
+                            ? t('desk.gate1')
+                            : t('desk.gate2')}
                       </span>
 
-                      <span className='flex items-center gap-1 text-[#57534E] font-medium'>
+                      <span className='flex items-center gap-1 text-stone-600 font-medium'>
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             isUnderReview ? 'bg-sky-500' : 'bg-amber-500 animate-pulse'
                           }`}
                         />
-                        {isUnderReview
-                          ? t('desk.statusUnderReview', 'Đang thẩm định')
-                          : t('desk.statusSubmitted', 'Chờ mở duyệt')}
+                        {isUnderReview ? t('desk.statusUnderReview') : t('desk.statusSubmitted')}
                       </span>
                     </div>
 
                     {/* Main Title: Chapter & Scope */}
                     <div className='mb-2'>
                       <div className='flex items-center justify-between gap-2 flex-wrap'>
-                        <h3 className='text-sm font-bold text-[#1C1917] leading-snug'>
+                        <h3 className='text-sm font-bold text-stone-900 leading-snug'>
                           {t('scriptReview.header.title', { number: item.chapterNumber })} ·{' '}
-                          <span className='text-[#C2410C]'>{item.scopeLabel}</span>
+                          <span className='text-orange-700'>{item.scopeLabel}</span>
                         </h3>
                         <div className='flex items-center gap-1.5 flex-wrap'>
                           {isSuggestedForSelf && (
                             <span
                               data-testid={`editor-assigned-to-you-${item.assignmentId}`}
-                              className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200 text-[#C2410C] text-xs font-semibold'
+                              className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200 text-orange-700 text-xs font-semibold'
                             >
-                              <User className='w-3 h-3 text-[#EA580C] shrink-0' />
-                              <span>{t('desk.assignedToYouChip', 'Được phân cho bạn')}</span>
+                              <User className='w-3 h-3 text-orange-600 shrink-0' />
+                              <span>{t('desk.assignedToYouChip')}</span>
                             </span>
                           )}
                           {item.isInputOutdated && (
@@ -855,16 +828,16 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                           )}
                         </div>
                       </div>
-                      <p className='text-xs text-[#57534E] mt-0.5 truncate'>
+                      <p className='text-xs text-stone-600 mt-0.5 truncate'>
                         {item.chapterTitle || t('desk.untitledChapter')} ·{' '}
-                        <span className='font-medium text-[#1C1917]'>{item.stageName}</span>
+                        <span className='font-medium text-stone-900'>{item.stageName}</span>
                       </p>
                     </div>
 
                     {/* Artist & Submission Context */}
-                    <div className='pt-2.5 pb-2 border-t border-[#E5E0D8]/70 text-xs text-[#57534E] space-y-1.5'>
+                    <div className='pt-2.5 pb-2 border-t border-stone-200 text-xs text-stone-600 space-y-1.5'>
                       <div className='flex items-center justify-between'>
-                        <div className='flex items-center gap-1.5 truncate font-medium text-[#1C1917]'>
+                        <div className='flex items-center gap-1.5 truncate font-medium text-stone-900'>
                           {item.assigneeAvatarUrl ? (
                             <img
                               src={item.assigneeAvatarUrl}
@@ -872,7 +845,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                               className='w-4 h-4 rounded-full object-cover shrink-0'
                             />
                           ) : (
-                            <span className='w-4 h-4 rounded-full bg-[#E5E0D8] text-[#57534E] flex items-center justify-center font-bold text-xs shrink-0'>
+                            <span className='w-4 h-4 rounded-full bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs shrink-0'>
                               {item.assigneeName ? item.assigneeName.charAt(0).toUpperCase() : 'A'}
                             </span>
                           )}
@@ -880,14 +853,19 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             {item.assigneeName || t('desk.unknownArtist')}
                           </span>
                         </div>
-                        <span className='text-[#78716C] font-mono'>
+                        <span className='text-stone-500 font-mono'>
                           {t('desk.attemptLabel', { attempt: item.submissionAttempt })}
                         </span>
                       </div>
 
-                      <div className='flex items-center justify-between text-[#78716C]'>
-                        <span>{t('desk.submittedAt', { date: formatDate(item.submittedAt) })}</span>
-                        {item.priority === 'Urgent' || item.priority === 4 ? (
+                      <div className='flex items-center justify-between text-stone-500'>
+                        <span>
+                          {item.submittedAt
+                            ? t('desk.submittedAt', { date: formatDate(item.submittedAt) })
+                            : '—'}
+                        </span>
+                        {item.priority &&
+                        (item.priority === 'Urgent' || (item.priority as any) === 4) ? (
                           <span className='text-rose-700 font-semibold'>
                             {t('desk.priorityUrgent')}
                           </span>
@@ -906,7 +884,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
                     {/* Anti-Self-Approval Note (Rule BR-26) */}
                     {item.isSelfSubmission && (
-                      <div className='mt-1 mb-2 p-2 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs flex items-start gap-1.5 leading-relaxed'>
+                      <div className='mt-1 mb-2 p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-1.5 leading-relaxed'>
                         <ShieldAlert className='w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5' />
                         <div>
                           <span className='font-bold'>{t('desk.toast.fourEyesTitle')}:</span>{' '}
@@ -937,14 +915,14 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                     )}
                   </div>
 
-                  {/* Footer & Action Button */}
-                  <div className='pt-2.5 mt-2 border-t border-[#E5E0D8]/70 space-y-2'>
+                  {/* Footer & Action Button (D5) */}
+                  <div className='pt-2.5 mt-2 border-t border-stone-200 space-y-2'>
                     <div className='flex flex-wrap items-center justify-end gap-2'>
                       {item.isSelfSubmission ? (
                         <button
                           type='button'
                           disabled
-                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#A8A29E] bg-[#F3F0E9] border border-[#E5E0D8] cursor-not-allowed'
+                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-stone-400 bg-stone-100 border border-stone-200 cursor-not-allowed'
                           title={t('desk.lockedSelfTitle')}
                         >
                           <Lock className='w-3 h-3' />
@@ -961,9 +939,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                               className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 transition-colors cursor-pointer disabled:opacity-50'
                             >
                               <RotateCcw className='w-3.5 h-3.5' />
-                              <span>
-                                {t('chapterReview.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}
-                              </span>
+                              <span>{t('chapterReview.forceReleaseReviewBtn')}</span>
                             </button>
                           )}
                           {isLockedBySelf && (
@@ -975,7 +951,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                               className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-stone-700 bg-white hover:bg-stone-100 border border-stone-300 transition-colors cursor-pointer disabled:opacity-50'
                             >
                               <RotateCcw className='w-3.5 h-3.5' />
-                              <span>{t('chapterReview.releaseReviewBtn', 'Nhả khoá duyệt')}</span>
+                              <span>{t('chapterReview.releaseReviewBtn')}</span>
                             </button>
                           )}
                           <button
@@ -983,9 +959,9 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             data-testid={`editor-open-grid-review-${item.assignmentId}`}
                             disabled={isLockedByOther || gridBusyTaskId !== null}
                             onClick={() => void handleOpenGridReview(item)}
-                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-stone-900 hover:bg-stone-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                           >
-                            <Eye className='w-3.5 h-3.5 text-[#F97316]' />
+                            <Eye className='w-3.5 h-3.5 text-orange-500' />
                             <span>
                               {gridBusyTaskId === `open:${item.assignmentId}`
                                 ? t('desk.opening')
@@ -999,51 +975,55 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                                 `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${encodeURIComponent(item.chapterId)}&board=grid-v3`,
                               )
                             }
-                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#1C1917] bg-[#F3F0E9] hover:bg-[#E5E0D8] border border-[#D8D2C5] transition-colors cursor-pointer'
+                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-stone-900 bg-stone-100 hover:bg-stone-200 border border-stone-300 transition-colors cursor-pointer'
                           >
-                            <Eye className='w-3.5 h-3.5 text-[#C2410C]' />
+                            <Eye className='w-3.5 h-3.5 text-orange-600' />
                             <span>{t('desk.openGridV3')}</span>
                           </button>
-                          <button
-                            type='button'
-                            data-testid={`editor-reject-toggle-${item.assignmentId}`}
-                            disabled={isLockedByOther || gridBusyTaskId !== null}
-                            onClick={() => {
-                              setRejectingGridTaskId((prev) =>
-                                prev === item.assignmentId ? null : item.assignmentId,
-                              );
-                              setRejectComment('');
-                            }}
-                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
-                          >
-                            <RotateCcw className='w-3.5 h-3.5' />
-                            <span>{t('chapterReview.gate2GridRequestChanges')}</span>
-                          </button>
-                          <button
-                            type='button'
-                            data-testid={`editor-approve-grid-${item.assignmentId}`}
-                            disabled={
-                              isLockedByOther ||
-                              Boolean(item.isInputOutdated) ||
-                              Boolean(item.awaitingStageName) ||
-                              gridBusyTaskId !== null
-                            }
-                            onClick={() => void handleApproveGridItem(item)}
-                            className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
-                          >
-                            <CheckCircle2 className='w-3.5 h-3.5' />
-                            <span>
-                              {gridBusyTaskId === `approve:${item.assignmentId}`
-                                ? t('desk.approving')
-                                : t('desk.approveShort')}
-                            </span>
-                          </button>
+                          {/* D5: Nút Duyệt và Trả nhanh chỉ hiện khi isLockedBySelf */}
+                          {isLockedBySelf && (
+                            <>
+                              <button
+                                type='button'
+                                data-testid={`editor-reject-toggle-${item.assignmentId}`}
+                                disabled={gridBusyTaskId !== null}
+                                onClick={() => {
+                                  setRejectingGridTaskId((prev) =>
+                                    prev === item.assignmentId ? null : item.assignmentId,
+                                  );
+                                  setRejectComment('');
+                                }}
+                                className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                              >
+                                <RotateCcw className='w-3.5 h-3.5' />
+                                <span>{t('chapterReview.gate2GridRequestChanges')}</span>
+                              </button>
+                              <button
+                                type='button'
+                                data-testid={`editor-approve-grid-${item.assignmentId}`}
+                                disabled={
+                                  Boolean(item.isInputOutdated) ||
+                                  Boolean(item.awaitingStageName) ||
+                                  gridBusyTaskId !== null
+                                }
+                                onClick={() => void handleApproveGridItem(item)}
+                                className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                              >
+                                <CheckCircle2 className='w-3.5 h-3.5' />
+                                <span>
+                                  {gridBusyTaskId === `approve:${item.assignmentId}`
+                                    ? t('desk.approving')
+                                    : t('desk.approveShort')}
+                                </span>
+                              </button>
+                            </>
+                          )}
                         </>
                       ) : isUnderReview ? (
                         <button
                           type='button'
                           onClick={() => handleContinueReview(item)}
-                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] active:bg-[#0C0A09] shadow-soft-sm transition-colors cursor-pointer'
+                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-stone-900 hover:bg-stone-800 active:bg-stone-950 shadow-xs transition-colors cursor-pointer'
                         >
                           <Eye className='w-3.5 h-3.5' />
                           <span>{t('desk.continueReviewAction')}</span>
@@ -1053,7 +1033,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                           type='button'
                           onClick={() => handleOpenReview(item)}
                           disabled={isOpening}
-                          className='inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] active:bg-[#C2410C] shadow-soft-sm transition-colors cursor-pointer disabled:opacity-50'
+                          className='inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 active:bg-orange-800 shadow-xs transition-colors cursor-pointer disabled:opacity-50'
                         >
                           <Eye className={`w-3.5 h-3.5 ${isOpening ? 'animate-spin' : ''}`} />
                           <span>{isOpening ? t('desk.opening') : t('desk.openReviewAction')}</span>
@@ -1063,6 +1043,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
                     {item.isGridItem &&
                       !item.isSelfSubmission &&
+                      isLockedBySelf &&
                       rejectingGridTaskId === item.assignmentId && (
                         <div className='rounded-lg border border-rose-200 bg-rose-50/70 p-2.5 space-y-2'>
                           <textarea
@@ -1071,7 +1052,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             onChange={(e) => setRejectComment(e.target.value)}
                             placeholder={t('chapterReview.gate2GridCommentPlaceholder')}
                             aria-label={t('desk.rejectCommentAria')}
-                            className='w-full rounded border border-rose-300 bg-white px-2.5 py-1.5 text-xs text-[#1C1917]'
+                            className='w-full rounded border border-rose-300 bg-white px-2.5 py-1.5 text-xs text-stone-900'
                           />
                           <div className='flex items-center justify-end gap-1.5'>
                             <button
