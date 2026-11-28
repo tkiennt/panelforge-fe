@@ -19,7 +19,10 @@ import {
   type SeriesDetailDto,
   type SeriesProgressDto,
 } from '@/services/series.service';
-import { buildChapterManagementUrl } from '@/app/routePaths';
+import { buildChapterManagementUrl, buildProductionWorkspaceUrl } from '@/app/routePaths';
+import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
+import { StatLineChart, type StatLinePoint } from '@/shared/ui/charts/StatLineChart';
+import { hasAnyValue } from '@/shared/ui/charts/chartData';
 
 /**
  * Tổng quan cấp Series (UC-16, BR-32): tiến độ mọi chương của một bộ truyện.
@@ -61,6 +64,16 @@ export const SeriesDashboardView: React.FC = () => {
   const chapters: ChapterProgressDto[] = [...(progress?.chapters ?? [])].sort(
     (a, b) => a.chapterNumber - b.chapterNumber,
   );
+  const percentByChapterData: StatBarDatum[] = chapters.map((c) => ({
+    key: c.chapterId,
+    label: t('seriesDashboard.chart.chapterTick', { number: c.chapterNumber }),
+    value: Math.round(c.percentComplete),
+  }));
+  const burndownData: StatLinePoint[] = (progress?.burndown ?? []).map((p) => ({
+    periodStart: p.date,
+    value: p.remaining,
+  }));
+  const hasBurndown = burndownData.some((p) => p.value > 0);
   const inProduction = chapters.filter((c) => c.status === 'InProduction').length;
   const avgPercent = chapters.length
     ? Math.round(chapters.reduce((sum, c) => sum + c.percentComplete, 0) / chapters.length)
@@ -68,6 +81,9 @@ export const SeriesDashboardView: React.FC = () => {
   const overdueCount =
     (progress?.overdue.length ?? 0) + (progress?.overdueChangeRequests?.length ?? 0);
   const waitingReview = (progress?.workload ?? []).reduce((sum, w) => sum + w.waitingReview, 0);
+  const workload = [...(progress?.workload ?? [])]
+    .sort((a, b) => b.overdue - a.overdue || b.open - a.open)
+    .slice(0, 6);
 
   const statusLabel = (status: string) => {
     const key = `workbench.chapterStatus.${status}`;
@@ -134,6 +150,103 @@ export const SeriesDashboardView: React.FC = () => {
           </section>
 
           {/* AG-5..AG-7 (agy): biểu đồ % theo chương, burndown, tải việc ê-kíp đặt ở đây. */}
+          <div className='grid grid-cols-1 xl:grid-cols-2 gap-4'>
+            {hasAnyValue(percentByChapterData) && (
+              <Card>
+                <CardHeader title={t('seriesDashboard.chart.percentByChapter')} />
+                <CardBody>
+                  <StatBarChart
+                    variant='sequence'
+                    data={percentByChapterData}
+                    formatValue={(n) => `${n}%`}
+                    valueLabel={t('seriesDashboard.chart.percentComplete')}
+                    ariaLabel={t('seriesDashboard.chart.percentByChapter')}
+                  />
+                </CardBody>
+              </Card>
+            )}
+            {hasBurndown && (
+              <Card>
+                <CardHeader title={t('seriesDashboard.chart.burndown')} />
+                <CardBody>
+                  <StatLineChart
+                    data={burndownData}
+                    granularity='Day'
+                    locale={lang}
+                    valueLabel={t('seriesDashboard.chart.remaining')}
+                    formatValue={numberFmt.format}
+                    ariaLabel={t('seriesDashboard.chart.burndown')}
+                  />
+                </CardBody>
+              </Card>
+            )}
+            {workload.length > 0 && (
+              <Card className='flex flex-col'>
+                <CardHeader title={t('seriesDashboard.workload.title')} />
+                <CardBody className='p-0 flex-1 flex flex-col justify-between'>
+                  <div className='overflow-x-auto flex-1'>
+                    <table className='w-full text-sm'>
+                      <thead className='text-xs text-stone-500 text-left border-b border-stone-200'>
+                        <tr>
+                          <th scope='col' className='px-4 py-2.5 font-semibold'>
+                            {t('seriesDashboard.workload.colName')}
+                          </th>
+                          <th scope='col' className='px-4 py-2.5 font-semibold'>
+                            {t('seriesDashboard.workload.colRole')}
+                          </th>
+                          <th scope='col' className='px-4 py-2.5 font-semibold text-right'>
+                            {t('seriesDashboard.workload.colOpen')}
+                          </th>
+                          <th scope='col' className='px-4 py-2.5 font-semibold text-right'>
+                            {t('seriesDashboard.workload.colOverdue')}
+                          </th>
+                          <th scope='col' className='px-4 py-2.5 font-semibold text-right'>
+                            {t('seriesDashboard.workload.colWaitingReview')}
+                          </th>
+                          <th scope='col' className='px-4 py-2.5 font-semibold text-right'>
+                            {t('seriesDashboard.workload.colDone')}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className='divide-y divide-stone-100'>
+                        {workload.map((w) => (
+                          <tr key={w.userId} className='hover:bg-stone-50/70'>
+                            <td className='px-4 py-2.5 font-medium text-stone-900'>{w.fullName}</td>
+                            <td className='px-4 py-2.5 text-stone-600'>{w.role}</td>
+                            <td className='px-4 py-2.5 text-right font-mono tabular-nums text-stone-700'>
+                              {numberFmt.format(w.open)}
+                            </td>
+                            <td
+                              className={`px-4 py-2.5 text-right font-mono tabular-nums ${
+                                w.overdue > 0 ? 'font-semibold text-rose-700' : 'text-stone-400'
+                              }`}
+                            >
+                              {numberFmt.format(w.overdue)}
+                            </td>
+                            <td className='px-4 py-2.5 text-right font-mono tabular-nums text-stone-700'>
+                              {numberFmt.format(w.waitingReview)}
+                            </td>
+                            <td className='px-4 py-2.5 text-right font-mono tabular-nums text-stone-700'>
+                              {numberFmt.format(w.done)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className='p-3 border-t border-stone-200 text-right'>
+                    <Link
+                      to={buildProductionWorkspaceUrl(workspaceId, seriesId, { tab: 'crew' })}
+                      className='focus-ring text-xs font-semibold text-orange-700 hover:text-orange-800'
+                      data-testid='series-dashboard-workload-view-all'
+                    >
+                      {t('seriesDashboard.workload.viewAll')}
+                    </Link>
+                  </div>
+                </CardBody>
+              </Card>
+            )}
+          </div>
 
           <Card>
             <CardHeader

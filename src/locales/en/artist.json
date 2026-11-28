@@ -1000,5 +1000,8 @@
     "empty": "No panel image",
     "downloadTitle": "Download image",
     "downloadAria": "Download panel {panelNum} image"
+  },
+  "changeRegion": {
+    "markAria": "Change area {num}: {text}"
   }
 }

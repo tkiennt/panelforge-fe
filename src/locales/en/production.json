@@ -2130,6 +2130,13 @@
     "eyebrow": "Series · {title}",
     "title": "Series overview",
     "subtitle": "Progress of every chapter in this series. Pick a chapter for details.",
+    "chart": {
+      "percentByChapter": "Progress by chapter",
+      "chapterTick": "Ch. {number}",
+      "percentComplete": "% complete",
+      "burndown": "Remaining work by day",
+      "remaining": "Remaining"
+    },
     "kpi": {
       "ariaLabel": "Series metrics",
       "chapters": "Chapters",
@@ -2152,6 +2159,16 @@
       "open": "Open chapter",
       "chapterNumber": "Chapter {number}",
       "progressAria": "Chapter {number} progress"
+    },
+    "workload": {
+      "title": "Crew workload",
+      "colName": "Name",
+      "colRole": "Role",
+      "colOpen": "Open",
+      "colOverdue": "Overdue",
+      "colWaitingReview": "Waiting review",
+      "colDone": "Done",
+      "viewAll": "View crew & workload"
     }
   }
 }

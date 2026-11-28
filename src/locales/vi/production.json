@@ -2130,6 +2130,13 @@
     "eyebrow": "Series · {title}",
     "title": "Tổng quan series",
     "subtitle": "Tiến độ mọi chương của bộ truyện. Chọn một chương để xem chi tiết.",
+    "chart": {
+      "percentByChapter": "Tiến độ theo chương",
+      "chapterTick": "Ch. {number}",
+      "percentComplete": "% hoàn thành",
+      "burndown": "Việc còn lại theo ngày",
+      "remaining": "Việc còn lại"
+    },
     "kpi": {
       "ariaLabel": "Chỉ số series",
       "chapters": "Chương",
@@ -2152,6 +2159,16 @@
       "open": "Mở chương",
       "chapterNumber": "Chương {number}",
       "progressAria": "Tiến độ chương {number}"
+    },
+    "workload": {
+      "title": "Tải việc ê-kíp",
+      "colName": "Tên",
+      "colRole": "Vai trò",
+      "colOpen": "Đang làm",
+      "colOverdue": "Trễ",
+      "colWaitingReview": "Chờ duyệt",
+      "colDone": "Xong",
+      "viewAll": "Xem ê-kíp & tải việc"
     }
   }
 }
