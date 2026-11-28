@@ -454,6 +454,7 @@
     "unlimited": "Unlimited",
     "aiTokenShort": "AI Tokens:",
     "noQuota": "No quota assigned",
+    "auditTrail": "Audit Trail",
     "auditTitle": "View studio audit history (BR-18)",
     "collapse": "Collapse",
     "expandDetails": "Resource details",

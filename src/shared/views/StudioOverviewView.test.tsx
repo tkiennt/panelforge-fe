@@ -943,4 +943,91 @@ describe('StudioOverviewView Library UX/UI', () => {
       expect(screen.getByTestId('automation-dirty-indicator')).toBeInTheDocument();
     });
   });
+
+  describe('Studio Governance Quota Bar (OPS-04 / BR-22)', () => {
+    it('renders StudioGovernanceBar for Producer with storage, AI tokens, and expandable quota meters', async () => {
+      renderWithRouter();
+
+      const bar = await screen.findByTestId('studio-governance-bar');
+      expect(bar).toHaveTextContent('Tài nguyên Studio:');
+      expect(bar).toHaveTextContent('Lưu trữ:');
+      expect(bar).toHaveTextContent('Token AI:');
+      expect(bar).toHaveTextContent('Không giới hạn');
+
+      // Expand detailed meters
+      const expandBtn = screen.getByRole('button', { name: /Chi tiết tài nguyên/i });
+      fireEvent.click(expandBtn);
+
+      expect(screen.getByText('Dung Lượng Lưu Trữ')).toBeInTheDocument();
+      expect(screen.getByText('Hạn Mức AI Tokens')).toBeInTheDocument();
+      expect(screen.getByText('Hạn Mức Sinh Ảnh AI')).toBeInTheDocument();
+      expect(screen.getByText('Đã dùng 25%')).toBeInTheDocument();
+      expect(screen.getByText('Token AI không giới hạn')).toBeInTheDocument();
+      expect(screen.getByText('Đã dùng 15%')).toBeInTheDocument();
+    });
+
+    it('treats quota 0 as unlimited without rendering 0% or NaN bars', async () => {
+      const unlimitedWorkspace = {
+        ...mockWorkspace,
+        storageQuotaBytes: 0,
+        usedStorageBytes: 524288000,
+      };
+      localStorage.setItem('activeWorkspace', JSON.stringify(unlimitedWorkspace));
+      vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([unlimitedWorkspace as any]);
+      vi.spyOn(workspaceService, 'getWorkspaceUsage').mockResolvedValue({
+        workspaceId: 'ws-test',
+        storage: {
+          used: 524288000,
+          quota: 0,
+          percentUsed: null,
+          isUnlimited: false,
+        },
+        aiTokens: {
+          used: 4500,
+          quota: 0,
+          percentUsed: null,
+          isUnlimited: false,
+        },
+        aiEnabled: true,
+        images: {
+          used: 8,
+          quota: 0,
+          percentUsed: null,
+          isUnlimited: false,
+        },
+      } as any);
+
+      renderWithRouter();
+
+      const bar = await screen.findByTestId('studio-governance-bar');
+      expect(bar).toHaveTextContent('Không giới hạn');
+      expect(bar.textContent).not.toContain('NaN');
+
+      fireEvent.click(screen.getByRole('button', { name: /Chi tiết tài nguyên/i }));
+      expect(screen.getByText('Lưu trữ không giới hạn')).toBeInTheDocument();
+      expect(screen.getByText('Token AI không giới hạn')).toBeInTheDocument();
+      expect(screen.getByText('Sinh ảnh không giới hạn')).toBeInTheDocument();
+      expect(screen.queryByText('Đã dùng 0%')).not.toBeInTheDocument();
+      expect(bar.textContent).not.toContain('NaN');
+    });
+
+    it('does not render StudioGovernanceBar for non-Producer series roles', async () => {
+      const writerWorkspace = {
+        ...mockWorkspace,
+        isOwner: false,
+        currentUserRole: 'Writer',
+      };
+      localStorage.setItem('activeWorkspace', JSON.stringify(writerWorkspace));
+      localStorage.setItem('workspaceRole', 'WRITER');
+      vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([writerWorkspace as any]);
+
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('studio-governance-bar')).not.toBeInTheDocument();
+    });
+  });
 });

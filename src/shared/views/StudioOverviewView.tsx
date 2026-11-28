@@ -158,6 +158,7 @@ export const StudioOverviewView: React.FC = () => {
 
   // Workspace Usage (NFR Resource Governance - Storage & AI Tokens)
   const [workspaceUsage, setWorkspaceUsage] = useState<WorkspaceUsageDto | null>(null);
+  const [isResourcesExpanded, setIsResourcesExpanded] = useState(false);
   const [readerStats, setReaderStats] = useState<WorkspaceReaderStatsDto | null>(null);
 
   // Workspace Audit Modal State (F8)
@@ -884,6 +885,16 @@ export const StudioOverviewView: React.FC = () => {
                 </button>
               ) : undefined
             }
+          />
+        )}
+
+        {activeTab === 'series' && activeWorkspace && (
+          <StudioGovernanceBar
+            activeWorkspace={activeWorkspace}
+            workspaceUsage={workspaceUsage}
+            isResourcesExpanded={isResourcesExpanded}
+            onToggleResourcesExpanded={() => setIsResourcesExpanded((prev) => !prev)}
+            onOpenAuditModal={() => setAuditModalOpen(true)}
           />
         )}
 
