@@ -65,7 +65,7 @@ export const CatalogHero: React.FC<CatalogHeroProps> = ({ items, onOpen, metaLin
 
       <div
         key={current.id}
-        className='flex min-h-80 flex-col gap-6 p-5 pb-16 motion-safe:animate-[reader-hero-in_400ms_ease-out] sm:flex-row sm:p-7'
+        className='flex min-h-80 flex-col gap-6 p-5 pb-16 motion-safe:animate-[reader-hero-in_400ms_ease-out] sm:flex-row sm:p-7 sm:pb-16'
       >
         <button
           type='button'
