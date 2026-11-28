@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserPlus } from 'lucide-react';
+import { MailWarning, UserPlus } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
 export interface MembersTabContentProps {
@@ -11,6 +11,8 @@ export interface MembersTabContentProps {
   onMemberSearchQueryChange?: (query: string) => void;
   canCreateStudio: boolean;
   onResendInvitation?: (memberId: string) => void;
+  /** Thành viên đang được gửi lại lời mời (khoá nút để tránh bấm liên tục). */
+  resendingMemberId?: string | null;
   onOpenEditAccess: (member: any) => void;
   onDeleteMember?: (member: { id: string; email: string }) => void;
   onOpenInviteModal?: () => void;
@@ -19,6 +21,8 @@ export interface MembersTabContentProps {
 export const MembersTabContent: React.FC<MembersTabContentProps> = ({
   filteredMembers,
   canCreateStudio,
+  onResendInvitation,
+  resendingMemberId = null,
   onOpenEditAccess,
   onOpenInviteModal,
 }) => {
@@ -134,6 +138,10 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                 const memberName = member.fullName || member.name || member.email?.split('@')[0];
                 const initials = getInitials(member.fullName || member.name, member.email);
                 const isPending = member.status === 'Pending' || member.isEmailConfirmed === false;
+                const memberId = member.userId || member.id;
+                const canResend =
+                  canCreateStudio && isPending && !member.isOwner && !!onResendInvitation;
+                const isResending = resendingMemberId === memberId;
 
                 return (
                   <tr
@@ -194,9 +202,27 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                           {t('members.crewTab.statusActive')}
                         </span>
                       )}
+                      {member.invitationEmailSent === false && (
+                        <span className='ml-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 text-xs font-semibold'>
+                          <MailWarning className='w-3.5 h-3.5' aria-hidden='true' />
+                          {t('members.crewTab.emailNotSentBadge')}
+                        </span>
+                      )}
                     </td>
 
                     <td className='py-3 px-4 text-right'>
+                      {canResend && (
+                        <button
+                          type='button'
+                          onClick={() => onResendInvitation(memberId)}
+                          disabled={isResending}
+                          className='mr-3 text-stone-600 font-semibold hover:text-orange-700 cursor-pointer text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                        >
+                          {isResending
+                            ? t('members.crewTab.actionResending')
+                            : t('members.crewTab.actionResendInvitation')}
+                        </button>
+                      )}
                       {canCreateStudio ? (
                         <button
                           type='button'

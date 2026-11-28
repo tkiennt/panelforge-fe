@@ -3,6 +3,7 @@ import { Mail, UserPlus, Send, AlertTriangle } from 'lucide-react';
 import { workspaceService, WorkspaceMemberDto } from '@/services/workspace.service';
 import { Modal } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
+import type { ToastOptions } from '@/shared/context/ToastContext';
 
 export interface InviteMemberModalProps {
   isOpen: boolean;
@@ -11,7 +12,7 @@ export interface InviteMemberModalProps {
   initialMode?: 'interactive' | 'batch';
   onClose: () => void;
   onInvited: (newMember: WorkspaceMemberDto) => void;
-  onShowToast: (title: string, desc: string) => void;
+  onShowToast: (title: string, desc: string, options?: ToastOptions) => void;
 }
 
 interface RoleOption {
@@ -83,10 +84,19 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
       };
 
       onInvited(pendingMember);
-      onShowToast(
-        t('members.studioInviteModal.toastSuccessTitle'),
-        t('members.studioInviteModal.toastSuccessDesc', { email: trimmedEmail }),
-      );
+      // Thành viên đã được thêm nhưng mail mời không đi: báo rõ để Producer bấm "Gửi lại lời mời"
+      if (addedMember.invitationEmailSent === false) {
+        onShowToast(
+          t('members.studioInviteModal.toastEmailFailedTitle'),
+          t('members.studioInviteModal.toastEmailFailedDesc', { email: trimmedEmail }),
+          { tone: 'warning' },
+        );
+      } else {
+        onShowToast(
+          t('members.studioInviteModal.toastSuccessTitle'),
+          t('members.studioInviteModal.toastSuccessDesc', { email: trimmedEmail }),
+        );
+      }
       setEmail('');
       onClose();
     } catch (err: any) {

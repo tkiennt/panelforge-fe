@@ -79,6 +79,9 @@ export const StudioOverviewView: React.FC = () => {
   const isProducerOrAdmin = userRole === 'ADMINISTRATOR' || isProducer;
 
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
+  // GET /members không trả InvitationEmailSent: nhớ trong phiên những lời mời chưa gửi được mail
+  const [failedInviteIds, setFailedInviteIds] = useState<ReadonlySet<string>>(new Set());
+  const [resendingMemberId, setResendingMemberId] = useState<string | null>(null);
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
   // The studio tabs live in the AppShell top bar, so the active tab is shared through `?tab=`.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -242,12 +245,12 @@ export const StudioOverviewView: React.FC = () => {
         initials,
         status: isPending ? 'Pending' : 'Active',
         isEmailConfirmed: m.isEmailConfirmed,
-        invitationEmailSent: m.invitationEmailSent,
+        invitationEmailSent: failedInviteIds.has(m.userId) ? false : m.invitationEmailSent,
         isOwner: m.isOwner,
         isYou: currentUser?.id === m.userId || currentUser?.email === m.email,
       };
     });
-  }, [members, currentUser]);
+  }, [members, currentUser, failedInviteIds]);
 
   const filteredMembers = React.useMemo(() => {
     return studioMembers.filter((m) => {
@@ -650,16 +653,31 @@ export const StudioOverviewView: React.FC = () => {
     }
   }, [activeTab, activeWorkspace, auditLogs.length, loadWorkspaceAudit]);
 
+  const markInviteEmailFailed = (userId: string, failed: boolean) =>
+    setFailedInviteIds((prev) => {
+      if (prev.has(userId) === failed) return prev;
+      const next = new Set(prev);
+      if (failed) next.add(userId);
+      else next.delete(userId);
+      return next;
+    });
+
   const handleResendInvitation = async (userId: string) => {
-    if (!activeWorkspace) return;
+    if (!activeWorkspace || resendingMemberId) return;
+    setResendingMemberId(userId);
     try {
       await workspaceService.resendInvitation(activeWorkspace.id, userId);
+      markInviteEmailFailed(userId, false);
       showToast(
         t('workspace.overviewView.resendSuccessTitle'),
         t('workspace.overviewView.resendSuccessDesc'),
+        { tone: 'success' },
       );
     } catch (err: any) {
-      showToast(t('workspace.overviewView.resendErrorTitle'), err.message);
+      markInviteEmailFailed(userId, true);
+      showToast(t('workspace.overviewView.resendErrorTitle'), err.message, { tone: 'danger' });
+    } finally {
+      setResendingMemberId(null);
     }
   };
 
@@ -1119,6 +1137,7 @@ export const StudioOverviewView: React.FC = () => {
               onMemberSearchQueryChange={setMemberSearchQuery}
               canCreateStudio={canCreateStudio}
               onResendInvitation={handleResendInvitation}
+              resendingMemberId={resendingMemberId}
               onOpenEditAccess={handleOpenEditAccess}
               onDeleteMember={handleDeleteMember}
               onOpenInviteModal={() => setInviteModalOpen(true)}
@@ -1164,7 +1183,8 @@ export const StudioOverviewView: React.FC = () => {
             workspaceId={activeWorkspace.id}
             workspaceName={activeWorkspace.name}
             onClose={() => setInviteModalOpen(false)}
-            onInvited={async () => {
+            onInvited={async (newMember) => {
+              markInviteEmailFailed(newMember.userId, newMember.invitationEmailSent === false);
               const memList = await workspaceService.getMembers(activeWorkspace.id);
               setMembers(memList);
             }}

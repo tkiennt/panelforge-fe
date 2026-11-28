@@ -85,6 +85,43 @@ describe('InviteMemberModal Component', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('warns the producer when the member was added but the invitation email failed', async () => {
+    const user = userEvent.setup();
+    vi.mocked(workspaceService.addMember).mockResolvedValue({
+      userId: 'u-2',
+      fullName: 'new',
+      email: 'new@studio.vn',
+      role: 'Member',
+      isOwner: false,
+      joinedAt: new Date().toISOString(),
+      isEmailConfirmed: false,
+      invitationEmailSent: false,
+    });
+    const onInvited = vi.fn();
+    const onShowToast = vi.fn();
+
+    render(
+      <InviteMemberModal
+        isOpen={true}
+        workspaceId='ws-123'
+        workspaceName='Manga Studio'
+        onClose={vi.fn()}
+        onInvited={onInvited}
+        onShowToast={onShowToast}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText(/vd: artist.kenji@mappa.jp/i), 'new@studio.vn');
+    await user.click(screen.getByRole('button', { name: /Gửi lời mời & Cấp quyền/i }));
+
+    expect(onInvited).toHaveBeenCalledWith(expect.objectContaining({ invitationEmailSent: false }));
+    expect(onShowToast).toHaveBeenCalledWith(
+      'Chưa gửi được email mời',
+      expect.stringContaining('new@studio.vn'),
+      { tone: 'warning' },
+    );
+  });
+
   it('validates email format before submission', async () => {
     const user = userEvent.setup();
     render(

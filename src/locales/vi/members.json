@@ -142,6 +142,9 @@
     "actionDetails": "Chi tiết",
     "actionAdjust": "Điều chỉnh",
     "actionResend": "Gửi lại",
+    "actionResendInvitation": "Gửi lại lời mời",
+    "actionResending": "Đang gửi...",
+    "emailNotSentBadge": "Chưa gửi được mail",
     "actionDelete": "Xóa",
     "empty": "Không có thành viên nào phù hợp.",
     "roleProducer": "Producer / Chủ nhiệm",
@@ -180,6 +183,8 @@
     "submitting": "Đang gửi...",
     "toastSuccessTitle": "Đã gửi lời mời thành công",
     "toastSuccessDesc": "Lời mời cộng tác đã chuyển đến {email}",
+    "toastEmailFailedTitle": "Chưa gửi được email mời",
+    "toastEmailFailedDesc": "Đã thêm {email} vào Studio nhưng hệ thống chưa gửi được email mời. Kiểm tra cấu hình email rồi bấm \"Gửi lại lời mời\" trong danh sách thành viên.",
     "errorEmptyEmail": "Vui lòng nhập email người nhận.",
     "errorInvalidEmail": "Vui lòng nhập định dạng email hợp lệ.",
     "errorSendFailed": "Không thể gửi lời mời. Vui lòng thử lại."
