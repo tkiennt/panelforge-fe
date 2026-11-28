@@ -2,20 +2,20 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from '@/lib/i18n';
 import {
-  ShieldCheck,
+  AlertCircle,
+  BookOpen,
+  CheckCircle2,
+  ChevronDown,
   Eye,
-  Clock,
-  Layers,
+  FileText,
   Lock,
+  Palette,
   RotateCcw,
   Search,
-  CheckCircle2,
-  AlertCircle,
-  Calendar,
-  User,
   ShieldAlert,
-  SlidersHorizontal,
-  Palette,
+  ShieldCheck,
+  User,
+  X,
 } from 'lucide-react';
 import {
   EditorQualityGate,
@@ -29,8 +29,24 @@ import { bibleService } from '@/services/bible.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { workspaceService } from '@/services/workspace.service';
-import { buildScriptReviewUrl, buildSeriesPath, buildTaskReviewUrl } from '@/app/routePaths';
-import { Card, CardBody, CardHeader } from '@/shared/ui';
+import {
+  buildScriptEditorUrl,
+  buildScriptReviewUrl,
+  buildSeriesPath,
+  buildSeriesReaderUrl,
+  buildTaskReviewUrl,
+} from '@/app/routePaths';
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  CountChip,
+  Skeleton,
+} from '@/shared/ui';
 import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
 import { hasAnyValue } from '@/shared/ui/charts/chartData';
 
@@ -465,6 +481,16 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     return result;
   }, [queueItems, paramChapterId, scopeFilter, currentUserId, searchQuery]);
 
+  const hasClientFilter = scopeFilter !== 'all' || searchQuery.trim() !== '';
+  const hasAnyFilter = activeGate !== 'all' || statusFilter !== 'all' || hasClientFilter;
+
+  const handleClearFilters = () => {
+    setActiveGate('all');
+    setStatusFilter('all');
+    setScopeFilter('all');
+    setSearchQuery('');
+  };
+
   // Date formatter
   const formatDate = (isoString?: string | null) => {
     if (!isoString) return t('desk.justNow');
@@ -481,86 +507,133 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     }
   };
 
+  const gateTabs: Array<{ id: EditorQualityGate; label: string; count: number }> = [
+    { id: 'all', label: t('desk.gateAll', 'Tất cả cổng'), count: metrics.total },
+    { id: 'gate1', label: t('desk.gate1', 'Gate 1: Storyboard'), count: metrics.gate1Count },
+    { id: 'gate2', label: t('desk.gate2', 'Gate 2: Composite'), count: metrics.gate2Count },
+  ];
+
+  const visibleScriptsInReview = useMemo(
+    () => scriptsInReview.filter((c) => !paramChapterId || c.id === paramChapterId),
+    [scriptsInReview, paramChapterId],
+  );
+
   return (
-    <div className='flex flex-col min-h-full bg-[#FAF8F5] text-[#1C1917] font-sans'>
-      {/* Studio Workbench Header (Clean Editorial Header, integrated with Focus Studio) */}
-      <div className='px-4 sm:px-6 lg:px-8 pt-6 pb-4 border-b border-[#E5E0D8] bg-[#FCFBF8] shadow-2xs'>
-        <div className='max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4'>
-          <div>
-            <div className='flex items-center gap-2.5'>
-              <h1 className='text-lg font-serif font-bold text-[#1C1917] tracking-tight'>
-                {t('desk.title', 'Bàn Thẩm Định Biên Tập (Editor Desk)')}
-              </h1>
-              <span className='text-xs text-[#57534E] font-medium'>
-                · {seriesInfo?.title || t('desk.defaultSeriesTitle')}
-              </span>
-            </div>
-            <p className='text-xs text-[#78716C] mt-0.5'>{t('desk.subtitle')}</p>
-          </div>
-
-          {/* Quick Refresh */}
-          <div className='flex items-center gap-2 self-start md:self-auto'>
-            <button
-              type='button'
-              onClick={() => navigate(buildSeriesPath(workspaceId, seriesId, 'bible?tab=review'))}
-              className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer'
-            >
-              <Palette className='w-3.5 h-3.5 text-[#C2410C]' />
-              <span>{t('desk.bibleReview', { count: pendingBibleConcepts })}</span>
-            </button>
-            <button
-              type='button'
-              onClick={loadData}
-              disabled={loading}
-              className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5] bg-[#FCFBF8] shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
-              title={t('desk.refreshQueueTitle')}
-            >
-              <RotateCcw
-                className={`w-3.5 h-3.5 text-[#C2410C] ${loading ? 'animate-spin' : ''}`}
-              />
-              <span>{t('desk.refresh')}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Minimalist Summary KPIs Row (Clean Paper Strip) */}
-        <div className='max-w-7xl mx-auto mt-4 pt-3 border-t border-[#E5E0D8]/70 flex items-center justify-between gap-4 flex-wrap text-xs'>
-          <div className='flex items-center gap-4 sm:gap-6 flex-wrap'>
-            <div className='flex items-center gap-1.5'>
-              <span className='w-2 h-2 rounded-full bg-amber-500' />
-              <span className='text-[#57534E] font-medium'>{t('desk.kpiPending')}</span>
-              <span className='font-bold text-[#1C1917]'>{metrics.submittedCount}</span>
-            </div>
-            <div className='flex items-center gap-1.5'>
-              <span className='w-2 h-2 rounded-full bg-sky-500' />
-              <span className='text-[#57534E] font-medium'>{t('desk.kpiUnderReview')}</span>
-              <span className='font-bold text-[#1C1917]'>{metrics.underReviewCount}</span>
-            </div>
-            <div className='flex items-center gap-1.5'>
-              <span className='text-[#57534E] font-medium'>Gate 1: Storyboard:</span>
-              <span className='font-bold text-[#1C1917]'>{metrics.gate1Count}</span>
-            </div>
-            <div className='flex items-center gap-1.5'>
-              <span className='text-[#57534E] font-medium'>Gate 2: Composite:</span>
-              <span className='font-bold text-[#1C1917]'>{metrics.gate2Count}</span>
-            </div>
-            {metrics.selfSubmissionCount > 0 && (
-              <div className='flex items-center gap-1.5 text-rose-700 bg-rose-50/80 px-2 py-0.5 rounded-md border border-rose-200/60'>
-                <ShieldAlert className='w-3 h-3 text-rose-600' />
-                <span className='font-medium'>{t('desk.kpiFourEyes')}</span>
-                <span className='font-bold'>{metrics.selfSubmissionCount}</span>
+    <div className='flex-1 min-h-full bg-[#FAF9F5] text-stone-900 font-sans px-4 sm:px-6 lg:px-8 py-5'>
+      <main className='max-w-[1440px] mx-auto w-full space-y-5'>
+        {/* Single-Band Editorial Command Header */}
+        <Card className='px-4 py-3.5 sm:px-5'>
+          <div className='flex flex-wrap items-center justify-between gap-x-4 gap-y-3'>
+            <div className='flex min-w-0 items-center gap-3.5'>
+              <div
+                className='grid size-10 shrink-0 place-items-center rounded-xl border border-head-line bg-head-wash text-accent-dark'
+                aria-hidden='true'
+              >
+                <ShieldCheck className='size-5' />
               </div>
-            )}
-          </div>
+              <div className='min-w-0'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <h1 className='font-serif text-xl sm:text-2xl font-bold leading-tight text-stone-900'>
+                    {t('desk.title', 'Bàn thẩm định biên tập')}
+                  </h1>
+                  <CountChip>{seriesInfo?.title || t('desk.defaultSeriesTitle')}</CountChip>
+                </div>
+                <p className='mt-0.5 text-xs text-stone-500'>{t('desk.subtitle')}</p>
+              </div>
+            </div>
 
-          <div className='text-xs text-[#78716C] font-mono'>
-            {t('desk.totalSubmissions', { count: metrics.total })}
-          </div>
-        </div>
-      </div>
+            <div className='flex flex-1 flex-wrap items-center justify-between gap-3 sm:justify-end xl:flex-initial xl:shrink-0'>
+              {/* Clickable Status KPI Tray */}
+              <div className='flex flex-wrap items-stretch divide-y divide-stone-200/80 rounded-xl border border-head-line bg-head-wash/65 sm:divide-x sm:divide-y-0'>
+                <button
+                  type='button'
+                  aria-pressed={statusFilter === 'Submitted'}
+                  data-testid='editor-kpi-submitted'
+                  onClick={() =>
+                    setStatusFilter((prev) => (prev === 'Submitted' ? 'all' : 'Submitted'))
+                  }
+                  className={`focus-ring flex items-center gap-2 px-3 py-2 text-xs transition-studio cursor-pointer first:rounded-t-xl sm:first:rounded-l-xl sm:first:rounded-tr-none ${
+                    statusFilter === 'Submitted'
+                      ? 'bg-amber-50/90 text-amber-900'
+                      : 'text-stone-600 hover:bg-white/70'
+                  }`}
+                >
+                  <span className='size-2 rounded-full bg-amber-500 shrink-0' aria-hidden='true' />
+                  <span className='font-medium whitespace-nowrap'>{t('desk.kpiPending')}</span>
+                  <span className='font-bold text-stone-900 tabular-nums'>
+                    {metrics.submittedCount}
+                  </span>
+                </button>
 
-      {/* Main Container */}
-      <main className='flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 space-y-5'>
+                <button
+                  type='button'
+                  aria-pressed={statusFilter === 'UnderReview'}
+                  data-testid='editor-kpi-under-review'
+                  onClick={() =>
+                    setStatusFilter((prev) => (prev === 'UnderReview' ? 'all' : 'UnderReview'))
+                  }
+                  className={`focus-ring flex items-center gap-2 px-3 py-2 text-xs transition-studio cursor-pointer ${
+                    statusFilter === 'UnderReview'
+                      ? 'bg-blue-50/90 text-blue-900'
+                      : 'text-stone-600 hover:bg-white/70'
+                  }`}
+                >
+                  <span className='size-2 rounded-full bg-blue-500 shrink-0' aria-hidden='true' />
+                  <span className='font-medium whitespace-nowrap'>{t('desk.kpiUnderReview')}</span>
+                  <span className='font-bold text-stone-900 tabular-nums'>
+                    {metrics.underReviewCount}
+                  </span>
+                </button>
+
+                {metrics.selfSubmissionCount > 0 && (
+                  <div className='flex items-center gap-1.5 bg-rose-50/80 px-3 py-2 text-xs text-rose-800'>
+                    <ShieldAlert className='size-3.5 shrink-0 text-rose-600' aria-hidden='true' />
+                    <span className='font-medium whitespace-nowrap'>{t('desk.kpiFourEyes')}</span>
+                    <span className='font-bold tabular-nums'>{metrics.selfSubmissionCount}</span>
+                  </div>
+                )}
+
+                <div className='flex items-center px-3 py-2 text-xs font-medium text-stone-600 tabular-nums whitespace-nowrap'>
+                  {t('desk.totalSubmissions', { count: metrics.total })}
+                </div>
+              </div>
+
+              {/* Header Quick Actions */}
+              <div className='flex items-center gap-2 shrink-0'>
+                <Button
+                  variant={pendingBibleConcepts > 0 ? 'warning' : 'secondary'}
+                  size='sm'
+                  leadingIcon={<Palette aria-hidden='true' />}
+                  onClick={() =>
+                    workspaceId &&
+                    seriesId &&
+                    navigate(buildSeriesPath(workspaceId, seriesId, 'bible?tab=review'))
+                  }
+                  className='whitespace-nowrap cursor-pointer'
+                >
+                  {t('desk.bibleReview', { count: pendingBibleConcepts })}
+                </Button>
+                <Button
+                  variant='secondary'
+                  size='sm'
+                  disabled={loading}
+                  leadingIcon={
+                    <RotateCcw
+                      className={loading ? 'animate-spin' : undefined}
+                      aria-hidden='true'
+                    />
+                  }
+                  onClick={loadData}
+                  title={t('desk.refreshQueueTitle')}
+                  className='whitespace-nowrap cursor-pointer'
+                >
+                  {t('desk.refresh')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+
         {/* Review Queue by Stage Bar Chart (AG-3) */}
         {!loading && hasAnyValue(queueByStage) && (
           <Card>
@@ -577,62 +650,54 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
           </Card>
         )}
 
-        {/* Filter & Search Bar (Sleek Segmented Track) */}
-        <div className='flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#FCFBF8] p-2.5 rounded-xl border border-[#D8D2C5] shadow-2xs'>
-          {/* Segmented Gate Switcher */}
-          <div className='flex items-center gap-1 p-1 bg-[#F3F0E9] rounded-lg border border-[#E5E0D8] overflow-x-auto'>
-            <button
-              type='button'
-              onClick={() => setActiveGate('all')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                activeGate === 'all'
-                  ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
-                  : 'text-[#57534E] hover:text-[#1C1917]'
-              }`}
-            >
-              {t('desk.gateAll', 'Tất cả cổng')} ({metrics.total})
-            </button>
-            <button
-              type='button'
-              onClick={() => setActiveGate('gate1')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                activeGate === 'gate1'
-                  ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
-                  : 'text-[#57534E] hover:text-[#1C1917]'
-              }`}
-            >
-              {t('desk.gate1', 'Gate 1: Storyboard')} ({metrics.gate1Count})
-            </button>
-            <button
-              type='button'
-              onClick={() => setActiveGate('gate2')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                activeGate === 'gate2'
-                  ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
-                  : 'text-[#57534E] hover:text-[#1C1917]'
-              }`}
-            >
-              {t('desk.gate2', 'Gate 2: Composite')} ({metrics.gate2Count})
-            </button>
+        {/* Zero-Scrollbar Underline Gate Tabs + Inline Controls (matches SeriesFilterBar) */}
+        <div className='flex flex-wrap items-end justify-between gap-x-4 gap-y-2.5 border-b border-stone-200/80'>
+          <div className='-mb-px flex flex-wrap items-center gap-x-5 gap-y-1 text-sm font-medium'>
+            {gateTabs.map((tab) => {
+              const isSelected = activeGate === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type='button'
+                  aria-pressed={isSelected}
+                  onClick={() => setActiveGate(tab.id)}
+                  className={`focus-ring inline-flex items-center gap-1.5 border-b-2 py-2.5 transition-studio cursor-pointer whitespace-nowrap ${
+                    isSelected
+                      ? 'border-accent font-semibold text-stone-900'
+                      : `border-transparent hover:border-stone-300 hover:text-stone-900 ${
+                          tab.count === 0 ? 'text-stone-500' : 'text-stone-700'
+                        }`
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={`rounded-full px-1.5 text-xs tabular-nums ${
+                      isSelected ? 'bg-accent-soft text-accent-dark' : 'bg-stone-100 text-stone-500'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Search & Status Filter */}
-          <div className='flex items-center gap-2.5 flex-wrap md:flex-nowrap'>
+          <div className='flex flex-wrap items-center gap-2 pb-2 min-w-0'>
             {/* Scope Filter: Tất cả / Của tôi (R2) */}
             <div
               role='group'
               aria-label={t('desk.scopeFilterAria', 'Lọc theo người được phân')}
-              className='inline-flex items-center gap-1 p-1 bg-[#F3F0E9] rounded-lg border border-[#E5E0D8]'
+              className='inline-flex shrink-0 items-center gap-0.5 rounded-lg border border-stone-200 bg-white p-0.5 shadow-2xs'
             >
               <button
                 type='button'
                 data-testid='editor-scope-all'
                 aria-pressed={scopeFilter === 'all'}
                 onClick={() => setScopeFilter('all')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                className={`focus-ring inline-flex min-h-8 items-center rounded-md px-2.5 text-xs transition-studio whitespace-nowrap cursor-pointer ${
                   scopeFilter === 'all'
-                    ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
-                    : 'text-[#57534E] hover:text-[#1C1917]'
+                    ? 'bg-head-wash font-semibold text-stone-900'
+                    : 'font-medium text-stone-500 hover:text-stone-900'
                 }`}
               >
                 {t('desk.scopeAll', 'Tất cả')}
@@ -642,10 +707,10 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                 data-testid='editor-scope-mine'
                 aria-pressed={scopeFilter === 'mine'}
                 onClick={() => setScopeFilter('mine')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                className={`focus-ring inline-flex min-h-8 items-center rounded-md px-2.5 text-xs transition-studio whitespace-nowrap cursor-pointer ${
                   scopeFilter === 'mine'
-                    ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
-                    : 'text-[#57534E] hover:text-[#1C1917]'
+                    ? 'bg-head-wash font-semibold text-stone-900'
+                    : 'font-medium text-stone-500 hover:text-stone-900'
                 }`}
               >
                 {t('desk.scopeMine', 'Của tôi')}
@@ -653,106 +718,228 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
             </div>
 
             {/* Status Select */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              aria-label={t('desk.filterStatusAria')}
-              className='px-3 py-1.5 bg-[#F3F0E9] border border-[#E5E0D8] rounded-lg text-xs font-medium text-[#1C1917] focus:outline-none focus:border-[#C2410C] cursor-pointer'
-            >
-              <option value='all'>{t('desk.filterStatusAll')}</option>
-              <option value='Submitted'>{t('desk.filterStatusSubmitted')}</option>
-              <option value='UnderReview'>{t('desk.filterStatusUnderReview')}</option>
-            </select>
+            <div className='relative shrink-0'>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                aria-label={t('desk.filterStatusAria')}
+                className='focus-ring min-h-9 appearance-none cursor-pointer rounded-lg border border-stone-200 bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-stone-700 shadow-2xs transition-studio hover:border-head-line'
+              >
+                <option value='all'>{t('desk.filterStatusAll')}</option>
+                <option value='Submitted'>{t('desk.filterStatusSubmitted')}</option>
+                <option value='UnderReview'>{t('desk.filterStatusUnderReview')}</option>
+              </select>
+              <ChevronDown
+                className='pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-stone-400'
+                aria-hidden='true'
+              />
+            </div>
 
             {/* Search Input */}
-            <div className='relative flex-1 md:w-64'>
-              <Search className='w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#78716C]' />
+            <div className='relative w-full sm:w-56'>
+              <Search
+                className='pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-stone-400'
+                aria-hidden='true'
+              />
               <input
                 type='text'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('desk.searchPlaceholder')}
-                className='w-full pl-9 pr-3 py-1.5 bg-[#F3F0E9] border border-[#E5E0D8] rounded-lg text-xs text-[#1C1917] placeholder-[#78716C] focus:outline-none focus:border-[#C2410C]'
+                className='focus-ring w-full min-h-9 rounded-lg border border-stone-200 bg-white pl-9 pr-8 py-1.5 text-xs font-medium text-stone-900 placeholder:text-stone-400 shadow-2xs transition-studio focus:border-accent'
               />
+              {searchQuery && (
+                <button
+                  type='button'
+                  onClick={() => setSearchQuery('')}
+                  aria-label={t('desk.clearFilters')}
+                  className='focus-ring absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-stone-400 hover:text-stone-700 cursor-pointer'
+                >
+                  <X className='size-3.5' aria-hidden='true' />
+                </button>
+              )}
             </div>
+
+            {hasAnyFilter && (
+              <button
+                type='button'
+                onClick={handleClearFilters}
+                className='focus-ring inline-flex min-h-9 items-center gap-1 rounded-lg border border-head-line bg-accent-soft px-3 text-xs font-semibold text-accent-dark hover:bg-orange-100 transition-studio cursor-pointer whitespace-nowrap'
+              >
+                <X className='size-3.5' aria-hidden='true' />
+                <span>{t('desk.clearFilters')}</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Error Alert */}
         {error && (
-          <div className='p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center justify-between shadow-2xs'>
+          <Alert tone='danger' className='text-xs'>
             <div className='flex items-center gap-2'>
-              <AlertCircle className='w-4 h-4 text-red-600 shrink-0' />
+              <AlertCircle className='size-4 text-rose-600 shrink-0' aria-hidden='true' />
               <span>{error}</span>
             </div>
-            <button
-              type='button'
+            <Button
+              variant='danger'
+              size='sm'
               onClick={loadData}
-              className='px-2.5 py-1 bg-white border border-red-300 rounded font-semibold text-red-700 hover:bg-red-50 transition-colors cursor-pointer'
+              className='shrink-0 cursor-pointer'
             >
               {t('desk.retry')}
-            </button>
-          </div>
+            </Button>
+          </Alert>
         )}
 
-        {/* Loading Spinner */}
+        {/* Loading State (Geometry-matched Skeleton Grid) */}
         {loading && (
-          <div className='p-12 text-center bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xs'>
-            <RotateCcw className='w-7 h-7 text-[#C2410C] animate-spin mx-auto mb-2.5' />
-            <p className='text-xs font-semibold text-[#57534E]'>{t('desk.loadingQueue')}</p>
+          <div className='space-y-4'>
+            <div className='flex items-center gap-2 text-xs font-medium text-stone-500'>
+              <RotateCcw className='size-3.5 text-accent-dark animate-spin' aria-hidden='true' />
+              <span>{t('desk.loadingQueue')}</span>
+            </div>
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+              {[0, 1, 2].map((idx) => (
+                <Card key={idx} className='p-4 space-y-3'>
+                  <Skeleton height={18} width='55%' />
+                  <Skeleton height={22} width='80%' />
+                  <Skeleton height={14} width='65%' />
+                  <div className='pt-2 flex justify-end gap-2'>
+                    <Skeleton height={32} width={88} />
+                    <Skeleton height={32} width={76} />
+                  </div>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
 
         {/* D12: Kịch bản chờ duyệt — Editor mở để góp ý theo dòng */}
-        {!loading && !error && scriptsInReview.length > 0 && (
-          <section className='mb-6' data-testid='scripts-in-review'>
-            <h2 className='mb-2 text-sm font-semibold text-stone-800'>
-              {t('scriptReview.desk.scriptsInReview', { count: scriptsInReview.length })}
-            </h2>
-            <ul className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
-              {scriptsInReview
-                .filter((c) => !paramChapterId || c.id === paramChapterId)
-                .map((c) => (
+        {!loading && !error && visibleScriptsInReview.length > 0 && (
+          <Card as='section' tone='warning' data-testid='scripts-in-review'>
+            <CardHeader
+              icon={<FileText />}
+              title={t('scriptReview.desk.scriptsInReview', {
+                count: visibleScriptsInReview.length,
+              })}
+              titleAs='h2'
+            />
+            <CardBody className='p-4'>
+              <ul className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
+                {visibleScriptsInReview.map((c) => (
                   <li
                     key={c.id}
-                    className='flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3'
+                    className='flex items-center justify-between gap-3 rounded-xl border border-amber-200/90 bg-amber-50/50 px-4 py-3'
                   >
                     <div className='min-w-0'>
                       <p className='truncate text-sm font-semibold text-stone-900'>
                         {t('scriptReview.header.title', { number: c.chapterNumber })}
                         {c.title ? `: ${c.title}` : ''}
                       </p>
-                      <p className='text-xs text-stone-500'>{formatDate(c.scriptSubmittedAt)}</p>
+                      <p className='text-xs text-stone-500 tabular-nums'>
+                        {formatDate(c.scriptSubmittedAt)}
+                      </p>
                     </div>
-                    <button
-                      type='button'
-                      onClick={() => navigate(buildScriptReviewUrl(workspaceId, seriesId, c.id))}
-                      className='shrink-0 rounded-full bg-[#EA580C] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#C2410C]'
+                    <Button
+                      variant='primary'
+                      size='sm'
+                      onClick={() =>
+                        workspaceId &&
+                        seriesId &&
+                        navigate(buildScriptReviewUrl(workspaceId, seriesId, c.id))
+                      }
+                      className='shrink-0 cursor-pointer whitespace-nowrap'
                     >
                       {t('scriptReview.desk.openComments')}
-                    </button>
+                    </Button>
                   </li>
                 ))}
-            </ul>
-          </section>
+              </ul>
+            </CardBody>
+          </Card>
         )}
 
-        {/* Empty State */}
+        {/* Empty State (distinguishes filtered-empty vs truly clean queue + actionable next links) */}
         {!loading && !error && filteredItems.length === 0 && (
-          <div className='p-12 text-center bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xs space-y-2.5'>
-            <div className='w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 mx-auto'>
-              <CheckCircle2 className='w-5 h-5' />
-            </div>
-            <h2 className='text-sm font-serif font-bold text-[#1C1917]'>{t('desk.emptyTitle')}</h2>
-            <p className='text-xs text-[#78716C] max-w-md mx-auto leading-relaxed'>
-              {t('desk.emptyDesc')}
-            </p>
+          <div className='rounded-2xl border-2 border-dashed border-head-line bg-white/80 px-6 py-12 text-center space-y-4'>
+            {hasClientFilter && queueItems.length > 0 ? (
+              <>
+                <div className='mx-auto grid size-12 place-items-center rounded-2xl border border-head-line bg-head-wash text-accent-dark'>
+                  <Search className='size-5' aria-hidden='true' />
+                </div>
+                <div className='space-y-1.5'>
+                  <h2 className='font-serif text-lg font-bold text-stone-900'>
+                    {t('desk.emptyFilteredTitle')}
+                  </h2>
+                  <p className='mx-auto max-w-md text-xs sm:text-sm text-stone-600 leading-relaxed'>
+                    {t('desk.emptyFilteredDesc')}
+                  </p>
+                </div>
+                <div>
+                  <Button
+                    variant='secondary'
+                    size='sm'
+                    onClick={handleClearFilters}
+                    className='cursor-pointer'
+                  >
+                    {t('desk.clearFilters')}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className='mx-auto grid size-12 place-items-center rounded-2xl border border-emerald-200/80 bg-emerald-50 text-emerald-700'>
+                  <CheckCircle2 className='size-5' aria-hidden='true' />
+                </div>
+                <div className='space-y-1.5'>
+                  <h2 className='font-serif text-lg font-bold text-stone-900'>
+                    {t('desk.emptyTitle')}
+                  </h2>
+                  <p className='mx-auto max-w-md text-xs sm:text-sm text-stone-600 leading-relaxed'>
+                    {t('desk.emptyDesc')}
+                  </p>
+                </div>
+                {workspaceId && seriesId && (
+                  <div className='flex flex-wrap items-center justify-center gap-2 pt-1'>
+                    <Button
+                      variant='secondary'
+                      size='sm'
+                      leadingIcon={<BookOpen aria-hidden='true' />}
+                      onClick={() => navigate(buildSeriesReaderUrl(workspaceId, seriesId))}
+                      className='cursor-pointer'
+                    >
+                      {t('desk.quickReadSeries')}
+                    </Button>
+                    <Button
+                      variant='secondary'
+                      size='sm'
+                      leadingIcon={<FileText aria-hidden='true' />}
+                      onClick={() => navigate(buildScriptEditorUrl(workspaceId, seriesId))}
+                      className='cursor-pointer'
+                    >
+                      {t('desk.quickOpenScript')}
+                    </Button>
+                    <Button
+                      variant='secondary'
+                      size='sm'
+                      leadingIcon={<Palette aria-hidden='true' />}
+                      onClick={() =>
+                        navigate(buildSeriesPath(workspaceId, seriesId, 'bible?tab=review'))
+                      }
+                      className='cursor-pointer'
+                    >
+                      {t('desk.quickOpenBible')}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
-        {/* Queue Items Grid (Clean Editorial Paper Cards) */}
+        {/* Queue Items Grid (Canonical PanelForge Cards) */}
         {!loading && !error && filteredItems.length > 0 && (
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch'>
             {filteredItems.map((item) => {
               const isGate1 = item.gate === 'gate1';
               const isUnderReview = item.status === 'UnderReview';
@@ -777,108 +964,110 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
               );
 
               return (
-                <div
+                <Card
                   key={item.assignmentId}
-                  className={`relative flex flex-col justify-between bg-[#FCFBF8] border rounded-xl p-4 sm:p-5 shadow-soft-sm transition-all hover:shadow-md ${
+                  as='article'
+                  className={`flex h-full flex-col transition-studio hover:shadow-md ${
                     item.isSelfSubmission
-                      ? 'border-rose-300 bg-rose-50/20'
-                      : 'border-[#D8D2C5] hover:border-[#F97316]'
+                      ? 'border-rose-300 bg-rose-50/15'
+                      : 'hover:border-orange-300'
                   }`}
                 >
-                  {/* Top: Metadata & Title */}
-                  <div>
-                    {/* Gate & Status Row */}
-                    <div className='flex items-center justify-between text-xs mb-2 pt-1'>
-                      <span className='font-semibold flex items-center gap-1.5 text-[#57534E]'>
-                        {item.stageSlug === 'script'
-                          ? t('desk.gate1Script', 'Gate 1: Kịch bản')
-                          : isGate1
-                            ? t('desk.gate1', 'Gate 1: Storyboard')
-                            : t('desk.gate2', 'Gate 2: Composite')}
-                      </span>
+                  {/* Warm Compact Top Status Band */}
+                  <div className='flex items-center justify-between gap-2 border-b border-head-line bg-head-wash/75 px-4 py-2.5 text-xs'>
+                    <span className='truncate font-semibold text-kraft-ink'>
+                      {item.stageSlug === 'script'
+                        ? t('desk.gate1Script', 'Gate 1: Kịch bản')
+                        : isGate1
+                          ? t('desk.gate1', 'Gate 1: Storyboard')
+                          : t('desk.gate2', 'Gate 2: Composite')}
+                    </span>
 
-                      <span className='flex items-center gap-1 text-[#57534E] font-medium'>
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            isUnderReview ? 'bg-sky-500' : 'bg-amber-500 animate-pulse'
-                          }`}
-                        />
+                    <Badge tone={isUnderReview ? 'info' : 'warning'}>
+                      <span
+                        className={`size-1.5 rounded-full ${
+                          isUnderReview ? 'bg-blue-600' : 'bg-amber-500'
+                        }`}
+                        aria-hidden='true'
+                      />
+                      <span>
                         {isUnderReview
                           ? t('desk.statusUnderReview', 'Đang thẩm định')
                           : t('desk.statusSubmitted', 'Chờ mở duyệt')}
                       </span>
-                    </div>
+                    </Badge>
+                  </div>
 
-                    {/* Main Title: Chapter & Scope */}
-                    <div className='mb-2'>
-                      <div className='flex items-center justify-between gap-2 flex-wrap'>
-                        <h3 className='text-sm font-bold text-[#1C1917] leading-snug'>
+                  {/* Card Body */}
+                  <div className='flex flex-1 flex-col gap-3 p-4'>
+                    <div className='space-y-1.5'>
+                      <div className='flex flex-wrap items-start justify-between gap-2'>
+                        <h3 className='font-serif text-base font-bold leading-snug text-stone-900'>
                           {t('scriptReview.header.title', { number: item.chapterNumber })} ·{' '}
-                          <span className='text-[#C2410C]'>{item.scopeLabel}</span>
+                          <span className='text-accent-dark'>{item.scopeLabel}</span>
                         </h3>
-                        <div className='flex items-center gap-1.5 flex-wrap'>
+                        <CountChip className='shrink-0'>{item.stageName}</CountChip>
+                      </div>
+
+                      <p className='truncate text-xs text-stone-500'>
+                        {item.chapterTitle || t('desk.untitledChapter')}
+                      </p>
+
+                      {(isSuggestedForSelf || item.isInputOutdated) && (
+                        <div className='flex flex-wrap items-center gap-1.5 pt-0.5'>
                           {isSuggestedForSelf && (
-                            <span
+                            <Badge
+                              tone='brand'
+                              icon={<User aria-hidden='true' />}
                               data-testid={`editor-assigned-to-you-${item.assignmentId}`}
-                              className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200 text-[#C2410C] text-xs font-semibold'
                             >
-                              <User className='w-3 h-3 text-[#EA580C] shrink-0' />
-                              <span>{t('desk.assignedToYouChip', 'Được phân cho bạn')}</span>
-                            </span>
+                              {t('desk.assignedToYouChip', 'Được phân cho bạn')}
+                            </Badge>
                           )}
                           {item.isInputOutdated && (
-                            <span
+                            <Badge
+                              tone='warning'
+                              icon={<AlertCircle aria-hidden='true' />}
                               data-testid={`editor-input-outdated-${item.assignmentId}`}
-                              className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 text-xs font-semibold'
                             >
-                              <AlertCircle className='w-3 h-3 text-amber-700 shrink-0' />
-                              <span>{t('chapterReview.inputOutdatedBadge')}</span>
-                            </span>
+                              {t('chapterReview.inputOutdatedBadge')}
+                            </Badge>
                           )}
                         </div>
-                      </div>
-                      <p className='text-xs text-[#57534E] mt-0.5 truncate'>
-                        {item.chapterTitle || t('desk.untitledChapter')} ·{' '}
-                        <span className='font-medium text-[#1C1917]'>{item.stageName}</span>
-                      </p>
+                      )}
                     </div>
 
-                    {/* Artist & Submission Context */}
-                    <div className='pt-2.5 pb-2 border-t border-[#E5E0D8]/70 text-xs text-[#57534E] space-y-1.5'>
-                      <div className='flex items-center justify-between'>
-                        <div className='flex items-center gap-1.5 truncate font-medium text-[#1C1917]'>
-                          {item.assigneeAvatarUrl ? (
-                            <img
-                              src={item.assigneeAvatarUrl}
-                              alt={item.assigneeName || 'Avatar'}
-                              className='w-4 h-4 rounded-full object-cover shrink-0'
-                            />
-                          ) : (
-                            <span className='w-4 h-4 rounded-full bg-[#E5E0D8] text-[#57534E] flex items-center justify-center font-bold text-xs shrink-0'>
-                              {item.assigneeName ? item.assigneeName.charAt(0).toUpperCase() : 'A'}
-                            </span>
-                          )}
+                    {/* Artist & Submission Metadata */}
+                    <div className='space-y-1.5 border-t border-stone-100 pt-3 text-xs text-stone-600'>
+                      <div className='flex items-center justify-between gap-2'>
+                        <div className='flex min-w-0 items-center gap-2 font-medium text-stone-900'>
+                          <Avatar
+                            src={item.assigneeAvatarUrl || undefined}
+                            name={item.assigneeName || t('desk.unknownArtist')}
+                            size='sm'
+                          />
                           <span className='truncate'>
                             {item.assigneeName || t('desk.unknownArtist')}
                           </span>
                         </div>
-                        <span className='text-[#78716C] font-mono'>
+                        <span className='shrink-0 font-mono text-xs text-stone-500 tabular-nums'>
                           {t('desk.attemptLabel', { attempt: item.submissionAttempt })}
                         </span>
                       </div>
 
-                      <div className='flex items-center justify-between text-[#78716C]'>
+                      <div className='flex items-center justify-between gap-2 text-stone-500 tabular-nums'>
                         <span>{t('desk.submittedAt', { date: formatDate(item.submittedAt) })}</span>
                         {item.priority === 'Urgent' || item.priority === 4 ? (
-                          <span className='text-rose-700 font-semibold'>
-                            {t('desk.priorityUrgent')}
-                          </span>
+                          <Badge tone='danger'>{t('desk.priorityUrgent')}</Badge>
                         ) : null}
                       </div>
 
                       {item.openChangeRequestsCount > 0 && (
-                        <div className='pt-1 text-amber-800 flex items-center gap-1 font-medium'>
-                          <span className='w-1.5 h-1.5 rounded-full bg-amber-500' />
+                        <div className='flex items-center gap-1.5 pt-0.5 font-medium text-amber-800'>
+                          <span
+                            className='size-1.5 rounded-full bg-amber-500 shrink-0'
+                            aria-hidden='true'
+                          />
                           <span>
                             {t('desk.openChangeRequests', { count: item.openChangeRequestsCount })}
                           </span>
@@ -886,10 +1075,13 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                       )}
                     </div>
 
-                    {/* Anti-Self-Approval Note (Rule BR-26) */}
+                    {/* Contextual Lock / BR-26 Notices */}
                     {item.isSelfSubmission && (
-                      <div className='mt-1 mb-2 p-2 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs flex items-start gap-1.5 leading-relaxed'>
-                        <ShieldAlert className='w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5' />
+                      <div className='flex items-start gap-2 rounded-lg border border-rose-200/80 bg-rose-50 px-3 py-2 text-xs text-rose-800 leading-relaxed'>
+                        <ShieldAlert
+                          className='mt-0.5 size-3.5 shrink-0 text-rose-600'
+                          aria-hidden='true'
+                        />
                         <div>
                           <span className='font-bold'>{t('desk.toast.fourEyesTitle')}:</span>{' '}
                           {t('desk.selfSubmissionNotice')}
@@ -900,9 +1092,9 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                     {isLockedByOther && (
                       <div
                         data-testid={`editor-locked-by-other-${item.assignmentId}`}
-                        className='mt-1 mb-2 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-1.5 font-medium'
+                        className='flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900'
                       >
-                        <Lock className='w-3.5 h-3.5 text-amber-600 shrink-0' />
+                        <Lock className='size-3.5 shrink-0 text-amber-600' aria-hidden='true' />
                         <span>
                           {t('chapterReview.underReviewBy', {
                             name: item.reviewerName || item.reviewerUserId || '',
@@ -912,133 +1104,135 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                     )}
 
                     {isLockedBySelf && (
-                      <div className='mt-1 mb-2 p-2 rounded-lg bg-sky-50 border border-sky-200 text-sky-900 text-xs flex items-center gap-1.5 font-medium'>
-                        <Eye className='w-3.5 h-3.5 text-sky-600 shrink-0' />
+                      <div className='flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900'>
+                        <Eye className='size-3.5 shrink-0 text-blue-600' aria-hidden='true' />
                         <span>{t('chapterReview.underReviewByYou')}</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Footer & Action Button */}
-                  <div className='pt-2.5 mt-2 border-t border-[#E5E0D8]/70 space-y-2'>
-                    <div className='flex flex-wrap items-center justify-end gap-2'>
+                  {/* Card Footer Actions */}
+                  <div className='mt-auto border-t border-stone-100 bg-[#FAF9F5]/60 px-4 py-3 space-y-2.5'>
+                    <div className='flex flex-wrap items-center justify-end gap-1.5'>
                       {item.isSelfSubmission ? (
-                        <button
-                          type='button'
+                        <Button
+                          variant='secondary'
+                          size='sm'
                           disabled
-                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#A8A29E] bg-[#F3F0E9] border border-[#E5E0D8] cursor-not-allowed'
+                          leadingIcon={<Lock aria-hidden='true' />}
                           title={t('desk.lockedSelfTitle')}
                         >
-                          <Lock className='w-3 h-3' />
-                          <span>{t('desk.lockedSelfAction')}</span>
-                        </button>
+                          {t('desk.lockedSelfAction')}
+                        </Button>
                       ) : item.isGridItem ? (
                         <>
                           {isProducer && isLockedByOther && (
-                            <button
-                              type='button'
+                            <Button
+                              variant='warning'
+                              size='sm'
                               data-testid={`editor-force-release-${item.assignmentId}`}
                               disabled={gridBusyTaskId !== null}
+                              leadingIcon={<RotateCcw aria-hidden='true' />}
                               onClick={() => void handleReleaseGridReview(item)}
-                              className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 transition-colors cursor-pointer disabled:opacity-50'
+                              className='cursor-pointer'
                             >
-                              <RotateCcw className='w-3.5 h-3.5' />
-                              <span>
-                                {t('chapterReview.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}
-                              </span>
-                            </button>
+                              {t('chapterReview.forceReleaseReviewBtn', 'Gỡ khoá duyệt')}
+                            </Button>
                           )}
                           {isLockedBySelf && (
-                            <button
-                              type='button'
+                            <Button
+                              variant='secondary'
+                              size='sm'
                               data-testid={`editor-release-own-${item.assignmentId}`}
                               disabled={gridBusyTaskId !== null}
+                              leadingIcon={<RotateCcw aria-hidden='true' />}
                               onClick={() => void handleReleaseGridReview(item)}
-                              className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-stone-700 bg-white hover:bg-stone-100 border border-stone-300 transition-colors cursor-pointer disabled:opacity-50'
+                              className='cursor-pointer'
                             >
-                              <RotateCcw className='w-3.5 h-3.5' />
-                              <span>{t('chapterReview.releaseReviewBtn', 'Nhả khoá duyệt')}</span>
-                            </button>
+                              {t('chapterReview.releaseReviewBtn', 'Nhả khoá duyệt')}
+                            </Button>
                           )}
-                          <button
-                            type='button'
-                            data-testid={`editor-open-grid-review-${item.assignmentId}`}
-                            disabled={isLockedByOther || gridBusyTaskId !== null}
-                            onClick={() => void handleOpenGridReview(item)}
-                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
-                          >
-                            <Eye className='w-3.5 h-3.5 text-[#F97316]' />
-                            <span>
-                              {gridBusyTaskId === `open:${item.assignmentId}`
-                                ? t('desk.opening')
-                                : t('chapterReview.openDetailReview')}
-                            </span>
-                          </button>
-                          <button
-                            type='button'
+                          <Button
+                            variant='secondary'
+                            size='sm'
                             onClick={() =>
                               navigate(
                                 `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${encodeURIComponent(item.chapterId)}&board=grid-v3`,
                               )
                             }
-                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#1C1917] bg-[#F3F0E9] hover:bg-[#E5E0D8] border border-[#D8D2C5] transition-colors cursor-pointer'
+                            className='cursor-pointer'
                           >
-                            <Eye className='w-3.5 h-3.5 text-[#C2410C]' />
-                            <span>{t('desk.openGridV3')}</span>
-                          </button>
-                          <button
-                            type='button'
+                            {t('desk.openGridV3')}
+                          </Button>
+                          <Button
+                            variant='secondary'
+                            size='sm'
+                            data-testid={`editor-open-grid-review-${item.assignmentId}`}
+                            disabled={isLockedByOther || gridBusyTaskId !== null}
+                            leadingIcon={<Eye className='text-accent-dark' aria-hidden='true' />}
+                            onClick={() => void handleOpenGridReview(item)}
+                            className='cursor-pointer'
+                          >
+                            {gridBusyTaskId === `open:${item.assignmentId}`
+                              ? t('desk.opening')
+                              : t('chapterReview.openDetailReview')}
+                          </Button>
+                          <Button
+                            variant='danger'
+                            size='sm'
                             data-testid={`editor-reject-toggle-${item.assignmentId}`}
                             disabled={isLockedByOther || gridBusyTaskId !== null}
+                            leadingIcon={<RotateCcw aria-hidden='true' />}
                             onClick={() => {
                               setRejectingGridTaskId((prev) =>
                                 prev === item.assignmentId ? null : item.assignmentId,
                               );
                               setRejectComment('');
                             }}
-                            className='inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                            className='cursor-pointer'
                           >
-                            <RotateCcw className='w-3.5 h-3.5' />
-                            <span>{t('chapterReview.gate2GridRequestChanges')}</span>
-                          </button>
-                          <button
-                            type='button'
+                            {t('chapterReview.gate2GridRequestChanges')}
+                          </Button>
+                          <Button
+                            variant='success'
+                            size='sm'
                             data-testid={`editor-approve-grid-${item.assignmentId}`}
                             disabled={
                               isLockedByOther ||
                               Boolean(item.isInputOutdated) ||
                               gridBusyTaskId !== null
                             }
+                            leadingIcon={<CheckCircle2 aria-hidden='true' />}
                             onClick={() => void handleApproveGridItem(item)}
-                            className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                            className='cursor-pointer'
                           >
-                            <CheckCircle2 className='w-3.5 h-3.5' />
-                            <span>
-                              {gridBusyTaskId === `approve:${item.assignmentId}`
-                                ? t('desk.approving')
-                                : t('desk.approveShort')}
-                            </span>
-                          </button>
+                            {gridBusyTaskId === `approve:${item.assignmentId}`
+                              ? t('desk.approving')
+                              : t('desk.approveShort')}
+                          </Button>
                         </>
                       ) : isUnderReview ? (
-                        <button
-                          type='button'
+                        <Button
+                          variant='primary'
+                          size='sm'
+                          leadingIcon={<Eye aria-hidden='true' />}
                           onClick={() => handleContinueReview(item)}
-                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1C1917] hover:bg-[#292524] active:bg-[#0C0A09] shadow-soft-sm transition-colors cursor-pointer'
+                          className='cursor-pointer'
                         >
-                          <Eye className='w-3.5 h-3.5' />
-                          <span>{t('desk.continueReviewAction')}</span>
-                        </button>
+                          {t('desk.continueReviewAction')}
+                        </Button>
                       ) : (
-                        <button
-                          type='button'
-                          onClick={() => handleOpenReview(item)}
+                        <Button
+                          variant='primary'
+                          size='sm'
                           disabled={isOpening}
-                          className='inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] active:bg-[#C2410C] shadow-soft-sm transition-colors cursor-pointer disabled:opacity-50'
+                          loading={isOpening}
+                          leadingIcon={<Eye aria-hidden='true' />}
+                          onClick={() => handleOpenReview(item)}
+                          className='cursor-pointer'
                         >
-                          <Eye className={`w-3.5 h-3.5 ${isOpening ? 'animate-spin' : ''}`} />
-                          <span>{isOpening ? t('desk.opening') : t('desk.openReviewAction')}</span>
-                        </button>
+                          {isOpening ? t('desk.opening') : t('desk.openReviewAction')}
+                        </Button>
                       )}
                     </div>
 
@@ -1052,25 +1246,26 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             onChange={(e) => setRejectComment(e.target.value)}
                             placeholder={t('chapterReview.gate2GridCommentPlaceholder')}
                             aria-label={t('desk.rejectCommentAria')}
-                            className='w-full rounded border border-rose-300 bg-white px-2.5 py-1.5 text-xs text-[#1C1917]'
+                            className='focus-ring w-full rounded-lg border border-rose-300 bg-white px-2.5 py-1.5 text-xs text-stone-900 placeholder:text-stone-400'
                           />
                           <div className='flex items-center justify-end gap-1.5'>
-                            <button
-                              type='button'
+                            <Button
+                              variant='secondary'
+                              size='sm'
                               onClick={() => {
                                 setRejectingGridTaskId(null);
                                 setRejectComment('');
                               }}
-                              className='px-2.5 py-1 rounded border border-stone-300 bg-white text-xs font-semibold text-stone-700 cursor-pointer'
+                              className='cursor-pointer'
                             >
                               {t('desk.cancel')}
-                            </button>
+                            </Button>
                             <button
                               type='button'
                               data-testid={`editor-confirm-reject-${item.assignmentId}`}
                               disabled={gridBusyTaskId !== null || !rejectComment.trim()}
                               onClick={() => void handleRejectGridItem(item)}
-                              className='px-3 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50'
+                              className='focus-ring inline-flex min-h-8 items-center rounded-full bg-rose-600 px-3 text-xs font-semibold text-white hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                             >
                               {gridBusyTaskId === `reject:${item.assignmentId}`
                                 ? t('desk.sending')
@@ -1080,7 +1275,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                         </div>
                       )}
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>

@@ -383,51 +383,35 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      size='full'
+      size='xl'
       title={tProd('producer.seriesMembersModal.modalTitle')}
-      description={tProd('producer.seriesMembersModal.modalSubtitle', { seriesTitle })}
+      description={`${tProd('producer.seriesMembersModal.modalSubtitle', { seriesTitle })} · ${tProd(
+        'producer.seriesMembersModal.memberCount',
+        { count: seriesMembers.length },
+      )}`}
       closeLabel={tProd('producer.seriesMembersModal.closeLabel')}
-    >
-      <div className='u285-modal-card w-full max-w-5xl xl:max-w-6xl max-h-[88vh] shadow-2xl flex flex-col'>
-        {/* Header - Chuẩn Lucian với không gian rộng rãi */}
-        <div className='p-4 sm:px-6 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between shrink-0'>
-          <div className='flex items-center gap-3'>
-            <div className='w-9 h-9 rounded-xl bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center shrink-0 shadow-2xs'>
-              <Users className='w-4.5 h-4.5' />
-            </div>
-            <div>
-              <div className='flex items-center gap-2.5'>
-                <h3
-                  id='series-members-modal-title'
-                  className='font-display font-bold text-base text-[#171717] tracking-tight'
-                >
-                  {tProd('producer.seriesMembersModal.modalTitle')}
-                </h3>
-                <span className='u285-ct text-xs'>
-                  {tProd('producer.seriesMembersModal.memberCount', {
-                    count: seriesMembers.length,
-                  })}
-                </span>
-              </div>
-              <p
-                id='series-members-modal-desc'
-                className='text-xs text-[#737373] leading-none mt-1 truncate max-w-xl'
-              >
-                {tProd('producer.seriesMembersModal.modalSubtitle', { seriesTitle })}
-              </p>
-            </div>
+      footer={
+        <>
+          <div className='mr-auto flex items-center gap-2 text-xs text-[#737373]'>
+            <span className='w-2 h-2 rounded-full bg-emerald-500 shrink-0 inline-block' />
+            <span className='font-mono'>
+              {tProd('producer.seriesMembersModal.footerStatus', {
+                seriesCount: seriesMembers.length,
+              })}
+            </span>
           </div>
-
           <button
             type='button'
             onClick={onClose}
-            aria-label={tProd('producer.seriesMembersModal.closeLabel')}
-            className='w-8 h-8 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
+            className='px-4 py-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F3F1EB] active:scale-[0.98] border border-[#E7E7E7] text-[#171717] text-xs font-bold transition-all cursor-pointer shadow-2xs'
           >
-            <X className='w-4.5 h-4.5' />
+            {tProd('producer.seriesMembersModal.footerClose')}
           </button>
-        </div>
-
+        </>
+      }
+    >
+      {/* Modal dùng chung đã có tiêu đề, nút đóng, footer: không lồng thêm khung/header riêng. */}
+      <div className='flex flex-col'>
         {/* In-Modal Alert Báo trạng thái tinh tế, hài hòa với giao diện Studio */}
         {statusAlert && (
           <div className='px-4 sm:px-6 pt-3.5 pb-0 shrink-0'>
@@ -903,25 +887,6 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className='p-3.5 sm:px-6 bg-[#FAF8F4] border-t border-[#E7E7E7] flex items-center justify-between text-xs shrink-0'>
-          <div className='flex items-center gap-2 text-xs text-[#737373]'>
-            <span className='w-2 h-2 rounded-full bg-emerald-500 shrink-0 inline-block' />
-            <span className='font-mono'>
-              {tProd('producer.seriesMembersModal.footerStatus', {
-                seriesCount: seriesMembers.length,
-              })}
-            </span>
-          </div>
-          <button
-            type='button'
-            onClick={onClose}
-            className='px-4 py-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F3F1EB] active:scale-[0.98] border border-[#E7E7E7] text-[#171717] text-xs font-bold transition-all cursor-pointer shadow-2xs'
-          >
-            {tProd('producer.seriesMembersModal.footerClose')}
-          </button>
         </div>
       </div>
     </Modal>

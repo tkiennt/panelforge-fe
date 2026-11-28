@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserPlus } from 'lucide-react';
+import { Lock, Send, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
 export interface MembersTabContentProps {
@@ -19,7 +19,9 @@ export interface MembersTabContentProps {
 export const MembersTabContent: React.FC<MembersTabContentProps> = ({
   filteredMembers,
   canCreateStudio,
+  onResendInvitation,
   onOpenEditAccess,
+  onDeleteMember,
   onOpenInviteModal,
 }) => {
   const { t } = useTranslation();
@@ -48,7 +50,7 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
       {/* Stitch Header */}
       <div className='flex items-center justify-between gap-4'>
         <div>
-          <h2 className='text-xl font-bold text-stone-900'>
+          <h2 className='font-serif text-2xl font-bold text-stone-900'>
             {t('members.crewTab.title')}{' '}
             <span className='text-stone-500 font-normal text-base' id='crew-count-heading'>
               ({filteredMembers.length} {t('members.crewTab.memberCountUnit')})
@@ -96,6 +98,8 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                 const isWriter = roleStr === 'WRITER' || roleStr === '1';
                 const isArtist = roleStr === 'ARTIST' || roleStr === 'LEAD' || roleStr === '2';
                 const isLetterer = roleStr === 'LETTERER' || roleStr === '3';
+                const isPublisher = roleStr === 'PUBLISHER';
+                const memberId: string = member.userId || member.id;
 
                 const roleBadgeClass = isProducer
                   ? 'bg-orange-100 text-orange-700'
@@ -119,7 +123,9 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                         ? t('members.crewTab.roleEditor')
                         : isLetterer
                           ? t('members.crewTab.roleLetterer')
-                          : member.role || t('members.crewTab.roleDefault');
+                          : isPublisher
+                            ? t('members.crewTab.rolePublisher')
+                            : member.role || t('members.crewTab.roleDefault');
 
                 const avatarColorClass = isProducer
                   ? 'bg-orange-100 text-orange-700'
@@ -160,9 +166,7 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                             </span>
                           )}
                         </div>
-                        <div className='text-xs text-stone-400 font-mono mt-0.5'>
-                          {member.email}
-                        </div>
+                        <div className='text-xs text-stone-500 mt-0.5'>{member.email}</div>
                       </div>
                     </td>
 
@@ -197,16 +201,46 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                     </td>
 
                     <td className='py-3 px-4 text-right'>
-                      {canCreateStudio ? (
-                        <button
-                          type='button'
-                          onClick={() => onOpenEditAccess(member)}
-                          className='text-orange-600 font-semibold hover:text-orange-700 cursor-pointer text-xs transition-colors'
+                      {member.isOwner ? (
+                        <span
+                          className='inline-flex items-center gap-1 text-stone-400'
+                          title={t('members.crewTab.ownerLockedHint')}
                         >
-                          {isProducer
-                            ? t('members.crewTab.actionDetails')
-                            : t('members.crewTab.actionAdjust')}
-                        </button>
+                          <Lock className='size-3.5' aria-hidden='true' />
+                          <span className='sr-only'>{t('members.crewTab.ownerLockedHint')}</span>
+                        </span>
+                      ) : canCreateStudio ? (
+                        <div className='inline-flex items-center justify-end gap-1.5'>
+                          {isPending && onResendInvitation && (
+                            <button
+                              type='button'
+                              onClick={() => onResendInvitation(memberId)}
+                              className='focus-ring inline-flex min-h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 cursor-pointer'
+                            >
+                              <Send className='size-3.5' aria-hidden='true' />
+                              {t('members.crewTab.actionResend')}
+                            </button>
+                          )}
+                          <button
+                            type='button'
+                            onClick={() => onOpenEditAccess(member)}
+                            className='focus-ring inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-2.5 text-xs font-semibold text-stone-700 shadow-2xs hover:border-head-line hover:text-stone-900 cursor-pointer'
+                          >
+                            <ShieldCheck className='size-3.5 text-orange-600' aria-hidden='true' />
+                            {t('members.crewTab.actionEditAccess')}
+                          </button>
+                          {onDeleteMember && (
+                            <button
+                              type='button'
+                              onClick={() => onDeleteMember({ id: memberId, email: member.email })}
+                              aria-label={`${t('members.crewTab.actionDelete')} ${memberName}`}
+                              title={t('members.crewTab.actionDelete')}
+                              className='focus-ring inline-flex size-8 items-center justify-center rounded-lg text-stone-400 hover:bg-rose-50 hover:text-rose-600 cursor-pointer'
+                            >
+                              <Trash2 className='size-3.5' aria-hidden='true' />
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <span className='text-stone-400 font-medium'>—</span>
                       )}

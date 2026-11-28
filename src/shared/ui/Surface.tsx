@@ -39,9 +39,11 @@ export interface PageHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElemen
   titleAriaLabel?: string;
   description?: React.ReactNode;
   actions?: React.ReactNode;
-  variant?: 'page' | 'toolbar';
+  variant?: 'page' | 'toolbar' | 'card';
   as?: HeadingLevel;
   headingLevel?: HeadingLevel;
+  /** Vạch nhấn cam nhỏ dưới header (mặc định bật với variant="page", tắt với variant="card"). */
+  accentRule?: boolean;
 }
 
 export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(function PageHeader(
@@ -55,6 +57,7 @@ export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(function P
     variant = 'page',
     as,
     headingLevel,
+    accentRule,
     className,
     children,
     ...props
@@ -62,6 +65,7 @@ export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(function P
   ref,
 ) {
   const HeadingTag = as ?? headingLevel ?? 'h1';
+  const showAccentRule = accentRule ?? variant === 'page';
 
   if (variant === 'toolbar') {
     return (
@@ -107,15 +111,21 @@ export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(function P
     );
   }
 
+  const isCard = variant === 'card';
+
   return (
     <div
       ref={ref}
-      className={cn('relative border-b border-head-line pb-4 pt-1', className)}
+      className={cn(
+        'relative border-b border-head-line',
+        isCard ? 'bg-head-wash px-5 py-3.5' : 'pb-4 pt-1',
+        className,
+      )}
       {...props}
     >
       {children ?? (
         <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-          <div className='flex items-start gap-3.5'>
+          <div className={cn('flex gap-3.5', isCard ? 'items-center' : 'items-start')}>
             {icon && (
               <div className='grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-dark [&_svg]:size-5'>
                 {icon}
@@ -130,18 +140,31 @@ export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(function P
               {title && (
                 <HeadingTag
                   aria-label={titleAriaLabel}
-                  className='font-serif text-2xl font-bold text-stone-900'
+                  className={cn(
+                    'font-serif font-bold text-stone-900',
+                    isCard ? 'text-xl sm:text-2xl leading-tight' : 'text-2xl',
+                  )}
                 >
                   {title}
                 </HeadingTag>
               )}
-              {description && <div className='mt-1 text-sm text-stone-600'>{description}</div>}
+              {description && (
+                <div
+                  className={cn(
+                    isCard ? 'mt-0.5 text-xs text-stone-600' : 'mt-1 text-sm text-stone-600',
+                  )}
+                >
+                  {description}
+                </div>
+              )}
             </div>
           </div>
           {actions && <div className='flex shrink-0 items-center gap-2'>{actions}</div>}
         </div>
       )}
-      <span className='absolute -bottom-px left-0 h-[3px] w-12 bg-accent' aria-hidden='true' />
+      {showAccentRule && (
+        <span className='absolute -bottom-px left-0 h-[3px] w-12 bg-accent' aria-hidden='true' />
+      )}
     </div>
   );
 });

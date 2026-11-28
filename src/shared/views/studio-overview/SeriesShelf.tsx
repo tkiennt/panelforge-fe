@@ -5,10 +5,11 @@ import { BlankPageSketch } from '@/shared/components/BlankPageSketch';
 import { Card, CardBody } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
 import { SeriesCardItem, type SeriesCardItemProps } from './SeriesCardItem';
+import type { SeriesViewMode } from './SeriesFilterBar';
 
 type CardActions = Omit<
   SeriesCardItemProps,
-  'series' | 'isProducerOrAdmin' | 'isOpenMenu' | 'onToggleMenu'
+  'series' | 'isProducerOrAdmin' | 'isOpenMenu' | 'onToggleMenu' | 'views'
 >;
 
 interface SeriesShelfProps extends CardActions {
@@ -18,25 +19,30 @@ interface SeriesShelfProps extends CardActions {
   canCreate: boolean;
   onCreateSeries: () => void;
   onClearFilters: () => void;
+  /** seriesId -> lượt xem (chỉ Producer). Thiếu key = ẩn dòng lượt xem của thẻ đó. */
+  viewsBySeries?: Record<string, number>;
+  /** list = thẻ ngang (mặc định), grid = thẻ bìa dọc. */
+  viewMode?: SeriesViewMode;
 }
 
-const SHELF_GRID = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch';
+const SHELF_GRID_LIST = 'grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch';
+const SHELF_GRID_CARDS = 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-5 items-stretch';
 
-const ShelfSkeleton: React.FC = () => {
+const ShelfSkeleton: React.FC<{ viewMode: SeriesViewMode }> = ({ viewMode }) => {
   const { t } = useTranslation();
   return (
     <div
-      className={SHELF_GRID}
+      className={viewMode === 'grid' ? SHELF_GRID_CARDS : SHELF_GRID_LIST}
       aria-busy='true'
       aria-label={t('workspace.seriesShelf.loadingAria')}
     >
       {[1, 2, 3].map((n) => (
         <Card key={n} className='animate-pulse'>
-          <div className='h-14 bg-head-wash border-b border-head-line' />
-          <CardBody className='space-y-3'>
-            <div className='h-44 rounded-xl bg-stone-200/70' />
+          <div className='aspect-[3/4] w-full bg-head-wash' />
+          <CardBody className='space-y-2.5 p-3.5'>
             <div className='h-4 w-3/4 rounded-md bg-stone-200/70' />
-            <div className='h-8 w-1/3 ml-auto rounded-lg bg-stone-200/70' />
+            <div className='h-3 w-1/2 rounded-md bg-stone-200/70' />
+            <div className='h-3 w-2/3 rounded-md bg-stone-200/70' />
           </CardBody>
         </Card>
       ))}
@@ -51,11 +57,13 @@ export const SeriesShelf: React.FC<SeriesShelfProps> = ({
   canCreate,
   onCreateSeries,
   onClearFilters,
+  viewsBySeries,
+  viewMode = 'list',
   ...cardActions
 }) => {
   const { t } = useTranslation();
 
-  if (loading) return <ShelfSkeleton />;
+  if (loading) return <ShelfSkeleton viewMode={viewMode} />;
 
   if (totalCount === 0) {
     return (
@@ -120,9 +128,16 @@ export const SeriesShelf: React.FC<SeriesShelfProps> = ({
   }
 
   return (
-    <div id='series-grid' className={SHELF_GRID}>
+    <div id='series-grid' className={viewMode === 'grid' ? SHELF_GRID_CARDS : SHELF_GRID_LIST}>
       {series.map((s) => (
-        <SeriesCardItem key={s.id} series={s} isProducerOrAdmin={canCreate} {...cardActions} />
+        <SeriesCardItem
+          key={s.id}
+          series={s}
+          isProducerOrAdmin={canCreate}
+          views={viewsBySeries?.[s.id]}
+          variant={viewMode}
+          {...cardActions}
+        />
       ))}
     </div>
   );

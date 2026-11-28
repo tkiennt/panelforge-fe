@@ -307,12 +307,18 @@ describe('Surface primitives', () => {
     // ink rule span
     expect(header.querySelector('span[aria-hidden="true"]')).toHaveClass('bg-accent');
 
-    // Test heading level override and toolbar variant
+    // Test heading level override and toolbar/card variants
     rerender(
       <PageHeader data-testid='page-header' variant='toolbar' as='h2' title='Toolbar Title' />,
     );
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Toolbar Title');
     expect(screen.getByTestId('page-header')).toHaveClass('bg-white/95');
+    expect(screen.getByTestId('page-header').querySelector('span[aria-hidden="true"]')).toBeNull();
+
+    rerender(
+      <PageHeader data-testid='page-header' variant='card' eyebrow='Studio' title='Card Title' />,
+    );
+    expect(screen.getByTestId('page-header')).toHaveClass('bg-head-wash');
     expect(screen.getByTestId('page-header').querySelector('span[aria-hidden="true"]')).toBeNull();
   });
 
@@ -497,6 +503,7 @@ describe('UIQ-10 shared primitives', () => {
         <Avatar name='Mai Anh' />
         <CountChip>7</CountChip>
         <ProgressBar value={0} max={0} label='Completion' data-testid='progress' />
+        <ProgressBar value={0.21} max={100} label='Low storage' data-testid='progress-low' />
       </>,
     );
     expect(screen.getByRole('heading', { name: 'No chapters' })).toBeInTheDocument();
@@ -507,5 +514,7 @@ describe('UIQ-10 shared primitives', () => {
     const progress = screen.getByTestId('progress');
     expect(progress).toHaveAttribute('aria-valuemax', '0');
     expect(progress.firstElementChild).toHaveStyle({ width: '0%' });
+    const lowProgress = screen.getByTestId('progress-low');
+    expect(lowProgress.firstElementChild).toHaveStyle({ width: '0.21%', minWidth: '6px' });
   });
 });
