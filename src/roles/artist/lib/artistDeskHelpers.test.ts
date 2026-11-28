@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PipelineStageDto } from '@/services/pipeline.service';
-import { buildArtistFocusStages } from './artistDeskHelpers';
+import { buildArtistFocusStages, resolveStageKey } from './artistDeskHelpers';
 
 const stage = (over: Partial<PipelineStageDto>): PipelineStageDto => ({
   id: 'stage',
@@ -32,5 +32,21 @@ describe('buildArtistFocusStages', () => {
     ]);
 
     expect(result.map((item) => item.key)).toEqual(['pencil', 'ink', 'color', 'lettering']);
+  });
+});
+
+describe('resolveStageKey', () => {
+  it('coi Color như công đoạn vẽ Ink khi có slug color', () => {
+    expect(resolveStageKey({ slug: 'color', name: 'Color' })).toBe('ink');
+  });
+
+  it('coi Color như công đoạn vẽ Ink khi tên tiếng Việt "Tô màu"', () => {
+    expect(resolveStageKey({ slug: '', name: 'Tô màu' })).toBe('ink');
+  });
+
+  it('giữ nguyên kết quả cho Pencil, Ink và Letter', () => {
+    expect(resolveStageKey({ slug: 'pencil', name: 'Pencil' })).toBe('pencil');
+    expect(resolveStageKey({ slug: 'ink', name: 'Ink' })).toBe('ink');
+    expect(resolveStageKey({ slug: 'lettering', name: 'Letter' })).toBe('lettering');
   });
 });

@@ -85,11 +85,11 @@ export function localizeArtistStageLabel(stage: Pick<PipelineStageDto, 'name' | 
 
 export function resolveStageKey(stage: Pick<PipelineStageDto, 'name' | 'slug'>): PageStage {
   const kind = getArtistStageKind(stage);
-  if (kind === 'ink') return 'ink';
+  if (kind === 'ink' || kind === 'color') return 'ink';
   if (kind === 'lettering') return 'lettering';
   const boardKind = stageKindOf(stage.name || '');
   if (boardKind === 'letter') return 'lettering';
-  if (boardKind === 'color') return 'completed';
+  if (boardKind === 'color') return 'ink';
   return 'pencil';
 }
 
