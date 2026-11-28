@@ -2812,7 +2812,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         );
 
         const impactBadge = await screen.findByTestId('visual-impact-badge');
-        expect(impactBadge).toHaveTextContent(/⚑ Kịch bản thay đổi/);
+        expect(impactBadge).toHaveTextContent(/Kịch bản thay đổi/);
       } finally {
         localStorage.removeItem('user');
       }

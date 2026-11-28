@@ -528,7 +528,10 @@
     "rollbackPencilTitle": "Reopen Pencil for this page?",
     "rollbackPencilReasonLabel": "Reason",
     "rollbackPencilSuccess": "Pencil reopened for fixes",
-    "rollbackPencilError": "Could not go back to Pencil."
+    "rollbackPencilError": "Could not go back to Pencil.",
+    "scriptUnfrozenBanner": "The script is unlocked for editing — keep this in mind before submitting new work.",
+    "scriptChangedBadge": "Script changed",
+    "visualImpactFallback": "Visual content on this page was updated when the script was finalized."
   },
   "canvaSidebar": {
     "narrationFlashback": "Flashback",

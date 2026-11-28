@@ -528,7 +528,10 @@
     "rollbackPencilTitle": "Quay lại sửa Pencil trang này?",
     "rollbackPencilReasonLabel": "Lý do",
     "rollbackPencilSuccess": "Đã mở lại Pencil để sửa",
-    "rollbackPencilError": "Không quay lại được Pencil."
+    "rollbackPencilError": "Không quay lại được Pencil.",
+    "scriptUnfrozenBanner": "Kịch bản đang được mở khóa để chỉnh sửa — lưu ý trước khi nộp bài mới.",
+    "scriptChangedBadge": "Kịch bản thay đổi",
+    "visualImpactFallback": "Nội dung hình ảnh của trang này đã được cập nhật khi chốt lại kịch bản."
   },
   "canvaSidebar": {
     "narrationFlashback": "Hồi tưởng",

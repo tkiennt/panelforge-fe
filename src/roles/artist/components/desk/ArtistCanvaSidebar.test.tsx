@@ -210,6 +210,29 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(handleToggleVis).toHaveBeenCalledWith('page-1');
   });
 
+  it('hides add, duplicate, and delete page buttons when canEditPages is false', () => {
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        canEditPages={false}
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+      />,
+    );
+
+    // Open pages drawer
+    fireEvent.click(screen.getByTestId('canva-tab-pages'));
+
+    expect(screen.queryByTestId('canva-btn-add-page-header')).not.toBeInTheDocument();
+    expect(screen.queryByTitle(/nhân bản trang|duplicate page/i)).not.toBeInTheDocument();
+    expect(screen.queryByTitle(/xóa trang|delete page/i)).not.toBeInTheDocument();
+  });
+
   it('keeps the artist tool drawer on its independent paper theme', () => {
     renderWithRouter(
       <ArtistCanvaSidebar

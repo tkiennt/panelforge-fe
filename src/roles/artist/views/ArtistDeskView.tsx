@@ -1830,6 +1830,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return 'pencil';
   }, [isStageFlowCompleted, artistStages, currentStageIndex]);
 
+  const isLetterStage = activeStageKey === 'lettering';
+
+  useEffect(() => {
+    if (isLetterStage) {
+      setActiveSidebarTab('lettering');
+      setIsSidebarDrawerOpen(true);
+    }
+  }, [isLetterStage]);
+
   // Tổng hợp khung toàn bộ chương từ db.Panels (Left-join SSOT cho ArtistScriptReader và LetteringScriptPanel)
   const allChapterPanels = useMemo(() => {
     const result: Array<{
@@ -3387,7 +3396,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           className='shrink-0 border-b border-amber-300 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-950 flex items-center gap-2'
         >
           <AlertTriangle className='w-4 h-4 text-[#D97706] shrink-0' aria-hidden='true' />
-          <span>Kịch bản đang được mở khóa để chỉnh sửa — lưu ý trước khi nộp bài mới.</span>
+          <span>{t('artist.deskView.scriptUnfrozenBanner')}</span>
         </div>
       )}
 
@@ -3398,11 +3407,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           className='shrink-0 border-b border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-700 flex items-center gap-2'
         >
           <span className='inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 shrink-0'>
-            <Flag className='w-3 h-3' aria-hidden='true' />⚑ Kịch bản thay đổi
+            <Flag className='w-3 h-3' aria-hidden='true' />
+            {t('artist.deskView.scriptChangedBadge')}
           </span>
           <span>
             {currentVisualImpactCell.outdatedReason ||
-              'Nội dung hình ảnh của trang này đã được cập nhật khi chốt lại kịch bản.'}
+              t('artist.deskView.visualImpactFallback')}
           </span>
         </div>
       )}
@@ -3520,7 +3530,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           isLoadingTemplates={isLoadingTemplates}
           isApplyingTemplate={isApplyingTemplate}
           templateError={templateError}
-          layoutLocked={isInkOrColorStage}
+          layoutLocked={isInkOrColorStage || isLetterStage}
+          canEditPages={!isLetterStage}
           activeTab={activeSidebarTab}
           onTabChange={(tab) => setActiveSidebarTab(tab)}
           isDrawerOpen={isSidebarDrawerOpen}
@@ -3587,7 +3598,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   {keepOut.zones.length > 0 && (
                     <span
                       data-testid='keepout-count-badge'
-                      className={`px-1.5 py-0.2 rounded-full text-xs font-bold ${
+                      className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
                         keepOut.isDrawingMode ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'
                       }`}
                     >
@@ -3698,6 +3709,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               isSavingLayout={isApplyingTemplate}
               readOnly={isPageReadOnly}
               isInkOrColorStage={isInkOrColorStage}
+              hideArtTools={isLetterStage}
               uploadMode={artworkUploadMode}
               onUploadModeChange={handleArtworkUploadModeChange}
               onCanvasClick={() => {
@@ -3722,7 +3734,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   isLayoutSaved={isCurrentPageLayoutSaved}
                   mode={artworkUploadMode}
                   uploadingPanelId={uploadingPanelId}
-                  canUploadArtwork={canUploadCurrentPageArtwork && artworkUploadMode === 'panel'}
+                  canUploadArtwork={!isLetterStage && canUploadCurrentPageArtwork && artworkUploadMode === 'panel'}
                   canSelectPanel={artworkUploadMode === 'panel' && !isPageReadOnly}
                   selectedPanelId={selectedPanelId}
                   onSelectPanel={handleSelectPanelById}
@@ -3824,7 +3836,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             )}
           </div>
 
-          {currentPagePanels.length > 0 && artworkUploadMode === 'panel' && (
+          {!isLetterStage && currentPagePanels.length > 0 && artworkUploadMode === 'panel' && (
             <SplitPanelStrip
               panels={currentPagePanels}
               artworks={currentPageArtworks}
@@ -3849,7 +3861,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             onZoomChange={setZoomScale}
             isFullscreen={isFullscreen}
             onToggleFullscreen={handleToggleFullscreen}
-            canEdit={!isPageReadOnly}
+            canEdit={!isPageReadOnly && !isLetterStage}
             dirtyPageIds={dirtyArtworkPageIds}
             onOpenReader={
               workspaceId && seriesId && currentChapterId
