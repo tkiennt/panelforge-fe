@@ -143,6 +143,8 @@
     "decreaseFontAriaLabel": "Giảm cỡ chữ",
     "fontSizeAriaLabel": "Cỡ chữ (px)",
     "increaseFontAriaLabel": "Tăng cỡ chữ",
+    "fitBalloon": "Vừa bóng",
+    "fontShrunkTitle": "Đang tự thu nhỏ còn {{size}}px để vừa bóng",
     "textColorAriaLabel": "Màu chữ",
     "boldAriaLabel": "In đậm",
     "italicAriaLabel": "In nghiêng",
