@@ -404,7 +404,9 @@
     "adminDetail": {
       "loadUserFailed": "Không tải được chi tiết tài khoản.",
       "loadWorkspaceFailed": "Không tải được chi tiết Studio.",
-      "loadHealthFailed": "Không tải được tình trạng hệ thống."
+      "loadHealthFailed": "Không tải được tình trạng hệ thống.",
+      "resendVerificationFailed": "Không gửi lại được mã xác thực.",
+      "confirmEmailFailed": "Không xác thực được email."
     },
     "uploadLimits": {
       "loadFailed": "Không tải được giới hạn kích thước file.",

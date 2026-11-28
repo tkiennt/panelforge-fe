@@ -148,6 +148,18 @@ export const adminDetailService = {
       () => axiosClient.get(`/Admin/workspaces/${id}`),
       'errors.services.adminDetail.loadWorkspaceFailed',
     ),
+  /** POST /Admin/users/{id}/resend-verification — 409 khi đã xác thực / đang chờ lời mời, 503 khi SMTP lỗi. */
+  resendVerification: (id: string) =>
+    call<{ message: string }>(
+      () => axiosClient.post(`/Admin/users/${id}/resend-verification`),
+      'errors.services.adminDetail.resendVerificationFailed',
+    ),
+  /** POST /Admin/users/{id}/confirm-email — xác thực thủ công, bắt buộc lý do (ghi audit log). */
+  confirmEmail: (id: string, reason: string) =>
+    call<{ message: string }>(
+      () => axiosClient.post(`/Admin/users/${id}/confirm-email`, { reason }),
+      'errors.services.adminDetail.confirmEmailFailed',
+    ),
   getSystemHealth: () =>
     call<SystemHealthDto>(
       () => axiosClient.get('/Admin/system-health'),

@@ -14,11 +14,12 @@ import {
 import { adminTable } from '../../components/adminUiStyles';
 import { useLocale } from '../resources/resourceFormat';
 import { ActivityList, BackButton, InfoRow } from './DetailUi';
+import { EmailVerificationCard } from './EmailVerificationCard';
 import { formatDateTime } from './detailFormat';
 
 /**
  * Admin → Người dùng → Chi tiết (OPS-30): hồ sơ, phiên đăng nhập còn hiệu lực, Studio tham gia, Ví, AI tháng này
- * và Nhật ký gần đây. Chỉ đọc; phân quyền vẫn làm ở bảng Người dùng.
+ * và Nhật ký gần đây. Phân quyền vẫn làm ở bảng Người dùng; tài khoản chưa xác thực email có thẻ xử lý riêng.
  */
 export const AdminUserDetailView: React.FC<{
   userId: string;
@@ -91,11 +92,16 @@ export const AdminUserDetailView: React.FC<{
         {u.isPendingInvitation && (
           <AdminBadge tone='warning'>{t('admin.details.user.pendingInvitation')}</AdminBadge>
         )}
+        {!u.isEmailConfirmed && !u.isPendingInvitation && (
+          <AdminBadge tone='warning'>{t('admin.users.table.emailUnverified')}</AdminBadge>
+        )}
         {u.canCreateStudio && (
           <AdminBadge tone='accent'>{t('admin.users.roles.producer')}</AdminBadge>
         )}
         <AdminBadge>{u.role}</AdminBadge>
       </div>
+
+      {!u.isEmailConfirmed && <EmailVerificationCard user={u} />}
 
       <div className='grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'>
         <AdminStat
