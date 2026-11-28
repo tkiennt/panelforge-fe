@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 import { AdminUserTable } from './components/AdminUserTable';
 import { AdminAssignRoleModal } from './components/AdminAssignRoleModal';
+import { StudioPackagePriceCard } from './components/StudioPackagePriceCard';
 import { AdminBadge, AdminButton, AdminPageHeader, AdminToast } from './components/AdminUi';
 import { adminFieldClass, adminFocusRing, useAdminToast } from './components/adminUiStyles';
 
@@ -137,6 +138,11 @@ export const AdminUserManagementView: React.FC<{ onOpenUser?: (userId: string) =
             {t('admin.users.refresh')}
           </AdminButton>
         }
+      />
+
+      <StudioPackagePriceCard
+        onSaved={(message) => showToast(message)}
+        onError={(message) => showToast(message, 'error')}
       />
 
       <div className='flex flex-wrap items-center gap-3'>

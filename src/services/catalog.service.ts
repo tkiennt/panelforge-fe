@@ -61,7 +61,11 @@ export interface PublicSeriesDetailDto {
 export interface PublicPageReadDto {
   id: string;
   pageNumber: number;
+  /** null khi trang nằm ngoài phần xem trước của ấn bản trả phí chưa mở khóa (BR-33). */
   imageUrl?: string | null;
+  isLocked?: boolean;
+  isUnlocked?: boolean;
+  isPreview?: boolean;
 }
 
 export interface PublicChapterReadDto {
@@ -172,6 +176,16 @@ export const catalogService = {
         extractError(error, translate('errors.services.catalog.getPublicChapterFailed')),
       );
     }
+  },
+
+  /**
+   * POST /api/catalog/chapters/{chapterId}/views?lang= — một lượt đọc thật (BR-32).
+   * Server gộp lượt đọc lại trong 30 phút và trả 403 nếu chương trả phí chưa mở khóa.
+   */
+  recordChapterView: async (chapterId: string, lang?: string): Promise<void> => {
+    await axiosClient.post(`/catalog/chapters/${chapterId}/views`, null, {
+      params: lang ? { lang } : undefined,
+    });
   },
 
   /**

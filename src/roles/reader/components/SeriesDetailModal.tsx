@@ -1,5 +1,19 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowDownUp, BookOpen, Eye, Globe, Lock, RefreshCw, Star, Unlock } from 'lucide-react';
+import {
+  ArrowDownUp,
+  BellPlus,
+  BellRing,
+  BookOpen,
+  Bookmark,
+  BookmarkCheck,
+  Eye,
+  Globe,
+  Lock,
+  RefreshCw,
+  Star,
+  Unlock,
+} from 'lucide-react';
+import type { LibraryList } from '@/services/readerLibrary.service';
 import {
   PublicChapterDto,
   PublicSeriesDetailDto,
@@ -18,6 +32,13 @@ interface SeriesDetailModalProps {
   onSelectLanguage: (code: string) => void;
   onReadChapter: (chapterId: string) => void;
   onClose: () => void;
+  /** Độc giả đã đăng nhập: trạng thái Theo dõi / Đọc sau của bộ truyện. */
+  library?: {
+    following: boolean;
+    readLater: boolean;
+    error?: string | null;
+    onToggle: (list: LibraryList, add: boolean) => void;
+  };
 }
 
 type ChapterOrder = 'newest' | 'oldest';
@@ -30,6 +51,7 @@ export const SeriesDetailModal: React.FC<SeriesDetailModalProps> = ({
   onSelectLanguage,
   onReadChapter,
   onClose,
+  library,
 }) => {
   const { t, lang } = useTranslation();
   const [order, setOrder] = useState<ChapterOrder>('newest');
@@ -151,6 +173,43 @@ export const SeriesDetailModal: React.FC<SeriesDetailModalProps> = ({
                   >
                     {t('workspace.reader.catalog.readFirst')}
                   </button>
+                  {library && (
+                    <>
+                      <button
+                        type='button'
+                        aria-pressed={library.following}
+                        onClick={() => library.onToggle('following', !library.following)}
+                        className='inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-stone-800 hover:bg-stone-50'
+                      >
+                        {library.following ? (
+                          <BellRing className='w-3.5 h-3.5 text-[#EA580C]' aria-hidden='true' />
+                        ) : (
+                          <BellPlus className='w-3.5 h-3.5' aria-hidden='true' />
+                        )}
+                        {library.following
+                          ? t('workspace.reader.catalog.following')
+                          : t('workspace.reader.catalog.follow')}
+                      </button>
+                      <button
+                        type='button'
+                        aria-pressed={library.readLater}
+                        onClick={() => library.onToggle('read-later', !library.readLater)}
+                        className='inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-stone-800 hover:bg-stone-50'
+                      >
+                        {library.readLater ? (
+                          <BookmarkCheck
+                            className='w-3.5 h-3.5 text-[#EA580C]'
+                            aria-hidden='true'
+                          />
+                        ) : (
+                          <Bookmark className='w-3.5 h-3.5' aria-hidden='true' />
+                        )}
+                        {library.readLater
+                          ? t('workspace.reader.catalog.inReadLater')
+                          : t('workspace.reader.catalog.readLater')}
+                      </button>
+                    </>
+                  )}
                   {latestChapter && latestChapter.id !== firstChapter.id && (
                     <button
                       type='button'
@@ -194,9 +253,9 @@ export const SeriesDetailModal: React.FC<SeriesDetailModalProps> = ({
             </div>
           )}
 
-          {error && (
+          {(error || library?.error) && (
             <div className='rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700'>
-              {error}
+              {error || library?.error}
             </div>
           )}
 

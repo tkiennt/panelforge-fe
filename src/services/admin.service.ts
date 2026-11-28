@@ -288,6 +288,16 @@ function extractError(error: any, defaultMsg: string): string {
   return defaultMsg;
 }
 
+/** Gói mở Studio (spec D11) cho Admin: giá hiện hành (null = chưa bán) và số lượt đã mua. */
+export interface AdminStudioPackageDto {
+  priceVnd: number | null;
+  changedAt: string | null;
+  changedByName: string | null;
+  purchaseCount: number;
+  minPriceVnd: number;
+  maxPriceVnd: number;
+}
+
 export const MOCK_ADMIN_USERS: AdminUserItem[] = [];
 
 export const adminService = {
@@ -657,6 +667,30 @@ export const adminService = {
     } catch (error) {
       throw new Error(
         extractError(error, translate('errors.services.admin.updateSessionPolicyFailed')),
+      );
+    }
+  },
+
+  /** GET /api/admin/studio-package */
+  getStudioPackage: async (): Promise<AdminStudioPackageDto> => {
+    try {
+      const { data } = await axiosClient.get('/admin/studio-package');
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.studioPackageLoadFailed')),
+      );
+    }
+  },
+
+  /** PUT /api/admin/studio-package/price — thêm một mức giá mới (append-only, có audit). */
+  setStudioPackagePrice: async (priceVnd: number): Promise<AdminStudioPackageDto> => {
+    try {
+      const { data } = await axiosClient.put('/admin/studio-package/price', { priceVnd });
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.studioPackageSaveFailed')),
       );
     }
   },

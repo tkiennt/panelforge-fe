@@ -353,7 +353,10 @@
       "noArtwork": "Page {number} (No artwork yet)",
       "goToPageAria": "Go to page {number}",
       "nextPageRtl": "← Next page (Manga RTL)",
-      "nextPageLtr": "Next page →"
+      "nextPageLtr": "Next page →",
+      "lockedTitle": "End of the free preview",
+      "lockedDesc": "Unlock this edition to keep reading. The unlock is permanent for the language you are reading.",
+      "unlockBtn": "Unlock · {price}"
     },
     "auditLog": {
       "recent": "Recently",

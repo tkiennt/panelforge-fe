@@ -264,7 +264,9 @@
       "getSessionPolicyFailed": "Failed to load Workspace session policy.",
       "updateSessionPolicyFailed": "Failed to update Workspace session policy.",
       "getWorkspacesFailed": "Failed to load Studio Workspaces.",
-      "updateWorkspaceQuotaFailed": "Failed to update Workspace storage quota."
+      "updateWorkspaceQuotaFailed": "Failed to update Workspace storage quota.",
+      "studioPackageLoadFailed": "Could not load the studio package price.",
+      "studioPackageSaveFailed": "Could not save the studio package price."
     },
     "auth": {
       "unauthorized": "Session expired or invalid token (401 Unauthorized). Please sign in again.",
@@ -383,6 +385,18 @@
       "saveResourcesFailed": "Could not update the quotas.",
       "reconcileFailed": "Could not reconcile storage. Try again later.",
       "deleteOrphansFailed": "Could not delete orphan files. Try again later."
+    },
+    "wallet": {
+      "loadFailed": "Could not load your wallet.",
+      "topupFailed": "Could not create the top-up order.",
+      "statusFailed": "Could not check the transaction status.",
+      "unlockFailed": "Could not unlock the chapter.",
+      "studioPackageLoadFailed": "Could not load the studio package.",
+      "studioPackagePurchaseFailed": "Could not buy the studio package."
+    },
+    "readerLibrary": {
+      "loadFailed": "Could not load your library.",
+      "updateFailed": "Could not update your library."
     },
     "adminDetail": {
       "loadUserFailed": "Could not load account details.",

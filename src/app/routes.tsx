@@ -13,6 +13,8 @@ import { AppShell } from './AppShell';
 import { FocusWorkspaceLayout } from './FocusWorkspaceLayout';
 import { RequireWorkspaceRole } from './RequireWorkspaceRole';
 import { resolveCurrentWorkspaceRole } from './workspaceRoleGuard';
+import { readerPathFor } from './readerAccount';
+import { ReaderLayout } from '@/roles/reader/layout/ReaderLayout';
 import { getRoleDefaultPath } from '@/roles/roles';
 import {
   buildRoleChapterReaderUrl,
@@ -171,6 +173,22 @@ const NotificationCenterView = lazy(() =>
 const PublicCatalogView = lazy(() =>
   import('@/roles/reader/views/PublicCatalogView').then((m) => ({ default: m.PublicCatalogView })),
 );
+const ReaderWalletView = lazy(() =>
+  import('@/roles/reader/views/ReaderWalletView').then((m) => ({ default: m.ReaderWalletView })),
+);
+const ReaderLibraryView = lazy(() =>
+  import('@/roles/reader/views/ReaderLibraryView').then((m) => ({ default: m.ReaderLibraryView })),
+);
+const ReaderOpenStudioView = lazy(() =>
+  import('@/roles/reader/views/ReaderOpenStudioView').then((m) => ({
+    default: m.ReaderOpenStudioView,
+  })),
+);
+const ReaderNotificationsView = lazy(() =>
+  import('@/roles/reader/views/ReaderNotificationsView').then((m) => ({
+    default: m.ReaderNotificationsView,
+  })),
+);
 const PublicPreviewView = lazy(() =>
   import('@/roles/reader/views/PublicPreviewView').then((m) => ({ default: m.PublicPreviewView })),
 );
@@ -276,6 +294,23 @@ export const PrivateRoute = ({
   return <>{children}</>;
 };
 
+/**
+ * Độc giả không vào khu Studio (quyết định 2026-11-28): mọi route private ngoài `/catalog`
+ * chuyển sang trang tương ứng của độc giả. Đang chờ landing-context thì chưa vẽ gì để không lộ khung Studio.
+ */
+export const ReaderGate = ({
+  isReader,
+  children,
+}: {
+  isReader: boolean | null;
+  children: React.ReactNode;
+}) => {
+  const location = useLocation();
+  if (isReader === null) return <RouteFallback />;
+  if (isReader) return <Navigate to={readerPathFor(location.pathname)} replace />;
+  return <>{children}</>;
+};
+
 export const AdminRoute = ({
   activeRoles,
   currentRole,
@@ -333,6 +368,12 @@ export interface AppRoutesProps {
   isDevMode?: boolean;
   onApiLoginSuccess?: (authResponse: any) => void;
   onRegisterSuccess?: (authResponse: any) => void;
+  /** Độc giả (User không thuộc Studio, không được tạo Studio); null khi đang kiểm tra. */
+  isReader: boolean | null;
+  /** Độc giả vừa nhận lời mời vào Studio. */
+  onReaderJoinedStudio: (workspaceId: string) => Promise<void>;
+  /** Độc giả vừa mua gói mở Studio (D11), hoặc tài khoản đã có quyền tạo Studio. */
+  onStudioUnlocked: () => Promise<void>;
 }
 
 const resolveUserAvatar = (
@@ -377,6 +418,9 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
   isDevMode = false,
   onApiLoginSuccess,
   onRegisterSuccess,
+  isReader,
+  onReaderJoinedStudio,
+  onStudioUnlocked,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -444,27 +488,90 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
         <Route path='/review/invite/:token' element={<PublicPreviewView />} />
         <Route path='/preview/:token' element={<LegacyPreviewRedirect />} />
 
-        {/* Public Catalog Route (BR-24: Public AllowAnonymous) */}
+        {/* Khu độc giả (marketplace). Catalog công khai cho khách (BR-24); hồ sơ & thông báo cần đăng nhập. */}
         <Route
           path='/catalog'
           element={
-            <PublicCatalogView
-              onBackToWorkspaces={isAuthenticated ? () => navigate('/workspaces') : undefined}
-              onOpenLogin={
+            <ReaderLayout
+              userName={
                 isAuthenticated
-                  ? undefined
-                  : () => navigate(`/login?redirect=${encodeURIComponent('/catalog')}`)
+                  ? currentUserInfo?.name || firebaseUser?.displayName || undefined
+                  : undefined
               }
-              readerName={isAuthenticated ? currentUserInfo?.name || undefined : undefined}
-              onLogout={isAuthenticated ? handleLogout : undefined}
+              onLogin={() =>
+                navigate(
+                  `/login?redirect=${encodeURIComponent(location.pathname + location.search)}`,
+                )
+              }
+              onLogout={handleLogout}
+              onBackToStudio={
+                isAuthenticated && isReader === false
+                  ? () => navigate(defaultRedirectPath)
+                  : undefined
+              }
+              showOpenStudio={!isAuthenticated || isReader === true}
             />
           }
-        />
+        >
+          <Route index element={<PublicCatalogView />} />
+          <Route
+            path='profile'
+            element={
+              <PrivateRoute isAuthenticated={isAuthenticated}>
+                <main className='w-full flex-1'>
+                  <UserProfileView
+                    user={firebaseUser}
+                    onLogout={handleLogout}
+                    onShowToast={showToast}
+                    onOpenTwoFactor={() => setIsTwoFactorModalOpen(true)}
+                    variant={isReader ? 'reader' : 'studio'}
+                  />
+                </main>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='wallet'
+            element={
+              <PrivateRoute isAuthenticated={isAuthenticated}>
+                <ReaderWalletView />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='library'
+            element={
+              <PrivateRoute isAuthenticated={isAuthenticated}>
+                <ReaderLibraryView />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='open-studio'
+            element={
+              <ReaderOpenStudioView
+                canCreateStudio={!!currentUserInfo?.canCreateStudio}
+                onStudioUnlocked={onStudioUnlocked}
+              />
+            }
+          />
+          <Route
+            path='notifications'
+            element={
+              <PrivateRoute isAuthenticated={isAuthenticated}>
+                <ReaderNotificationsView onJoinedStudio={onReaderJoinedStudio} />
+              </PrivateRoute>
+            }
+          />
+          <Route path='*' element={<Navigate to='/catalog' replace />} />
+        </Route>
 
         <Route
           element={
             <PrivateRoute isAuthenticated={isAuthenticated}>
-              <Outlet />
+              <ReaderGate isReader={isReader}>
+                <Outlet />
+              </ReaderGate>
             </PrivateRoute>
           }
         >
@@ -522,7 +629,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 activeSeries={activeProject}
                 aiState='active'
                 onLogout={handleLogout}
-                onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
                 onOpenTwoFactor={() => setIsTwoFactorModalOpen(true)}
                 onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
                 onOpenCommandPalette={() => setIsCommandPaletteOpen?.(true)}

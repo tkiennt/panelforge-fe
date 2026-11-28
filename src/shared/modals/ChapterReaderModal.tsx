@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import {
   X,
@@ -13,12 +13,15 @@ import {
   Rows,
   MoveVertical,
   MoveHorizontal,
+  Lock,
 } from 'lucide-react';
 import {
   catalogService,
   PublicChapterReadDto,
+  PublicPageReadDto,
   resolveCatalogImageUrl,
 } from '@/services/catalog.service';
+import { readerLibraryService } from '@/services/readerLibrary.service';
 import { Modal } from '@/shared/ui';
 import { LanguageSelector } from '@/shared/components/LanguageSelector';
 import { userService } from '@/services/user.service';
@@ -32,7 +35,21 @@ interface ChapterReaderModalProps {
   chapterNumber?: number;
   chapterTitle?: string | null;
   initialLanguage?: string;
+  /**
+   * Khu độc giả: trang ngoài phần xem trước hiện nút mở khóa ấn bản (BR-33).
+   * Không truyền (Publisher xem chương) thì trang khóa chỉ hiện ô trống như trước.
+   */
+  onUnlock?: (edition: { chapterId: string; language: string; priceVnd: number }) => void;
+  /** Khu độc giả: ghi lượt đọc thật (BR-32). Nhân sự Studio / Publisher xem chương thì không ghi. */
+  trackReading?: boolean;
+  /** Độc giả đã đăng nhập: lưu tiến độ vào thư viện (đồng bộ với app mobile). */
+  saveProgress?: boolean;
+  /** Tăng lên để tải lại chương, vd sau khi mở khóa. */
+  reloadKey?: number;
 }
+
+const isLockedPage = (p?: PublicPageReadDto | null) =>
+  !!p && !!p.isLocked && p.isUnlocked === false;
 
 const pageUrl = (url?: string | null, lang?: string) => {
   if (!url || !url.trim()) return null;
@@ -42,6 +59,8 @@ const pageUrl = (url?: string | null, lang?: string) => {
   return `${resolved}${separator}lang=${encodeURIComponent(lang)}`;
 };
 
+const PROGRESS_SAVE_DELAY_MS = 1000;
+
 export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
   isOpen,
   onClose,
@@ -49,6 +68,10 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
   chapterNumber,
   chapterTitle,
   initialLanguage,
+  onUnlock,
+  trackReading = false,
+  saveProgress = false,
+  reloadKey = 0,
 }) => {
   const { t, lang: uiLang } = useTranslation();
   const [data, setData] = useState<PublicChapterReadDto | null>(null);
@@ -84,26 +107,35 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
     userService.updateReadingLanguage(newLang).catch(() => {});
   };
 
+  // Lỗi tải hiển thị theo ngôn ngữ giao diện hiện hành nhưng không làm effect tải lại chương khi đổi ngôn ngữ.
+  const tRef = useRef(t);
+  tRef.current = t;
+  // Chỉ về trang 1 khi đổi chương / ngôn ngữ đọc; tải lại sau khi mở khóa (reloadKey) giữ nguyên trang.
+  const loadedKey = useRef<string | null>(null);
+
   useEffect(() => {
     if (!isOpen || !chapterId) return;
 
     let mounted = true;
     setLoading(true);
     setError(null);
-    setCurrentPageIndex(0);
+    const key = `${chapterId}|${readingLang}`;
+    if (loadedKey.current !== key) {
+      loadedKey.current = key;
+      setCurrentPageIndex(0);
+    }
 
     catalogService
       .getPublicChapter(chapterId, readingLang)
       .then((res) => {
-        if (mounted) {
-          setData(res);
-          setViewMode(res.readingDirection === 'Vertical' ? 'vertical' : 'single');
-          setLoading(false);
-        }
+        if (!mounted) return;
+        setData(res);
+        setViewMode(res.readingDirection === 'Vertical' ? 'vertical' : 'single');
+        setLoading(false);
       })
       .catch((err) => {
         if (mounted) {
-          setError(err.message || t('common.modals.chapterReader.notReadyError'));
+          setError(err.message || tRef.current('common.modals.chapterReader.notReadyError'));
           setLoading(false);
         }
       });
@@ -111,7 +143,48 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
     return () => {
       mounted = false;
     };
-  }, [isOpen, chapterId, readingLang, t]);
+  }, [isOpen, chapterId, readingLang, reloadKey]);
+
+  useEffect(() => {
+    if (!isOpen) loadedKey.current = null;
+  }, [isOpen]);
+
+  // Một lượt đọc cho mỗi (chương, ngôn ngữ) đọc được trong một lần mở; ref chặn lặp khi tải lại / StrictMode.
+  const viewedKeys = useRef(new Set<string>());
+  useEffect(() => {
+    if (!isOpen) {
+      viewedKeys.current.clear();
+      return;
+    }
+    if (!trackReading || !data || data.isUnlocked === false) return;
+    const language = data.language ?? readingLang;
+    const key = `${data.id}|${language}`;
+    if (viewedKeys.current.has(key)) return;
+    viewedKeys.current.add(key);
+    // Lượt đọc là số liệu phụ: lỗi mạng không được chặn việc đọc.
+    catalogService.recordChapterView(data.id, language).catch(() => undefined);
+  }, [isOpen, trackReading, data, readingLang]);
+
+  // Tiến độ = trang đang xem, lưu sau khi dừng lật 1 giây để không gửi mỗi lần lật.
+  useEffect(() => {
+    // Đang tải chương khác thì `data` còn là chương cũ: không ghi đè tiến độ của chương cũ về trang 1.
+    if (!isOpen || !saveProgress || loading || !data || data.pages.length === 0) return;
+    const page = data.pages[Math.min(currentPageIndex, data.pages.length - 1)];
+    const timer = window.setTimeout(() => {
+      readerLibraryService
+        .saveProgress({
+          seriesId: data.seriesId,
+          chapterId: data.id,
+          chapterNumber: data.chapterNumber,
+          lastPageNumber: page?.pageNumber ?? currentPageIndex + 1,
+          totalPages: data.pages.length,
+          language: data.language ?? readingLang,
+          readAt: new Date().toISOString(),
+        })
+        .catch(() => undefined);
+    }, PROGRESS_SAVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, saveProgress, loading, data, currentPageIndex, readingLang]);
 
   const totalPages = data?.pages.length || 0;
   const isRTL = data?.readingDirection === 'RightToLeft';
@@ -157,6 +230,39 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
   const languageList = data?.languages ?? data?.availableLanguages ?? [];
   const activeLang = data?.language ?? data?.currentLanguage ?? readingLang;
   const currentPageUrl = pageUrl(data?.pages[currentPageIndex]?.imageUrl, activeLang);
+  const currentPageLocked = isLockedPage(data?.pages[currentPageIndex]);
+  const lockedPanel = (compact: boolean) => (
+    <div
+      className={`flex flex-col items-center justify-center gap-3 bg-neutral-900 border border-neutral-800 text-center px-6 ${
+        compact ? 'w-full aspect-[2/3]' : 'w-[min(36rem,80vw)] aspect-[2/3]'
+      }`}
+    >
+      <Lock className='w-8 h-8 text-amber-400' aria-hidden='true' />
+      <p className='text-sm font-semibold text-white'>
+        {t('common.modals.chapterReader.lockedTitle')}
+      </p>
+      <p className='text-xs text-neutral-400 max-w-xs'>
+        {t('common.modals.chapterReader.lockedDesc')}
+      </p>
+      {onUnlock && data && (
+        <button
+          type='button'
+          onClick={() =>
+            onUnlock({ chapterId: data.id, language: activeLang, priceVnd: data.priceVnd ?? 0 })
+          }
+          className='btn-cta-primary rounded-full px-4 py-2 text-xs font-semibold'
+        >
+          {t('common.modals.chapterReader.unlockBtn', {
+            price: new Intl.NumberFormat(uiLang, {
+              style: 'currency',
+              currency: 'VND',
+              maximumFractionDigits: 0,
+            }).format(data.priceVnd ?? 0),
+          })}
+        </button>
+      )}
+    </div>
+  );
   const ready = !loading && !error && data && totalPages > 0;
   const toolBtn =
     'h-8 px-2.5 rounded-lg border border-[#27272A] transition-colors cursor-pointer text-xs flex items-center gap-1.5';
@@ -406,6 +512,8 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                   </div>
                 )}
               </TransformWrapper>
+            ) : currentPageLocked ? (
+              lockedPanel(false)
             ) : (
               <div className='w-[min(36rem,80vw)] aspect-[2/3] bg-neutral-900 border border-neutral-800 flex flex-col items-center justify-center text-neutral-500 gap-2'>
                 <BookOpen className='w-12 h-12 opacity-30' />
@@ -430,6 +538,8 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                   loading='lazy'
                   className='block w-full h-auto shadow-lg bg-white'
                 />
+              ) : isLockedPage(p) ? (
+                <React.Fragment key={p.id}>{lockedPanel(true)}</React.Fragment>
               ) : (
                 <div
                   key={p.id}
@@ -473,7 +583,11 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
                         className='w-full h-full object-cover bg-white'
                       />
                     ) : (
-                      <span className='w-full h-full bg-neutral-800 block' />
+                      <span className='w-full h-full bg-neutral-800 flex items-center justify-center'>
+                        {isLockedPage(p) && (
+                          <Lock className='w-3.5 h-3.5 text-amber-400' aria-hidden='true' />
+                        )}
+                      </span>
                     )}
                     <span className='absolute bottom-0 inset-x-0 bg-black/70 text-xs font-mono text-center'>
                       {p.pageNumber}

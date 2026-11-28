@@ -76,7 +76,6 @@ export function getRoleDefaultPath(
   const upperRole = String(role).toUpperCase();
   if (upperRole === 'ADMINISTRATOR') return '/admin';
   if (upperRole === 'PUBLISHER') return '/publisher/desk';
-  if (upperRole === 'READER') return '/catalog';
 
   if (!workspaceId) return '/workspaces';
   if (!seriesId) return `/workspaces/${workspaceId}/series`;

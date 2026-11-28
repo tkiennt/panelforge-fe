@@ -38,6 +38,8 @@ export interface UserProfileProps {
   onLogout: () => void;
   onOpenTwoFactor?: () => void;
   onShowToast?: (title: string, desc: string, type?: 'success' | 'error') => void;
+  /** 'reader': độc giả không thuộc Studio nào, ẩn mọi phần về Studio. */
+  variant?: 'studio' | 'reader';
 }
 
 const focusRing =
@@ -83,7 +85,9 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
   onLogout,
   onOpenTwoFactor,
   onShowToast,
+  variant = 'studio',
 }) => {
+  const isReaderProfile = variant === 'reader';
   const { t, lang } = useTranslation();
   const navigate = useNavigate();
 
@@ -229,8 +233,8 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
 
   useEffect(() => {
     void loadProfile();
-    void loadWorkspaces();
-  }, [loadProfile, loadWorkspaces]);
+    if (!isReaderProfile) void loadWorkspaces();
+  }, [loadProfile, loadWorkspaces, isReaderProfile]);
 
   // Đánh dấu hoàn tất chuỗi animation xuất hiện sau 1000ms
   useEffect(() => {
@@ -718,17 +722,23 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
               <h1 className='inline-flex items-center rounded border border-stone-300 bg-stone-200/70 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-stone-700 font-mono'>
                 {t('profile.headerBadge', 'Hồ sơ cá nhân')}
               </h1>
-              <span className='inline-flex items-center rounded-md border border-stone-300 bg-[#FCFBF8] px-2 py-0.5 text-xs font-semibold text-[#57534E]'>
-                Studio Creator
-              </span>
+              {!isReaderProfile && (
+                <span className='inline-flex items-center rounded-md border border-stone-300 bg-[#FCFBF8] px-2 py-0.5 text-xs font-semibold text-[#57534E]'>
+                  Studio Creator
+                </span>
+              )}
             </div>
 
             {/* Tiêu đề chính */}
             <h2 className='font-serif text-2xl font-bold tracking-tight text-[#44403C] sm:text-3xl'>
-              {t('profile.authorProfileTitle', 'Hồ Sơ Tác Giả & Không Gian Sáng Tác')}
+              {isReaderProfile
+                ? t('profile.readerProfileTitle')
+                : t('profile.authorProfileTitle', 'Hồ Sơ Tác Giả & Không Gian Sáng Tác')}
             </h2>
             <p className='text-xs sm:text-sm text-[#57534E] mt-1'>
-              {t('profile.authorProfileSubtitle')}
+              {isReaderProfile
+                ? t('profile.readerProfileSubtitle')
+                : t('profile.authorProfileSubtitle')}
             </p>
           </div>
 
@@ -954,7 +964,9 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                   <dd>
                     {profile?.role === 'ADMINISTRATOR'
                       ? t('profile.systemRoles.admin', 'Quản trị viên hệ thống')
-                      : t('profile.systemRoles.user', 'Thành viên')}
+                      : isReaderProfile
+                        ? t('profile.systemRoles.reader')
+                        : t('profile.systemRoles.user', 'Thành viên')}
                   </dd>
                 </div>
                 <div className='inline-flex items-center gap-1.5'>
@@ -962,17 +974,19 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                   <Calendar className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
                   <dd>{formattedJoinDate}</dd>
                 </div>
-                <div className='inline-flex items-center gap-1.5'>
-                  <dt className='sr-only'>
-                    {t('profile.activeWorkspaces', 'Studio đang tham gia')}
-                  </dt>
-                  <Building2 className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
-                  <dd>
-                    {loadingWorkspaces
-                      ? t('profile.loadingWorkspaces', 'Đang tải…')
-                      : `${workspaces.length} studio`}
-                  </dd>
-                </div>
+                {!isReaderProfile && (
+                  <div className='inline-flex items-center gap-1.5'>
+                    <dt className='sr-only'>
+                      {t('profile.activeWorkspaces', 'Studio đang tham gia')}
+                    </dt>
+                    <Building2 className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
+                    <dd>
+                      {loadingWorkspaces
+                        ? t('profile.loadingWorkspaces', 'Đang tải…')
+                        : `${workspaces.length} studio`}
+                    </dd>
+                  </div>
+                )}
                 <div className='inline-flex items-center gap-1.5'>
                   <dt className='sr-only'>{t('profile.twoFactorTitle', 'Xác thực hai lớp')}</dt>
                   <Key className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
@@ -1101,7 +1115,9 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       <span className='text-sm font-medium text-[#44403C] block'>
                         {profile?.role === 'ADMINISTRATOR'
                           ? t('profile.systemRoles.admin', 'Quản trị viên (Admin)')
-                          : t('profile.systemRoles.user', 'Thành viên (Creator / User)')}
+                          : isReaderProfile
+                            ? t('profile.systemRoles.reader')
+                            : t('profile.systemRoles.user', 'Thành viên (Creator / User)')}
                       </span>
                     </div>
 
@@ -1417,109 +1433,113 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
         {/* ========================================================================= */}
         {/* HÀNG TOÀN CHIỀU RỘNG: XƯỞNG SÁNG TÁC ĐANG THAM GIA (STUDIO WORKSPACES)      */}
         {/* ========================================================================= */}
-        <div className='w-full min-w-0'>
-          <div className='pf-editorial-card bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 sm:p-6 shadow-2xs space-y-4'>
-            <div className='flex items-center justify-between pb-3 border-b border-[#E7E2D9]'>
-              <div className='flex items-center gap-2'>
-                <Building2 className='w-4 h-4 text-[#F97316]' />
-                <h3 className='text-sm sm:text-base font-serif font-bold text-[#44403C]'>
-                  {t('profile.workspacesSection')}
-                </h3>
-              </div>
-              <span className='text-xs font-mono text-[#57534E] tabular-nums'>
-                {workspaces.length} Studio
-              </span>
-            </div>
-
-            <p className='text-xs text-[#57534E] leading-relaxed'>{t('profile.workspacesDesc')}</p>
-
-            {loadingWorkspaces ? (
-              <div className='py-8 text-center text-[#57534E] flex items-center justify-center gap-2'>
-                <RefreshCw className='w-4 h-4 animate-spin text-[#F97316]' />
-                <span className='text-xs'>
-                  {t('profile.loadingWorkspaces', 'Đang tải danh sách xưởng truyện tranh...')}
+        {!isReaderProfile && (
+          <div className='w-full min-w-0'>
+            <div className='pf-editorial-card bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 sm:p-6 shadow-2xs space-y-4'>
+              <div className='flex items-center justify-between pb-3 border-b border-[#E7E2D9]'>
+                <div className='flex items-center gap-2'>
+                  <Building2 className='w-4 h-4 text-[#F97316]' />
+                  <h3 className='text-sm sm:text-base font-serif font-bold text-[#44403C]'>
+                    {t('profile.workspacesSection')}
+                  </h3>
+                </div>
+                <span className='text-xs font-mono text-[#57534E] tabular-nums'>
+                  {workspaces.length} Studio
                 </span>
               </div>
-            ) : workspaces.length === 0 ? (
-              <div className='py-8 text-center bg-white border border-dashed border-[#D8D2C5] rounded-lg p-5 space-y-2'>
-                <Briefcase className='w-6 h-6 text-[#A8A29E] mx-auto' />
-                <p className='text-xs font-semibold text-[#44403C]'>
-                  {t('profile.noWorkspaces', 'Bạn chưa tham gia xưởng truyện tranh nào.')}
-                </p>
-                <p className='text-xs text-[#57534E] max-w-sm mx-auto'>
-                  {t('profile.noWorkspacesDesc')}
-                </p>
-                <button
-                  type='button'
-                  onClick={() => navigate('/workspaces')}
-                  className={`mt-2 min-h-9 px-3.5 py-1.5 bg-[#44403C] hover:bg-[#292524] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1.5 active:scale-[0.99] ${focusRing}`}
-                >
-                  <span>{t('profile.exploreWorkspaces', 'Khám phá Workspaces')}</span>
-                  <ArrowRight className='w-3 h-3' />
-                </button>
-              </div>
-            ) : (
-              <div className='divide-y divide-[#E7E2D9] border border-[#E7E2D9] rounded-lg overflow-hidden bg-white'>
-                {workspaces.map((ws) => {
-                  const roleKey = String(ws.currentUserRole || 'ARTIST').toUpperCase();
-                  const roleBadge =
-                    WORKSPACE_ROLE_CONFIG[roleKey] || WORKSPACE_ROLE_CONFIG['ARTIST'];
 
-                  return (
-                    <div
-                      key={ws.id}
-                      className='p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#FAF8F5] transition-colors'
-                    >
-                      <div className='space-y-1 min-w-0'>
-                        <div className='flex items-center gap-2 flex-wrap'>
-                          <span className='text-xs sm:text-sm font-bold text-[#44403C] truncate'>
-                            {ws.name}
-                          </span>
-                          {ws.isOwner && (
-                            <span className='text-xs font-mono font-bold bg-[#EAE5DC] text-[#44403C] px-1.5 py-0.2 rounded'>
-                              {t('profile.studioOwner', 'CHỦ STUDIO')}
+              <p className='text-xs text-[#57534E] leading-relaxed'>
+                {t('profile.workspacesDesc')}
+              </p>
+
+              {loadingWorkspaces ? (
+                <div className='py-8 text-center text-[#57534E] flex items-center justify-center gap-2'>
+                  <RefreshCw className='w-4 h-4 animate-spin text-[#F97316]' />
+                  <span className='text-xs'>
+                    {t('profile.loadingWorkspaces', 'Đang tải danh sách xưởng truyện tranh...')}
+                  </span>
+                </div>
+              ) : workspaces.length === 0 ? (
+                <div className='py-8 text-center bg-white border border-dashed border-[#D8D2C5] rounded-lg p-5 space-y-2'>
+                  <Briefcase className='w-6 h-6 text-[#A8A29E] mx-auto' />
+                  <p className='text-xs font-semibold text-[#44403C]'>
+                    {t('profile.noWorkspaces', 'Bạn chưa tham gia xưởng truyện tranh nào.')}
+                  </p>
+                  <p className='text-xs text-[#57534E] max-w-sm mx-auto'>
+                    {t('profile.noWorkspacesDesc')}
+                  </p>
+                  <button
+                    type='button'
+                    onClick={() => navigate('/workspaces')}
+                    className={`mt-2 min-h-9 px-3.5 py-1.5 bg-[#44403C] hover:bg-[#292524] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1.5 active:scale-[0.99] ${focusRing}`}
+                  >
+                    <span>{t('profile.exploreWorkspaces', 'Khám phá Workspaces')}</span>
+                    <ArrowRight className='w-3 h-3' />
+                  </button>
+                </div>
+              ) : (
+                <div className='divide-y divide-[#E7E2D9] border border-[#E7E2D9] rounded-lg overflow-hidden bg-white'>
+                  {workspaces.map((ws) => {
+                    const roleKey = String(ws.currentUserRole || 'ARTIST').toUpperCase();
+                    const roleBadge =
+                      WORKSPACE_ROLE_CONFIG[roleKey] || WORKSPACE_ROLE_CONFIG['ARTIST'];
+
+                    return (
+                      <div
+                        key={ws.id}
+                        className='p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#FAF8F5] transition-colors'
+                      >
+                        <div className='space-y-1 min-w-0'>
+                          <div className='flex items-center gap-2 flex-wrap'>
+                            <span className='text-xs sm:text-sm font-bold text-[#44403C] truncate'>
+                              {ws.name}
                             </span>
-                          )}
-                        </div>
-                        <div className='flex items-center gap-2 text-xs text-[#57534E] font-mono tabular-nums'>
-                          <span>
-                            {t('profile.membersCount', '{count} thành viên').replace(
-                              '{count}',
-                              String(ws.memberCount || 1),
+                            {ws.isOwner && (
+                              <span className='text-xs font-mono font-bold bg-[#EAE5DC] text-[#44403C] px-1.5 py-0.2 rounded'>
+                                {t('profile.studioOwner', 'CHỦ STUDIO')}
+                              </span>
                             )}
-                          </span>
-                          <span>•</span>
-                          <span>
-                            {t('profile.usedStorage', 'Đã dùng: {size} MB').replace(
-                              '{size}',
-                              String(Math.round((ws.usedStorageBytes || 0) / (1024 * 1024))),
-                            )}
-                          </span>
+                          </div>
+                          <div className='flex items-center gap-2 text-xs text-[#57534E] font-mono tabular-nums'>
+                            <span>
+                              {t('profile.membersCount', '{count} thành viên').replace(
+                                '{count}',
+                                String(ws.memberCount || 1),
+                              )}
+                            </span>
+                            <span>•</span>
+                            <span>
+                              {t('profile.usedStorage', 'Đã dùng: {size} MB').replace(
+                                '{size}',
+                                String(Math.round((ws.usedStorageBytes || 0) / (1024 * 1024))),
+                              )}
+                            </span>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className='flex items-center gap-3 shrink-0 self-start sm:self-auto'>
-                        <span
-                          className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-semibold border ${roleBadge.bg} ${roleBadge.text} ${roleBadge.border}`}
-                        >
-                          {t(`workspace.roles.${roleKey.toLowerCase()}`)}
-                        </span>
-                        <button
-                          type='button'
-                          onClick={() => navigate(`/workspaces/${ws.id}`)}
-                          className={`min-h-9 px-3 py-1 bg-[#FCFBF8] hover:bg-white border border-[#D8D2C5] text-[#44403C] text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs active:scale-[0.99] ${focusRing}`}
-                        >
-                          <span>{t('profile.enterStudio', 'Vào xưởng')}</span>
-                          <ArrowRight className='w-3 h-3 text-[#57534E]' />
-                        </button>
+                        <div className='flex items-center gap-3 shrink-0 self-start sm:self-auto'>
+                          <span
+                            className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-semibold border ${roleBadge.bg} ${roleBadge.text} ${roleBadge.border}`}
+                          >
+                            {t(`workspace.roles.${roleKey.toLowerCase()}`)}
+                          </span>
+                          <button
+                            type='button'
+                            onClick={() => navigate(`/workspaces/${ws.id}`)}
+                            className={`min-h-9 px-3 py-1 bg-[#FCFBF8] hover:bg-white border border-[#D8D2C5] text-[#44403C] text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs active:scale-[0.99] ${focusRing}`}
+                          >
+                            <span>{t('profile.enterStudio', 'Vào xưởng')}</span>
+                            <ArrowRight className='w-3 h-3 text-[#57534E]' />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Avatar Presets Modal / Popover */}

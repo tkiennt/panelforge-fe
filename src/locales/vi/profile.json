@@ -39,7 +39,8 @@
   "systemRoles": {
     "admin": "Quản trị viên (Admin)",
     "producer": "Nhà sản xuất (Producer)",
-    "user": "Thành viên (Creator / User)"
+    "user": "Thành viên (Creator / User)",
+    "reader": "Độc giả"
   },
   "feedbackSuccess": "Hồ sơ tác giả đã được cập nhật thành công!",
   "feedbackSavedCover": "Đã lưu ảnh bìa hồ sơ.",
@@ -213,5 +214,7 @@
     "cancel": "Hủy",
     "saving": "Đang lưu…",
     "apply": "Áp dụng"
-  }
+  },
+  "readerProfileTitle": "Hồ sơ độc giả",
+  "readerProfileSubtitle": "Quản lý thông tin tài khoản, ảnh đại diện và bảo mật đăng nhập."
 }

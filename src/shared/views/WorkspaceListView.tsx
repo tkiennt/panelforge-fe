@@ -111,34 +111,14 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
   const [inviteBusyId, setInviteBusyId] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
-  const [invitationsLoaded, setInvitationsLoaded] = useState(false);
   useEffect(() => {
     if (isAdmin) return;
     let active = true;
-    workspaceService
-      .getPendingInvitations()
-      .then((list) => active && setInvitations(list || []))
-      .finally(() => active && setInvitationsLoaded(true));
+    workspaceService.getPendingInvitations().then((list) => active && setInvitations(list || []));
     return () => {
       active = false;
     };
   }, [isAdmin]);
-
-  // Độc giả (không thuộc Studio, không có lời mời, không được tạo Studio) không có gì để làm ở đây:
-  // đưa về thư viện truyện. Áp dụng cho mọi đường vào (đăng nhập Google, mở lại tab, "/" → /workspaces).
-  const isPublisher = currentUser?.role?.toUpperCase() === 'PUBLISHER';
-  const isReaderOnly =
-    !isAdmin &&
-    !isPublisher &&
-    !canCreate &&
-    !loading &&
-    !loadError &&
-    invitationsLoaded &&
-    workspaces.length === 0 &&
-    invitations.length === 0;
-  useEffect(() => {
-    if (isReaderOnly) navigate('/catalog', { replace: true });
-  }, [isReaderOnly, navigate]);
 
   const handleAcceptInvitation = async (inv: PendingInvitation) => {
     setInviteBusyId(inv.workspaceId);

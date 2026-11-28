@@ -831,5 +831,18 @@
         "hint": "Cảnh báo khi có yêu cầu chờ quá 3 ngày."
       }
     }
+  },
+  "studioPackage": {
+    "title": "Gói mở Studio",
+    "description": "Độc giả mua một lần bằng Ví để được tạo Studio. Mỗi lần đổi giá được lưu lại trong nhật ký.",
+    "currentPrice": "Giá đang bán",
+    "notOnSale": "Chưa bán",
+    "purchases": "Đã bán",
+    "changed": "Đổi lần cuối",
+    "newPrice": "Giá mới (VNĐ)",
+    "range": "Từ {min} đến {max}",
+    "invalid": "Giá phải là số nguyên trong khoảng cho phép.",
+    "save": "Lưu giá",
+    "saved": "Đã đặt giá gói mở Studio: {price}."
   }
 }
