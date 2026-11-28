@@ -108,7 +108,23 @@
     "enterHub": "Enter Studio Hub",
     "createCardTitle": "+ Create New Studio Space",
     "createCardDesc": "Initialize a dedicated Studio with independent storage, crew, and publishing catalog",
-    "createCardCta": "Start setup"
+    "createCardCta": "Start setup",
+    "ownedByYou": "Your studio",
+    "invitedBy": "Invited by {name}",
+    "ownerBadge": "Owner",
+    "openOwn": {
+      "title": "Open a studio of your own",
+      "desc": "You work in studios other people invited you to. Buy the Open Studio package to create your own; the studios you joined stay as they are.",
+      "cta": "See the Open Studio package",
+      "notice": "This account can't create studios yet. Buy the one-time Open Studio package to create your own; your roles in the studios you joined don't change."
+    },
+    "groups": {
+      "owned": "My studios",
+      "ownedHint": "You own these: manage members and split resources.",
+      "joined": "Studios I joined",
+      "joinedHint": "Studios other people invited you to, with the role you were given.",
+      "manageResources": "Studio resources"
+    }
   },
   "hub": "Studio Hub",
   "loading": "Loading Workspaces...",
@@ -1198,5 +1214,52 @@
     },
     "granted": "Granted {value}",
     "adminNote": "Admin: {note}"
+  },
+  "resources": {
+    "back": "Back to studios",
+    "eyebrow": "Resource pool",
+    "title": "Studio resources",
+    "subtitle": "Storage and AI tokens you bought, split between the studios you own. Tokens are a one-time purchase: buy more when they run out.",
+    "buyMore": "Buy more",
+    "legacyTitle": "No resource pool yet",
+    "legacyDesc": "Your studios use limits the administrator set for each one. Buy resources to start splitting them yourself.",
+    "storageTitle": "Storage",
+    "tokensTitle": "AI tokens",
+    "tokensNote": "One-time tokens, not reset every month.",
+    "remaining": "Left to allocate",
+    "total": "Bought",
+    "allocated": "Allocated to studios",
+    "studiosTitle": "Split per studio",
+    "noStudios": "You haven't created a studio yet. Resources are allocated when you create one.",
+    "usedLine": "Using {storage} · {tokens}",
+    "unlimited": "Created before the pool existed, currently unlimited. Save a limit to bring it into the pool.",
+    "maxHint": "Up to {value}",
+    "save": "Save allocation",
+    "gb": "{value} GB",
+    "millionTokens": "{value}M tokens",
+    "create": {
+      "legend": "Resources for this studio",
+      "poolLeft": "Your pool has {storage} GB and {tokens}M tokens left to allocate.",
+      "storageGb": "Storage (GB)",
+      "tokenMillions": "AI tokens (millions)",
+      "shortageTitle": "Not enough resources in your pool",
+      "shortageDesc": "Lower the allocation, take some back from another studio, or buy more storage and tokens.",
+      "reallocate": "Reallocate resources"
+    },
+    "buy": {
+      "title": "Buy more resources",
+      "subtitle": "Paid from your wallet and added to your pool right away.",
+      "notOnSale": "The administrator hasn't put resources on sale yet. Contact the administrator to buy more.",
+      "storage": "Storage (GB)",
+      "tokens": "AI tokens (millions)",
+      "unitPriceGb": "{price} per GB",
+      "unitPriceTokens": "{price} per 1M tokens",
+      "total": "Total",
+      "balance": "Wallet balance",
+      "topup": "Top up {amount}",
+      "submit": "Pay from wallet",
+      "done": "Purchased: {total} taken from your wallet and added to your pool.",
+      "adminNote": "Need a large amount or an invoice? Contact the administrator to have it added to your pool directly."
+    }
   }
 }

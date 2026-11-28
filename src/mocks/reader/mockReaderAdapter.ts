@@ -21,6 +21,7 @@ import {
 } from './mockReaderData';
 import {
   findStudio,
+  isOwnedStudio,
   joinedWorkspaceDtos,
   myAssignments,
   myTaskLots,
@@ -222,6 +223,8 @@ on('post', /^\/wallet\/studio-package$/, ({ body }) => {
   const code = orderCode('STUDIO');
   pushTransaction('Mua gói mở Studio', -MOCK_STUDIO_PACKAGE_PRICE_VND, code);
   s.canCreateStudio = true;
+  // D12: gói kèm kho đủ cho một Studio theo hạn mức mặc định
+  s.pool = { storageBytes: MOCK_DEFAULT_STORAGE, tokens: MOCK_DEFAULT_TOKENS };
   saveMockState();
   return {
     data: {
@@ -292,13 +295,17 @@ on('get', /^\/Auth\/me\/landing-context$/i, () => {
   const denied = requireSignedIn();
   if (denied) return denied;
   const s = getMockState();
-  const studio = s.joinedWorkspaces.length > 0;
+  const workspaces = [
+    ...s.ownedStudios.map((o) => ({ workspaceId: o.id, name: o.name, role: 'PRODUCER' })),
+    ...s.joinedWorkspaces,
+  ];
+  const studio = workspaces.length > 0;
   return {
     data: {
       userId: 'mock-reader-1',
       systemRole: 'USER',
       canCreateStudio: s.canCreateStudio,
-      workspaces: s.joinedWorkspaces,
+      workspaces,
       suggestedLanding: studio
         ? 'YourWorkspaces'
         : s.canCreateStudio
@@ -419,7 +426,9 @@ on('get', /^\/Workspaces$/i, () => requireSignedIn() ?? { data: joinedWorkspaceD
 
 on('get', /^\/Workspaces\/(mock-ws-[^/]+)$/i, ({ match }) => {
   const studio = findStudio(match[1]);
-  const joined = getMockState().joinedWorkspaces.some((w) => w.workspaceId === match[1]);
+  const joined =
+    isOwnedStudio(match[1]) ||
+    getMockState().joinedWorkspaces.some((w) => w.workspaceId === match[1]);
   if (!studio) return fail(404, 'Không tìm thấy Studio.');
   return joined ? { data: toWorkspaceDto(studio) } : fail(403, 'Bạn không thuộc Studio này.');
 });
@@ -469,6 +478,149 @@ on('get', /^\/chapters\/mock-chapter-[^/]+\/pages\/[^/]+\/artwork$/i, () =>
 on('get', /^\/me\/work$/i, () => requireSignedIn() ?? { data: myWork() });
 
 on('get', /^\/pipeline-templates$/i, () => ({ data: [] }));
+
+// ─── D12: kho tài nguyên Producer, tạo Studio của mình, mua thêm ────────────────────────
+
+const GB = 1024 ** 3;
+const MOCK_DEFAULT_STORAGE = 5 * GB;
+const MOCK_DEFAULT_TOKENS = 1_000_000;
+const MOCK_PRICE_PER_GB = 20_000;
+const MOCK_PRICE_PER_MILLION_TOKENS = 50_000;
+
+function resourcesDto() {
+  const s = getMockState();
+  const studios = s.ownedStudios.map((o) => ({
+    workspaceId: o.id,
+    name: o.name,
+    storageQuotaBytes: o.storageQuotaBytes,
+    usedStorageBytes: o.usedStorageBytes,
+    tokenQuota: o.tokenQuota,
+    usedTokens: o.usedTokens,
+  }));
+  const budget = (total: number, allocated: number) => ({
+    total,
+    allocated,
+    remaining: Math.max(0, total - allocated),
+  });
+  return {
+    hasPool: !!s.pool,
+    storage: s.pool
+      ? budget(
+          s.pool.storageBytes,
+          studios.reduce((n, x) => n + x.storageQuotaBytes, 0),
+        )
+      : null,
+    tokens: s.pool
+      ? budget(
+          s.pool.tokens,
+          studios.reduce((n, x) => n + x.tokenQuota, 0),
+        )
+      : null,
+    studios,
+    suggestedStorageBytes: MOCK_DEFAULT_STORAGE,
+    suggestedTokens: MOCK_DEFAULT_TOKENS,
+    pricePerGbVnd: MOCK_PRICE_PER_GB,
+    pricePerMillionTokensVnd: MOCK_PRICE_PER_MILLION_TOKENS,
+  };
+}
+
+const formatGb = (bytes: number) =>
+  `${(bytes / GB).toLocaleString('vi-VN', { maximumFractionDigits: 2 })} GB`;
+
+on('get', /^\/workspaces\/resources$/i, () => requireSignedIn() ?? { data: resourcesDto() });
+
+on('post', /^\/Workspaces$/i, ({ body }) => {
+  const denied = requireSignedIn();
+  if (denied) return denied;
+  const s = getMockState();
+  if (!s.canCreateStudio) return fail(401, 'Bạn chưa có quyền tạo Studio.', 'UNAUTHORIZED');
+  const name = String(body?.name ?? '').trim();
+  if (!name) return fail(400, 'Tên Workspace là bắt buộc.');
+  const storage = Number(body?.storageQuotaBytes ?? MOCK_DEFAULT_STORAGE);
+  const tokens = Number(body?.tokenQuota ?? MOCK_DEFAULT_TOKENS);
+  const res = resourcesDto();
+  if (
+    res.storage &&
+    res.tokens &&
+    (storage > res.storage.remaining || tokens > res.tokens.remaining)
+  ) {
+    return fail(
+      409,
+      `Kho tài nguyên không đủ để tạo Studio: còn ${formatGb(res.storage.remaining)} và ${res.tokens.remaining.toLocaleString('vi-VN')} token. Giảm phần chia, thu bớt từ Studio khác hoặc mua thêm.`,
+      'INSUFFICIENT_STUDIO_RESOURCES',
+    );
+  }
+  const owned = {
+    id: `mock-ws-own-${now().toString(36)}`,
+    name,
+    storageQuotaBytes: storage,
+    usedStorageBytes: 0,
+    tokenQuota: tokens,
+    usedTokens: 0,
+    createdAt: new Date().toISOString(),
+  };
+  s.ownedStudios.push(owned);
+  saveMockState();
+  return { status: 201, data: toWorkspaceDto(findStudio(owned.id)!) };
+});
+
+on('put', /^\/workspaces\/([^/]+)\/resources$/i, ({ match, body }) => {
+  const denied = requireSignedIn();
+  if (denied) return denied;
+  const s = getMockState();
+  const studio = s.ownedStudios.find((o) => o.id === match[1]);
+  if (!studio)
+    return fail(403, 'Chỉ chủ Studio mới chia được tài nguyên cho Studio này.', 'FORBIDDEN');
+  if (!s.pool) return fail(400, 'Bạn chưa có kho tài nguyên.');
+  const storage = Number(body?.storageQuotaBytes);
+  const tokens = Number(body?.tokenQuota);
+  if (!(storage > 0) || !(tokens > 0)) return fail(400, 'Dung lượng và token phải lớn hơn 0.');
+  if (storage < studio.usedStorageBytes || tokens < studio.usedTokens) {
+    return fail(400, 'Không chia thấp hơn phần Studio đã dùng.');
+  }
+  const others = s.ownedStudios.filter((o) => o.id !== studio.id);
+  const storageLeft = s.pool.storageBytes - others.reduce((n, o) => n + o.storageQuotaBytes, 0);
+  const tokensLeft = s.pool.tokens - others.reduce((n, o) => n + o.tokenQuota, 0);
+  if (storage > storageLeft || tokens > tokensLeft) {
+    return fail(
+      409,
+      `Kho không đủ: chia tối đa ${formatGb(Math.max(0, storageLeft))} và ${Math.max(0, tokensLeft).toLocaleString('vi-VN')} token cho Studio này.`,
+      'INSUFFICIENT_STUDIO_RESOURCES',
+    );
+  }
+  studio.storageQuotaBytes = storage;
+  studio.tokenQuota = tokens;
+  saveMockState();
+  return { data: resourcesDto() };
+});
+
+on('post', /^\/wallet\/studio-resources$/i, ({ body }) => {
+  const denied = requireSignedIn();
+  if (denied) return denied;
+  const s = getMockState();
+  if (!s.canCreateStudio) return fail(403, 'Cần mua gói Mở Studio trước.', 'FORBIDDEN');
+  const gb = Number(body?.storageGb ?? 0);
+  const millions = Number(body?.tokenMillions ?? 0);
+  if (gb < 0 || millions < 0 || gb + millions === 0)
+    return fail(400, 'Chọn số GB hoặc số triệu token cần mua.');
+  const total = gb * MOCK_PRICE_PER_GB + millions * MOCK_PRICE_PER_MILLION_TOKENS;
+  if (body?.expectedTotalVnd !== total) return fail(409, 'Giá đã thay đổi.', 'PRICE_CHANGED');
+  if (s.balanceVnd < total) return fail(400, 'Số dư Ví không đủ.', 'INSUFFICIENT_BALANCE');
+  const code = orderCode('RES');
+  pushTransaction('Mua thêm tài nguyên Studio', -total, code);
+  s.pool ??= { storageBytes: 0, tokens: 0 };
+  s.pool.storageBytes += gb * GB;
+  s.pool.tokens += millions * 1_000_000;
+  saveMockState();
+  return {
+    data: {
+      totalVnd: total,
+      remainingBalanceVnd: s.balanceVnd,
+      orderCode: code,
+      resources: resourcesDto(),
+    },
+  };
+});
 
 // ─── Cài adapter ─────────────────────────────────────────────────────────────────────────
 

@@ -844,5 +844,21 @@
     "invalid": "Giá phải là số nguyên trong khoảng cho phép.",
     "save": "Lưu giá",
     "saved": "Đã đặt giá gói mở Studio: {price}."
+  },
+  "studioResources": {
+    "title": "Tài nguyên Studio bán cho Producer",
+    "description": "Dung lượng và token AI mua một lần. Producer tự mua bằng Ví theo đơn giá dưới đây rồi chia cho các Studio của mình; dùng hết thì mua thêm.",
+    "perGb": "Giá mỗi GB",
+    "perMillion": "Giá mỗi 1 triệu token",
+    "newPerGb": "Giá mới mỗi GB (VNĐ)",
+    "newPerMillion": "Giá mới mỗi 1 triệu token (VNĐ)",
+    "saved": "Đã đặt đơn giá tài nguyên Studio.",
+    "producer": "Cộng thẳng vào kho của",
+    "producerHint": "Producer trong trang danh sách đang xem",
+    "pickProducer": "Chọn Producer",
+    "addGb": "Thêm GB",
+    "addMillions": "Thêm triệu token",
+    "grant": "Cộng vào kho",
+    "granted": "Đã cộng tài nguyên cho {email}."
   }
 }

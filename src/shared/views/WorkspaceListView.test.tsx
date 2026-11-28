@@ -49,7 +49,7 @@ describe('WorkspaceListView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Alpha Studio')).toBeInTheDocument();
     });
-    expect(screen.getByText(/^(Producer|Nhà sản xuất)$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^(Owner|Chủ Studio)$/i)).toBeInTheDocument();
     expect(
       within(screen.getByRole('article', { name: 'Alpha Studio' })).getByText(
         /2 (tasks waiting|việc đang chờ)/i,
@@ -561,5 +561,41 @@ describe('WorkspaceListView Component', () => {
     expect(screen.getByTestId('ws-summary').textContent).toMatch(/cả 1 studio|all 1 studios/);
     expect(screen.queryByTestId('ws-chip-pending')).not.toBeInTheDocument();
     expect(screen.queryByTestId('ws-chip-reviews')).not.toBeInTheDocument();
+  });
+
+  // D12: phân biệt Studio mình sở hữu với Studio được mời vào
+  it('splits owned studios from studios the user joined, with owner vs invited-by labels', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([
+      ws({ id: 'own', name: 'My Own Studio' }),
+      ws({
+        id: 'joined',
+        name: 'Friend Studio',
+        isOwner: false,
+        ownerName: 'Bao',
+        currentUserRole: 'ARTIST',
+      }),
+    ] as any);
+    renderView({ currentUser: { name: 'P', email: 'p@x', role: 'USER', canCreateStudio: true } });
+
+    const owned = await screen.findByRole('region', { name: /Studio của tôi|My studios/ });
+    const joined = screen.getByRole('region', { name: /Studio tôi tham gia|Studios I joined/ });
+    expect(within(owned).getByText('My Own Studio')).toBeInTheDocument();
+    expect(within(owned).getByText(/^(Owner|Chủ Studio)$/)).toBeInTheDocument();
+    expect(within(joined).getByText('Friend Studio')).toBeInTheDocument();
+    expect(within(joined).getByText(/(Được mời bởi|Invited by) Bao/)).toBeInTheDocument();
+    expect(within(joined).queryByText(/^(Owner|Chủ Studio)$/)).not.toBeInTheDocument();
+  });
+
+  it('offers the Open Studio package to an invited member who cannot create studios', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([
+      ws({ isOwner: false, currentUserRole: 'WRITER', ownerName: 'Bao' }),
+    ] as any);
+    renderView({ currentUser: { name: 'W', email: 'w@x', role: 'USER', canCreateStudio: false } });
+
+    const card = await screen.findByTestId('open-own-studio-card');
+    expect(
+      within(card).getByRole('button', { name: /Xem gói Mở Studio|See the Open Studio package/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('open-studio-resources')).not.toBeInTheDocument();
   });
 });

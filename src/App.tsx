@@ -896,7 +896,8 @@ function AppContent() {
             // bản lưu tạm hỏng: /Auth/me lần sau sẽ ghi lại
           }
           readerAccount.markStudioMember();
-          navigate('/workspaces');
+          // D12: vào sảnh và mở ngay hộp tạo Studio đầu tiên
+          navigate('/workspaces?create=1');
         }}
       />
 

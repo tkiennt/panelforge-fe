@@ -107,24 +107,44 @@ const ROLE_STAGES: Record<
   PRODUCER: [],
 };
 
-export const findStudio = (id: string) => STUDIOS.find((s) => s.id === id);
+/** Studio người dùng mẫu tự tạo sau khi mua gói (D12): chưa có bộ truyện, chưa có thành viên. */
+const ownedSeed = (id: string): StudioSeed | undefined => {
+  const owned = getMockState().ownedStudios.find((s) => s.id === id);
+  if (!owned) return undefined;
+  const s = getMockState();
+  return {
+    id: owned.id,
+    name: owned.name,
+    ownerName: s.userName,
+    ownerEmail: s.email,
+    description: '',
+    memberCount: 0,
+    series: [],
+  };
+};
+
+export const findStudio = (id: string) => STUDIOS.find((s) => s.id === id) ?? ownedSeed(id);
+
+export const isOwnedStudio = (id: string) => getMockState().ownedStudios.some((s) => s.id === id);
 
 function joinedRole(id: string): string | undefined {
+  if (isOwnedStudio(id)) return 'PRODUCER';
   return getMockState().joinedWorkspaces.find((w) => w.workspaceId === id)?.role;
 }
 
 export function toWorkspaceDto(studio: StudioSeed): WorkspaceDto {
   const role = joinedRole(studio.id) ?? null;
+  const owned = getMockState().ownedStudios.find((s) => s.id === studio.id);
   return {
     id: studio.id,
     name: studio.name,
-    ownerId: `${studio.id}-owner`,
+    ownerId: owned ? 'mock-reader-1' : `${studio.id}-owner`,
     ownerName: studio.ownerName,
     ownerEmail: studio.ownerEmail,
-    storageQuotaBytes: 5 * 1024 ** 3,
-    usedStorageBytes: 1.2 * 1024 ** 3,
-    createdAt: new Date(Date.now() - 200 * DAY).toISOString(),
-    isOwner: false,
+    storageQuotaBytes: owned?.storageQuotaBytes ?? 5 * 1024 ** 3,
+    usedStorageBytes: owned?.usedStorageBytes ?? 1.2 * 1024 ** 3,
+    createdAt: owned?.createdAt ?? new Date(Date.now() - 200 * DAY).toISOString(),
+    isOwner: !!owned,
     currentUserRole: role,
     memberCount: studio.memberCount + 1,
     pendingTasks: role ? myLots(studio, role).reduce((n, l) => n + l.tasks.length, 0) : 0,
@@ -136,9 +156,10 @@ export function toWorkspaceDto(studio: StudioSeed): WorkspaceDto {
 }
 
 export function joinedWorkspaceDtos(): WorkspaceDto[] {
-  return getMockState()
-    .joinedWorkspaces.map((w) => findStudio(w.workspaceId))
-    .filter((s): s is StudioSeed => !!s)
+  const s = getMockState();
+  return [...s.ownedStudios.map((o) => o.id), ...s.joinedWorkspaces.map((w) => w.workspaceId)]
+    .map(findStudio)
+    .filter((seed): seed is StudioSeed => !!seed)
     .map(toWorkspaceDto);
 }
 

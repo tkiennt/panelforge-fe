@@ -108,7 +108,23 @@
     "enterHub": "Vào Studio Hub",
     "createCardTitle": "+ Tạo Không Gian Studio Mới",
     "createCardDesc": "Khởi tạo Studio riêng biệt với kho lưu trữ, ê-kíp và danh mục xuất bản độc lập",
-    "createCardCta": "Bắt đầu thiết lập"
+    "createCardCta": "Bắt đầu thiết lập",
+    "ownedByYou": "Studio của bạn",
+    "invitedBy": "Được mời bởi {name}",
+    "ownerBadge": "Chủ Studio",
+    "openOwn": {
+      "title": "Mở Studio của riêng bạn",
+      "desc": "Bạn đang làm trong Studio người khác mời. Mua gói Mở Studio để tạo Studio của mình, các Studio đang tham gia vẫn giữ nguyên.",
+      "cta": "Xem gói Mở Studio",
+      "notice": "Tài khoản chưa có quyền tạo Studio. Mua gói Mở Studio một lần để tạo Studio của riêng bạn; vai trò ở các Studio bạn đang tham gia không đổi."
+    },
+    "groups": {
+      "owned": "Studio của tôi",
+      "ownedHint": "Bạn là chủ: quản lý thành viên, chia tài nguyên.",
+      "joined": "Studio tôi tham gia",
+      "joinedHint": "Studio người khác mời bạn vào, theo vai trò được giao.",
+      "manageResources": "Tài nguyên Studio"
+    }
   },
   "hub": "Studio Hub",
   "loading": "Đang tải danh sách Workspace...",
@@ -1198,5 +1214,52 @@
     },
     "granted": "Đã cấp {value}",
     "adminNote": "Admin: {note}"
+  },
+  "resources": {
+    "back": "Về danh sách Studio",
+    "eyebrow": "Kho tài nguyên",
+    "title": "Tài nguyên Studio",
+    "subtitle": "Dung lượng lưu trữ và token AI bạn đã mua, chia cho từng Studio bạn sở hữu. Token mua một lần, dùng hết thì mua thêm.",
+    "buyMore": "Mua thêm",
+    "legacyTitle": "Chưa có kho tài nguyên",
+    "legacyDesc": "Các Studio hiện dùng hạn mức do Administrator đặt riêng. Mua thêm tài nguyên để bắt đầu tự chia cho từng Studio.",
+    "storageTitle": "Dung lượng lưu trữ",
+    "tokensTitle": "Token AI",
+    "tokensNote": "Token mua một lần, không reset theo tháng.",
+    "remaining": "Còn lại để chia",
+    "total": "Đã mua",
+    "allocated": "Đã chia cho Studio",
+    "studiosTitle": "Chia cho từng Studio",
+    "noStudios": "Bạn chưa tạo Studio nào. Tài nguyên sẽ được chia khi tạo Studio mới.",
+    "usedLine": "Đang dùng {storage} · {tokens}",
+    "unlimited": "Studio tạo trước khi có kho, đang không giới hạn. Lưu một mức để đưa vào kho.",
+    "maxHint": "Tối đa {value}",
+    "save": "Lưu phần chia",
+    "gb": "{value} GB",
+    "millionTokens": "{value} triệu token",
+    "create": {
+      "legend": "Tài nguyên cho Studio này",
+      "poolLeft": "Kho còn {storage} GB và {tokens} triệu token để chia.",
+      "storageGb": "Dung lượng (GB)",
+      "tokenMillions": "Token AI (triệu)",
+      "shortageTitle": "Kho tài nguyên không đủ",
+      "shortageDesc": "Giảm phần chia, thu bớt từ Studio khác hoặc mua thêm dung lượng và token.",
+      "reallocate": "Chia lại tài nguyên"
+    },
+    "buy": {
+      "title": "Mua thêm tài nguyên",
+      "subtitle": "Trả bằng Ví, cộng ngay vào kho để chia cho các Studio.",
+      "notOnSale": "Administrator chưa mở bán tài nguyên. Liên hệ Administrator để mua thêm.",
+      "storage": "Dung lượng (GB)",
+      "tokens": "Token AI (triệu token)",
+      "unitPriceGb": "{price} mỗi GB",
+      "unitPriceTokens": "{price} mỗi 1 triệu token",
+      "total": "Thành tiền",
+      "balance": "Số dư Ví",
+      "topup": "Nạp thêm {amount}",
+      "submit": "Mua bằng Ví",
+      "done": "Đã mua, trừ {total} từ Ví. Kho đã được cộng thêm.",
+      "adminNote": "Cần số lượng lớn hoặc xuất hóa đơn? Liên hệ Administrator để được cộng trực tiếp vào kho."
+    }
   }
 }

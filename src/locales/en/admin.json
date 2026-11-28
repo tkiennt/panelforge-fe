@@ -844,5 +844,21 @@
     "invalid": "The price must be a whole number within the allowed range.",
     "save": "Save price",
     "saved": "Studio package price set to {price}."
+  },
+  "studioResources": {
+    "title": "Studio resources sold to producers",
+    "description": "One-time storage and AI tokens. Producers buy them from their wallet at the prices below and split them between their studios; they buy more when they run out.",
+    "perGb": "Price per GB",
+    "perMillion": "Price per 1M tokens",
+    "newPerGb": "New price per GB (VND)",
+    "newPerMillion": "New price per 1M tokens (VND)",
+    "saved": "Studio resource prices saved.",
+    "producer": "Add directly to the pool of",
+    "producerHint": "Producers on the list page you are viewing",
+    "pickProducer": "Choose a producer",
+    "addGb": "Add GB",
+    "addMillions": "Add million tokens",
+    "grant": "Add to pool",
+    "granted": "Resources added for {email}."
   }
 }

@@ -203,6 +203,9 @@ const MyWorkHubView = lazy(() =>
 const WorkspaceListView = lazy(() =>
   import('@/shared/views/WorkspaceListView').then((m) => ({ default: m.WorkspaceListView })),
 );
+const StudioResourcesView = lazy(() =>
+  import('@/shared/views/StudioResourcesView').then((m) => ({ default: m.StudioResourcesView })),
+);
 const UserProfileView = lazy(() =>
   import('@/shared/views/UserProfileView').then((m) => ({ default: m.UserProfileView })),
 );
@@ -609,6 +612,20 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     }}
                     onLogout={handleLogout}
                   />
+                </div>
+              )
+            }
+          />
+
+          {/* D12: kho tài nguyên Producer (dung lượng + token mua một lần) chia cho từng Studio */}
+          <Route
+            path='workspaces/resources'
+            element={
+              currentRole === 'PUBLISHER' ? (
+                <Navigate to='/publisher/series' replace />
+              ) : (
+                <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
+                  <StudioResourcesView />
                 </div>
               )
             }

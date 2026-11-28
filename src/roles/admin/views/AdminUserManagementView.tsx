@@ -7,6 +7,7 @@ import { useTranslation } from '@/lib/i18n';
 import { AdminUserTable } from './components/AdminUserTable';
 import { AdminAssignRoleModal } from './components/AdminAssignRoleModal';
 import { StudioPackagePriceCard } from './components/StudioPackagePriceCard';
+import { StudioResourcePriceCard } from './components/StudioResourcePriceCard';
 import { AdminBadge, AdminButton, AdminPageHeader, AdminToast } from './components/AdminUi';
 import { adminFieldClass, adminFocusRing, useAdminToast } from './components/adminUiStyles';
 
@@ -141,6 +142,12 @@ export const AdminUserManagementView: React.FC<{ onOpenUser?: (userId: string) =
       />
 
       <StudioPackagePriceCard
+        onSaved={(message) => showToast(message)}
+        onError={(message) => showToast(message, 'error')}
+      />
+
+      <StudioResourcePriceCard
+        producers={users.filter(isProducer)}
         onSaved={(message) => showToast(message)}
         onError={(message) => showToast(message, 'error')}
       />

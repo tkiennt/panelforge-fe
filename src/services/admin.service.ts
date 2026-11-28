@@ -289,6 +289,16 @@ function extractError(error: any, defaultMsg: string): string {
 }
 
 /** Gói mở Studio (spec D11) cho Admin: giá hiện hành (null = chưa bán) và số lượt đã mua. */
+/** D12: đơn giá tài nguyên Studio Admin bán cho Producer (null = chưa bán). */
+export interface AdminStudioResourcePriceDto {
+  pricePerGbVnd: number | null;
+  pricePerMillionTokensVnd: number | null;
+  changedAt: string | null;
+  changedByName: string | null;
+  minPriceVnd: number;
+  maxPriceVnd: number;
+}
+
 export interface AdminStudioPackageDto {
   priceVnd: number | null;
   changedAt: string | null;
@@ -691,6 +701,54 @@ export const adminService = {
     } catch (error: any) {
       throw new Error(
         extractError(error, translate('errors.services.admin.studioPackageSaveFailed')),
+      );
+    }
+  },
+
+  /** GET /api/admin/studio-resources/price */
+  getStudioResourcePrice: async (): Promise<AdminStudioResourcePriceDto> => {
+    try {
+      const { data } = await axiosClient.get('/admin/studio-resources/price');
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.studioResourcePriceLoadFailed')),
+      );
+    }
+  },
+
+  /** PUT /api/admin/studio-resources/price — thêm một mức đơn giá mới (append-only, có audit). */
+  setStudioResourcePrice: async (
+    pricePerGbVnd: number,
+    pricePerMillionTokensVnd: number,
+  ): Promise<AdminStudioResourcePriceDto> => {
+    try {
+      const { data } = await axiosClient.put('/admin/studio-resources/price', {
+        pricePerGbVnd,
+        pricePerMillionTokensVnd,
+      });
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.studioResourcePriceSaveFailed')),
+      );
+    }
+  },
+
+  /** POST /api/admin/users/{id}/studio-resources — cộng dung lượng / token vào kho của Producer. */
+  grantStudioResources: async (
+    userId: string,
+    storageBytes: number,
+    tokens: number,
+  ): Promise<void> => {
+    try {
+      await axiosClient.post(`/admin/users/${encodeURIComponent(userId)}/studio-resources`, {
+        storageBytes,
+        tokens,
+      });
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.studioResourceGrantFailed')),
       );
     }
   },

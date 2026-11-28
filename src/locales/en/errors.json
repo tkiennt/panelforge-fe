@@ -266,7 +266,10 @@
       "getWorkspacesFailed": "Failed to load Studio Workspaces.",
       "updateWorkspaceQuotaFailed": "Failed to update Workspace storage quota.",
       "studioPackageLoadFailed": "Could not load the studio package price.",
-      "studioPackageSaveFailed": "Could not save the studio package price."
+      "studioPackageSaveFailed": "Could not save the studio package price.",
+      "studioResourcePriceLoadFailed": "Could not load studio resource prices.",
+      "studioResourcePriceSaveFailed": "Could not save studio resource prices.",
+      "studioResourceGrantFailed": "Could not add resources for the producer."
     },
     "auth": {
       "unauthorized": "Session expired or invalid token (401 Unauthorized). Please sign in again.",
@@ -406,6 +409,11 @@
     "uploadLimits": {
       "loadFailed": "Could not load file size limits.",
       "saveFailed": "Could not save file size limits."
+    },
+    "studioResources": {
+      "loadFailed": "Could not load your studio resource pool.",
+      "allocateFailed": "Could not save the resource allocation.",
+      "purchaseFailed": "Could not buy studio resources."
     }
   },
   "FILE_TOO_LARGE": "The file exceeds the size limit set by the administrator. Choose a smaller file and try again."

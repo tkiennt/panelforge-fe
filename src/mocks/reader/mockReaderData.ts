@@ -313,6 +313,19 @@ export interface MockState {
   invitations: MockInvitation[];
   joinedWorkspaces: { workspaceId: string; name: string; role: string }[];
   readNotificationIds: string[];
+  /** D12: kho tài nguyên Producer (có sau khi mua gói Mở Studio); null = chưa có kho. */
+  pool: { storageBytes: number; tokens: number } | null;
+  ownedStudios: MockOwnedStudio[];
+}
+
+export interface MockOwnedStudio {
+  id: string;
+  name: string;
+  storageQuotaBytes: number;
+  usedStorageBytes: number;
+  tokenQuota: number;
+  usedTokens: number;
+  createdAt: string;
 }
 
 const STATE_KEY = 'pf_reader_mock_state';
@@ -408,6 +421,8 @@ function initialState(): MockState {
     ],
     joinedWorkspaces: [],
     readNotificationIds: [],
+    pool: null,
+    ownedStudios: [],
   };
 }
 
