@@ -24,7 +24,7 @@ THBMinh  ──PR (review)──▶  dev  ──merge──▶  stg  ──(stg 
   - `git worktree add ../.worktrees/<repo>-<task> -b THBMinh-<task> THBMinh`
   - Mỗi agent chỉ sửa file thuộc task của mình; hai agent không sửa cùng file; không sửa working tree chính khi agent khác đang chạy.
 - **Khi hoàn thành task**:
-  1. Commit trong worktree → `git checkout THBMinh && git merge --no-ff THBMinh-<task>`, giải quyết conflict, chạy build/test.
-  2. Khi người dùng yêu cầu: `git push origin THBMinh`, rồi mở Pull Request `THBMinh` → `dev` (`gh pr create --base dev --head THBMinh`, hoặc trang `https://github.com/<owner>/<repo>/compare/dev...THBMinh`). Mô tả PR ghi việc đã làm, API/DB/enum thay đổi, kết quả build/test.
+  1. Commit trong worktree → `git checkout THBMinh && git merge --no-ff THBMinh-<task>`, giải quyết conflict, chạy `npm run typecheck` (chưa chạy test, xem `testing.md`).
+  2. Khi người dùng yêu cầu: chạy lint + typecheck + test các thư mục bị ảnh hưởng (theo `testing.md`), sửa hết lỗi, rồi `git push origin THBMinh`, rồi mở Pull Request `THBMinh` → `dev` (`gh pr create --base dev --head THBMinh`, hoặc trang `https://github.com/<owner>/<repo>/compare/dev...THBMinh`). Mô tả PR ghi việc đã làm, API/DB/enum thay đổi, kết quả build/test.
   3. Chờ review; sửa theo góp ý bằng commit mới trên `THBMinh` rồi push lại (PR tự cập nhật). Không tự merge PR.
   4. Dọn dẹp: `git worktree remove <path>` và `git branch -d THBMinh-<task>`.
