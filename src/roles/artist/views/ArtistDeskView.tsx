@@ -1062,9 +1062,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return formatChapterLabel(activeChapter.chapterNumber, activeChapter.title);
   }, [activeChapter]);
 
+  // ART-03: cùng phạm vi với BE — dòng thoại của các phân cảnh có khung trên trang đang mở
+  // (dòng đã gắn khung ở trang khác vẫn tính là đã phủ). Trang chưa gắn phân cảnh nào thì xét cả chương.
   const scriptCoverage = useMemo(() => {
-    const dialogueLines = (rawScriptLines || initialScriptLines || []).filter((line) =>
-      Boolean(line.dialogueText?.trim()),
+    const pagePanels = selectedPage ? panelsByPageId[selectedPage.id] || [] : [];
+    const pageSceneIds = new Set(
+      pagePanels.map((p) => p.sceneId).filter((id): id is string => Boolean(id)),
+    );
+    const dialogueLines = (rawScriptLines || initialScriptLines || []).filter(
+      (line) =>
+        Boolean(line.dialogueText?.trim()) &&
+        (pageSceneIds.size === 0 || (line.sceneId ? pageSceneIds.has(line.sceneId) : false)),
     );
     const covered = dialogueLines.filter((line) => Boolean(line.panelId)).length;
     const total = dialogueLines.length;
@@ -1073,7 +1081,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       total,
       percent: total === 0 ? 100 : Math.round((covered / total) * 100),
     };
-  }, [rawScriptLines, initialScriptLines]);
+  }, [rawScriptLines, initialScriptLines, selectedPage, panelsByPageId]);
 
   const handleSelectChapter = useCallback(
     (chapId: string) => {
