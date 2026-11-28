@@ -4,6 +4,7 @@ import {
   fitBoxHeight,
   fitFontSize,
   fitBalloonSize,
+  growBalloonToFit,
   layoutBalloonText,
   letteringCase,
   tailToward,
@@ -231,6 +232,38 @@ describe('balloonRender', () => {
       expect(letteringCase('You fool!', 'en-US')).toBe('YOU FOOL!');
       expect(letteringCase('Đồ ngốc!', 'vi')).toBe('Đồ ngốc!');
       expect(letteringCase('Đồ ngốc!', undefined)).toBe('Đồ ngốc!');
+    });
+  });
+
+  describe('growBalloonToFit', () => {
+    const long =
+      'Tôi đã nói với cậu rồi, chúng ta không thể quay lại nơi đó thêm một lần nào nữa đâu!';
+    const box = { x: 100, y: 100, w: 160, h: 90 };
+
+    it('grows around the centre until the text fits at the chosen size', () => {
+      const next = growBalloonToFit(long, style, 'oval', box, { w: 600, h: 400 }, measure)!;
+      expect(next.w).toBeGreaterThanOrEqual(box.w);
+      expect(next.h).toBeGreaterThanOrEqual(box.h);
+      expect(next.x + next.w / 2).toBeCloseTo(box.x + box.w / 2, 0);
+      expect(next.y + next.h / 2).toBeCloseTo(box.y + box.h / 2, 0);
+      expect(layoutText(long, style, 'oval', next.w, next.h, measure).overflow).toBe(false);
+    });
+
+    it('returns null when the text already fits', () => {
+      expect(growBalloonToFit('Hi!', style, 'oval', box, { w: 600, h: 400 }, measure)).toBeNull();
+    });
+
+    it('never exceeds the max size', () => {
+      const next = growBalloonToFit(
+        long.repeat(5),
+        style,
+        'box',
+        box,
+        { w: 300, h: 200 },
+        measure,
+      )!;
+      expect(next.w).toBeLessThanOrEqual(300);
+      expect(next.h).toBeLessThanOrEqual(200);
     });
   });
 });
