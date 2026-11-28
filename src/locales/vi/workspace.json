@@ -332,7 +332,11 @@
       "prevPage": "Trang trước",
       "nextPage": "Trang sau",
       "pageOf": "Trang {page}/{total}",
-      "justNow": "Vừa xong"
+      "justNow": "Vừa xong",
+      "follow": "Theo dõi",
+      "following": "Đang theo dõi",
+      "readLater": "Đọc sau",
+      "inReadLater": "Đã lưu đọc sau"
     },
     "layout": {
       "backToStudio": "Về Studio",
@@ -342,7 +346,56 @@
       "navNotifications": "Thông báo",
       "logout": "Đăng xuất",
       "login": "Đăng nhập",
-      "pendingInvites": "{count} lời mời vào Studio đang chờ"
+      "pendingInvites": "{count} lời mời vào Studio đang chờ",
+      "navLibrary": "Thư viện",
+      "navWallet": "Ví"
+    },
+    "unlock": {
+      "title": "Mở khóa chương",
+      "desc": "Mở khóa ấn bản {language} của chương này bằng Ví. Mở khóa có hiệu lực vĩnh viễn, chỉ cho ngôn ngữ này.",
+      "price": "Giá",
+      "balance": "Số dư Ví",
+      "confirm": "Mở khóa · {price}",
+      "topup": "Nạp thêm {amount}",
+      "shortfall": "Ví còn thiếu {amount} để mở khóa.",
+      "reload": "Tải lại giá mới",
+      "loginToUnlock": "Đăng nhập để mở khóa",
+      "loginHint": "Cần đăng nhập để dùng Ví và giữ quyền đọc trên mọi thiết bị."
+    },
+    "wallet": {
+      "title": "Ví của bạn",
+      "subtitle": "Ví dùng chung cho mọi bộ truyện. Tiền nạp chuyển vào tài khoản của nền tảng và được cộng sau khi thanh toán được xác nhận.",
+      "balance": "Số dư",
+      "topupTitle": "Nạp tiền qua VietQR",
+      "topupDesc": "Mỗi lần nạp từ {min} đến {max}.",
+      "amountLabel": "Số tiền (VNĐ)",
+      "createOrder": "Tạo mã QR",
+      "orderTitle": "Đơn nạp đang chờ",
+      "orderEmpty": "Chọn số tiền rồi tạo mã QR để chuyển khoản.",
+      "orderApproved": "Đã cộng {amount} vào Ví.",
+      "orderPending": "Đang chờ xác nhận thanh toán. Trang tự cập nhật khi tiền vào.",
+      "orderRejected": "Giao dịch không được duyệt.",
+      "qrAlt": "Mã VietQR chuyển khoản",
+      "amount": "Số tiền",
+      "bank": "Ngân hàng",
+      "accountNumber": "Số tài khoản",
+      "accountName": "Chủ tài khoản",
+      "transferContent": "Nội dung chuyển khoản",
+      "copy": "Sao chép {label}",
+      "historyTitle": "Lịch sử giao dịch",
+      "historyEmpty": "Chưa có giao dịch nào."
+    },
+    "library": {
+      "title": "Thư viện",
+      "tabFollowing": "Theo dõi",
+      "tabReadLater": "Đọc sau",
+      "tabFavorites": "Yêu thích",
+      "tabHistory": "Lịch sử đọc",
+      "remove": "Bỏ {title} khỏi danh sách",
+      "emptyTitle": "Chưa có truyện nào ở đây",
+      "emptyDesc": "Mở một bộ truyện và bấm Theo dõi hoặc Đọc sau để lưu vào thư viện.",
+      "browse": "Tìm truyện",
+      "historyCaption": "Chương {number} · trang {page}/{total}"
     }
   },
   "formatters": {

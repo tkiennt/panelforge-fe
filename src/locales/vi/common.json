@@ -353,7 +353,10 @@
       "noArtwork": "Trang {number} (Chưa có artwork)",
       "goToPageAria": "Tới trang {number}",
       "nextPageRtl": "← Trang kế (chuẩn Manga)",
-      "nextPageLtr": "Trang kế →"
+      "nextPageLtr": "Trang kế →",
+      "lockedTitle": "Hết phần đọc thử",
+      "lockedDesc": "Mở khóa ấn bản này để đọc tiếp. Mở khóa có hiệu lực vĩnh viễn cho đúng ngôn ngữ đang đọc.",
+      "unlockBtn": "Mở khóa · {price}"
     },
     "auditLog": {
       "recent": "Gần đây",

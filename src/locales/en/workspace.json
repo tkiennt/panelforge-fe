@@ -332,7 +332,11 @@
       "prevPage": "Previous page",
       "nextPage": "Next page",
       "pageOf": "Page {page} of {total}",
-      "justNow": "Just now"
+      "justNow": "Just now",
+      "follow": "Follow",
+      "following": "Following",
+      "readLater": "Read later",
+      "inReadLater": "Saved for later"
     },
     "layout": {
       "backToStudio": "Back to Studio",
@@ -342,7 +346,56 @@
       "navNotifications": "Notifications",
       "logout": "Log out",
       "login": "Log in",
-      "pendingInvites": "{count} pending Studio invitations"
+      "pendingInvites": "{count} pending Studio invitations",
+      "navLibrary": "Library",
+      "navWallet": "Wallet"
+    },
+    "unlock": {
+      "title": "Unlock chapter",
+      "desc": "Unlock the {language} edition of this chapter with your wallet. The unlock is permanent and covers this language only.",
+      "price": "Price",
+      "balance": "Wallet balance",
+      "confirm": "Unlock · {price}",
+      "topup": "Top up {amount}",
+      "shortfall": "Your wallet is {amount} short.",
+      "reload": "Reload the new price",
+      "loginToUnlock": "Log in to unlock",
+      "loginHint": "Log in to use your wallet and keep access on every device."
+    },
+    "wallet": {
+      "title": "Your wallet",
+      "subtitle": "One wallet for every series. Top-ups go to the platform bank account and are credited once the payment is confirmed.",
+      "balance": "Balance",
+      "topupTitle": "Top up with VietQR",
+      "topupDesc": "Each top-up is between {min} and {max}.",
+      "amountLabel": "Amount (VND)",
+      "createOrder": "Create QR code",
+      "orderTitle": "Pending top-up",
+      "orderEmpty": "Pick an amount and create a QR code to transfer.",
+      "orderApproved": "{amount} was added to your wallet.",
+      "orderPending": "Waiting for the payment to be confirmed. This page updates on its own.",
+      "orderRejected": "The transaction was not approved.",
+      "qrAlt": "VietQR transfer code",
+      "amount": "Amount",
+      "bank": "Bank",
+      "accountNumber": "Account number",
+      "accountName": "Account holder",
+      "transferContent": "Transfer note",
+      "copy": "Copy {label}",
+      "historyTitle": "Transaction history",
+      "historyEmpty": "No transactions yet."
+    },
+    "library": {
+      "title": "Library",
+      "tabFollowing": "Following",
+      "tabReadLater": "Read later",
+      "tabFavorites": "Favorites",
+      "tabHistory": "Reading history",
+      "remove": "Remove {title} from this list",
+      "emptyTitle": "Nothing here yet",
+      "emptyDesc": "Open a series and choose Follow or Read later to keep it here.",
+      "browse": "Find comics",
+      "historyCaption": "Chapter {number} · page {page}/{total}"
     }
   },
   "formatters": {

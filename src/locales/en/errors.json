@@ -383,6 +383,16 @@
       "saveResourcesFailed": "Could not update the quotas.",
       "reconcileFailed": "Could not reconcile storage. Try again later.",
       "deleteOrphansFailed": "Could not delete orphan files. Try again later."
+    },
+    "wallet": {
+      "loadFailed": "Could not load your wallet.",
+      "topupFailed": "Could not create the top-up order.",
+      "statusFailed": "Could not check the transaction status.",
+      "unlockFailed": "Could not unlock the chapter."
+    },
+    "readerLibrary": {
+      "loadFailed": "Could not load your library.",
+      "updateFailed": "Could not update your library."
     }
   }
 }

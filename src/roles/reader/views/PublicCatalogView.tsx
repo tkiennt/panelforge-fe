@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
   BookOpen,
@@ -14,6 +14,13 @@ import { CONTENT_LANGUAGES } from '@/services/payment.service';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
 import { EmptyState, Skeleton, Tabs } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
+import {
+  readerLibraryService,
+  type LibraryList,
+  type ReaderLibraryDto,
+} from '@/services/readerLibrary.service';
+import { useReaderContext } from '../layout/readerContext';
+import { UnlockEditionModal, type UnlockTarget } from '../components/UnlockEditionModal';
 import { SeriesCover } from '../components/SeriesCover';
 import { SeriesDetailModal } from '../components/SeriesDetailModal';
 import {
@@ -52,6 +59,8 @@ const readSavedLanguage = (): string => {
 /** Trang chủ khu độc giả (`/catalog`); header và tài khoản do `ReaderLayout` dựng. */
 export const PublicCatalogView: React.FC = () => {
   const { t, lang } = useTranslation();
+  const navigate = useNavigate();
+  const { isSignedIn, requestLogin } = useReaderContext();
   const numberFormat = useMemo(() => new Intl.NumberFormat(lang), [lang]);
   const relativeFormat = useMemo(
     () => new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }),
@@ -66,6 +75,17 @@ export const PublicCatalogView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as CatalogTab | null;
   const tab: CatalogTab = tabParam && CATALOG_TABS.includes(tabParam) ? tabParam : 'home';
+  const seriesParam = searchParams.get('series');
+  const setSeriesParam = useCallback(
+    (seriesId: string | null) =>
+      setSearchParams((prev) => {
+        const params = new URLSearchParams(prev);
+        if (seriesId) params.set('series', seriesId);
+        else params.delete('series');
+        return params;
+      }),
+    [setSearchParams],
+  );
   const setTab = useCallback(
     (next: CatalogTab) =>
       setSearchParams(
@@ -101,6 +121,10 @@ export const PublicCatalogView: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [readingChapterId, setReadingChapterId] = useState<string | null>(null);
+  const [unlockTarget, setUnlockTarget] = useState<UnlockTarget | null>(null);
+  const [readerReloadKey, setReaderReloadKey] = useState(0);
+  const [library, setLibrary] = useState<ReaderLibraryDto | null>(null);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
   const [contentLang, setContentLang] = useState<string>(readSavedLanguage);
 
   const loadHome = useCallback(async () => {
@@ -153,15 +177,48 @@ export const PublicCatalogView: React.FC = () => {
     };
   }, [tab, appliedSearch, genre, pageIndex]);
 
-  const openDetail = async (seriesId: string, language: string = contentLang) => {
-    setDetailLoading(true);
-    setDetailError(null);
+  // Chi tiết truyện đi theo URL (?series=) để chia sẻ link và để Thư viện mở thẳng một bộ.
+  const loadDetail = useCallback(
+    async (seriesId: string, language: string) => {
+      setDetailLoading(true);
+      setDetailError(null);
+      try {
+        setSelectedSeries(await catalogService.getPublicSeriesDetail(seriesId, language));
+      } catch (err: any) {
+        setDetailError(err?.message || t('workspace.reader.catalog.detailLoadError'));
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [t],
+  );
+
+  useEffect(() => {
+    if (seriesParam) void loadDetail(seriesParam, contentLang);
+    else setSelectedSeries(null);
+  }, [seriesParam, contentLang, loadDetail]);
+
+  const openDetail = (seriesId: string) => setSeriesParam(seriesId);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    let active = true;
+    readerLibraryService
+      .get()
+      .then((data) => active && setLibrary(data))
+      .catch((err: Error) => active && setLibraryError(err.message));
+    return () => {
+      active = false;
+    };
+  }, [isSignedIn]);
+
+  const toggleLibrary = async (list: LibraryList, seriesId: string, add: boolean) => {
+    setLibraryError(null);
     try {
-      setSelectedSeries(await catalogService.getPublicSeriesDetail(seriesId, language));
-    } catch (err: any) {
-      setDetailError(err?.message || t('workspace.reader.catalog.detailLoadError'));
-    } finally {
-      setDetailLoading(false);
+      await readerLibraryService.set(list, seriesId, add);
+      setLibrary(await readerLibraryService.get());
+    } catch (err) {
+      setLibraryError((err as Error).message);
     }
   };
 
@@ -172,7 +229,6 @@ export const PublicCatalogView: React.FC = () => {
     } catch {
       // Trình duyệt chặn lưu trữ: vẫn đổi ngôn ngữ cho phiên hiện tại.
     }
-    if (selectedSeries) openDetail(selectedSeries.id, code);
   };
 
   const submitSearch = (e: React.FormEvent) => {
@@ -672,7 +728,17 @@ export const PublicCatalogView: React.FC = () => {
         activeLanguage={contentLang}
         onSelectLanguage={selectLanguage}
         onReadChapter={setReadingChapterId}
-        onClose={() => setSelectedSeries(null)}
+        onClose={() => setSeriesParam(null)}
+        library={
+          isSignedIn && selectedSeries && library
+            ? {
+                following: library.following.some((f) => f.seriesId === selectedSeries.id),
+                readLater: library.readLater.includes(selectedSeries.id),
+                error: libraryError,
+                onToggle: (list, add) => void toggleLibrary(list, selectedSeries.id, add),
+              }
+            : undefined
+        }
       />
 
       {readingChapterId && (
@@ -681,8 +747,24 @@ export const PublicCatalogView: React.FC = () => {
           chapterId={readingChapterId}
           initialLanguage={selectedSeries?.language || contentLang}
           onClose={() => setReadingChapterId(null)}
+          trackReading
+          saveProgress={isSignedIn}
+          reloadKey={readerReloadKey}
+          onUnlock={setUnlockTarget}
         />
       )}
+
+      <UnlockEditionModal
+        target={unlockTarget}
+        isSignedIn={isSignedIn}
+        onClose={() => setUnlockTarget(null)}
+        onChanged={() => {
+          setReaderReloadKey((k) => k + 1);
+          if (seriesParam) void loadDetail(seriesParam, contentLang);
+        }}
+        onLogin={requestLogin}
+        onTopup={(shortfall) => navigate(`/catalog/wallet?amount=${shortfall}`)}
+      />
     </>
   );
 };

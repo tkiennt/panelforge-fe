@@ -383,6 +383,16 @@
       "saveResourcesFailed": "Không cập nhật được hạn mức.",
       "reconcileFailed": "Không đối soát được dung lượng. Thử lại sau.",
       "deleteOrphansFailed": "Không xoá được file mồ côi. Thử lại sau."
+    },
+    "wallet": {
+      "loadFailed": "Không tải được Ví.",
+      "topupFailed": "Không tạo được đơn nạp tiền.",
+      "statusFailed": "Không kiểm tra được trạng thái giao dịch.",
+      "unlockFailed": "Không mở khóa được chương."
+    },
+    "readerLibrary": {
+      "loadFailed": "Không tải được thư viện.",
+      "updateFailed": "Không cập nhật được thư viện."
     }
   }
 }

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { ArrowLeft, Bell, BookOpen, LogOut, UserRound } from 'lucide-react';
+import { ArrowLeft, Bell, BookOpen, Library, LogOut, UserRound, Wallet } from 'lucide-react';
 import { workspaceService } from '@/services/workspace.service';
 import { useTranslation } from '@/lib/i18n';
+import type { ReaderContextValue } from './readerContext';
 
 interface ReaderLayoutProps {
   /** Đã đăng nhập: tên hiển thị trên header. */
@@ -79,6 +80,14 @@ export const ReaderLayout: React.FC<ReaderLayoutProps> = ({
             </NavLink>
             {userName && (
               <>
+                <NavLink to='/catalog/library' className={navClass}>
+                  <Library className='w-4 h-4' aria-hidden='true' />
+                  <span className='max-sm:sr-only'>{t('workspace.reader.layout.navLibrary')}</span>
+                </NavLink>
+                <NavLink to='/catalog/wallet' className={navClass}>
+                  <Wallet className='w-4 h-4' aria-hidden='true' />
+                  <span className='max-sm:sr-only'>{t('workspace.reader.layout.navWallet')}</span>
+                </NavLink>
                 <NavLink to='/catalog/notifications' className={navClass}>
                   <Bell className='w-4 h-4' aria-hidden='true' />
                   <span className='max-sm:sr-only'>
@@ -127,7 +136,14 @@ export const ReaderLayout: React.FC<ReaderLayoutProps> = ({
         </div>
       </header>
 
-      <Outlet />
+      <Outlet
+        context={
+          {
+            isSignedIn: !!userName,
+            requestLogin: onLogin ?? (() => undefined),
+          } satisfies ReaderContextValue
+        }
+      />
     </div>
   );
 };

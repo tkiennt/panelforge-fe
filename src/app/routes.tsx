@@ -173,6 +173,12 @@ const NotificationCenterView = lazy(() =>
 const PublicCatalogView = lazy(() =>
   import('@/roles/reader/views/PublicCatalogView').then((m) => ({ default: m.PublicCatalogView })),
 );
+const ReaderWalletView = lazy(() =>
+  import('@/roles/reader/views/ReaderWalletView').then((m) => ({ default: m.ReaderWalletView })),
+);
+const ReaderLibraryView = lazy(() =>
+  import('@/roles/reader/views/ReaderLibraryView').then((m) => ({ default: m.ReaderLibraryView })),
+);
 const ReaderNotificationsView = lazy(() =>
   import('@/roles/reader/views/ReaderNotificationsView').then((m) => ({
     default: m.ReaderNotificationsView,
@@ -484,7 +490,11 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   ? currentUserInfo?.name || firebaseUser?.displayName || undefined
                   : undefined
               }
-              onLogin={() => navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`)}
+              onLogin={() =>
+                navigate(
+                  `/login?redirect=${encodeURIComponent(location.pathname + location.search)}`,
+                )
+              }
               onLogout={handleLogout}
               onBackToStudio={
                 isAuthenticated && isReader === false
@@ -508,6 +518,22 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     variant={isReader ? 'reader' : 'studio'}
                   />
                 </main>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='wallet'
+            element={
+              <PrivateRoute isAuthenticated={isAuthenticated}>
+                <ReaderWalletView />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='library'
+            element={
+              <PrivateRoute isAuthenticated={isAuthenticated}>
+                <ReaderLibraryView />
               </PrivateRoute>
             }
           />
