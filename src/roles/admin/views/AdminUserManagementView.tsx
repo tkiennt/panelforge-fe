@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Shield, RefreshCw } from 'lucide-react';
+import { Search, Shield, RefreshCw, UserPlus } from 'lucide-react';
 import { adminService, AdminUserItem } from '@/services/admin.service';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 import { AdminUserTable } from './components/AdminUserTable';
 import { AdminAssignRoleModal } from './components/AdminAssignRoleModal';
+import { AdminCreateUserModal } from './components/AdminCreateUserModal';
 import { StudioPackagePriceCard } from './components/StudioPackagePriceCard';
 import { AdminBadge, AdminButton, AdminPageHeader, AdminToast } from './components/AdminUi';
 import { adminFieldClass, adminFocusRing, useAdminToast } from './components/adminUiStyles';
@@ -36,6 +37,7 @@ export const AdminUserManagementView: React.FC<{ onOpenUser?: (userId: string) =
   const [filter2faOnly, setFilter2faOnly] = useState(false);
 
   const [assigningUser, setAssigningUser] = useState<AdminUserItem | null>(null);
+  const [creatingUser, setCreatingUser] = useState(false);
   const [selectedNewRoles, setSelectedNewRoles] = useState<string[]>(['Producer']);
   const { toast, show: showToast, clear: clearToast } = useAdminToast(4000);
 
@@ -130,13 +132,22 @@ export const AdminUserManagementView: React.FC<{ onOpenUser?: (userId: string) =
         title={t('admin.users.title')}
         description={t('admin.users.description')}
         actions={
-          <AdminButton
-            onClick={() => refetch()}
-            isLoading={isFetching}
-            icon={<RefreshCw className='w-4 h-4' />}
-          >
-            {t('admin.users.refresh')}
-          </AdminButton>
+          <>
+            <AdminButton
+              onClick={() => refetch()}
+              isLoading={isFetching}
+              icon={<RefreshCw className='w-4 h-4' />}
+            >
+              {t('admin.users.refresh')}
+            </AdminButton>
+            <AdminButton
+              variant='primary'
+              onClick={() => setCreatingUser(true)}
+              icon={<UserPlus className='w-4 h-4' />}
+            >
+              {t('admin.users.create')}
+            </AdminButton>
+          </>
         }
       />
 
@@ -222,6 +233,16 @@ export const AdminUserManagementView: React.FC<{ onOpenUser?: (userId: string) =
           onClose={() => setAssigningUser(null)}
           onSubmit={handleAssignRoleSubmit}
           isSubmitting={assignRoleMutation.isPending}
+        />
+      )}
+      {creatingUser && (
+        <AdminCreateUserModal
+          onClose={() => setCreatingUser(false)}
+          onCreated={(user) => {
+            queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+            setCreatingUser(false);
+            showToast(t('admin.users.toast.userCreated', { email: user.email }));
+          }}
         />
       )}
     </>

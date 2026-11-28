@@ -124,7 +124,8 @@
     "toast": {
       "producerGranted": "Đã cấp quyền tạo Studio.",
       "roleUpdated": "Đã cập nhật vai trò thành {role}.",
-      "updateFailed": "Không thể cập nhật vai trò người dùng."
+      "updateFailed": "Không thể cập nhật vai trò người dùng.",
+      "userCreated": "Đã tạo tài khoản {email}."
     },
     "table": {
       "loading": "Đang tải người dùng…",
@@ -158,7 +159,9 @@
       "producerDesc": "Có thể tạo Studio và quản lý dự án của mình.",
       "userLabel": "Người dùng",
       "userDesc": "Chỉ tham gia các Studio được mời.",
-      "projectRolesNote": "Vai trò trong từng dự án (Writer, Artist, Editor…) do Producer của Studio quản lý."
+      "projectRolesNote": "Vai trò trong từng dự án (Writer, Artist, Editor…) do Producer của Studio quản lý.",
+      "adminLabel": "Administrator",
+      "adminDesc": "Toàn quyền quản trị hệ thống. Không được là thành viên hay chủ của Studio nào (BR-07)."
     },
     "detailsModal": {
       "title": "Chi tiết tài khoản",
@@ -171,6 +174,21 @@
       "emailVerification": "Xác thực email",
       "createdAt": "Ngày tạo",
       "accountId": "Mã tài khoản"
+    },
+    "create": "Tạo tài khoản",
+    "createModal": {
+      "title": "Tạo tài khoản",
+      "description": "Tài khoản được kích hoạt và xác thực email ngay. Bạn tự gửi mật khẩu cho người nhận, họ nên đổi mật khẩu sau lần đăng nhập đầu.",
+      "email": "Email",
+      "fullName": "Họ và tên",
+      "password": "Mật khẩu tạm",
+      "passwordHint": "Ít nhất 6 ký tự.",
+      "submit": "Tạo tài khoản",
+      "errors": {
+        "email": "Email không hợp lệ.",
+        "fullName": "Nhập họ và tên.",
+        "password": "Mật khẩu phải có ít nhất {min} ký tự."
+      }
     }
   },
   "auditLog": {

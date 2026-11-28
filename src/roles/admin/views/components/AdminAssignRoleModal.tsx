@@ -34,6 +34,11 @@ export const AdminAssignRoleModal: React.FC<AdminAssignRoleModalProps> = ({
       label: t('admin.users.assignModal.userLabel'),
       desc: t('admin.users.assignModal.userDesc'),
     },
+    {
+      key: 'Admin',
+      label: t('admin.users.assignModal.adminLabel'),
+      desc: t('admin.users.assignModal.adminDesc'),
+    },
   ];
 
   const currentRoleLabel =
