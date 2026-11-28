@@ -724,24 +724,15 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
         <div className='bg-white border border-head-line rounded-2xl shadow-xs overflow-hidden'>
           <div className='overflow-x-auto'>
             <table className='w-full text-left border-collapse text-xs'>
-              <thead className='bg-head-wash text-kraft-ink text-xs font-semibold uppercase tracking-wide border-b border-head-line'>
+              <thead className='bg-head-wash text-kraft-ink text-xs font-semibold uppercase tracking-wide border-b border-head-line whitespace-nowrap'>
                 <tr>
-                  <th className='py-3.5 px-4 w-28'>{t('chapterSelectionView.colChapter')}</th>
-                  <th className='py-3.5 px-4 min-w-[200px]'>
-                    {t('chapterSelectionView.colTitle')}
-                  </th>
-                  <th className='py-3.5 px-4 min-w-[280px]'>
-                    {t('chapterSelectionView.colOutline')}
-                  </th>
-                  <th className='py-3.5 px-4 min-w-[200px]'>
-                    {t('chapterSelectionView.colStatus')}
-                  </th>
-                  <th className='py-3.5 px-4 w-32'>{t('chapterSelectionView.colScale')}</th>
-                  <th className='py-3.5 px-4 w-24'>{t('chapterSelectionView.colVersion')}</th>
-                  <th className='py-3.5 px-4 min-w-[140px]'>
-                    {t('chapterSelectionView.colDeadline')}
-                  </th>
-                  <th className='py-3.5 px-4 w-32 text-right'>
+                  <th className='py-3 px-3 pl-4'>{t('chapterSelectionView.colChapter')}</th>
+                  <th className='py-3 px-3'>{t('chapterSelectionView.colTitle')}</th>
+                  <th className='py-3 px-3 w-full'>{t('chapterSelectionView.colOutline')}</th>
+                  <th className='py-3 px-3'>{t('chapterSelectionView.colStatus')}</th>
+                  <th className='py-3 px-3'>{t('chapterSelectionView.colScale')}</th>
+                  <th className='py-3 px-3'>{t('chapterSelectionView.colDeadline')}</th>
+                  <th className='py-3 px-3 pr-4 text-right'>
                     {t('chapterSelectionView.colAction')}
                   </th>
                 </tr>
@@ -754,33 +745,44 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                     onClick={() => onSelectChapter(chapter)}
                     className='hover:bg-[#FFF8F2] transition-colors cursor-pointer group'
                   >
-                    <td className='py-3.5 px-4'>
-                      <span className='font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E5E0D8] text-stone-900 group-hover:border-[#F97316]/50'>
+                    <td className='py-3.5 px-3 pl-4 whitespace-nowrap'>
+                      <span className='inline-flex font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200 text-[#C2410C]'>
                         {t('chapterSelectionView.chapterBadge', {
                           number: chapter.chapterNumber,
                         })}
                       </span>
+                      <span
+                        title={t('chapterSelectionView.colVersion')}
+                        className='block mt-1 font-mono text-xs text-stone-500'
+                      >
+                        v{chapter.versionVector || 1}
+                      </span>
                     </td>
-                    <td className='py-3.5 px-4 font-bold font-serif text-stone-900 group-hover:text-[#C2410C]'>
-                      {formatChapterOption(chapter.chapterNumber, chapter.title)}
+                    <td className='py-3.5 px-3 min-w-[180px] max-w-[260px]'>
+                      <span
+                        title={formatChapterOption(chapter.chapterNumber, chapter.title)}
+                        className='line-clamp-2 font-semibold font-serif text-sm text-stone-900 group-hover:text-[#C2410C]'
+                      >
+                        {formatChapterOption(chapter.chapterNumber, chapter.title)}
+                      </span>
                     </td>
-                    <td className='py-3.5 px-4 text-[#57534E] max-w-sm truncate italic'>
+                    <td
+                      title={chapter.outline || undefined}
+                      className='py-3.5 px-3 max-w-0 truncate italic text-[#57534E]'
+                    >
                       {chapter.outline ? `“${chapter.outline}”` : '—'}
                     </td>
-                    <td className='py-3.5 px-4'>{getStatusBadge(chapter)}</td>
-                    <td className='py-3.5 px-4 text-stone-500 font-mono text-xs'>
+                    <td className='py-3.5 px-3 whitespace-nowrap'>{getStatusBadge(chapter)}</td>
+                    <td className='py-3.5 px-3 whitespace-nowrap text-stone-600 tabular-nums'>
                       {t('chapterSelectionView.scaleFormat', {
                         scenes: chapter.scenesCount ?? 0,
                         pages: chapter.pagesCount ?? 0,
                       })}
                     </td>
-                    <td className='py-3.5 px-4 font-mono text-stone-500'>
-                      v{chapter.versionVector || 1}
-                    </td>
-                    <td className='py-3.5 px-4 text-stone-500 font-mono text-xs'>
+                    <td className='py-3.5 px-3 whitespace-nowrap text-stone-500 tabular-nums'>
                       {chapter.targetReleaseDate || '—'}
                     </td>
-                    <td className='py-3.5 px-4 text-right'>
+                    <td className='py-3.5 px-3 pr-4 text-right whitespace-nowrap'>
                       <div className='inline-flex items-center justify-end gap-2'>
                         {onReadChapter && (
                           <button
