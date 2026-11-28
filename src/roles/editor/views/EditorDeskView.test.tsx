@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { EditorDeskView } from './EditorDeskView';
+import { EditorDeskView, buildReviewQueueByStage } from './EditorDeskView';
 import { assignmentService } from '@/services/assignment.service';
 import { bibleService } from '@/services/bible.service';
 import { chapterService } from '@/services/chapter.service';
@@ -560,5 +560,38 @@ describe('EditorDeskView Component', () => {
     expect(screen.getByText('Trang 1')).toBeInTheDocument();
     expect(screen.getByText('Trang 2')).toBeInTheDocument();
     expect(screen.getByText('Trang 3')).toBeInTheDocument();
+  });
+});
+
+describe('buildReviewQueueByStage', () => {
+  it('đếm đúng khi nhiều item cùng stage và sắp xếp theo stageOrder', () => {
+    const items = [
+      { stageSlug: 'color', stageName: 'Tô màu', stageOrder: 3 },
+      { stageSlug: 'storyboard', stageName: 'Phân cảnh', stageOrder: 1 },
+      { stageSlug: 'lineart', stageName: 'Nét vẽ', stageOrder: 2 },
+      { stageSlug: 'storyboard', stageName: 'Phân cảnh', stageOrder: 1 },
+      { stageSlug: 'color', stageName: 'Tô màu', stageOrder: 3 },
+      { stageSlug: 'storyboard', stageName: 'Phân cảnh', stageOrder: 1 },
+    ];
+
+    const result = buildReviewQueueByStage(items);
+
+    expect(result).toEqual([
+      { key: 'storyboard', label: 'Phân cảnh', value: 3 },
+      { key: 'lineart', label: 'Nét vẽ', value: 1 },
+      { key: 'color', label: 'Tô màu', value: 2 },
+    ]);
+  });
+
+  it('bỏ qua item không có stageSlug và xử lý nhãn mặc định', () => {
+    const items = [
+      { stageSlug: null, stageName: 'Không có slug' },
+      { stageSlug: '', stageName: 'Slug rỗng' },
+      { stageSlug: 'layout', stageName: null, stageOrder: 1 },
+    ];
+
+    const result = buildReviewQueueByStage(items);
+
+    expect(result).toEqual([{ key: 'layout', label: 'layout', value: 1 }]);
   });
 });

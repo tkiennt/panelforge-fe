@@ -49,7 +49,6 @@ export const API_ENDPOINTS = {
   },
   ADMIN: {
     USERS: '/Admin/users',
-    STATS: '/Admin/stats',
     SYSTEM_CONFIG: '/Admin/config',
   },
 } as const;

@@ -244,6 +244,7 @@
     "viewsByChapterOf": "Lượt đọc theo chương · {title}",
     "revenueBySeries": "Doanh thu theo bộ truyện",
     "revenueByChapter": "Doanh thu theo chương",
+    "rpmByChapter": "Doanh thu / 1.000 lượt đọc (RPM)",
     "viewsByLanguage": "Lượt đọc theo ấn bản ngôn ngữ",
     "other": "Khác",
     "topNote": "{count} bộ truyện đứng đầu, phần còn lại gộp vào \"Khác\". Số liệu đầy đủ ở bảng bên dưới.",

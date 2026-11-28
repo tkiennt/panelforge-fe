@@ -10,11 +10,11 @@ export interface MangaProject {
   chapter: number;
   format: string;
   status: string;
-  progressPercent: number;
-  completedPages: number;
-  totalPages: number;
-  dueDate: string;
-  daysLeft: number;
+  progressPercent?: number;
+  completedPages?: number;
+  totalPages?: number;
+  dueDate?: string;
+  daysLeft?: number;
   genres: string[];
   coverStyle: 'halftone-cyber' | 'drifter' | 'valkyrie' | 'chrono';
   coverText: string;
