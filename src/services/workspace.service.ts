@@ -53,6 +53,10 @@ export interface WorkspaceUsageDto {
   activeSessions?: UsageMeterDto | null;
   activeMemberCount?: number | null;
   maxConcurrentSessionsPerUser?: number | null;
+  /** OPS-24: lượt gọi AI trong tháng; null = chưa có cấu hình AI. */
+  aiRequests?: UsageMeterDto | null;
+  /** Lượt gọi AI tối đa mỗi phút, 0 = không giới hạn. */
+  requestsPerMinuteLimit?: number | null;
 }
 
 export interface WorkspaceSessionDto {

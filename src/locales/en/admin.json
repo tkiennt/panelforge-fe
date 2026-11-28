@@ -528,7 +528,8 @@
     "type": {
       "Storage": "Storage",
       "AiTokens": "AI tokens / month",
-      "AiImages": "AI images / month"
+      "AiImages": "AI images / month",
+      "AiRequests": "AI requests / month"
     },
     "requestStatus": {
       "Pending": "Pending",

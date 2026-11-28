@@ -528,7 +528,8 @@
     "type": {
       "Storage": "Storage",
       "AiTokens": "AI Token / tháng",
-      "AiImages": "Ảnh AI / tháng"
+      "AiImages": "Ảnh AI / tháng",
+      "AiRequests": "Lượt gọi AI / tháng"
     },
     "requestStatus": {
       "Pending": "Chờ duyệt",

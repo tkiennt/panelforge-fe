@@ -505,7 +505,14 @@
     "imageUnlimitedText": "Unlimited image generation",
     "unlimitedImages": "Unlimited images",
     "imageActive": "● Active",
-    "imageNotEnabled": "AI image generation pipeline is not enabled (used: 0)."
+    "imageNotEnabled": "AI image generation pipeline is not enabled (used: 0).",
+    "aiRequestHeading": "AI Request Quota",
+    "requestQuotaCount": "{count} requests",
+    "unlimitedRequests": "Unlimited requests",
+    "perMinuteLimit": "Up to {count} requests/minute",
+    "perMinuteUnlimited": "No per-minute limit",
+    "aiRequestShort": "AI requests:",
+    "monthlyRequests": "Monthly requests"
   },
   "notifications": {
     "assignmentReady": "Your turn"
@@ -953,14 +960,16 @@
     "requestedLabel": {
       "Storage": "Requested amount (GB)",
       "AiTokens": "Requested AI tokens per month",
-      "AiImages": "Requested AI images per month"
+      "AiImages": "Requested AI images per month",
+      "AiRequests": "Requested AI requests per month"
     },
     "reasonLabel": "Reason",
     "reasonPlaceholder": "For example: two new series, about 300 original art pages each",
     "types": {
       "Storage": "Storage",
       "AiTokens": "AI tokens / month",
-      "AiImages": "AI images / month"
+      "AiImages": "AI images / month",
+      "AiRequests": "AI requests / month"
     },
     "unlimited": "unlimited",
     "unlimitedNote": "This quota is unlimited, no request needed.",

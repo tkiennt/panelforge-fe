@@ -2,7 +2,7 @@
 import axiosClient from '../api/axiosClient';
 import { getApiErrorMessage } from '@/lib/api-error';
 
-export type QuotaResourceType = 'Storage' | 'AiTokens' | 'AiImages';
+export type QuotaResourceType = 'Storage' | 'AiTokens' | 'AiImages' | 'AiRequests';
 export type QuotaIncreaseRequestStatus = 'Pending' | 'Approved' | 'Rejected';
 
 export interface QuotaPolicyDto {
