@@ -48,6 +48,7 @@ import { PreviewLinksModal } from '../modals/PreviewLinksModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { ReasonForm } from '@/shared/components/ReasonForm';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
+import { ProductionMetricsList } from '../components/chapter-overview/ProductionMetricsList';
 import { StageProgressBars } from '../components/chapter-overview/StageProgressBars';
 import {
   Alert,
@@ -796,15 +797,6 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       : 0;
 
   const isLoadingMetrics = loadingReadiness && !serverReadiness;
-  const totalTasks = readiness?.production.totalTasks ?? 0;
-  const approvedTasks = readiness?.production.approvedTasks ?? 0;
-  const taskPct = totalTasks > 0 ? (readiness?.production.taskProgressPercent ?? 0) : 0;
-  const totalPages = readiness?.production.totalPages ?? 0;
-  const completedPages = readiness?.production.completedPages ?? 0;
-  const pagePct = totalPages > 0 ? (readiness?.production.pageProgressPercent ?? 0) : 0;
-  const totalPanels = readiness?.production.totalPanels ?? 0;
-  const approvedPanels = readiness?.production.approvedPanels ?? 0;
-  const panelPct = totalPanels > 0 ? (readiness?.production.panelProgressPercent ?? 0) : 0;
 
   // Reusable Production Progress Section (placed high when InProduction, lower when PreProduction)
   const productionProgressSection = (
@@ -883,130 +875,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         ) : (
           <div className='space-y-4'>
             {/* 3 Strictly Separated Progress Metrics */}
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch'>
-              <div
-                data-testid='metric-task-progress'
-                className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between gap-2'
-              >
-                <div className='flex items-center justify-between gap-2 text-xs'>
-                  <span className='font-semibold text-stone-700'>
-                    {t('producer.chapterManagement.overview.approvedTasks')}
-                  </span>
-                  {totalTasks > 0 ? (
-                    <span className='font-mono font-bold text-stone-900 tabular-nums'>
-                      {approvedTasks}/{totalTasks} ({taskPct}%)
-                    </span>
-                  ) : (
-                    <span className='font-medium text-stone-500'>
-                      {t('producer.chapterManagement.overview.emptyTasks')}
-                    </span>
-                  )}
-                </div>
-                <ProgressBar
-                  value={totalTasks > 0 ? approvedTasks : 0}
-                  max={totalTasks}
-                  tone={totalTasks > 0 ? 'brand' : 'neutral'}
-                  label={t('producer.chapterManagement.overview.approvedTasks')}
-                />
-                {totalTasks > 0 ? (
-                  <div className='flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-stone-500'>
-                    <span>
-                      {t('producer.chapterManagement.overview.pendingReviewCount', {
-                        count: readiness?.production.submittedTasks ?? 0,
-                      })}
-                    </span>
-                    <span>·</span>
-                    <span>
-                      {t('producer.chapterManagement.overview.inProgressCount', {
-                        count: readiness?.production.inProgressTasks ?? 0,
-                      })}
-                    </span>
-                    {(readiness?.production.reworkTasks ?? 0) > 0 && (
-                      <>
-                        <span>·</span>
-                        <span className='text-rose-700 font-semibold'>
-                          {t('producer.chapterManagement.overview.reworkCount', {
-                            count: readiness?.production.reworkTasks ?? 0,
-                          })}
-                        </span>
-                      </>
-                    )}
-                    {(readiness?.production.overdueTasks ?? 0) > 0 && (
-                      <>
-                        <span>·</span>
-                        <span className='text-rose-700 font-semibold'>
-                          {t('producer.chapterManagement.overview.overdueCount', {
-                            count: readiness?.production.overdueTasks ?? 0,
-                          })}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className='text-xs text-stone-500'>
-                    {t('producer.chapterManagement.overview.emptyTasksHint')}
-                  </div>
-                )}
-              </div>
-
-              <div
-                data-testid='metric-page-progress'
-                className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between gap-2'
-              >
-                <div className='flex items-center justify-between gap-2 text-xs'>
-                  <span className='font-semibold text-stone-700'>
-                    {t('producer.chapterManagement.overview.completedPages')}
-                  </span>
-                  {totalPages > 0 ? (
-                    <span className='font-mono font-bold text-stone-900 tabular-nums'>
-                      {completedPages}/{totalPages} ({pagePct}%)
-                    </span>
-                  ) : (
-                    <span className='font-medium text-stone-500'>
-                      {t('producer.chapterManagement.overview.emptyPages')}
-                    </span>
-                  )}
-                </div>
-                <ProgressBar
-                  value={totalPages > 0 ? completedPages : 0}
-                  max={totalPages}
-                  tone={totalPages > 0 ? 'success' : 'neutral'}
-                  label={t('producer.chapterManagement.overview.completedPages')}
-                />
-                <div className='text-xs text-stone-500'>
-                  {t('producer.chapterManagement.overview.completedPagesHint')}
-                </div>
-              </div>
-
-              <div
-                data-testid='metric-panel-progress'
-                className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between gap-2'
-              >
-                <div className='flex items-center justify-between gap-2 text-xs'>
-                  <span className='font-semibold text-stone-700'>
-                    {t('producer.chapterManagement.overview.completedPanels')}
-                  </span>
-                  {totalPanels > 0 ? (
-                    <span className='font-mono font-bold text-stone-900 tabular-nums'>
-                      {approvedPanels}/{totalPanels} ({panelPct}%)
-                    </span>
-                  ) : (
-                    <span className='font-medium text-stone-500'>
-                      {t('producer.chapterManagement.overview.emptyPanels')}
-                    </span>
-                  )}
-                </div>
-                <ProgressBar
-                  value={totalPanels > 0 ? approvedPanels : 0}
-                  max={totalPanels}
-                  tone={totalPanels > 0 ? 'info' : 'neutral'}
-                  label={t('producer.chapterManagement.overview.completedPanels')}
-                />
-                <div className='text-xs text-stone-500'>
-                  {t('producer.chapterManagement.overview.completedPanelsHint')}
-                </div>
-              </div>
-            </div>
+            <ProductionMetricsList production={readiness?.production ?? null} />
 
             {/* Per-stage breakdown */}
             {(readiness?.production.stages?.length ?? 0) > 0 && (
