@@ -15,6 +15,7 @@ import { formatContentLanguageName } from '@/shared/lib/multilingual';
 import { Card, CardBody, CardHeader } from '@/shared/ui';
 import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
 import { hasAnyValue } from '@/shared/ui/charts/chartData';
+import { calculateRpm } from '../lib/rpm';
 
 const ChartCard: React.FC<{
   title: string;
@@ -143,6 +144,11 @@ export const PublisherSeriesInsightsView: React.FC = () => {
                 label: tick(c.chapterNumber),
                 value: c.stats.revenueVnd,
               }));
+              const rpm = chapters.map((c) => ({
+                key: c.chapterId,
+                label: tick(c.chapterNumber),
+                value: calculateRpm(c.stats.revenueVnd, c.stats.views),
+              }));
               const byLanguage = data.byLanguage.map((l) => ({
                 key: l.language,
                 label: formatContentLanguageName(l.language, uiLang),
@@ -151,8 +157,9 @@ export const PublisherSeriesInsightsView: React.FC = () => {
               const aria = (title: string) => t('charts.ariaLabel', { title });
               const showViews = hasAnyValue(views);
               const showRevenue = hasAnyValue(revenue);
+              const showRpm = hasAnyValue(rpm);
               const showLanguages = !language && byLanguage.length > 1 && hasAnyValue(byLanguage);
-              if (!showViews && !showRevenue && !showLanguages) return null;
+              if (!showViews && !showRevenue && !showRpm && !showLanguages) return null;
               return (
                 <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
                   {showViews && (
@@ -171,6 +178,16 @@ export const PublisherSeriesInsightsView: React.FC = () => {
                       valueLabel={t('insights.revenue')}
                       formatValue={num}
                       ariaLabel={aria(t('charts.revenueByChapter'))}
+                    />
+                  )}
+                  {showRpm && (
+                    <ChartCard
+                      title={t('charts.rpmByChapter')}
+                      data={rpm}
+                      variant='sequence'
+                      valueLabel={t('charts.rpmByChapter')}
+                      formatValue={num}
+                      ariaLabel={aria(t('charts.rpmByChapter'))}
                     />
                   )}
                   {showLanguages && (
