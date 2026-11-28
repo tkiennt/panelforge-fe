@@ -908,27 +908,41 @@
     },
     "templates": {
       "title": "Email templates",
-      "description": "Edit the subject and body of each system email. Every save is written to the system log.",
+      "description": "Edit the wording of each system email. Layout, colors and the OTP code box are built by the system; you only fill in text.",
       "loading": "Loading templates…",
       "retry": "Retry",
-      "type": "Email type",
+      "typesLabel": "Email type",
       "subject": "Subject",
-      "body": "Body (HTML)",
-      "placeholders": "Available variables (click to insert into the body):",
-      "required": "required",
-      "preview": "Preview with sample data",
+      "greeting": "Greeting",
+      "intro": "Opening paragraph",
+      "note": "Closing note",
+      "signature": "Signature",
+      "optional": "Can be left empty.",
+      "codeBox": "The OTP code appears here",
+      "codeBoxHint": "The system inserts the code and always keeps this part.",
+      "insertLabel": "Insert into the field you are editing:",
+      "preview": "Preview",
+      "previewHint": "Exactly as the email will be sent, with sample data.",
       "previewTitle": "Email preview",
-      "useDefault": "Use default template",
+      "previewLoading": "Building preview…",
+      "useDefault": "Reset to default",
+      "sendTest": "Send test to me",
+      "testSent": "Sent a test email to {email}.",
       "save": "Save template",
       "saved": "Email template saved.",
       "customized": "Customized",
-      "default": "Default template",
+      "default": "Default",
       "changed": "Last saved {date} by {name}",
       "errors": {
-        "subject": "Enter a one-line subject.",
-        "body": "Enter the email body.",
-        "missing": "The body must contain {placeholders}.",
-        "unknown": "Unsupported variables: {placeholders}."
+        "required": "This field is required.",
+        "subject": "Keep the subject on one line.",
+        "unknown": "This email has no {placeholders} information."
+      },
+      "fields": {
+        "name": "Recipient name",
+        "validFor": "Code validity",
+        "studio": "Studio name",
+        "role": "Role"
       },
       "keys": {
         "EmailVerification": "Sign-up email verification",
@@ -937,12 +951,12 @@
         "StudioInviteNewAccount": "Studio invite (new account)",
         "StudioInviteExistingAccount": "Added to Studio (existing account)"
       },
-      "sample": {
-        "name": "Alex Nguyen",
-        "code": "482913",
-        "validFor": "15 minutes",
-        "studio": "Orange Ink Studio",
-        "role": "Artist"
+      "when": {
+        "EmailVerification": "Sent when someone signs up.",
+        "PasswordReset": "Sent when someone clicks Forgot password.",
+        "ChangePasswordOtp": "Sent when someone changes their password in Settings.",
+        "StudioInviteNewAccount": "Sent when a Producer invites an email without an account.",
+        "StudioInviteExistingAccount": "Sent when a Producer adds an existing user to a Studio."
       }
     }
   }

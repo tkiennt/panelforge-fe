@@ -303,15 +303,25 @@ export interface AdminEmailSettingsDto {
   changedByName: string | null;
 }
 
-/** Mẫu một loại email hệ thống; biến viết dạng `{{ten}}`. `isCustomized = false`: đang dùng mẫu mặc định. */
+/** Phần chữ Admin sửa được của một email: chữ thường, xuống dòng bằng Enter, chèn biến dạng `{{name}}`. */
+export interface EmailTemplateContent {
+  subject: string;
+  greeting: string;
+  intro: string;
+  note: string;
+  signature: string;
+}
+
+/**
+ * Một loại email hệ thống. Bố cục và ô mã OTP (`hasCode`) do hệ thống dựng; Admin chỉ sửa chữ.
+ * `isCustomized = false`: đang dùng nội dung mặc định.
+ */
 export interface AdminEmailTemplateDto {
   key: string;
-  subject: string;
-  bodyHtml: string;
-  defaultSubject: string;
-  defaultBodyHtml: string;
+  content: EmailTemplateContent;
+  defaultContent: EmailTemplateContent;
   placeholders: string[];
-  requiredPlaceholders: string[];
+  hasCode: boolean;
   isCustomized: boolean;
   changedAt: string | null;
   changedByName: string | null;
@@ -805,21 +815,55 @@ export const adminService = {
     }
   },
 
-  /** PUT /api/admin/email-templates/{key} — lưu mẫu (append-only, có audit). */
+  /** PUT /api/admin/email-templates/{key} — lưu nội dung (append-only, có audit). */
   updateEmailTemplate: async (
     key: string,
-    request: { subject: string; bodyHtml: string },
+    content: EmailTemplateContent,
   ): Promise<AdminEmailTemplateDto> => {
     try {
       const { data } = await axiosClient.put(
         `/admin/email-templates/${encodeURIComponent(key)}`,
-        request,
+        content,
       );
       return data;
     } catch (error: any) {
       throw new Error(
         extractError(error, translate('errors.services.admin.emailTemplateSaveFailed')),
       );
+    }
+  },
+
+  /** POST /api/admin/email-templates/{key}/preview — email dựng từ nội dung đang soạn với dữ liệu mẫu (không lưu). */
+  previewEmailTemplate: async (
+    key: string,
+    content: EmailTemplateContent,
+  ): Promise<{ subject: string; bodyHtml: string }> => {
+    try {
+      const { data } = await axiosClient.post(
+        `/admin/email-templates/${encodeURIComponent(key)}/preview`,
+        content,
+      );
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.emailTemplatePreviewFailed')),
+      );
+    }
+  },
+
+  /** POST /api/admin/email-templates/{key}/test — gửi nội dung đang soạn tới chính Admin; 503 khi SMTP lỗi. */
+  sendTestEmailTemplate: async (
+    key: string,
+    content: EmailTemplateContent,
+  ): Promise<{ sentTo: string }> => {
+    try {
+      const { data } = await axiosClient.post(
+        `/admin/email-templates/${encodeURIComponent(key)}/test`,
+        content,
+      );
+      return data;
+    } catch (error: any) {
+      throw new Error(extractError(error, translate('errors.services.admin.emailTestFailed')));
     }
   },
 
