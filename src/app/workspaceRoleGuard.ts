@@ -56,6 +56,12 @@ export function resolveCurrentWorkspaceRole(
   return 'PRODUCER';
 }
 
+export function isAdminRole(role?: SystemRole | WorkspaceRole | string | null): boolean {
+  if (!role) return false;
+  const norm = String(role).toUpperCase();
+  return norm === 'ADMIN' || norm === 'ADMINISTRATOR';
+}
+
 export function isRoleAllowed(
   effectiveRole: string,
   allowedRoles: (WorkspaceRole | SystemRole | string)[],
@@ -65,22 +71,14 @@ export function isRoleAllowed(
   const normEffective = effectiveRole.toUpperCase();
   const normalizedAllowed = allowedRoles.map((r) => String(r).toUpperCase());
 
-  // 1. Support ADMIN and ADMINISTRATOR equivalence
-  const effectiveMatchesAdmin = normEffective === 'ADMIN' || normEffective === 'ADMINISTRATOR';
+  // 1. Support ADMIN and ADMINISTRATOR equivalence — allowed only when explicitly listed (BR-07)
+  const effectiveMatchesAdmin = isAdminRole(normEffective);
+  const currentMatchesAdmin = isAdminRole(currentRole);
   const allowedIncludesAdmin =
     normalizedAllowed.includes('ADMIN') || normalizedAllowed.includes('ADMINISTRATOR');
 
-  if (effectiveMatchesAdmin && allowedIncludesAdmin) {
-    return true;
-  }
-
-  // System administrator has access to all workspace features
-  if (effectiveMatchesAdmin) {
-    return true;
-  }
-  if (currentRole) {
-    const normCur = String(currentRole).toUpperCase();
-    if (normCur === 'ADMIN' || normCur === 'ADMINISTRATOR') return true;
+  if (effectiveMatchesAdmin || currentMatchesAdmin) {
+    return allowedIncludesAdmin;
   }
 
   // 2. Check effective role

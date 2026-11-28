@@ -1,8 +1,8 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { Alert } from '@/shared/ui';
 import { WorkspaceRole, SystemRole } from '@/types';
-import { resolveCurrentWorkspaceRole, isRoleAllowed } from './workspaceRoleGuard';
+import { resolveCurrentWorkspaceRole, isRoleAllowed, isAdminRole } from './workspaceRoleGuard';
 import { useTranslation } from '@/lib/i18n';
 
 export interface RequireWorkspaceRoleProps {
@@ -26,6 +26,9 @@ export const RequireWorkspaceRole: React.FC<RequireWorkspaceRoleProps> = ({
   const allowed = isRoleAllowed(effectiveRole, allowedRoles, activeRoles, currentRole);
 
   if (!allowed) {
+    if (isAdminRole(effectiveRole) || isAdminRole(currentRole)) {
+      return <Navigate to='/admin' replace />;
+    }
     return (
       <div className='p-6 max-w-2xl mx-auto py-12' data-testid='workspace-role-forbidden'>
         <Alert tone='danger' title={t('navigation.guard.forbiddenTitle')} className='shadow-xs'>

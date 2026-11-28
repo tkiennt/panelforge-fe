@@ -75,14 +75,18 @@ describe('RequireWorkspaceRole', () => {
       expect(isRoleAllowed('ARTIST', ['PUBLISHER'], ['ARTIST', 'LETTERER'])).toBe(false);
     });
 
-    it('cho phép ADMINISTRATOR truy cập toàn quyền', () => {
-      expect(isRoleAllowed('ADMINISTRATOR', ['ARTIST', 'WRITER'])).toBe(true);
-      expect(isRoleAllowed('USER', ['ARTIST'], [], 'ADMINISTRATOR')).toBe(true);
+    it('từ chối ADMIN và ADMINISTRATOR trên các màn sản xuất không liệt kê ADMIN (BR-07)', () => {
+      expect(isRoleAllowed('ADMINISTRATOR', ['ARTIST', 'WRITER'])).toBe(false);
+      expect(isRoleAllowed('ADMIN', ['PRODUCER'])).toBe(false);
+      expect(isRoleAllowed('USER', ['ARTIST'], [], 'ADMINISTRATOR')).toBe(false);
+      expect(isRoleAllowed('PRODUCER', ['WRITER'], [], 'ADMINISTRATOR')).toBe(false);
+      expect(isRoleAllowed('USER', ['ADMINISTRATOR'], [], 'ADMINISTRATOR')).toBe(true);
     });
 
     it('cho phép PRODUCER truy cập các màn sản xuất', () => {
       expect(isRoleAllowed('PRODUCER', ['ARTIST'])).toBe(true);
       expect(isRoleAllowed('PRODUCER', ['WRITER', 'EDITOR'])).toBe(true);
+      expect(isRoleAllowed('PRODUCER', ['PUBLISHER'])).toBe(false);
     });
   });
 
@@ -96,6 +100,7 @@ describe('RequireWorkspaceRole', () => {
       return render(
         <MemoryRouter initialEntries={['/protected']}>
           <Routes>
+            <Route path='/admin' element={<div data-testid='admin-home'>Admin Dashboard</div>} />
             <Route
               path='/protected'
               element={
@@ -116,6 +121,25 @@ describe('RequireWorkspaceRole', () => {
 
     it('hiển thị nội dung khi vai trò nằm trong allowedRoles', () => {
       renderWithGuard(['WRITER', 'PRODUCER'], 'WRITER');
+      expect(screen.getByTestId('protected-content')).toBeInTheDocument();
+      expect(screen.queryByTestId('workspace-role-forbidden')).not.toBeInTheDocument();
+    });
+
+    it('chuyển hướng Admin về /admin khi bị từ chối ở route sản xuất (BR-07)', () => {
+      renderWithGuard(['WRITER', 'ARTIST', 'PRODUCER'], null, 'ADMINISTRATOR');
+      expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('workspace-role-forbidden')).not.toBeInTheDocument();
+      expect(screen.getByTestId('admin-home')).toBeInTheDocument();
+    });
+
+    it('vẫn cho phép Admin mở route dành riêng cho Admin', () => {
+      renderWithGuard(['ADMINISTRATOR'], null, 'ADMINISTRATOR');
+      expect(screen.getByTestId('protected-content')).toBeInTheDocument();
+      expect(screen.queryByTestId('admin-home')).not.toBeInTheDocument();
+    });
+
+    it('giữ nguyên hành vi cho phép Producer mở route sản xuất', () => {
+      renderWithGuard(['WRITER'], 'PRODUCER');
       expect(screen.getByTestId('protected-content')).toBeInTheDocument();
       expect(screen.queryByTestId('workspace-role-forbidden')).not.toBeInTheDocument();
     });
