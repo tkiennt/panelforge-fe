@@ -326,6 +326,7 @@ interface BibleEntityDetailModalProps {
   entity: BibleEntity;
   rawEntry?: BibleEntryDto;
   latestSavedRevision?: BibleEntryRevisionDto | null;
+  initialRevisionId?: string;
   isProducer: boolean;
   isArtist?: boolean;
   isWriter?: boolean;
@@ -378,6 +379,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   entity,
   rawEntry,
   latestSavedRevision,
+  initialRevisionId,
   isProducer,
   isArtist = false,
   isWriter = false,
@@ -522,6 +524,17 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       .then((revs) => {
         if (active && revs && revs.length > 0) {
           setAllRevisions(revs);
+          const initialRevision = initialRevisionId
+            ? revs.find((revision) => revision.id === initialRevisionId)
+            : null;
+          if (initialRevision) {
+            setSelectedVersionId(initialRevision.id);
+            setSelectedVariantKey(
+              `variant-${getRevisionVariantLabel(initialRevision)
+                .toLocaleLowerCase()
+                .replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+            );
+          }
         }
       })
       .catch((err) => {
@@ -535,6 +548,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     entity.id,
     rawEntry?.effectiveRevision?.id,
     rawEntry?.effectiveRevision?.versionNumber,
+    initialRevisionId,
   ]);
 
   // Sidebar: chương nào trong kịch bản dùng mục này (cùng quy tắc Gate 1, BR-21)
@@ -1370,13 +1384,18 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const modalContent = (
     <section
       ref={modalContainerRef}
-      className='space-y-4 rounded-2xl bg-[#F4F1EA] p-4 animate-in fade-in duration-150'
+      className='space-y-3 rounded-2xl bg-[#F4F1EA] p-3 animate-in fade-in duration-150'
       aria-labelledby='bible-entity-title'
       data-testid='bible-entity-workbench'
     >
       {/* ================= HEADER: thanh công cụ gọn (Level 2 toolbar như các màn làm việc khác) ================= */}
-      <header className='sticky top-0 z-20 bg-white/90 backdrop-blur-md border border-stone-200 rounded-xl shadow-xs'>
-        <div className='flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3'>
+      <header
+        className={`z-20 border border-stone-200 bg-white shadow-xs ${
+          variants.length > 0 ? 'rounded-t-xl' : 'rounded-xl'
+        }`}
+        data-testid='bible-control-deck'
+      >
+        <div className='flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5'>
           <button
             type='button'
             onClick={onClose}
@@ -1387,7 +1406,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             <ArrowLeft className='w-4 h-4' />
           </button>
           {!isArtistUser && (
-            <div className='w-11 h-11 shrink-0 rounded-lg overflow-hidden border border-stone-200 bg-stone-100 flex items-center justify-center'>
+            <div className='w-9 h-9 shrink-0 rounded-lg overflow-hidden border border-stone-200 bg-stone-100 flex items-center justify-center'>
               {entity.imageUrl ? (
                 <AuthenticatedImage
                   src={entity.imageUrl}
@@ -1442,7 +1461,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               </div>
               <h2
                 id='bible-entity-title'
-                className='text-xl font-bold font-serif text-stone-900 tracking-tight truncate'
+                className='text-lg font-bold font-serif text-stone-900 tracking-tight truncate'
               >
                 {entity.name}
               </h2>
@@ -1579,7 +1598,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           </div>
         </div>
         <div
-          className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 px-4 py-2 border-t border-stone-200/80 bg-stone-50/70 rounded-b-xl'
+          className={`flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 px-3 py-1.5 border-t border-stone-200/80 bg-stone-50/70 ${
+            variants.length === 0 ? 'rounded-b-xl' : ''
+          }`}
           data-testid='bible-status-strip'
         >
           <ol
@@ -1637,16 +1658,24 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       {/* ================= WORKSPACE BODY CONTAINER ================= */}
       <div className='space-y-4'>
         {/* ================= TẦNG 1: THANH CHỌN BIẾN THỂ (VARIANT TABS / PILLS NGANG TRÊN CÙNG) ================= */}
-        {!isArtistUser && (
+        {variants.length > 0 && (
           <section
             data-testid='variant-selector'
-            className='flex flex-col justify-between gap-3 rounded-xl border border-stone-200/90 bg-white p-3 shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)] md:flex-row md:items-center'
-            aria-label={t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}
+            className='-mt-3 flex flex-col justify-between gap-2 rounded-b-xl border border-t-0 border-stone-200/90 bg-white px-3 py-2 md:flex-row md:items-center'
+            aria-label={
+              entity.category === 'characters'
+                ? t('bible.detailModal.characterErasTitle')
+                : t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')
+            }
           >
             <div className='flex items-center gap-2 overflow-x-auto py-0.5 custom-scrollbar min-w-0'>
               <div className='flex items-center gap-1.5 text-xs font-bold text-stone-600 uppercase tracking-wider mr-1 shrink-0'>
                 <Layers className='w-4 h-4 text-[#EA580C]' />
-                <span>{t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}</span>
+                <span>
+                  {entity.category === 'characters'
+                    ? t('bible.detailModal.characterErasTitle')
+                    : t('bible.detailModal.variantsTitle', 'Biến thể thiết kế')}
+                </span>
               </div>
 
               {variants.map((variant) => {
@@ -1736,24 +1765,24 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           </section>
         )}
 
-        <div className='grid grid-cols-1 gap-4 items-start min-w-0'>
+        <div className='grid grid-cols-1 items-start gap-3 min-w-0 xl:h-[calc(100dvh-12rem)] xl:min-h-[32rem] xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-stretch'>
           {/* ================= SIDEBAR: ngữ cảnh kịch bản · phiên bản ================= */}
           {!isArtistUser && (
             <aside
               aria-label={t('bible.detailModal.navSidebarAria', 'Điều hướng mục Series Bible')}
-              className='order-2 w-full min-w-0 grid grid-cols-1 gap-4 lg:grid-cols-2 items-start'
+              className='order-2 flex w-full min-w-0 flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start xl:h-full xl:min-h-0 xl:grid-cols-1 xl:grid-rows-[minmax(0,0.65fr)_minmax(0,1.35fr)] xl:items-stretch'
               data-testid='bible-workbench-sidebar'
             >
               {seriesId && (
                 <section
-                  className='min-w-0 overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)]'
+                  className='flex min-w-0 flex-col overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)] xl:min-h-0'
                   data-testid='bible-usages'
                 >
                   <div className='flex items-center gap-1.5 rounded-t-xl border-b border-head-line bg-head-wash px-4 py-3 text-sm font-bold text-stone-900'>
                     <FileText className='w-4 h-4 text-accent-dark shrink-0' />
                     <span className='truncate'>{t('bible.detailModal.scriptAppearances')}</span>
                   </div>
-                  <div className='p-4'>
+                  <div className='min-h-0 p-3 xl:flex-1 xl:overflow-y-auto custom-scrollbar'>
                     {usages === null ? (
                       <p className='text-xs text-stone-500'>
                         {t('bible.detailModal.loadingUsages')}
@@ -1767,11 +1796,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         {t('bible.detailModal.noUsagesFound')}
                       </p>
                     ) : (
-                      <ul className='space-y-2'>
+                      <ul className='space-y-1.5'>
                         {usages.map((u) => (
                           <li
                             key={u.chapterId}
-                            className='rounded-lg border border-stone-200/70 bg-stone-50/60 p-2.5 space-y-1.5'
+                            className='rounded-lg border border-stone-200/70 bg-stone-50/60 p-2 space-y-1'
                           >
                             <span className='block min-w-0'>
                               <span className='font-mono text-xs text-stone-500 mr-1.5'>
@@ -1806,7 +1835,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </section>
               )}
               {/* CARD 2: PHIÊN BẢN & NHẬT KÝ SỬA ĐỔI (VERSION & AUDIT TRAIL GỘP CHUNG) */}
-              <div className='min-w-0 overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)]'>
+              <div className='flex min-w-0 flex-col overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)] xl:min-h-0'>
                 <div className='flex items-center justify-between gap-2 rounded-t-xl border-b border-head-line bg-head-wash px-4 py-3'>
                   <div className='font-bold text-sm text-stone-900 flex items-center gap-1.5 min-w-0'>
                     <History className='w-4 h-4 text-accent-dark shrink-0' />
@@ -1823,9 +1852,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   </button>
                 </div>
 
-                <div className='space-y-3 p-4'>
+                <div className='flex min-h-0 flex-1 flex-col gap-2.5 p-3'>
                   {/* Version list */}
-                  <div className='space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-0.5'>
+                  <div className='space-y-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-0.5 xl:max-h-36'>
                     {activeVariant?.revisions && activeVariant.revisions.length > 0 ? (
                       activeVariant.revisions.map((rev) => {
                         const isSelected = rev.id === activeRevision?.id;
@@ -1838,10 +1867,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           ),
                         );
                         return (
-                          <div
+                          <button
+                            type='button'
                             key={rev.id}
                             onClick={() => setSelectedVersionId(rev.id)}
-                            className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 text-xs ${
+                            className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border p-2.5 text-left text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
                               isSelected
                                 ? 'bg-stone-100 border-stone-400 shadow-2xs font-semibold'
                                 : 'bg-white border-stone-200 hover:border-stone-300'
@@ -1883,7 +1913,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             <span className='text-xs text-stone-500 font-mono shrink-0 whitespace-nowrap'>
                               {new Date(rev.createdAt).toLocaleDateString(dateLocale)}
                             </span>
-                          </div>
+                          </button>
                         );
                       })
                     ) : (
@@ -1966,7 +1996,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   )}
 
                   {/* AUDIT TRAIL GỘP TRỰC TIẾP VÀO VERSION CARD */}
-                  <div className='space-y-2 pt-2 border-t border-stone-200/80'>
+                  <div className='flex min-h-0 flex-1 flex-col gap-2 pt-2 border-t border-stone-200/80'>
                     <div className='font-bold text-xs uppercase tracking-wider text-stone-700 flex items-center justify-between'>
                       <span>{t('bible.detailModal.changeHistoryTitle')}</span>
                       <span className='text-xs font-normal text-stone-400'>
@@ -1974,7 +2004,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className='space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-0.5 text-xs'>
+                    <div className='space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-0.5 text-xs xl:max-h-none xl:flex-1'>
                       {auditLogs.map((log, i) => (
                         <div
                           key={i}
@@ -1997,12 +2027,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           )}
 
           {/* ================= MAIN: trạng thái · Đặc tả | Bản vẽ · Phiên bản ================= */}
-          <div className='order-1 min-w-0 space-y-4' data-testid='bible-workbench-primary'>
+          <div
+            className='order-1 min-w-0 space-y-3 xl:grid xl:h-full xl:min-h-0 xl:grid-rows-[auto_minmax(0,1fr)] xl:gap-3 xl:space-y-0'
+            data-testid='bible-workbench-primary'
+          >
             <div
               className={
                 activeRevision?.reviewStatus === 'CanonLocked' && !isStubEntity
-                  ? 'space-y-3 rounded-xl border border-emerald-200/80 bg-emerald-50/60 p-4 shadow-xs'
-                  : 'space-y-3'
+                  ? 'space-y-2 rounded-lg border border-emerald-200/80 bg-emerald-50/60 px-3 py-2'
+                  : 'space-y-2'
               }
               data-testid='detail-status-workflow-banner'
             >
@@ -2025,41 +2058,37 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   })}
                 </Alert>
               ) : activeRevision?.reviewStatus === 'CanonLocked' ? (
-                <Alert
-                  tone='success'
-                  title={t('bible.detailModal.canonLockedBadge')}
-                  className='[&_.u072-a]:bg-transparent [&_.u072-a]:p-0 [&_.u072-a]:shadow-none [&_.u072-a::before]:hidden'
-                >
-                  <div className='space-y-1 flex-1 min-w-0'>
-                    <div className='flex items-center gap-2 flex-wrap'>
-                      {activeVariant?.variantLabel && (
-                        <span className='rounded border border-stone-900 bg-stone-900 px-2 py-0.5 text-xs font-semibold text-stone-50 shadow-xs'>
-                          {activeVariant.variantLabel}
-                        </span>
-                      )}
-                      <span className='rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 font-mono text-xs font-bold text-emerald-700'>
-                        {t('bible.detailModal.revisionNumber', {
-                          number: activeRevision.versionNumber,
-                        })}
-                      </span>
-                      {activeRevision.lockedAt && (
-                        <span className='text-xs font-medium text-amber-800'>
-                          {t('bible.detailModal.approvedAt', {
-                            date: new Date(activeRevision.lockedAt).toLocaleDateString(dateLocale),
-                          })}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Alert>
+                <div className='flex min-w-0 flex-wrap items-center gap-2 text-xs'>
+                  <CheckCircle2 className='h-4 w-4 shrink-0 text-emerald-700' aria-hidden='true' />
+                  <strong className='text-stone-900'>
+                    {t('bible.detailModal.canonLockedBadge')}
+                  </strong>
+                  {activeVariant?.variantLabel && (
+                    <span className='rounded border border-stone-900 bg-stone-900 px-2 py-0.5 font-semibold text-stone-50'>
+                      {activeVariant.variantLabel}
+                    </span>
+                  )}
+                  <span className='rounded border border-emerald-200 bg-white/70 px-1.5 py-0.5 font-mono font-bold text-emerald-700'>
+                    {t('bible.detailModal.revisionNumber', {
+                      number: activeRevision.versionNumber,
+                    })}
+                  </span>
+                  {activeRevision.lockedAt && (
+                    <span className='font-medium text-amber-800'>
+                      {t('bible.detailModal.approvedAt', {
+                        date: new Date(activeRevision.lockedAt).toLocaleDateString(dateLocale),
+                      })}
+                    </span>
+                  )}
+                </div>
               ) : null}
 
               {isVisualDesign && (
                 <div
-                  className={`flex flex-col gap-2 rounded-xl px-3 py-2.5 sm:flex-row sm:items-center ${
+                  className={`flex flex-col gap-2 px-1 py-1.5 sm:flex-row sm:items-center ${
                     activeRevision?.reviewStatus === 'CanonLocked'
-                      ? 'border border-emerald-200/70 bg-white/70'
-                      : 'border border-stone-200 bg-white'
+                      ? 'border-t border-emerald-200/70'
+                      : 'rounded-lg border border-stone-200 bg-white px-3'
                   }`}
                   data-testid='writer-artist-handoff-bar'
                 >
@@ -2101,13 +2130,16 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             </div>
 
             <div
-              className={`grid grid-cols-1 gap-4 items-start min-w-0 ${
-                isVisualDesign ? 'xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]' : ''
+              className={`grid min-h-0 grid-cols-1 gap-3 items-start min-w-0 xl:h-full xl:items-stretch ${
+                isVisualDesign ? 'xl:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]' : ''
               }`}
             >
-              <section className='min-w-0 self-start' data-testid='bible-spec-column'>
+              <section
+                className='min-w-0 self-start xl:h-full xl:min-h-0'
+                data-testid='bible-spec-column'
+              >
                 {/* CARD 1: THÔNG TIN ĐẶC TẢ THU GỌN (METADATA SPECS) */}
-                <div className='h-fit rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)]'>
+                <div className='flex h-fit flex-col rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)] xl:h-full xl:min-h-0'>
                   <div className='flex items-center justify-between rounded-t-xl border-b border-head-line bg-head-wash px-5 py-3'>
                     <div className='font-bold text-sm text-stone-900 flex items-center gap-1.5'>
                       <FileText className='w-4 h-4 text-accent-dark' />
@@ -2115,7 +2147,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     </div>
                   </div>
 
-                  <div className='p-4 sm:p-5'>
+                  <div className='p-4 sm:p-5 xl:min-h-0 xl:flex-1 xl:overflow-y-auto custom-scrollbar'>
                     {isArtistUser ? (
                       <div className='space-y-4 rounded-lg bg-stone-50 px-4 py-4'>
                         {SPEC_SCHEMA[normalizedCategory]
@@ -2360,10 +2392,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
               {isVisualDesign && (
                 <section
-                  className='min-w-0 self-start space-y-3.5'
+                  className='min-w-0 self-start space-y-3.5 xl:h-full xl:min-h-0'
                   data-testid='bible-artwork-column'
                 >
-                  <div className='h-fit overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)]'>
+                  <div className='flex h-fit flex-col overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-[0_2px_10px_-3px_rgba(23,23,23,0.06)] xl:h-full xl:min-h-0'>
                     {/* Artwork Header: Tab Turnaround vs Action / Expressions + Zoom button */}
                     <div className='flex flex-wrap items-center gap-2 rounded-t-xl border-b border-stone-200/80 bg-[#FAF8F5] px-5 py-3.5'>
                       <div className='flex min-w-fit shrink-0 items-center gap-2'>
@@ -2414,9 +2446,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             type='button'
                             aria-controls='concept-comments-section'
                             onClick={() =>
-                              document
-                                .getElementById('concept-comments-section')
-                                ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                              document.getElementById('concept-comments-section')?.focus({
+                                preventScroll: true,
+                              })
                             }
                             className='inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-800 hover:bg-orange-100'
                           >
@@ -2430,7 +2462,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       </div>
                     </div>
 
-                    <div className='space-y-3 p-4 sm:p-5'>
+                    <div
+                      className={`relative space-y-3 p-4 sm:p-5 xl:min-h-0 xl:flex-1 xl:overflow-y-auto custom-scrollbar ${
+                        selectedImageUrl ? 'xl:pr-72' : ''
+                      }`}
+                    >
                       {isArtistUser && onSubmitConceptFile && !isStubEntity && (
                         <>
                           <input
@@ -2498,7 +2534,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             </div>
                           </div>
                           <div
-                            className='group relative flex h-[min(58vh,540px)] min-h-[380px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-stone-200/90 bg-[#EAE6DF] p-6 shadow-inner'
+                            className='group relative flex h-[clamp(16rem,40dvh,26rem)] w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-stone-200/90 bg-[#EAE6DF] p-4 shadow-inner'
                             onClick={() =>
                               onZoomImage({
                                 url: artworkImageUrl,
@@ -2953,8 +2989,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       {selectedImageUrl && (
                         <div
                           id='concept-comments-section'
-                          className='scroll-mt-24 mt-4 space-y-3 rounded-xl border border-orange-200/70 bg-orange-50/30 p-3.5'
+                          className='scroll-mt-24 mt-4 space-y-3 rounded-xl border border-orange-200/70 bg-orange-50/30 p-3.5 xl:absolute xl:right-4 xl:top-4 xl:mt-0 xl:flex xl:max-h-[calc(100%-2rem)] xl:w-64 xl:flex-col xl:overflow-hidden'
                           data-testid='concept-comments-section'
+                          tabIndex={-1}
                         >
                           <div className='flex items-center justify-between'>
                             <div className='flex items-center gap-2 text-xs sm:text-sm font-bold text-stone-900'>
@@ -2984,7 +3021,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               )}
                             </div>
                           ) : (
-                            <div className='space-y-2.5 max-h-80 overflow-y-auto custom-scrollbar pr-1'>
+                            <div className='space-y-2.5 max-h-80 overflow-y-auto custom-scrollbar pr-1 xl:min-h-0 xl:flex-1'>
                               {conceptComments.map((c) => {
                                 const isResolved = Boolean(c.resolvedAt);
                                 const authorName =
