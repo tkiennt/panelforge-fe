@@ -793,6 +793,123 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     }
   });
 
+  it('BR-27.1: artist reopens own finished Pencil with a reason from the header button', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 'artist-1' }));
+    vi.spyOn(pipelineService, 'getSeriesPipeline').mockResolvedValue({
+      id: 'pipe-1',
+      seriesId: 'ser-1',
+      name: 'Quy trình chuẩn',
+      stages: [
+        {
+          id: 'st-pencil',
+          name: 'Pencil',
+          slug: 'pencil',
+          stageOrder: 1,
+          allowedRole: 'Artist',
+          isApprovalGate: false,
+          isInitial: true,
+          isTerminal: false,
+          isEnabled: true,
+        },
+        {
+          id: 'st-ink',
+          name: 'Ink',
+          slug: 'ink',
+          stageOrder: 2,
+          allowedRole: 'Artist',
+          isApprovalGate: false,
+          isInitial: false,
+          isTerminal: false,
+          isEnabled: true,
+        },
+        {
+          id: 'st-letter',
+          name: 'Lettering',
+          slug: 'lettering',
+          stageOrder: 3,
+          allowedRole: 'Letterer',
+          isApprovalGate: true,
+          isInitial: false,
+          isTerminal: true,
+          isEnabled: true,
+        },
+      ],
+      transitions: [],
+    } as any);
+    const cell = (id: string, stage: string, assignee: string, status: string) => ({
+      id,
+      pipelineStageId: stage,
+      pageId: null,
+      status,
+      lotId: `lot-${id}`,
+      assigneeUserId: assignee,
+      isInputOutdated: false,
+      isStartable: true,
+      rowVersion: 1,
+    });
+    vi.spyOn(assignmentService, 'getTaskGrid').mockResolvedValue({
+      chapterId: 'chap-1',
+      pages: [],
+      lots: [],
+      stages: [
+        { id: 'st-pencil', name: 'Pencil', stageOrder: 1, allowedRole: 'Artist', isEnabled: true },
+        { id: 'st-ink', name: 'Ink', stageOrder: 2, allowedRole: 'Artist', isEnabled: true },
+      ],
+      tasks: [
+        { ...cell('c-pencil', 'st-pencil', 'artist-1', 'Approved'), pageId: 'pg-r1' },
+        { ...cell('c-ink', 'st-ink', 'artist-1', 'Assigned'), pageId: 'pg-r1' },
+      ],
+    } as any);
+    vi.spyOn(assignmentService, 'startStageTask').mockResolvedValue(undefined as any);
+    vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+      {
+        id: 'pg-r1',
+        chapterId: 'chap-1',
+        pageNumber: 1,
+        widthPx: 1200,
+        heightPx: 1800,
+        layoutFormat: 'PORTRAIT',
+        dpi: 300,
+        elementsCount: 0,
+      },
+    ] as any);
+    const rollbackSpy = vi
+      .spyOn(assignmentService, 'rollbackToPencil')
+      .mockResolvedValue({ task: {} as any, outdatedTaskIds: [] } as any);
+    try {
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+          <ToastProvider>
+            <ConfirmProvider>
+              <Routes>
+                <Route
+                  path='/workspaces/:workspaceId/series/:seriesId/artist'
+                  element={<ArtistDeskView workspaceRole='ARTIST' initialScriptLines={[]} />}
+                />
+              </Routes>
+            </ConfirmProvider>
+          </ToastProvider>
+        </MemoryRouter>,
+      );
+
+      const btn = await screen.findByRole('button', { name: /Quay lại sửa Pencil/ });
+      fireEvent.click(btn);
+      const confirm = (await screen.findAllByRole('button', { name: 'Quay lại sửa Pencil' })).at(
+        -1,
+      )!;
+      expect(confirm).toBeDisabled();
+      fireEvent.change(screen.getByTestId('rollback-pencil-reason'), {
+        target: { value: 'Sai phối cảnh' },
+      });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Quay lại sửa Pencil' }).at(-1)!);
+      await waitFor(() =>
+        expect(rollbackSpy).toHaveBeenCalledWith('chap-1', 'c-pencil', 'Sai phối cảnh'),
+      );
+    } finally {
+      localStorage.removeItem('user');
+    }
+  });
+
   it('shows script coverage and blocks Submit Pencil below 100%', async () => {
     vi.spyOn(assignmentService, 'getAssignments').mockResolvedValue([
       {

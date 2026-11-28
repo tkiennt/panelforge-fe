@@ -517,7 +517,12 @@
     "balloonCheckBanner": "Tranh vừa đổi: {count} khung cần kiểm tra lại vị trí bóng thoại.",
     "balloonCheckAck": "Đã kiểm tra",
     "balloonCheckAckSuccess": "Đã xác nhận vị trí bóng thoại",
-    "balloonCheckAckError": "Không xác nhận được, thử lại sau."
+    "balloonCheckAckError": "Không xác nhận được, thử lại sau.",
+    "rollbackPencilButton": "Quay lại sửa Pencil",
+    "rollbackPencilTitle": "Quay lại sửa Pencil trang này?",
+    "rollbackPencilReasonLabel": "Lý do",
+    "rollbackPencilSuccess": "Đã mở lại Pencil để sửa",
+    "rollbackPencilError": "Không quay lại được Pencil."
   },
   "canvaSidebar": {
     "narrationFlashback": "Hồi tưởng",

@@ -517,7 +517,12 @@
     "balloonCheckBanner": "Artwork changed: {count} panel(s) need a balloon position check.",
     "balloonCheckAck": "Checked",
     "balloonCheckAckSuccess": "Balloon positions confirmed",
-    "balloonCheckAckError": "Could not confirm, try again later."
+    "balloonCheckAckError": "Could not confirm, try again later.",
+    "rollbackPencilButton": "Back to Pencil",
+    "rollbackPencilTitle": "Reopen Pencil for this page?",
+    "rollbackPencilReasonLabel": "Reason",
+    "rollbackPencilSuccess": "Pencil reopened for fixes",
+    "rollbackPencilError": "Could not go back to Pencil."
   },
   "canvaSidebar": {
     "narrationFlashback": "Flashback",

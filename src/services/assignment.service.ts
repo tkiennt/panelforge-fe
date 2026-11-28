@@ -1158,6 +1158,27 @@ export const assignmentService = {
     }
   },
 
+  /** BR-27.1: Artist giữ ô Pencil tự quay lại sửa khi trang chưa vào duyệt (POST .../task-grid/tasks/{taskId}/rollback-to-pencil) */
+  rollbackToPencil: async (
+    chapterId: string,
+    taskId: string,
+    reason: string,
+  ): Promise<ReopenStageTaskResultDto> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/task-grid/tasks/${taskId}/rollback-to-pencil`,
+        { reason },
+      );
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(
+        extractError(error, translate('artist.deskView.rollbackPencilError')),
+      );
+      err.status = error?.response?.status;
+      throw err;
+    }
+  },
+
   /** Xử lý cờ lỗi thời trên ô StageTask (POST /api/chapters/{chapterId}/task-grid/tasks/{taskId}/resolve-impact) — chỉ Producer */
   resolveStageTaskImpact: async (
     chapterId: string,
