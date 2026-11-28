@@ -56,6 +56,8 @@ export interface LetteringPropertyPanelProps {
   originalLang?: string;
   /** Khóa ô nhập chữ (chữ gốc khi trang readOnly, hoặc bản dịch khi ấn bản không ở trạng thái Draft). */
   textReadOnly?: boolean;
+  /** Khóa chỉnh kiểu dáng và chữ của bóng khi trang chỉ đọc. */
+  styleReadOnly?: boolean;
   onCommitText: (text: string) => void;
   onSyncScriptText?: () => Promise<void> | void;
   onChangeStyle: (patch: Partial<TextStyleDto> | null) => void;
@@ -92,6 +94,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
   activeLang,
   originalLang = 'vi',
   textReadOnly = false,
+  styleReadOnly = false,
   onCommitText,
   onSyncScriptText,
   onChangeStyle,
@@ -404,14 +407,16 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
         </section>
 
         {/* Nội dung hiển thị */}
-        <BalloonTextEditor
-          key={`${element.elementId}-${element.version}-${activeLang ?? originalLang}`}
-          element={element}
-          isOriginal={isOriginal}
-          langLabel={(activeLang ?? originalLang).toUpperCase()}
-          readOnly={textReadOnly}
-          onCommit={onCommitText}
-        />
+        {(!isOriginal || !element.scriptLineId) && (
+          <BalloonTextEditor
+            key={`${element.elementId}-${element.version}-${activeLang ?? originalLang}`}
+            element={element}
+            isOriginal={isOriginal}
+            langLabel={(activeLang ?? originalLang).toUpperCase()}
+            readOnly={textReadOnly}
+            onCommit={onCommitText}
+          />
+        )}
 
         {/* Copilot Rút gọn thoại bằng AI (Letterer — vẫn dùng được khi kịch bản Frozen) */}
         {canUseAiShorten && seriesId && pageId && (
@@ -491,59 +496,64 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             <Shapes className='w-3.5 h-3.5' aria-hidden='true' />{' '}
             {t('letteringProperty.appearanceTitle')}
           </h4>
-          <div className='flex items-center gap-2'>
-            <span
-              aria-hidden='true'
-              className='w-11 h-9 rounded-lg border border-stone-200 flex items-center justify-center shrink-0'
-            >
+          <fieldset disabled={styleReadOnly} className='space-y-2 border-0 p-0 m-0 min-w-0'>
+            <div className='flex items-center gap-2'>
               <span
-                className={`w-7 h-5 border-2 ${appearance.shape === 'box' ? 'rounded-sm' : 'rounded-[50%]'} ${
-                  appearance.shape === 'cloud' ? 'border-dashed' : ''
-                } ${appearance.shape === 'none' ? 'border-transparent' : ''}`}
-                style={{
-                  borderColor: appearance.shape === 'none' ? undefined : appearance.borderColor,
-                  backgroundColor: appearance.fillColor,
-                }}
-              />
-            </span>
-            <select
-              data-testid='lettering-property-shape'
-              aria-label={t('letteringProperty.shapeAriaLabel')}
-              value={appearance.shape}
-              onChange={(e) =>
-                onChangeStyle({ balloonShape: e.target.value as TextStyleDto['balloonShape'] })
-              }
-              className='flex-1 h-9 px-2 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:border-orange-500 cursor-pointer'
-            >
-              {BALLOON_SHAPES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className='grid grid-cols-2 gap-2'>
-            <label className='flex items-center justify-between gap-1 rounded-lg border border-stone-200 px-2 py-1 text-xs text-stone-600'>
-              {t('letteringProperty.fillLabel')}
-              <input
-                type='color'
-                data-testid='lettering-property-fill'
-                value={appearance.fillColor}
-                onChange={(e) => onChangeStyle({ fillColor: e.target.value.toUpperCase() })}
-                className='w-6 h-6 p-0 border-0 bg-transparent cursor-pointer'
-              />
-            </label>
-            <label className='flex items-center justify-between gap-1 rounded-lg border border-stone-200 px-2 py-1 text-xs text-stone-600'>
-              {t('letteringProperty.borderLabel')}
-              <input
-                type='color'
-                data-testid='lettering-property-border'
-                value={appearance.borderColor}
-                onChange={(e) => onChangeStyle({ borderColor: e.target.value.toUpperCase() })}
-                className='w-6 h-6 p-0 border-0 bg-transparent cursor-pointer'
-              />
-            </label>
-          </div>
+                aria-hidden='true'
+                className='w-11 h-9 rounded-lg border border-stone-200 flex items-center justify-center shrink-0'
+              >
+                <span
+                  className={`w-7 h-5 border-2 ${appearance.shape === 'box' ? 'rounded-sm' : 'rounded-[50%]'} ${
+                    appearance.shape === 'cloud' ? 'border-dashed' : ''
+                  } ${appearance.shape === 'none' ? 'border-transparent' : ''}`}
+                  style={{
+                    borderColor: appearance.shape === 'none' ? undefined : appearance.borderColor,
+                    backgroundColor: appearance.fillColor,
+                  }}
+                />
+              </span>
+              <select
+                data-testid='lettering-property-shape'
+                aria-label={t('letteringProperty.shapeAriaLabel')}
+                disabled={styleReadOnly}
+                value={appearance.shape}
+                onChange={(e) =>
+                  onChangeStyle({ balloonShape: e.target.value as TextStyleDto['balloonShape'] })
+                }
+                className='flex-1 h-9 px-2 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                {BALLOON_SHAPES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className='grid grid-cols-2 gap-2'>
+              <label className='flex items-center justify-between gap-1 rounded-lg border border-stone-200 px-2 py-1 text-xs text-stone-600'>
+                {t('letteringProperty.fillLabel')}
+                <input
+                  type='color'
+                  data-testid='lettering-property-fill'
+                  disabled={styleReadOnly}
+                  value={appearance.fillColor}
+                  onChange={(e) => onChangeStyle({ fillColor: e.target.value.toUpperCase() })}
+                  className='w-6 h-6 p-0 border-0 bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                />
+              </label>
+              <label className='flex items-center justify-between gap-1 rounded-lg border border-stone-200 px-2 py-1 text-xs text-stone-600'>
+                {t('letteringProperty.borderLabel')}
+                <input
+                  type='color'
+                  data-testid='lettering-property-border'
+                  disabled={styleReadOnly}
+                  value={appearance.borderColor}
+                  onChange={(e) => onChangeStyle({ borderColor: e.target.value.toUpperCase() })}
+                  className='w-6 h-6 p-0 border-0 bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                />
+              </label>
+            </div>
+          </fieldset>
         </section>
 
         {/* Kiểu chữ */}
@@ -552,128 +562,136 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             <Type className='w-3.5 h-3.5' aria-hidden='true' />{' '}
             {t('letteringProperty.typographyTitle')}
           </h4>
-          <select
-            data-testid='lettering-font-family'
-            aria-label={t('letteringProperty.fontFamilyAriaLabel')}
-            value={text.fontFamily}
-            onChange={(e) => onChangeStyle({ fontFamily: e.target.value })}
-            className='w-full h-9 px-2 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:border-orange-500 cursor-pointer'
-            style={{ fontFamily: `'${text.fontFamily}', sans-serif` }}
-          >
-            {TEXT_FONTS.map((f) => (
-              <option key={f.family} value={f.family}>
-                {f.label}
-              </option>
-            ))}
-          </select>
-          <div className='flex items-center gap-1.5 flex-wrap'>
-            <button
-              type='button'
-              data-testid='lettering-font-size-dec'
-              aria-label={t('letteringProperty.decreaseFontAriaLabel')}
-              disabled={text.fontSize <= MIN_LETTERING_FONT_PX}
-              onClick={() => onChangeStyle({ fontSize: clampFontSize(text.fontSize - 2) })}
-              className={ICON_BTN(false)}
+          <fieldset disabled={styleReadOnly} className='space-y-2 border-0 p-0 m-0 min-w-0'>
+            <select
+              data-testid='lettering-font-family'
+              aria-label={t('letteringProperty.fontFamilyAriaLabel')}
+              disabled={styleReadOnly}
+              value={text.fontFamily}
+              onChange={(e) => onChangeStyle({ fontFamily: e.target.value })}
+              className='w-full h-9 px-2 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+              style={{ fontFamily: `'${text.fontFamily}', sans-serif` }}
             >
-              <Minus className='w-3.5 h-3.5' />
-            </button>
-            <input
-              data-testid='lettering-font-size-input'
-              aria-label={t('letteringProperty.fontSizeAriaLabel')}
-              inputMode='numeric'
-              value={sizeDraft}
-              onChange={(e) => setSizeDraft(e.target.value.replace(/[^0-9]/g, ''))}
-              onBlur={commitSize}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
-                  (e.currentTarget as HTMLInputElement).blur();
-                }
-              }}
-              className='w-12 h-8 text-center rounded-lg border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500'
-            />
-            <button
-              type='button'
-              data-testid='lettering-font-size-inc'
-              aria-label={t('letteringProperty.increaseFontAriaLabel')}
-              disabled={text.fontSize >= MAX_TEXT_FONT_PX}
-              onClick={() => onChangeStyle({ fontSize: clampFontSize(text.fontSize + 2) })}
-              className={ICON_BTN(false)}
-            >
-              <Plus className='w-3.5 h-3.5' />
-            </button>
-            {shown < text.fontSize && (
-              <span
-                data-testid='lettering-font-shown'
-                title={t('letteringProperty.fontShrunkTitle', { size: shown })}
-                className='h-8 px-2 inline-flex items-center rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold'
-              >
-                {shown}px
-              </span>
-            )}
-            {onFitBalloon && shown < text.fontSize && !textReadOnly && (
+              {TEXT_FONTS.map((f) => (
+                <option key={f.family} value={f.family}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+            <div className='flex items-center gap-1.5 flex-wrap'>
               <button
                 type='button'
-                data-testid='lettering-fit-balloon'
-                aria-label={t('letteringProperty.fitBalloon')}
-                title={t('letteringProperty.fitBalloon')}
-                onClick={onFitBalloon}
+                data-testid='lettering-font-size-dec'
+                aria-label={t('letteringProperty.decreaseFontAriaLabel')}
+                disabled={styleReadOnly || text.fontSize <= MIN_LETTERING_FONT_PX}
+                onClick={() => onChangeStyle({ fontSize: clampFontSize(text.fontSize - 2) })}
                 className={ICON_BTN(false)}
               >
-                <Maximize2 className='w-3.5 h-3.5' />
+                <Minus className='w-3.5 h-3.5' />
               </button>
-            )}
-            <input
-              type='color'
-              data-testid='lettering-color-picker'
-              aria-label={t('letteringProperty.textColorAriaLabel')}
-              value={text.color ?? '#171717'}
-              onChange={(e) => onChangeStyle({ color: e.target.value.toUpperCase() })}
-              className='w-8 h-8 p-0.5 rounded-lg border border-stone-200 cursor-pointer'
-            />
-          </div>
-          <div className='flex items-center gap-1.5'>
-            <button
-              type='button'
-              data-testid='lettering-btn-bold'
-              aria-label={t('letteringProperty.boldAriaLabel')}
-              aria-pressed={Boolean(text.bold)}
-              onClick={() => onChangeStyle({ bold: !text.bold })}
-              className={ICON_BTN(Boolean(text.bold))}
-            >
-              <Bold className='w-3.5 h-3.5' />
-            </button>
-            <button
-              type='button'
-              data-testid='lettering-btn-italic'
-              aria-label={t('letteringProperty.italicAriaLabel')}
-              aria-pressed={Boolean(text.italic)}
-              onClick={() => onChangeStyle({ italic: !text.italic })}
-              className={ICON_BTN(Boolean(text.italic))}
-            >
-              <Italic className='w-3.5 h-3.5' />
-            </button>
-            <span className='w-px h-5 bg-stone-200 mx-1' aria-hidden='true' />
-            {(
-              [
-                ['left', AlignLeft, t('letteringProperty.alignLeftAriaLabel')],
-                ['center', AlignCenter, t('letteringProperty.alignCenterAriaLabel')],
-                ['right', AlignRight, t('letteringProperty.alignRightAriaLabel')],
-              ] as const
-            ).map(([value, Icon, label]) => (
+              <input
+                data-testid='lettering-font-size-input'
+                aria-label={t('letteringProperty.fontSizeAriaLabel')}
+                inputMode='numeric'
+                disabled={styleReadOnly}
+                value={sizeDraft}
+                onChange={(e) => setSizeDraft(e.target.value.replace(/[^0-9]/g, ''))}
+                onBlur={commitSize}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
+                    (e.currentTarget as HTMLInputElement).blur();
+                  }
+                }}
+                className='w-12 h-8 text-center rounded-lg border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 disabled:opacity-50 disabled:cursor-not-allowed'
+              />
               <button
-                key={value}
                 type='button'
-                data-testid={`lettering-align-${value}`}
-                aria-label={label}
-                aria-pressed={align === value}
-                onClick={() => onChangeStyle({ align: value })}
-                className={ICON_BTN(align === value)}
+                data-testid='lettering-font-size-inc'
+                aria-label={t('letteringProperty.increaseFontAriaLabel')}
+                disabled={styleReadOnly || text.fontSize >= MAX_TEXT_FONT_PX}
+                onClick={() => onChangeStyle({ fontSize: clampFontSize(text.fontSize + 2) })}
+                className={ICON_BTN(false)}
               >
-                <Icon className='w-3.5 h-3.5' />
+                <Plus className='w-3.5 h-3.5' />
               </button>
-            ))}
-          </div>
+              {shown < text.fontSize && (
+                <span
+                  data-testid='lettering-font-shown'
+                  title={t('letteringProperty.fontShrunkTitle', { size: shown })}
+                  className='h-8 px-2 inline-flex items-center rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold'
+                >
+                  {shown}px
+                </span>
+              )}
+              {onFitBalloon && shown < text.fontSize && !textReadOnly && !styleReadOnly && (
+                <button
+                  type='button'
+                  data-testid='lettering-fit-balloon'
+                  aria-label={t('letteringProperty.fitBalloon')}
+                  title={t('letteringProperty.fitBalloon')}
+                  onClick={onFitBalloon}
+                  className={ICON_BTN(false)}
+                >
+                  <Maximize2 className='w-3.5 h-3.5' />
+                </button>
+              )}
+              <input
+                type='color'
+                data-testid='lettering-color-picker'
+                aria-label={t('letteringProperty.textColorAriaLabel')}
+                disabled={styleReadOnly}
+                value={text.color ?? '#171717'}
+                onChange={(e) => onChangeStyle({ color: e.target.value.toUpperCase() })}
+                className='w-8 h-8 p-0.5 rounded-lg border border-stone-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+              />
+            </div>
+            <div className='flex items-center gap-1.5'>
+              <button
+                type='button'
+                data-testid='lettering-btn-bold'
+                aria-label={t('letteringProperty.boldAriaLabel')}
+                aria-pressed={Boolean(text.bold)}
+                disabled={styleReadOnly}
+                onClick={() => onChangeStyle({ bold: !text.bold })}
+                className={ICON_BTN(Boolean(text.bold))}
+              >
+                <Bold className='w-3.5 h-3.5' />
+              </button>
+              <button
+                type='button'
+                data-testid='lettering-btn-italic'
+                aria-label={t('letteringProperty.italicAriaLabel')}
+                aria-pressed={Boolean(text.italic)}
+                disabled={styleReadOnly}
+                onClick={() => onChangeStyle({ italic: !text.italic })}
+                className={ICON_BTN(Boolean(text.italic))}
+              >
+                <Italic className='w-3.5 h-3.5' />
+              </button>
+              <span className='w-px h-5 bg-stone-200 mx-1' aria-hidden='true' />
+              {(
+                [
+                  ['left', AlignLeft, t('letteringProperty.alignLeftAriaLabel')],
+                  ['center', AlignCenter, t('letteringProperty.alignCenterAriaLabel')],
+                  ['right', AlignRight, t('letteringProperty.alignRightAriaLabel')],
+                ] as const
+              ).map(([value, Icon, label]) => (
+                <button
+                  key={value}
+                  type='button'
+                  data-testid={`lettering-align-${value}`}
+                  aria-label={label}
+                  aria-pressed={align === value}
+                  disabled={styleReadOnly}
+                  onClick={() => onChangeStyle({ align: value })}
+                  className={ICON_BTN(align === value)}
+                >
+                  <Icon className='w-3.5 h-3.5' />
+                </button>
+              ))}
+            </div>
+          </fieldset>
         </section>
 
         {onDelete && (

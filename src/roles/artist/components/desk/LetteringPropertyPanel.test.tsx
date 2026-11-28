@@ -45,20 +45,27 @@ describe('LetteringPropertyPanel (BR-05, BR-34)', () => {
     expect(screen.getByTestId('lettering-property-script')).toHaveTextContent('Trang 2');
   });
 
-  it('bóng gắn kịch bản: chữ gốc chỉ đọc (không sửa dữ liệu Writer)', () => {
-    const onCommit = vi.fn();
+  it('bóng gắn kịch bản ở ngôn ngữ gốc không có lettering-text-input', () => {
     render(
       <LetteringPropertyPanel
         element={balloon()}
         scriptLine={line}
-        onCommitText={onCommit}
+        onCommitText={vi.fn()}
         onChangeStyle={vi.fn()}
       />,
     );
-    const input = screen.getByTestId('lettering-text-input');
-    expect(input).toHaveAttribute('readonly');
-    fireEvent.blur(input);
-    expect(onCommit).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('lettering-text-input')).toBeNull();
+  });
+
+  it('bóng tự do ở ngôn ngữ gốc vẫn có lettering-text-input', () => {
+    render(
+      <LetteringPropertyPanel
+        element={balloon({ scriptLineId: null })}
+        onCommitText={vi.fn()}
+        onChangeStyle={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('lettering-text-input')).toBeInTheDocument();
   });
 
   it('ngôn ngữ dịch: hiện chữ gốc tham chiếu, lưu bản dịch khi rời ô', () => {
@@ -207,6 +214,30 @@ describe('LetteringPropertyPanel – kiểu chữ & xóa', () => {
     );
 
     expect(screen.queryByTestId('lettering-font-shown')).toBeNull();
+    expect(screen.queryByTestId('lettering-fit-balloon')).toBeNull();
+  });
+
+  it('styleReadOnly disable lettering-property-shape, lettering-font-family, lettering-btn-bold và ẩn nút vừa khung', () => {
+    render(
+      <LetteringPropertyPanel
+        element={balloon({
+          width: 160,
+          height: 90,
+          elementType: 'SPEECH_BALLOON',
+          content:
+            'Đây là đoạn thoại rất dài vượt quá kích thước bóng thoại 160x90 khiến cỡ chữ bị tự thu nhỏ để vừa bóng',
+          scriptLineId: null,
+        })}
+        styleReadOnly={true}
+        onFitBalloon={vi.fn()}
+        onCommitText={vi.fn()}
+        onChangeStyle={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('lettering-property-shape')).toBeDisabled();
+    expect(screen.getByTestId('lettering-font-family')).toBeDisabled();
+    expect(screen.getByTestId('lettering-btn-bold')).toBeDisabled();
     expect(screen.queryByTestId('lettering-fit-balloon')).toBeNull();
   });
 });

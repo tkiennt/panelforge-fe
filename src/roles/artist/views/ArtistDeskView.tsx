@@ -3801,6 +3801,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 activeLang={activeLang}
                 originalLang={originalLang}
                 textReadOnly={isTranslationMode ? !isActiveEditionEditable : isPageReadOnly}
+                styleReadOnly={isPageReadOnly}
                 onCommitText={(text) => balloons.updateElementText(selectedBalloon.elementId, text)}
                 onSyncScriptText={() => balloons.syncElementText(selectedBalloon.elementId)}
                 onChangeStyle={(patch) =>
