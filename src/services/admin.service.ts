@@ -274,6 +274,20 @@ export interface AdminWorkspaceDto {
   memberCount: number;
   seriesCount: number;
   createdAt: string;
+  bankBin?: string | null;
+  bankName?: string | null;
+  bankAccountNo?: string | null;
+  bankAccountName?: string | null;
+}
+
+export interface AdminPaymentConfigDto {
+  webhookApiKeyConfigured: boolean;
+  webhookPath: string;
+  defaultBankBin: string;
+  defaultBankName: string;
+  defaultBankAccountNo: string;
+  defaultBankAccountName: string;
+  defaultBankIsPlaceholder: boolean;
 }
 
 export interface UpdateWorkspaceQuotaRequest {
@@ -660,6 +674,11 @@ export const adminService = {
         extractError(error, translate('errors.services.admin.updateSessionPolicyFailed')),
       );
     }
+  },
+
+  getPaymentConfig: async (): Promise<AdminPaymentConfigDto> => {
+    const response = await axiosClient.get('/Admin/payment-config');
+    return response.data;
   },
 
   getWorkspaces: async (): Promise<AdminWorkspaceDto[]> => {

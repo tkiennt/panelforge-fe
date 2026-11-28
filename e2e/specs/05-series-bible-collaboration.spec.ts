@@ -185,7 +185,8 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
         bibleEntryId: entityId,
         versionNumber: currentRevisions.length + 1,
         summary: payload.summary || 'Thêm thời kỳ mới',
-        stageName: payload.stageName || 'Timeskip',
+        stageName: payload.variantLabel || payload.stageName || 'Timeskip',
+        variantLabel: payload.variantLabel || null,
         effectiveFromChapterNumber: payload.effectiveFromChapterNumber || 15,
         effectiveToChapterNumber: payload.effectiveToChapterNumber || null,
         referenceImageUrl: payload.referenceImageUrl || '',
@@ -257,6 +258,7 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
     // Thiết lập local storage giả lập đã login
     await page.addInitScript(() => {
       localStorage.setItem('token', 'mock-writer-token');
+      localStorage.setItem('pf_remember_device', 'true');
       localStorage.setItem(
         'activeWorkspace',
         JSON.stringify({
@@ -280,7 +282,7 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
     await page.waitForLoadState('networkidle');
 
     // Click vào studio workspace để vào dự án
-    const enterStudioBtn = page.locator('button:has-text("Vào studio")').first();
+    const enterStudioBtn = page.locator('button:has-text("Vào Studio Hub")').first();
     await expect(enterStudioBtn).toBeVisible({ timeout: 10000 });
     await enterStudioBtn.click();
     await page.waitForLoadState('networkidle');
@@ -297,20 +299,20 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
     // Kiểm tra Workbench đã hiển thị
     await expect(page.locator('#bible-entity-title')).toContainText('Nami');
 
-    // 2. Writer thấy thông báo Model sheet đang chờ họa sĩ vẽ
-    await expect(page.locator('text=Chờ Họa sĩ tải lên bản vẽ')).toBeVisible();
+    // 2. Writer thấy bước 'Họa sĩ · Bản vẽ' đang chờ bản vẽ
+    await expect(page.getByText('Chờ bản vẽ').first()).toBeVisible();
 
-    // 3. Nhấp nút "+ Thêm Thời Kỳ Mới"
-    const addEraBtn = page.locator('button:has-text("+ Thêm Thời Kỳ Mới")');
+    // 3. Nhấp nút "Tạo biến thể mới"
+    const addEraBtn = page.getByTestId('add-new-variant-btn');
     await expect(addEraBtn).toBeVisible();
     await addEraBtn.click();
 
     // Modal xuất hiện, nhập liệu mượt mà không khựng
-    const stageInput = page.locator('[data-testid="revision-stage-name-input"]');
+    const stageInput = page.getByTestId('revision-variant-label-input');
     await expect(stageInput).toBeVisible();
     await stageInput.fill('Timeskip 2 năm');
 
-    const summaryInput = page.locator('input[placeholder*="Cập nhật trang phục"]');
+    const summaryInput = page.getByTestId('revision-summary-input');
     await summaryInput.fill('Nami sau timeskip 2 năm, tóc dài, vũ khí gậy thời tiết mới');
 
     // 4. Nhấp Lưu phiên bản / Gửi bản nháp
@@ -320,7 +322,7 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
     // 5. Xác nhận không bị văng ra ngoài Series Bible tổng, Workbench vẫn mở và hiển thị Tab Era mới
     await expect(page.locator('#bible-entity-title')).toContainText('Nami');
     await expect(
-      page.locator('[data-testid^="era-tab-"]').filter({ hasText: 'Timeskip 2 năm' }),
+      page.locator('[data-testid^="variant-tab-"]').filter({ hasText: 'Timeskip 2 năm' }),
     ).toBeVisible();
   });
 
@@ -346,6 +348,7 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
 
     await page.addInitScript(() => {
       localStorage.setItem('token', 'mock-writer-token');
+      localStorage.setItem('pf_remember_device', 'true');
       localStorage.setItem(
         'activeWorkspace',
         JSON.stringify({
@@ -359,7 +362,7 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
     await page.goto('/workspaces');
     await page.waitForLoadState('networkidle');
 
-    const enterStudioBtn = page.locator('button:has-text("Vào studio")').first();
+    const enterStudioBtn = page.locator('button:has-text("Vào Studio Hub")').first();
     await expect(enterStudioBtn).toBeVisible({ timeout: 10000 });
     await enterStudioBtn.click();
     await page.waitForLoadState('networkidle');
@@ -387,6 +390,6 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
 
     // Sau khi gửi Rework, Workbench không bị out, trạng thái cập nhật ReworkRequired
     await expect(page.locator('#bible-entity-title')).toContainText('Nami');
-    await expect(page.locator('text=Yêu cầu chỉnh sửa bản vẽ từ Writer')).toBeVisible();
+    await expect(page.locator('text=Yêu cầu chỉnh sửa bản vẽ')).toBeVisible();
   });
 });

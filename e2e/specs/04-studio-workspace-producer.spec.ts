@@ -55,7 +55,7 @@ test.describe('E2E: Studio Workspace & Producer Hub (CF1, BR-07, BR-22)', () => 
     page,
   }) => {
     // 1. Kiểm tra tiêu đề trang Workspace
-    await expect(page.locator('text=/Your Workspaces|Không Gian Làm Việc/i').first()).toBeVisible({
+    await expect(page.locator('text=/Your Studio Workspaces|Your Workspaces|Không gian Studio của bạn/i').first()).toBeVisible({
       timeout: 10000,
     });
 

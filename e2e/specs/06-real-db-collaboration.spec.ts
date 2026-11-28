@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('E2E Real Database: Series Bible Writer & Artist Collaboration', () => {
-  test.use({ baseURL: 'http://localhost:5174' });
-
   test('Giai đoạn 1 (Writer): Đăng nhập, mở Series Bible, thêm Thời Kỳ Mới và kiểm tra không văng', async ({
     page,
   }) => {
@@ -21,7 +19,7 @@ test.describe('E2E Real Database: Series Bible Writer & Artist Collaboration', (
 
     // 4. Vào Studio đầu tiên
     const enterStudioBtn = page
-      .locator('button:has-text("Vào studio"), a:has-text("Vào studio")')
+      .locator('button:has-text("Vào Studio Hub"), a:has-text("Vào Studio Hub")')
       .first();
     await expect(enterStudioBtn).toBeVisible({ timeout: 10000 });
     await enterStudioBtn.click();
@@ -94,7 +92,7 @@ test.describe('E2E Real Database: Series Bible Writer & Artist Collaboration', (
 
     // 4. Vào Studio đầu tiên
     const enterStudioBtn = page
-      .locator('button:has-text("Vào studio"), a:has-text("Vào studio")')
+      .locator('button:has-text("Vào Studio Hub"), a:has-text("Vào Studio Hub")')
       .first();
     await expect(enterStudioBtn).toBeVisible({ timeout: 10000 });
     await enterStudioBtn.click();
@@ -143,7 +141,7 @@ test.describe('E2E Real Database: Series Bible Writer & Artist Collaboration', (
     await page.waitForLoadState('networkidle');
 
     const enterStudioBtn = page
-      .locator('button:has-text("Vào studio"), a:has-text("Vào studio")')
+      .locator('button:has-text("Vào Studio Hub"), a:has-text("Vào Studio Hub")')
       .first();
     await expect(enterStudioBtn).toBeVisible({ timeout: 10000 });
     await enterStudioBtn.click();
