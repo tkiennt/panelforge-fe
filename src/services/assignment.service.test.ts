@@ -500,6 +500,33 @@ describe('assignmentService', () => {
   // ==========================================
   // Assignment Grid V3 (Lát cắt 2 & 2b)
   // ==========================================
+  it('requestStageTaskChanges gửi kèm vùng khoanh theo khung và lớp lỗi (REV-01)', async () => {
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({
+      data: { id: 't-1', status: 'ReworkRequired' },
+    });
+    const changes = [
+      {
+        description: 'Thoại tràn bóng',
+        regionJson: '{"x":0,"y":0,"w":0.1,"h":0.1}',
+        panelId: 'p-1',
+        layer: 'Lettering' as const,
+      },
+    ];
+    await assignmentService.requestStageTaskChanges(
+      'chap-1',
+      't-1',
+      'Xem vùng khoanh',
+      changes as any,
+    );
+    expect(axiosClient.post).toHaveBeenCalledWith(
+      '/chapters/chap-1/task-grid/tasks/t-1/request-changes',
+      {
+        comment: 'Xem vùng khoanh',
+        changes,
+      },
+    );
+  });
+
   it('requestStageTaskChanges (kèm comment), getStageTaskSubmissions, reopenStageTask, resolveStageTaskImpact và unassignStageTasks gọi đúng các route Lát cắt 2/2b', async () => {
     const mockTask = { id: 't-1', pipelineStageId: 'stg-1', status: 'ReworkRequired' };
     vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockTask });

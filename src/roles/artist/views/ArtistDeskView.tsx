@@ -22,6 +22,8 @@ import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
 import { PanelDto, ChangeRequestDto, AssetReferenceDto } from '@/types/pipeline';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
 import { useToast } from '@/shared/context/ToastContext';
+import { Button } from '@/shared/ui/Button';
+import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { detectPanelsFromSketchImage, cropImagesByBoundingBoxes } from '../lib/panelDetection';
 import {
@@ -1061,9 +1063,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return formatChapterLabel(activeChapter.chapterNumber, activeChapter.title);
   }, [activeChapter]);
 
+  // ART-03: cùng phạm vi với BE — dòng thoại của các phân cảnh có khung trên trang đang mở
+  // (dòng đã gắn khung ở trang khác vẫn tính là đã phủ). Trang chưa gắn phân cảnh nào thì xét cả chương.
   const scriptCoverage = useMemo(() => {
-    const dialogueLines = (rawScriptLines || initialScriptLines || []).filter((line) =>
-      Boolean(line.dialogueText?.trim()),
+    const pagePanels = selectedPage ? panelsByPageId[selectedPage.id] || [] : [];
+    const pageSceneIds = new Set(
+      pagePanels.map((p) => p.sceneId).filter((id): id is string => Boolean(id)),
+    );
+    const dialogueLines = (rawScriptLines || initialScriptLines || []).filter(
+      (line) =>
+        Boolean(line.dialogueText?.trim()) &&
+        (pageSceneIds.size === 0 || (line.sceneId ? pageSceneIds.has(line.sceneId) : false)),
     );
     const covered = dialogueLines.filter((line) => Boolean(line.panelId)).length;
     const total = dialogueLines.length;
@@ -1072,7 +1082,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       total,
       percent: total === 0 ? 100 : Math.round((covered / total) * 100),
     };
-  }, [rawScriptLines, initialScriptLines]);
+  }, [rawScriptLines, initialScriptLines, selectedPage, panelsByPageId]);
 
   const handleSelectChapter = useCallback(
     (chapId: string) => {
@@ -1377,6 +1387,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return seriesPath;
   }, [workspaceId, seriesId, currentChapterId, seriesPath]);
 
+  const normalizedDeskRole =
+    normalizeWorkspaceRole(workspaceRole) ||
+    (typeof window !== 'undefined'
+      ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
+      : null);
+  const isLettererRole = normalizedDeskRole === 'LETTERER';
   const withdrawableCell = useMemo(() => {
     if (!currentChapterId || gridTasks.length === 0) return null;
     const me = getStoredCurrentUserId();
@@ -1393,6 +1409,59 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         : undefined) || mySubmittedOnPage[mySubmittedOnPage.length - 1]
     );
   }, [currentChapterId, gridTasks, selectedPage, currentStage]);
+
+  // BR-27.1: ô Pencil (công đoạn vẽ đầu tiên) của mình ở trang này đã xong → cho tự quay lại sửa khi chưa có gì để rút
+  const rollbackablePencilCell = useMemo(() => {
+    if (!currentChapterId || !selectedPage || isLettererRole || withdrawableCell) return null;
+    // lưới trả công đoạn theo StageOrder
+    const firstArtStage = gridStages.find(
+      (s) => s.isEnabled !== false && String(s.allowedRole ?? '').toUpperCase() === 'ARTIST',
+    );
+    if (!firstArtStage) return null;
+    const me = getStoredCurrentUserId();
+    return (
+      gridTasks.find(
+        (t) =>
+          t.pipelineStageId === firstArtStage.id &&
+          t.pageId === selectedPage.id &&
+          t.status === 'Approved' &&
+          (me ? t.assigneeUserId === me : Boolean(t.assigneeUserId)),
+      ) ?? null
+    );
+  }, [currentChapterId, selectedPage, isLettererRole, withdrawableCell, gridStages, gridTasks]);
+  const [isRollbackDialogOpen, setIsRollbackDialogOpen] = useState(false);
+  const [rollbackReason, setRollbackReason] = useState('');
+  const [isRollingBack, setIsRollingBack] = useState(false);
+  const handleRollbackPencil = useCallback(async () => {
+    const reason = rollbackReason.trim();
+    if (!currentChapterId || !rollbackablePencilCell || !reason || isRollingBack) return;
+    setIsRollingBack(true);
+    try {
+      await assignmentService.rollbackToPencil(currentChapterId, rollbackablePencilCell.id, reason);
+      const refreshed = await assignmentService.getTaskGrid(currentChapterId).catch(() => null);
+      if (refreshed?.tasks) setGridTasks(refreshed.tasks.filter((t) => t.status !== 'Cancelled'));
+      const pencilIdx = artistStages.findIndex(
+        (s) => s.id === rollbackablePencilCell.pipelineStageId,
+      );
+      if (pencilIdx >= 0) setCurrentStageIndex(pencilIdx);
+      setIsStageFlowCompleted(false);
+      setRollbackReason('');
+      toast.success(t('artist.deskView.rollbackPencilSuccess'));
+    } catch (err: any) {
+      toast.error(err?.message || t('artist.deskView.rollbackPencilError'));
+    } finally {
+      setIsRollingBack(false);
+      setIsRollbackDialogOpen(false);
+    }
+  }, [
+    rollbackReason,
+    currentChapterId,
+    rollbackablePencilCell,
+    isRollingBack,
+    artistStages,
+    toast,
+    t,
+  ]);
 
   const handleWithdrawStage = useCallback(async () => {
     if (
@@ -1466,11 +1535,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       onSubmitStage: handleSubmitStage,
       submitButtonLabel: t('artist.deskView.submitButtonLabel'),
       showWithdrawButton: true,
-      onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
-      isWithdrawDisabled: !withdrawableCell,
+      onWithdrawStage: withdrawableCell
+        ? handleWithdrawStage
+        : rollbackablePencilCell
+          ? () => setIsRollbackDialogOpen(true)
+          : undefined,
+      isWithdrawDisabled: !withdrawableCell && !rollbackablePencilCell,
       withdrawDisabledReason: t('artist.deskView.withdrawDisabledTooltip'),
-      isWithdrawingStage,
-      withdrawButtonLabel: t('artist.deskView.withdrawButtonLabel'),
+      isWithdrawingStage: isWithdrawingStage || isRollingBack,
+      withdrawButtonLabel:
+        !withdrawableCell && rollbackablePencilCell
+          ? t('artist.deskView.rollbackPencilButton')
+          : t('artist.deskView.withdrawButtonLabel'),
       readerUrl:
         workspaceId && seriesId && currentChapterId
           ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${currentChapterId}/reader`
@@ -1493,6 +1569,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     withdrawableCell,
     handleWithdrawStage,
     isWithdrawingStage,
+    rollbackablePencilCell,
+    isRollingBack,
     workspaceId,
     seriesId,
   ]);
@@ -1882,6 +1960,29 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   }, [artworkUploadMode, currentPagePanels.length, handleArtworkUploadModeChange]);
 
+  // ART-06: khung có tranh vừa đổi dưới bóng thoại; người làm tranh/chữ xác nhận đã kiểm tra để gỡ cờ
+  const balloonCheckCount = useMemo(
+    () => currentPagePanels.filter((p) => p.balloonCheckRequired).length,
+    [currentPagePanels],
+  );
+  const [isAckingBalloonCheck, setIsAckingBalloonCheck] = useState(false);
+  const handleAcknowledgeBalloonCheck = useCallback(async () => {
+    if (!currentChapterId || !selectedPage || isAckingBalloonCheck) return;
+    const pageId = selectedPage.id;
+    setIsAckingBalloonCheck(true);
+    try {
+      await assignmentService.acknowledgeBalloonCheck(currentChapterId, pageId);
+      setPanelsByPageId((prev) => ({
+        ...prev,
+        [pageId]: (prev[pageId] || []).map((p) => ({ ...p, balloonCheckRequired: false })),
+      }));
+      toast.success(t('artist.deskView.balloonCheckAckSuccess'));
+    } catch (err: any) {
+      toast.error(err?.message || t('artist.deskView.balloonCheckAckError'));
+    } finally {
+      setIsAckingBalloonCheck(false);
+    }
+  }, [currentChapterId, selectedPage, isAckingBalloonCheck, toast, t]);
   const selectedPanelNumber = useMemo(() => {
     if (!selectedPanelId) return selectedPanelNumberOverride;
     const found = currentPagePanels.find((p) => p.id === selectedPanelId);
@@ -2705,12 +2806,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     );
     void balloons.moveElementTo(selectedBalloon.elementId, suggested.x, suggested.y);
   }, [selectedBalloon, selectedPage, currentPagePanels, keepOut.zones, isRTL, balloons]);
-  const normalizedDeskRole =
-    normalizeWorkspaceRole(workspaceRole) ||
-    (typeof window !== 'undefined'
-      ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
-      : null);
-  const isLettererRole = normalizedDeskRole === 'LETTERER';
   const currentVisualImpactCell = useMemo(() => {
     if (gridTasks.length === 0 || isLettererRole) return null;
     const me = getStoredCurrentUserId();
@@ -3010,11 +3105,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             onSubmitStage: handleSubmitStage,
             submitButtonLabel: t('artist.deskView.submitButtonLabel'),
             showWithdrawButton: true,
-            onWithdrawStage: withdrawableCell ? handleWithdrawStage : undefined,
-            isWithdrawDisabled: !withdrawableCell,
+            onWithdrawStage: withdrawableCell
+              ? handleWithdrawStage
+              : rollbackablePencilCell
+                ? () => setIsRollbackDialogOpen(true)
+                : undefined,
+            isWithdrawDisabled: !withdrawableCell && !rollbackablePencilCell,
             withdrawDisabledReason: t('artist.deskView.withdrawDisabledTooltip'),
-            isWithdrawingStage,
-            withdrawButtonLabel: t('artist.deskView.withdrawButtonLabel'),
+            isWithdrawingStage: isWithdrawingStage || isRollingBack,
+            withdrawButtonLabel:
+              !withdrawableCell && rollbackablePencilCell
+                ? t('artist.deskView.rollbackPencilButton')
+                : t('artist.deskView.withdrawButtonLabel'),
             readerUrl:
               workspaceId && seriesId && currentChapterId
                 ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${currentChapterId}/reader`
@@ -3048,6 +3150,27 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             {currentVisualImpactCell.outdatedReason ||
               'Nội dung hình ảnh của trang này đã được cập nhật khi chốt lại kịch bản.'}
           </span>
+        </div>
+      )}
+
+      {balloonCheckCount > 0 && (
+        <div
+          data-testid='balloon-check-banner'
+          role='status'
+          className='shrink-0 border-b border-orange-200 bg-orange-50 px-4 py-2 text-xs font-medium text-orange-900 flex items-center gap-2'
+        >
+          <AlertTriangle className='w-4 h-4 text-orange-600 shrink-0' aria-hidden='true' />
+          <span className='flex-1'>
+            {t('artist.deskView.balloonCheckBanner', { count: balloonCheckCount })}
+          </span>
+          <Button
+            size='sm'
+            data-testid='balloon-check-ack'
+            onClick={handleAcknowledgeBalloonCheck}
+            disabled={isAckingBalloonCheck}
+          >
+            {t('artist.deskView.balloonCheckAck')}
+          </Button>
         </div>
       )}
 
@@ -3474,6 +3597,31 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           />
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={isRollbackDialogOpen}
+        title={t('artist.deskView.rollbackPencilTitle')}
+        confirmLabel={t('artist.deskView.rollbackPencilButton')}
+        cancelLabel={t('common.actions.cancel', 'Hủy')}
+        closeLabel={t('common.actions.close', 'Close')}
+        confirmDisabled={!rollbackReason.trim() || isRollingBack}
+        onConfirm={() => void handleRollbackPencil()}
+        onCancel={() => {
+          setIsRollbackDialogOpen(false);
+          setRollbackReason('');
+        }}
+      >
+        <label className='block text-xs font-medium text-stone-700'>
+          {t('artist.deskView.rollbackPencilReasonLabel')}
+          <textarea
+            data-testid='rollback-pencil-reason'
+            value={rollbackReason}
+            onChange={(e) => setRollbackReason(e.target.value)}
+            rows={3}
+            className='mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-[#F97316] focus:outline-none'
+          />
+        </label>
+      </ConfirmDialog>
 
       {previewArtwork && (
         <ArtworkPreviewDialog

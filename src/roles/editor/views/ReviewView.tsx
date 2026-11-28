@@ -542,6 +542,22 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     run(
       'return',
       async () => {
+        // REV-01: mỗi vùng khoanh thành một phiếu sửa cho từng khung nó chạm (chung nhóm), đúng lớp Tranh/Chữ
+        const draftChanges =
+          drafts.length > 0
+            ? drafts.flatMap((d) => {
+                const panelIds = d.panelIds.length > 0 ? d.panelIds : [undefined];
+                const groupId = panelIds.length > 1 ? newDraftId() : undefined;
+                return panelIds.map((panelId) => ({
+                  description: d.text.trim() || summary.trim(),
+                  regionJson: JSON.stringify(d.box),
+                  assetReferenceId: d.assetReferenceId,
+                  panelId,
+                  groupId,
+                  layer: d.layer,
+                }));
+              })
+            : undefined;
         if (langParam) {
           // BR-34: Editor trả bản dịch ấn bản kèm yêu cầu sửa
           await chapterEditionService.reviewEdition(chapterId, langParam, {
@@ -560,6 +576,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             chapterId,
             taskId,
             commentText,
+            draftChanges,
           );
           decisionMadeRef.current = true;
           heldReviewLockRef.current = false;
@@ -597,21 +614,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           await assignmentService.requestChanges(chapterId, taskId, {
             comment: summary.trim(),
             expectedSubmissionId: pendingSub?.id,
-            changes:
-              drafts.length > 0
-                ? drafts.flatMap((d) => {
-                    const panelIds = d.panelIds.length > 0 ? d.panelIds : [undefined];
-                    const groupId = panelIds.length > 1 ? newDraftId() : undefined;
-                    return panelIds.map((panelId) => ({
-                      description: d.text.trim(),
-                      regionJson: JSON.stringify(d.box),
-                      assetReferenceId: d.assetReferenceId,
-                      panelId,
-                      groupId,
-                      layer: d.layer,
-                    }));
-                  })
-                : undefined,
+            changes: draftChanges,
           });
         }
         updateDrafts([]);

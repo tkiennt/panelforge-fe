@@ -481,6 +481,8 @@ export interface PanelDto {
   version?: number;
   /** V1.2 / SCR-07: Mô tả hướng vẽ / chỉ dẫn hình ảnh của Panel */
   direction?: string | null;
+  /** ART-06: tranh dưới bóng thoại vừa đổi, cần kiểm tra lại vị trí bóng (⚠️ Check Balloon Fit). */
+  balloonCheckRequired?: boolean;
 }
 
 export interface PanelDetailDto extends PanelDto {

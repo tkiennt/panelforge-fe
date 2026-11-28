@@ -841,6 +841,27 @@ export const assignmentService = {
   // Assignment Grid V3 (StageTask × StageTaskLot)
   // ==========================================
 
+  /** ART-06: gỡ cờ Check Balloon Fit của trang (POST /api/chapters/{chapterId}/task-grid/pages/{pageId}/balloon-check/ack) */
+  acknowledgeBalloonCheck: async (
+    chapterId: string,
+    pageId: string,
+    panelId?: string,
+  ): Promise<{ cleared: number }> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/task-grid/pages/${pageId}/balloon-check/ack`,
+        { panelId: panelId ?? null },
+      );
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(
+        extractError(error, translate('artist.deskView.balloonCheckAckError')),
+      );
+      err.status = error?.response?.status;
+      throw err;
+    }
+  },
+
   /** Lấy lưới giao việc V3 của chương (GET /api/chapters/{chapterId}/task-grid) */
   getTaskGrid: async (chapterId: string): Promise<TaskGridDto> => {
     try {
@@ -1075,11 +1096,12 @@ export const assignmentService = {
     chapterId: string,
     taskId: string,
     comment: string,
+    changes?: ChangeRequestItemRequest[],
   ): Promise<StageTaskDto> => {
     try {
       const response = await axiosClient.post(
         `/chapters/${chapterId}/task-grid/tasks/${taskId}/request-changes`,
-        { comment },
+        changes?.length ? { comment, changes } : { comment },
       );
       return response.data;
     } catch (error: any) {
@@ -1133,6 +1155,27 @@ export const assignmentService = {
       err.status = error?.response?.status;
       err.code = error?.response?.data?.code;
       err.data = error?.response?.data;
+      throw err;
+    }
+  },
+
+  /** BR-27.1: Artist giữ ô Pencil tự quay lại sửa khi trang chưa vào duyệt (POST .../task-grid/tasks/{taskId}/rollback-to-pencil) */
+  rollbackToPencil: async (
+    chapterId: string,
+    taskId: string,
+    reason: string,
+  ): Promise<ReopenStageTaskResultDto> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/task-grid/tasks/${taskId}/rollback-to-pencil`,
+        { reason },
+      );
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(
+        extractError(error, translate('artist.deskView.rollbackPencilError')),
+      );
+      err.status = error?.response?.status;
       throw err;
     }
   },
