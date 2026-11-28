@@ -6,6 +6,7 @@ import {
   Cpu,
   Database,
   HardDrive,
+  Mail,
   RefreshCw,
   XCircle,
 } from 'lucide-react';
@@ -41,6 +42,7 @@ const DEP_ICON: Record<DependencyKey, React.FC<{ className?: string }>> = {
   database: Database,
   storage: HardDrive,
   ai: Cpu,
+  email: Mail,
 };
 
 /** Một việc nền kẹt hay lỗi thì Admin mở màn nào để xử lý. */
@@ -48,6 +50,7 @@ const SIGNAL_TARGET: Partial<Record<SignalKey, Record<string, string>>> = {
   aiCallsFailed24h: { tab: 'ai-config' },
   aiRunsFailed24h: { tab: 'ai-config' },
   aiRunsStuck: { tab: 'ai-config' },
+  emailsFailed24h: { tab: 'email-settings' },
   pendingQuotaRequests: { tab: 'resources', view: 'requests' },
 };
 
@@ -63,7 +66,7 @@ export const HealthStatusBadge: React.FC<{ status: HealthStatus }> = ({ status }
 };
 
 /**
- * Admin → System Health (OPS-32): gọi thử DB, kho file, service AI và đếm việc nền bị kẹt / lỗi.
+ * Admin → System Health (OPS-32): gọi thử DB, kho file, service AI, xem cấu hình email và đếm việc nền bị kẹt / lỗi.
  * Mỗi lần mở trang hoặc bấm "Kiểm tra lại" là một lần đo thật; tự làm mới mỗi phút khi đang mở.
  */
 export const SystemHealthView: React.FC<{
@@ -127,7 +130,7 @@ export const SystemHealthView: React.FC<{
             )}
           </div>
 
-          <div className='grid gap-4 grid-cols-1 md:grid-cols-3'>
+          <div className='grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4'>
             {data.dependencies.map((d) => {
               const Icon = DEP_ICON[d.key] ?? Database;
               return (
@@ -162,8 +165,20 @@ export const SystemHealthView: React.FC<{
                   </dl>
                   {d.reason && (
                     <p className='mt-3 text-sm text-admin-ink'>
-                      {t(`admin.health.reason.${d.reason}`)}
+                      {d.key === 'email'
+                        ? t(`admin.emailSettings.reason.${d.reason}`)
+                        : t(`admin.health.reason.${d.reason}`)}
                     </p>
+                  )}
+                  {d.key === 'email' && (
+                    <AdminButton
+                      size='sm'
+                      variant='secondary'
+                      className='mt-3'
+                      onClick={() => onNavigate({ tab: 'email-settings' })}
+                    >
+                      {t('admin.health.openEmailSettings')}
+                    </AdminButton>
                   )}
                 </AdminCard>
               );

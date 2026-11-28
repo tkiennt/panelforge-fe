@@ -771,7 +771,7 @@
   },
   "health": {
     "title": "System health",
-    "description": "Probes the database, file storage and AI service, plus background work that is stuck or failing. Rechecks every minute while open.",
+    "description": "Probes the database, file storage and AI service, checks the email setup, plus background work that is stuck or failing. Rechecks every minute while open.",
     "recheck": "Recheck",
     "checkedAt": "Checked {time}",
     "startedAt": "Server up since {time}",
@@ -784,7 +784,8 @@
     "dependency": {
       "database": "Database",
       "storage": "File storage",
-      "ai": "AI service"
+      "ai": "AI service",
+      "email": "Email delivery"
     },
     "latency": "Response time",
     "queueDepth": "Queued jobs",
@@ -815,6 +816,10 @@
         "label": "AI calls failed in 24h",
         "hint": "Provider error or no response. Quota limits are not counted."
       },
+      "emailsFailed24h": {
+        "label": "Emails failed in the last 24 hours",
+        "hint": "OTP, password reset or Studio invitation emails did not reach the recipient."
+      },
       "exportsStuck": {
         "label": "Stuck exports",
         "hint": "Queued or rendering for over 30 minutes."
@@ -831,7 +836,8 @@
         "label": "Quota requests awaiting review",
         "hint": "Warns when one waits over 3 days."
       }
-    }
+    },
+    "openEmailSettings": "Open email settings"
   },
   "studioPackage": {
     "title": "Studio package",
@@ -873,6 +879,55 @@
       "senderName": "Enter a sender name.",
       "senderEmail": "Sender email is not valid.",
       "passwordRequired": "Enter the SMTP password for the first setup."
+    },
+    "testFailedTitle": "Test email could not be sent",
+    "smtpReply": "SMTP server reply:",
+    "reason": {
+      "NOT_CONFIGURED": "No sender email and SMTP password are configured.",
+      "PASSWORD_UNREADABLE": "The saved SMTP password cannot be decrypted (the server encryption key changed). Enter the app password again.",
+      "AUTH_FAILED": "The SMTP server rejected the login. Check the sender email and app password (Gmail needs an App Password, not the account password).",
+      "CONNECTION_FAILED": "Cannot connect to the SMTP server. Check the host name and port (Gmail: smtp.gmail.com port 587).",
+      "TLS_FAILED": "Secure TLS connection failed. This port may not support STARTTLS; use port 587 for Gmail.",
+      "TIMEOUT": "The SMTP server did not respond in time. Check the port and the server firewall.",
+      "SENDER_REJECTED": "The SMTP server rejected the sender address. The sender email must match the SMTP login account.",
+      "RECIPIENT_REJECTED": "The SMTP server rejected the recipient address.",
+      "INVALID_ADDRESS": "The sender or recipient email address is invalid.",
+      "SMTP_ERROR": "The SMTP server returned another error, see the reply below.",
+      "UNREACHABLE": "Could not check the email configuration."
+    }
+  },
+  "emailLogs": {
+    "title": "Email delivery log",
+    "description": "Every OTP, password reset, Studio invitation or test email the system sends. Mail bodies are not stored.",
+    "failed24h": "{count} failed in the last 24 hours",
+    "filterResult": "Filter by result",
+    "filterType": "Filter by mail type",
+    "resultAll": "All results",
+    "resultFailed": "Failed only",
+    "resultSent": "Sent only",
+    "typeAll": "All mail types",
+    "searchLabel": "Search by recipient email",
+    "searchPlaceholder": "Recipient email",
+    "colTime": "Time",
+    "colRecipient": "Recipient",
+    "colType": "Mail type",
+    "colResult": "Result",
+    "colReason": "Failure reason",
+    "loading": "Loading log…",
+    "retry": "Retry",
+    "empty": "No emails have been sent yet.",
+    "noResults": "No emails match the filters.",
+    "sent": "Sent",
+    "failed": "Failed",
+    "unit": "emails",
+    "type": {
+      "VERIFICATION": "Account verification",
+      "PASSWORD_RESET": "Password reset",
+      "CHANGE_PASSWORD_OTP": "Change password OTP",
+      "WORKSPACE_INVITATION": "Studio invitation (new account)",
+      "WORKSPACE_ADDED": "Added to Studio",
+      "TEST": "Test email",
+      "OTHER": "Other"
     }
   }
 }

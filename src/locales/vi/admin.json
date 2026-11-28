@@ -771,7 +771,7 @@
   },
   "health": {
     "title": "Tình trạng hệ thống",
-    "description": "Gọi thử cơ sở dữ liệu, kho file và dịch vụ AI, kèm các việc nền đang kẹt hoặc lỗi. Tự kiểm tra lại mỗi phút khi đang mở.",
+    "description": "Gọi thử cơ sở dữ liệu, kho file, dịch vụ AI và xem cấu hình email, kèm các việc nền đang kẹt hoặc lỗi. Tự kiểm tra lại mỗi phút khi đang mở.",
     "recheck": "Kiểm tra lại",
     "checkedAt": "Kiểm tra lúc {time}",
     "startedAt": "Máy chủ chạy từ {time}",
@@ -784,7 +784,8 @@
     "dependency": {
       "database": "Cơ sở dữ liệu",
       "storage": "Kho file",
-      "ai": "Dịch vụ AI"
+      "ai": "Dịch vụ AI",
+      "email": "Gửi email"
     },
     "latency": "Thời gian phản hồi",
     "queueDepth": "Việc trong hàng đợi",
@@ -815,6 +816,10 @@
         "label": "Lượt gọi AI lỗi trong 24 giờ",
         "hint": "Nhà cung cấp lỗi hoặc không phản hồi. Không tính hết hạn mức."
       },
+      "emailsFailed24h": {
+        "label": "Email gửi lỗi trong 24 giờ",
+        "hint": "OTP, đặt lại mật khẩu hoặc lời mời Studio không tới được người nhận."
+      },
       "exportsStuck": {
         "label": "Xuất file bị kẹt",
         "hint": "Đang chờ hoặc đang dựng quá 30 phút."
@@ -831,7 +836,8 @@
         "label": "Yêu cầu tăng hạn mức chờ duyệt",
         "hint": "Cảnh báo khi có yêu cầu chờ quá 3 ngày."
       }
-    }
+    },
+    "openEmailSettings": "Mở cấu hình email"
   },
   "studioPackage": {
     "title": "Gói mở Studio",
@@ -873,6 +879,55 @@
       "senderName": "Nhập tên người gửi.",
       "senderEmail": "Email gửi đi không hợp lệ.",
       "passwordRequired": "Nhập mật khẩu SMTP cho lần cấu hình đầu tiên."
+    },
+    "testFailedTitle": "Không gửi được email thử",
+    "smtpReply": "Phản hồi của máy chủ SMTP:",
+    "reason": {
+      "NOT_CONFIGURED": "Chưa cấu hình email gửi đi và mật khẩu SMTP.",
+      "PASSWORD_UNREADABLE": "Không đọc được mật khẩu SMTP đã lưu (khoá mã hoá của máy chủ đã đổi). Hãy nhập lại mật khẩu ứng dụng.",
+      "AUTH_FAILED": "Máy chủ SMTP từ chối đăng nhập. Kiểm tra email gửi đi và mật khẩu ứng dụng (Gmail cần App Password, không dùng mật khẩu thường).",
+      "CONNECTION_FAILED": "Không kết nối được máy chủ SMTP. Kiểm tra tên máy chủ và cổng (Gmail: smtp.gmail.com cổng 587).",
+      "TLS_FAILED": "Lỗi kết nối bảo mật TLS. Cổng này có thể không hỗ trợ STARTTLS; với Gmail dùng cổng 587.",
+      "TIMEOUT": "Máy chủ SMTP không phản hồi kịp. Kiểm tra cổng và tường lửa của máy chủ.",
+      "SENDER_REJECTED": "Máy chủ SMTP từ chối địa chỉ gửi đi. Email gửi đi phải trùng tài khoản đăng nhập SMTP.",
+      "RECIPIENT_REJECTED": "Máy chủ SMTP từ chối địa chỉ nhận.",
+      "INVALID_ADDRESS": "Địa chỉ email gửi đi hoặc nhận không hợp lệ.",
+      "SMTP_ERROR": "Máy chủ SMTP báo lỗi khác, xem phản hồi bên dưới.",
+      "UNREACHABLE": "Không kiểm tra được cấu hình email."
+    }
+  },
+  "emailLogs": {
+    "title": "Nhật ký gửi email",
+    "description": "Mỗi lần hệ thống gửi OTP, đặt lại mật khẩu, lời mời Studio hay email thử. Nội dung thư không được lưu.",
+    "failed24h": "{count} thư lỗi trong 24 giờ",
+    "filterResult": "Lọc theo kết quả",
+    "filterType": "Lọc theo loại thư",
+    "resultAll": "Mọi kết quả",
+    "resultFailed": "Chỉ thư lỗi",
+    "resultSent": "Chỉ thư đã gửi",
+    "typeAll": "Mọi loại thư",
+    "searchLabel": "Tìm theo email người nhận",
+    "searchPlaceholder": "Email người nhận",
+    "colTime": "Thời gian",
+    "colRecipient": "Người nhận",
+    "colType": "Loại thư",
+    "colResult": "Kết quả",
+    "colReason": "Lý do lỗi",
+    "loading": "Đang tải nhật ký…",
+    "retry": "Thử lại",
+    "empty": "Chưa có email nào được gửi.",
+    "noResults": "Không có thư khớp bộ lọc.",
+    "sent": "Đã gửi",
+    "failed": "Lỗi",
+    "unit": "thư",
+    "type": {
+      "VERIFICATION": "Xác thực tài khoản",
+      "PASSWORD_RESET": "Đặt lại mật khẩu",
+      "CHANGE_PASSWORD_OTP": "OTP đổi mật khẩu",
+      "WORKSPACE_INVITATION": "Lời mời Studio (tài khoản mới)",
+      "WORKSPACE_ADDED": "Thêm vào Studio",
+      "TEST": "Email thử",
+      "OTHER": "Khác"
     }
   }
 }

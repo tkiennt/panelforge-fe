@@ -303,6 +303,83 @@ export interface AdminEmailSettingsDto {
   changedByName: string | null;
 }
 
+/** Mã lỗi gửi mail của Backend (EmailFailureReasons). */
+export type EmailFailureReason =
+  | 'NOT_CONFIGURED'
+  | 'PASSWORD_UNREADABLE'
+  | 'AUTH_FAILED'
+  | 'CONNECTION_FAILED'
+  | 'TLS_FAILED'
+  | 'TIMEOUT'
+  | 'SENDER_REJECTED'
+  | 'RECIPIENT_REJECTED'
+  | 'INVALID_ADDRESS'
+  | 'SMTP_ERROR';
+
+/** Loại thư hệ thống gửi (EmailMailTypes). */
+export type EmailMailType =
+  | 'VERIFICATION'
+  | 'PASSWORD_RESET'
+  | 'CHANGE_PASSWORD_OTP'
+  | 'WORKSPACE_INVITATION'
+  | 'WORKSPACE_ADDED'
+  | 'TEST'
+  | 'OTHER';
+
+/** TanStack Query key gốc của nhật ký gửi email; gửi thử xong thì làm mới. */
+export const EMAIL_LOGS_QUERY_KEY = ['adminEmailLogs'];
+
+export const EMAIL_MAIL_TYPES: EmailMailType[] = [
+  'VERIFICATION',
+  'PASSWORD_RESET',
+  'CHANGE_PASSWORD_OTP',
+  'WORKSPACE_INVITATION',
+  'WORKSPACE_ADDED',
+  'TEST',
+  'OTHER',
+];
+
+/** Gửi email thử thất bại: `detail` là thông báo gốc của máy chủ SMTP. */
+export class EmailDeliveryError extends Error {
+  constructor(
+    message: string,
+    public readonly reason: EmailFailureReason,
+    public readonly detail: string | null,
+  ) {
+    super(message);
+    this.name = 'EmailDeliveryError';
+  }
+}
+
+export interface EmailDeliveryLogDto {
+  id: string;
+  createdAt: string;
+  toEmail: string;
+  mailType: EmailMailType;
+  subject: string;
+  succeeded: boolean;
+  failureReason: EmailFailureReason | null;
+  errorDetail: string | null;
+  smtpServer: string | null;
+  smtpPort: number | null;
+}
+
+export interface EmailDeliveryLogsPageDto {
+  items: EmailDeliveryLogDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  failedLast24h: number;
+}
+
+export interface EmailLogsQuery {
+  succeeded?: boolean;
+  mailType?: EmailMailType;
+  search?: string;
+  page: number;
+  pageSize: number;
+}
+
 /** `password` để trống = giữ mật khẩu đã lưu (bắt buộc ở lần lưu đầu). */
 export interface UpdateEmailSettingsRequest {
   smtpServer: string;
@@ -745,13 +822,31 @@ export const adminService = {
     }
   },
 
-  /** POST /api/admin/email-settings/test — gửi email thử tới chính Admin; 503 khi SMTP không gửi được. */
+  /**
+   * POST /api/admin/email-settings/test — gửi email thử tới chính Admin.
+   * 503 khi SMTP không gửi được: ném {@link EmailDeliveryError} kèm mã lý do và thông báo gốc của SMTP.
+   */
   sendTestEmail: async (): Promise<{ sentTo: string }> => {
     try {
       const { data } = await axiosClient.post('/admin/email-settings/test');
       return data;
     } catch (error: any) {
-      throw new Error(extractError(error, translate('errors.services.admin.emailTestFailed')));
+      const message = extractError(error, translate('errors.services.admin.emailTestFailed'));
+      const details = error.response?.data?.details;
+      if (details?.reason) {
+        throw new EmailDeliveryError(message, details.reason, details.detail ?? null);
+      }
+      throw new Error(message);
+    }
+  },
+
+  /** GET /api/admin/email-logs — nhật ký gửi email, mới nhất trước. */
+  getEmailLogs: async (params: EmailLogsQuery): Promise<EmailDeliveryLogsPageDto> => {
+    try {
+      const { data } = await axiosClient.get('/admin/email-logs', { params });
+      return data;
+    } catch (error: any) {
+      throw new Error(extractError(error, translate('errors.services.admin.emailLogsLoadFailed')));
     }
   },
 

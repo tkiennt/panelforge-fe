@@ -2,7 +2,7 @@
 // PanelForge.Application/Features/Admin/Models/AdminDetailDtos.cs; enum gửi dạng chuỗi.
 import axiosClient from '../api/axiosClient';
 import { getApiErrorMessage } from '@/lib/api-error';
-import type { AuditLogDto } from './admin.service';
+import type { AuditLogDto, EmailFailureReason } from './admin.service';
 import type { AdminWorkspaceResourceDto, QuotaIncreaseRequestDto } from './quota.service';
 
 export type WorkspaceRoleName =
@@ -92,12 +92,15 @@ export interface AdminWorkspaceDetailDto {
 }
 
 export type HealthStatus = 'Healthy' | 'Degraded' | 'Down';
-export type DependencyKey = 'database' | 'storage' | 'ai';
-export type DependencyReason = 'SLOW' | 'TIMEOUT' | 'UNREACHABLE' | 'SERVICE_KEY_MISSING';
+export type DependencyKey = 'database' | 'storage' | 'ai' | 'email';
+/** Dòng `email` dùng mã EmailFailureReasons của Backend (xem admin.service). */
+export type DependencyReason =
+  'SLOW' | 'TIMEOUT' | 'UNREACHABLE' | 'SERVICE_KEY_MISSING' | EmailFailureReason;
 export type SignalKey =
   | 'aiRunsStuck'
   | 'aiRunsFailed24h'
   | 'aiCallsFailed24h'
+  | 'emailsFailed24h'
   | 'exportsStuck'
   | 'exportsFailed24h'
   | 'pendingTopUps'
