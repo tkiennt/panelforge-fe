@@ -428,7 +428,9 @@ export function parseScriptTextToBlocks(
     }
 
     // Hội thoại bắt đầu bằng gạch đầu dòng (vd: - "Chúng ta phải đi thôi!") hoặc ngoặc kép đứng riêng
-    const quoteDialogueMatch = trimmed.match(/^(?:[-–—]\s*)?["“]([^"”]+)["”](?:\s*[-–—]\s*(.+))?$/u);
+    const quoteDialogueMatch = trimmed.match(
+      /^(?:[-–—]\s*)?["“]([^"”]+)["”](?:\s*[-–—]\s*(.+))?$/u,
+    );
     if (quoteDialogueMatch) {
       const speech = quoteDialogueMatch[1].trim();
       const narrationOrAttribution = quoteDialogueMatch[2]?.trim();

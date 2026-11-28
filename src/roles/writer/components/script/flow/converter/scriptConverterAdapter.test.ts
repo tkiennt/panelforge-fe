@@ -298,15 +298,23 @@ LANCELOT: "Hand it over, Arthur! There is nowhere left to run!"
     expect(captions.some((c) => c.content.includes('In a city that never sleeps'))).toBe(true);
 
     const dialogues = blocks.filter((b) => b.type === 'dialogue');
-    expect(dialogues.some((d) => d.character === 'NARRATOR' || d.character === 'Location')).toBe(false);
+    expect(dialogues.some((d) => d.character === 'NARRATOR' || d.character === 'Location')).toBe(
+      false,
+    );
 
     // Thoại của Arthur và Lancelot
-    expect(dialogues.some((d) => d.character === 'Arthur' && d.content.includes('intact'))).toBe(true);
-    const thinkingDialogue = dialogues.find((d) => d.character === 'ARTHUR' && d.parens === 'THINKING');
+    expect(dialogues.some((d) => d.character === 'Arthur' && d.content.includes('intact'))).toBe(
+      true,
+    );
+    const thinkingDialogue = dialogues.find(
+      (d) => d.character === 'ARTHUR' && d.parens === 'THINKING',
+    );
     expect(thinkingDialogue).toBeDefined();
     expect(thinkingDialogue?.content).toContain('They have no idea');
 
-    expect(dialogues.some((d) => d.character === 'LANCELOT' && d.content.includes('Hand it over'))).toBe(true);
+    expect(
+      dialogues.some((d) => d.character === 'LANCELOT' && d.content.includes('Hand it over')),
+    ).toBe(true);
 
     // SFX
     const sfxBlock = blocks.find((b) => b.type === 'sfx');
@@ -331,7 +339,9 @@ Rain keeps falling.
     expect(actions.some((a) => a.content.includes('EXT. STREET - CONTINUOUS'))).toBe(true);
 
     const captions = blocks.filter((b) => b.type === 'caption');
-    expect(captions.some((c) => c.content.includes('The drop was supposed to be simple'))).toBe(true);
+    expect(captions.some((c) => c.content.includes('The drop was supposed to be simple'))).toBe(
+      true,
+    );
 
     const dialogues = blocks.filter((b) => b.type === 'dialogue');
     expect(dialogues).toHaveLength(1);

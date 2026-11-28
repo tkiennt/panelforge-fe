@@ -628,7 +628,10 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
                                 );
                               }
                             }}
-                            title={t('chapterSelection.readChapterTooltip', 'Đọc thử toàn bộ chương')}
+                            title={t(
+                              'chapterSelection.readChapterTooltip',
+                              'Đọc thử toàn bộ chương',
+                            )}
                             className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-orange-300 text-stone-700 text-xs font-semibold transition-colors cursor-pointer shadow-2xs'
                           >
                             <BookOpen className='w-3.5 h-3.5 text-orange-600' />

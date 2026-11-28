@@ -755,7 +755,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                     aria-expanded={!isCollapsed}
                     aria-controls={SIDEBAR_ID}
                     data-testid='sidebar-rail-toggle-btn'
-                    className='pf-sb-action p-1 rounded-md transition-colors cursor-pointer'
+                    className='pf-sb-action w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer'
                   >
                     <PanelLeftClose className='w-4 h-4' />
                   </button>
@@ -801,7 +801,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                   {t('navigation.sidebar.activeSeriesLabel', 'BỘ TRUYỆN ĐANG MỞ')}
                 </span>
                 {displayChapterNum && (
-                  <span className='px-2 py-0.5 rounded text-xs font-medium bg-[#EA580C] text-white shrink-0 tabular-nums'>
+                  <span className='px-2 py-0.5 rounded text-xs font-medium bg-[#EA580C] text-white shrink-0 whitespace-nowrap tabular-nums'>
                     {`${t('navigation.breadcrumbs.chapters')} ${displayChapterNum}`}
                   </span>
                 )}

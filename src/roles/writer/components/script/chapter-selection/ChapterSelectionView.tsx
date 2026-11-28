@@ -684,7 +684,10 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                           e.stopPropagation();
                           onReadChapter(chapter);
                         }}
-                        title={t('chapterSelectionView.readChapterTooltip', 'Đọc thử trang tranh cả chương')}
+                        title={t(
+                          'chapterSelectionView.readChapterTooltip',
+                          'Đọc thử trang tranh cả chương',
+                        )}
                         className='inline-flex items-center gap-1 px-2.5 py-1 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-orange-300 text-stone-700 text-xs font-semibold transition-all duration-150 cursor-pointer shadow-2xs'
                       >
                         <BookOpen className='w-3.5 h-3.5 text-orange-600' />
@@ -784,7 +787,10 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
                               e.stopPropagation();
                               onReadChapter(chapter);
                             }}
-                            title={t('chapterSelectionView.readChapterTooltip', 'Đọc thử trang tranh cả chương')}
+                            title={t(
+                              'chapterSelectionView.readChapterTooltip',
+                              'Đọc thử trang tranh cả chương',
+                            )}
                             className='inline-flex items-center gap-1 px-2.5 py-1 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-orange-300 text-stone-700 text-xs font-semibold transition-colors cursor-pointer shadow-2xs'
                           >
                             <BookOpen className='w-3.5 h-3.5 text-orange-600' />
