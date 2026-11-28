@@ -43,6 +43,9 @@ export interface SeriesReaderViewProps {
   onShowToast: (title: string, desc: string) => void;
 }
 
+/** Khớp breakpoint `xl` của Tailwind: từ đây cột góp ý bên phải luôn hiện. */
+const WIDE_QUERY = '(min-width: 1280px)';
+
 const PIN_COLOR_CLASS: Record<PageCommentStatus, string> = {
   Open: 'bg-orange-500 text-white border-white',
   Resolved: 'bg-stone-500 text-white border-white',
@@ -85,6 +88,21 @@ export const SeriesReaderView: React.FC<SeriesReaderViewProps> = ({
   const [showEmptyChapters, setShowEmptyChapters] = useState(false);
   const [pinMode, setPinMode] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // >= xl đã có cột góp ý bên phải; Drawer (dialog modal, class xl:hidden) chỉ dùng cho màn hẹp.
+  // Mở Drawer ở màn rộng sẽ chỉ còn lớp nền xám vì panel của nó bị ẩn.
+  const [isWide, setIsWide] = useState(
+    () => typeof window !== 'undefined' && !!window.matchMedia?.(WIDE_QUERY).matches,
+  );
+  useEffect(() => {
+    const mq = typeof window !== 'undefined' ? window.matchMedia?.(WIDE_QUERY) : undefined;
+    if (!mq) return;
+    const onChange = () => setIsWide(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  const openCommentPanel = () => {
+    if (!isWide) setDrawerOpen(true);
+  };
   const [commentStatusFilter, setCommentStatusFilter] = useState<PageCommentStatus>('Open');
   const [commentScopeFilter, setCommentScopeFilter] = useState<CommentScopeFilter>('series');
 
@@ -358,7 +376,7 @@ export const SeriesReaderView: React.FC<SeriesReaderViewProps> = ({
       pinX: Number(pinX.toFixed(4)),
       pinY: Number(pinY.toFixed(4)),
     });
-    setDrawerOpen(true);
+    openCommentPanel();
     setTimeout(() => textareaRef.current?.focus(), 60);
   };
 
@@ -804,7 +822,7 @@ export const SeriesReaderView: React.FC<SeriesReaderViewProps> = ({
                                         pinX: null,
                                         pinY: null,
                                       });
-                                      setDrawerOpen(true);
+                                      openCommentPanel();
                                       setTimeout(() => textareaRef.current?.focus(), 60);
                                     }}
                                     className='text-xs font-medium text-orange-700 hover:underline cursor-pointer'
@@ -891,7 +909,7 @@ export const SeriesReaderView: React.FC<SeriesReaderViewProps> = ({
                                         e.stopPropagation();
                                         setSelectedCommentId(pin.id);
                                         setCommentStatusFilter(pin.status);
-                                        setDrawerOpen(true);
+                                        openCommentPanel();
                                       }}
                                       className={`absolute -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 shadow-md flex items-center justify-center text-xs font-bold cursor-pointer transition-transform ${
                                         PIN_COLOR_CLASS[pin.status]
@@ -927,7 +945,7 @@ export const SeriesReaderView: React.FC<SeriesReaderViewProps> = ({
 
       {/* Responsive Drawer (< 1280px) */}
       <Drawer
-        isOpen={drawerOpen}
+        isOpen={drawerOpen && !isWide}
         onClose={() => setDrawerOpen(false)}
         title={t('seriesReader.comments.drawerTitle')}
         closeLabel={t('seriesReader.close')}
