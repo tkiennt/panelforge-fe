@@ -72,4 +72,75 @@ describe('SeriesDashboardView (UC-16)', () => {
     expect(await screen.findByText('25%')).toBeTruthy();
     expect(screen.getAllByText('2').length).toBeGreaterThan(0);
   });
+
+  it('shows progress by chapter chart when at least one chapter has percentComplete > 0', async () => {
+    renderView();
+    expect(await screen.findByText('Tiến độ theo chương')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Tiến độ theo chương' })).toBeTruthy();
+  });
+
+  it('hides progress by chapter chart when all chapters have percentComplete = 0', async () => {
+    vi.mocked(seriesService.getSeriesProgress).mockResolvedValueOnce({
+      seriesId: 's1',
+      generatedAt: '2026-11-28T00:00:00Z',
+      chapters: [chapter(1, 'InProduction', 0), chapter(2, 'PreProduction', 0)],
+      workload: [],
+      overdue: [],
+      burndown: [],
+    });
+    renderView();
+    await screen.findByTestId('series-dashboard-open-chapter-c1');
+    expect(screen.queryByText('Tiến độ theo chương')).toBeNull();
+    expect(screen.queryByRole('img', { name: 'Tiến độ theo chương' })).toBeNull();
+  });
+
+  it('shows burndown chart when at least one burndown point has remaining > 0', async () => {
+    vi.mocked(seriesService.getSeriesProgress).mockResolvedValueOnce({
+      seriesId: 's1',
+      generatedAt: '2026-11-28T00:00:00Z',
+      chapters: [chapter(1, 'InProduction', 50)],
+      workload: [],
+      overdue: [],
+      burndown: [
+        { date: '2026-11-20T00:00:00Z', remaining: 10 },
+        { date: '2026-11-21T00:00:00Z', remaining: 5 },
+      ],
+    });
+    renderView();
+    expect(await screen.findByText('Việc còn lại theo ngày')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Việc còn lại theo ngày' })).toBeTruthy();
+  });
+
+  it('hides burndown chart when burndown is empty', async () => {
+    vi.mocked(seriesService.getSeriesProgress).mockResolvedValueOnce({
+      seriesId: 's1',
+      generatedAt: '2026-11-28T00:00:00Z',
+      chapters: [chapter(1, 'InProduction', 50)],
+      workload: [],
+      overdue: [],
+      burndown: [],
+    });
+    renderView();
+    await screen.findByTestId('series-dashboard-open-chapter-c1');
+    expect(screen.queryByText('Việc còn lại theo ngày')).toBeNull();
+    expect(screen.queryByRole('img', { name: 'Việc còn lại theo ngày' })).toBeNull();
+  });
+
+  it('hides burndown chart when all burndown points have remaining = 0', async () => {
+    vi.mocked(seriesService.getSeriesProgress).mockResolvedValueOnce({
+      seriesId: 's1',
+      generatedAt: '2026-11-28T00:00:00Z',
+      chapters: [chapter(1, 'InProduction', 50)],
+      workload: [],
+      overdue: [],
+      burndown: [
+        { date: '2026-11-20T00:00:00Z', remaining: 0 },
+        { date: '2026-11-21T00:00:00Z', remaining: 0 },
+      ],
+    });
+    renderView();
+    await screen.findByTestId('series-dashboard-open-chapter-c1');
+    expect(screen.queryByText('Việc còn lại theo ngày')).toBeNull();
+    expect(screen.queryByRole('img', { name: 'Việc còn lại theo ngày' })).toBeNull();
+  });
 });
