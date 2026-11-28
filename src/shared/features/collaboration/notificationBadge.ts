@@ -48,6 +48,8 @@ export const getNotificationBadge = (type: string): NotificationBadgeConfig => {
     case 'ChapterPublished':
     case 'AssignmentApproved':
     case 'AssignmentReady':
+    case 'PageCommentResolved':
+    case 'AiRunCompleted':
       return {
         icon: CheckCircle2,
         bg: 'bg-emerald-50',
@@ -62,6 +64,8 @@ export const getNotificationBadge = (type: string): NotificationBadgeConfig => {
     case 'ChapterReopened':
     case 'AssignmentOverdue':
     case 'ChangeRequestOverdue':
+    case 'PageCommentReopened':
+    case 'AiRunFailed':
       return {
         icon: AlertCircle,
         bg: 'bg-rose-50',
@@ -73,6 +77,7 @@ export const getNotificationBadge = (type: string): NotificationBadgeConfig => {
     // Sắp đến hạn: Tông vàng hổ phách (amber)
     case 'AssignmentDueSoon':
     case 'ChangeRequestDueSoon':
+    case 'AiRunWaitingForHuman':
       return {
         icon: Clock,
         bg: 'bg-amber-50',
@@ -91,6 +96,11 @@ export const getNotificationBadge = (type: string): NotificationBadgeConfig => {
         containerClass: 'bg-indigo-50 text-indigo-600 border-indigo-200',
       };
 
+    // Góp ý (kịch bản, trang, concept) và trả lời: dùng icon tin nhắn tông xanh da trời
+    case 'ScriptCommentAdded':
+    case 'PageCommentAdded':
+    case 'ConceptCommentAdded':
+    case 'ConceptCommentReplied':
     case 'AssignmentUpdated':
       return {
         icon: MessageSquare,
