@@ -71,6 +71,8 @@ const studio: AdminWorkspaceDetailDto = {
     aiEnabled: true,
     aiTokens: meter(100, 1000),
     aiImages: null,
+    aiRequests: meter(5, 100),
+    requestsPerMinuteLimit: 20,
     aiNextResetAt: '2026-12-01T00:00:00Z',
     pendingRequestCount: 0,
     health: 'Ok',

@@ -749,7 +749,9 @@
       "completed": "Completed",
       "ongoing": "Ongoing",
       "requests": "Recent quota requests",
-      "noRequests": "This studio has not sent any request."
+      "noRequests": "This studio has not sent any request.",
+      "aiRequests": "AI requests / month",
+      "requestsPerMinute": "Max AI requests per minute"
     }
   },
   "health": {

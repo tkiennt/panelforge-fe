@@ -103,7 +103,7 @@ export const AdminStudioDetailView: React.FC<{
         title={t('admin.details.studio.resources')}
         actions={<HealthBadge health={r.health} />}
       >
-        <div className='grid gap-6 grid-cols-1 md:grid-cols-3'>
+        <div className='grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-4'>
           <div>
             <div className='text-sm font-semibold mb-2'>{t('admin.details.studio.storage')}</div>
             <UsageBar
@@ -134,6 +134,20 @@ export const AdminStudioDetailView: React.FC<{
                 type='AiImages'
                 warningPercent={warn}
                 label={t('admin.details.studio.aiImages')}
+              />
+            ) : (
+              <span className='text-sm text-admin-muted'>{t('admin.details.studio.noAi')}</span>
+            )}
+          </div>
+          <div>
+            <div className='text-sm font-semibold mb-2'>{t('admin.details.studio.aiRequests')}</div>
+            {r.aiRequests ? (
+              // Lượt gọi là số đếm như token nên định dạng giống AiTokens (OPS-24).
+              <UsageBar
+                meter={r.aiRequests}
+                type='AiTokens'
+                warningPercent={warn}
+                label={t('admin.details.studio.aiRequests')}
               />
             ) : (
               <span className='text-sm text-admin-muted'>{t('admin.details.studio.noAi')}</span>
@@ -171,6 +185,11 @@ export const AdminStudioDetailView: React.FC<{
               )}
             </InfoRow>
             <InfoRow label={t('admin.details.studio.aiProvider')}>{data.aiProvider || '—'}</InfoRow>
+            <InfoRow label={t('admin.details.studio.requestsPerMinute')}>
+              {r.requestsPerMinuteLimit
+                ? n(r.requestsPerMinuteLimit)
+                : t('admin.resources.unlimited')}
+            </InfoRow>
             <InfoRow label={t('admin.details.studio.aiReset')}>
               <span className='tabular-nums'>{formatDateTime(r.aiNextResetAt, locale)}</span>
             </InfoRow>

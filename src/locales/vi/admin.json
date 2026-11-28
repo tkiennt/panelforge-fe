@@ -749,7 +749,9 @@
       "completed": "Đã hoàn thành",
       "ongoing": "Đang tiến hành",
       "requests": "Yêu cầu tăng hạn mức gần đây",
-      "noRequests": "Studio chưa gửi yêu cầu nào."
+      "noRequests": "Studio chưa gửi yêu cầu nào.",
+      "aiRequests": "Lượt gọi AI / tháng",
+      "requestsPerMinute": "Lượt gọi AI tối đa mỗi phút"
     }
   },
   "health": {
