@@ -66,6 +66,19 @@ function toWalletError(error: any, fallbackKey: string): WalletApiError {
   );
 }
 
+/** Gói mở Studio đang bán (spec D11); `priceVnd` null khi Admin chưa đặt giá. */
+export interface StudioPackageDto {
+  isOnSale: boolean;
+  priceVnd: number | null;
+}
+
+export interface PurchaseStudioPackageResponseDto {
+  priceVnd: number;
+  remainingBalanceVnd: number;
+  orderCode: string;
+  canCreateStudio: boolean;
+}
+
 export const TOPUP_MIN_VND = 1_000;
 export const TOPUP_MAX_VND = 50_000_000;
 
@@ -124,6 +137,31 @@ export const walletService = {
       return data;
     } catch (error) {
       throw toWalletError(error, 'errors.services.wallet.unlockFailed');
+    }
+  },
+
+  /** GET /api/catalog/studio-package — giá gói mở Studio, xem được khi chưa đăng nhập. */
+  getStudioPackage: async (): Promise<StudioPackageDto> => {
+    try {
+      const { data } = await axiosClient.get('/catalog/studio-package');
+      return { isOnSale: !!data?.isOnSale, priceVnd: data?.priceVnd ?? null };
+    } catch (error) {
+      throw toWalletError(error, 'errors.services.wallet.studioPackageLoadFailed');
+    }
+  },
+
+  /**
+   * POST /api/wallet/studio-package — mua gói mở Studio bằng Ví (D11). Gửi giá đang hiển thị:
+   * 409 PRICE_CHANGED khi Admin vừa đổi giá, 409 ALREADY_OWNED khi đã có quyền tạo Studio.
+   */
+  purchaseStudioPackage: async (
+    expectedPriceVnd: number,
+  ): Promise<PurchaseStudioPackageResponseDto> => {
+    try {
+      const { data } = await axiosClient.post('/wallet/studio-package', { expectedPriceVnd });
+      return data;
+    } catch (error) {
+      throw toWalletError(error, 'errors.services.wallet.studioPackagePurchaseFailed');
     }
   },
 };

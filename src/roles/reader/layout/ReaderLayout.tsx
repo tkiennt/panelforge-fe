@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { ArrowLeft, Bell, BookOpen, Library, LogOut, UserRound, Wallet } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bell,
+  BookOpen,
+  Building2,
+  Library,
+  LogOut,
+  UserRound,
+  Wallet,
+} from 'lucide-react';
 import { workspaceService } from '@/services/workspace.service';
 import { useTranslation } from '@/lib/i18n';
 import type { ReaderContextValue } from './readerContext';
@@ -13,6 +22,8 @@ interface ReaderLayoutProps {
   onLogout?: () => void;
   /** Chỉ thành viên Studio mới có lối quay lại Studio; độc giả không thấy. */
   onBackToStudio?: () => void;
+  /** Khách và độc giả: lối vào trang mua gói mở Studio (D11). */
+  showOpenStudio?: boolean;
 }
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -26,6 +37,7 @@ export const ReaderLayout: React.FC<ReaderLayoutProps> = ({
   onLogin,
   onLogout,
   onBackToStudio,
+  showOpenStudio = false,
 }) => {
   const { t } = useTranslation();
   const { pathname } = useLocation();
@@ -78,6 +90,12 @@ export const ReaderLayout: React.FC<ReaderLayoutProps> = ({
               <BookOpen className='w-4 h-4' aria-hidden='true' />
               <span className='max-sm:sr-only'>{t('workspace.reader.layout.navCatalog')}</span>
             </NavLink>
+            {showOpenStudio && (
+              <NavLink to='/catalog/open-studio' className={navClass}>
+                <Building2 className='w-4 h-4' aria-hidden='true' />
+                <span className='max-sm:sr-only'>{t('workspace.reader.layout.navOpenStudio')}</span>
+              </NavLink>
+            )}
             {userName && (
               <>
                 <NavLink to='/catalog/library' className={navClass}>

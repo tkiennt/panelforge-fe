@@ -878,6 +878,18 @@ function AppContent() {
           const stillReader = await readerAccount.refresh();
           navigate(stillReader ? '/catalog' : '/workspaces');
         }}
+        onStudioUnlocked={async () => {
+          // Quyền tạo Studio vừa được cấp (D11): cập nhật bản lưu tạm để màn Studio hiện nút tạo ngay.
+          setCurrentUserInfo((prev) => (prev ? { ...prev, canCreateStudio: true } : prev));
+          try {
+            const saved = JSON.parse(localStorage.getItem('user') || '{}');
+            localStorage.setItem('user', JSON.stringify({ ...saved, canCreateStudio: true }));
+          } catch {
+            // bản lưu tạm hỏng: /Auth/me lần sau sẽ ghi lại
+          }
+          await readerAccount.refresh();
+          navigate('/workspaces');
+        }}
       />
 
       {/* Các Modals dùng chung */}

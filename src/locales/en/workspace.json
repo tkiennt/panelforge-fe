@@ -348,7 +348,8 @@
       "login": "Log in",
       "pendingInvites": "{count} pending Studio invitations",
       "navLibrary": "Library",
-      "navWallet": "Wallet"
+      "navWallet": "Wallet",
+      "navOpenStudio": "Open a studio"
     },
     "unlock": {
       "title": "Unlock chapter",
@@ -396,6 +397,30 @@
       "emptyDesc": "Open a series and choose Follow or Read later to keep it here.",
       "browse": "Find comics",
       "historyCaption": "Chapter {number} · page {page}/{total}"
+    },
+    "openStudio": {
+      "title": "Open a studio",
+      "subtitle": "Set up your own studio and produce comics with your team.",
+      "packageTitle": "Studio package",
+      "packageSubtitle": "One-time purchase from your wallet, yours for good.",
+      "benefitCreate": "Create a studio and manage it as Producer.",
+      "benefitTeam": "Create series and invite Writers, Artists, Letterers and Editors.",
+      "benefitPipeline": "Assign work and track each chapter through to release handoff.",
+      "price": "Package price",
+      "balance": "Wallet balance",
+      "notOnSale": "The studio package is not on sale yet. Please check back later.",
+      "loginToBuy": "Log in to buy",
+      "loginHint": "The package is paid from your account wallet.",
+      "shortfall": "Your wallet is {amount} short for the package.",
+      "topup": "Top up {amount}",
+      "buy": "Buy package · {price}",
+      "alreadyOwned": "Your account can already create a studio.",
+      "goCreate": "Create a studio",
+      "confirmTitle": "Confirm purchase",
+      "confirmDesc": "{price} will be taken from your wallet for the studio package. The package is non-refundable and never expires.",
+      "confirm": "Buy package",
+      "cancel": "Cancel",
+      "reload": "Load the new price"
     }
   },
   "formatters": {

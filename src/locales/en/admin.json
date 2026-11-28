@@ -663,5 +663,18 @@
       "deleteConfirmNote": "Only files older than 7 days that belong to active studios are deleted. Files with no known studio, thumbnails, exports and all history records are kept. After deleting, select \"Update usage\" if recorded usage still differs.",
       "deleteConfirm": "Delete permanently"
     }
+  },
+  "studioPackage": {
+    "title": "Studio package",
+    "description": "Readers buy it once from their wallet to be able to create a studio. Every price change is logged.",
+    "currentPrice": "Current price",
+    "notOnSale": "Not on sale",
+    "purchases": "Sold",
+    "changed": "Last changed",
+    "newPrice": "New price (VND)",
+    "range": "From {min} to {max}",
+    "invalid": "The price must be a whole number within the allowed range.",
+    "save": "Save price",
+    "saved": "Studio package price set to {price}."
   }
 }

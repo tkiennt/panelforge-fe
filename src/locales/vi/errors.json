@@ -264,7 +264,9 @@
       "getSessionPolicyFailed": "Không thể tải chính sách phiên làm việc của Workspace.",
       "updateSessionPolicyFailed": "Không thể cập nhật chính sách phiên làm việc của Workspace.",
       "getWorkspacesFailed": "Không thể tải danh sách Studio Workspace.",
-      "updateWorkspaceQuotaFailed": "Không thể cập nhật hạn mức lưu trữ (Quota) của Workspace."
+      "updateWorkspaceQuotaFailed": "Không thể cập nhật hạn mức lưu trữ (Quota) của Workspace.",
+      "studioPackageLoadFailed": "Không tải được giá gói mở Studio.",
+      "studioPackageSaveFailed": "Không lưu được giá gói mở Studio."
     },
     "auth": {
       "unauthorized": "Phiên đăng nhập đã hết hạn hoặc token không hợp lệ (401 Unauthorized). Vui lòng đăng nhập lại.",
@@ -388,7 +390,9 @@
       "loadFailed": "Không tải được Ví.",
       "topupFailed": "Không tạo được đơn nạp tiền.",
       "statusFailed": "Không kiểm tra được trạng thái giao dịch.",
-      "unlockFailed": "Không mở khóa được chương."
+      "unlockFailed": "Không mở khóa được chương.",
+      "studioPackageLoadFailed": "Không tải được thông tin gói mở Studio.",
+      "studioPackagePurchaseFailed": "Không mua được gói mở Studio."
     },
     "readerLibrary": {
       "loadFailed": "Không tải được thư viện.",

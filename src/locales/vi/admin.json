@@ -663,5 +663,18 @@
       "deleteConfirmNote": "Chỉ xoá file cũ hơn 7 ngày của Studio đang hoạt động. File không rõ Studio, ảnh thu nhỏ, file xuất bản và mọi bản ghi lịch sử được giữ nguyên. Sau khi xoá, bấm \"Cập nhật dung lượng\" nếu số đang ghi còn lệch.",
       "deleteConfirm": "Xoá vĩnh viễn"
     }
+  },
+  "studioPackage": {
+    "title": "Gói mở Studio",
+    "description": "Độc giả mua một lần bằng Ví để được tạo Studio. Mỗi lần đổi giá được lưu lại trong nhật ký.",
+    "currentPrice": "Giá đang bán",
+    "notOnSale": "Chưa bán",
+    "purchases": "Đã bán",
+    "changed": "Đổi lần cuối",
+    "newPrice": "Giá mới (VNĐ)",
+    "range": "Từ {min} đến {max}",
+    "invalid": "Giá phải là số nguyên trong khoảng cho phép.",
+    "save": "Lưu giá",
+    "saved": "Đã đặt giá gói mở Studio: {price}."
   }
 }

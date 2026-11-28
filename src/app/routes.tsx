@@ -179,6 +179,11 @@ const ReaderWalletView = lazy(() =>
 const ReaderLibraryView = lazy(() =>
   import('@/roles/reader/views/ReaderLibraryView').then((m) => ({ default: m.ReaderLibraryView })),
 );
+const ReaderOpenStudioView = lazy(() =>
+  import('@/roles/reader/views/ReaderOpenStudioView').then((m) => ({
+    default: m.ReaderOpenStudioView,
+  })),
+);
 const ReaderNotificationsView = lazy(() =>
   import('@/roles/reader/views/ReaderNotificationsView').then((m) => ({
     default: m.ReaderNotificationsView,
@@ -367,6 +372,8 @@ export interface AppRoutesProps {
   isReader: boolean | null;
   /** Độc giả vừa nhận lời mời vào Studio. */
   onReaderJoinedStudio: (workspaceId: string) => Promise<void>;
+  /** Độc giả vừa mua gói mở Studio (D11), hoặc tài khoản đã có quyền tạo Studio. */
+  onStudioUnlocked: () => Promise<void>;
 }
 
 const resolveUserAvatar = (
@@ -413,6 +420,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
   onRegisterSuccess,
   isReader,
   onReaderJoinedStudio,
+  onStudioUnlocked,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -501,6 +509,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   ? () => navigate(defaultRedirectPath)
                   : undefined
               }
+              showOpenStudio={!isAuthenticated || isReader === true}
             />
           }
         >
@@ -535,6 +544,15 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               <PrivateRoute isAuthenticated={isAuthenticated}>
                 <ReaderLibraryView />
               </PrivateRoute>
+            }
+          />
+          <Route
+            path='open-studio'
+            element={
+              <ReaderOpenStudioView
+                canCreateStudio={!!currentUserInfo?.canCreateStudio}
+                onStudioUnlocked={onStudioUnlocked}
+              />
             }
           />
           <Route
