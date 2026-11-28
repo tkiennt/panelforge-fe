@@ -165,4 +165,48 @@ describe('LetteringPropertyPanel – kiểu chữ & xóa', () => {
     fireEvent.click(screen.getByTestId('suggest-position-btn-collision'));
     expect(onSuggest).toHaveBeenCalledTimes(1);
   });
+
+  it('long text in a 160x90 SPEECH_BALLOON shows lettering-font-shown and clicking lettering-fit-balloon calls onFitBalloon; short text shows neither', () => {
+    const onFitBalloon = vi.fn();
+    const { rerender } = render(
+      <LetteringPropertyPanel
+        element={balloon({
+          width: 160,
+          height: 90,
+          elementType: 'SPEECH_BALLOON',
+          content:
+            'Đây là đoạn thoại rất dài vượt quá kích thước bóng thoại 160x90 khiến cỡ chữ bị tự thu nhỏ để vừa bóng',
+          scriptLineId: null,
+        })}
+        onFitBalloon={onFitBalloon}
+        onCommitText={vi.fn()}
+        onChangeStyle={vi.fn()}
+      />,
+    );
+
+    const fontShown = screen.getByTestId('lettering-font-shown');
+    expect(fontShown).toBeInTheDocument();
+    const fitBtn = screen.getByTestId('lettering-fit-balloon');
+    expect(fitBtn).toBeInTheDocument();
+    fireEvent.click(fitBtn);
+    expect(onFitBalloon).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <LetteringPropertyPanel
+        element={balloon({
+          width: 160,
+          height: 90,
+          elementType: 'SPEECH_BALLOON',
+          content: 'Hi',
+          scriptLineId: null,
+        })}
+        onFitBalloon={onFitBalloon}
+        onCommitText={vi.fn()}
+        onChangeStyle={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId('lettering-font-shown')).toBeNull();
+    expect(screen.queryByTestId('lettering-fit-balloon')).toBeNull();
+  });
 });

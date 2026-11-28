@@ -793,6 +793,123 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     }
   });
 
+  it('BR-27.1: artist reopens own finished Pencil with a reason from the header button', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 'artist-1' }));
+    vi.spyOn(pipelineService, 'getSeriesPipeline').mockResolvedValue({
+      id: 'pipe-1',
+      seriesId: 'ser-1',
+      name: 'Quy trình chuẩn',
+      stages: [
+        {
+          id: 'st-pencil',
+          name: 'Pencil',
+          slug: 'pencil',
+          stageOrder: 1,
+          allowedRole: 'Artist',
+          isApprovalGate: false,
+          isInitial: true,
+          isTerminal: false,
+          isEnabled: true,
+        },
+        {
+          id: 'st-ink',
+          name: 'Ink',
+          slug: 'ink',
+          stageOrder: 2,
+          allowedRole: 'Artist',
+          isApprovalGate: false,
+          isInitial: false,
+          isTerminal: false,
+          isEnabled: true,
+        },
+        {
+          id: 'st-letter',
+          name: 'Lettering',
+          slug: 'lettering',
+          stageOrder: 3,
+          allowedRole: 'Letterer',
+          isApprovalGate: true,
+          isInitial: false,
+          isTerminal: true,
+          isEnabled: true,
+        },
+      ],
+      transitions: [],
+    } as any);
+    const cell = (id: string, stage: string, assignee: string, status: string) => ({
+      id,
+      pipelineStageId: stage,
+      pageId: null,
+      status,
+      lotId: `lot-${id}`,
+      assigneeUserId: assignee,
+      isInputOutdated: false,
+      isStartable: true,
+      rowVersion: 1,
+    });
+    vi.spyOn(assignmentService, 'getTaskGrid').mockResolvedValue({
+      chapterId: 'chap-1',
+      pages: [],
+      lots: [],
+      stages: [
+        { id: 'st-pencil', name: 'Pencil', stageOrder: 1, allowedRole: 'Artist', isEnabled: true },
+        { id: 'st-ink', name: 'Ink', stageOrder: 2, allowedRole: 'Artist', isEnabled: true },
+      ],
+      tasks: [
+        { ...cell('c-pencil', 'st-pencil', 'artist-1', 'Approved'), pageId: 'pg-r1' },
+        { ...cell('c-ink', 'st-ink', 'artist-1', 'Assigned'), pageId: 'pg-r1' },
+      ],
+    } as any);
+    vi.spyOn(assignmentService, 'startStageTask').mockResolvedValue(undefined as any);
+    vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+      {
+        id: 'pg-r1',
+        chapterId: 'chap-1',
+        pageNumber: 1,
+        widthPx: 1200,
+        heightPx: 1800,
+        layoutFormat: 'PORTRAIT',
+        dpi: 300,
+        elementsCount: 0,
+      },
+    ] as any);
+    const rollbackSpy = vi
+      .spyOn(assignmentService, 'rollbackToPencil')
+      .mockResolvedValue({ task: {} as any, outdatedTaskIds: [] } as any);
+    try {
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist?chapterId=chap-1']}>
+          <ToastProvider>
+            <ConfirmProvider>
+              <Routes>
+                <Route
+                  path='/workspaces/:workspaceId/series/:seriesId/artist'
+                  element={<ArtistDeskView workspaceRole='ARTIST' initialScriptLines={[]} />}
+                />
+              </Routes>
+            </ConfirmProvider>
+          </ToastProvider>
+        </MemoryRouter>,
+      );
+
+      const btn = await screen.findByRole('button', { name: /Quay lại sửa Pencil/ });
+      fireEvent.click(btn);
+      const confirm = (await screen.findAllByRole('button', { name: 'Quay lại sửa Pencil' })).at(
+        -1,
+      )!;
+      expect(confirm).toBeDisabled();
+      fireEvent.change(screen.getByTestId('rollback-pencil-reason'), {
+        target: { value: 'Sai phối cảnh' },
+      });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Quay lại sửa Pencil' }).at(-1)!);
+      await waitFor(() =>
+        expect(rollbackSpy).toHaveBeenCalledWith('chap-1', 'c-pencil', 'Sai phối cảnh'),
+      );
+    } finally {
+      localStorage.removeItem('user');
+    }
+  });
+
   it('shows script coverage and blocks Submit Pencil below 100%', async () => {
     vi.spyOn(assignmentService, 'getAssignments').mockResolvedValue([
       {
@@ -1222,6 +1339,62 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
   });
 
   describe('ArtistDeskView - Artwork Persistence & Error Notification (CF2 / WAITING_FE Fix)', () => {
+    it('ART-06: shows Check Balloon Fit banner and clears it after acknowledging', async () => {
+      const mockPageId = '11111111-1111-1111-1111-111111111111';
+      const mockChapterId = 'chap-1';
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        {
+          id: mockPageId,
+          chapterId: mockChapterId,
+          pageNumber: 1,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'PORTRAIT',
+          dpi: 300,
+          elementsCount: 1,
+        },
+      ]);
+      vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValue([
+        {
+          id: 'panel-flagged',
+          pageId: mockPageId,
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({ normalized: { x: 0, y: 0, w: 100, h: 50 } }),
+          createdAt: new Date().toISOString(),
+          balloonCheckRequired: true,
+        },
+      ]);
+      vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+      const ackSpy = vi
+        .spyOn(assignmentService, 'acknowledgeBalloonCheck')
+        .mockResolvedValue({ cleared: 1 });
+
+      render(
+        <ToastProvider>
+          <MemoryRouter
+            initialEntries={[`/workspaces/ws-1/series/ser-1/artist?chapterId=${mockChapterId}`]}
+          >
+            <Routes>
+              <Route
+                path='/workspaces/:workspaceId/series/:seriesId/artist'
+                element={<ArtistDeskView workspaceRole='LETTERER' />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>,
+      );
+
+      const banner = await screen.findByTestId('balloon-check-banner');
+      expect(banner).toHaveTextContent('1 khung');
+      fireEvent.click(screen.getByTestId('balloon-check-ack'));
+
+      await waitFor(() => expect(ackSpy).toHaveBeenCalledWith(mockChapterId, mockPageId));
+      await waitFor(() =>
+        expect(screen.queryByTestId('balloon-check-banner')).not.toBeInTheDocument(),
+      );
+    });
+
     it('loads existing artworks from R2 on page load and hydrates panels with latest version', async () => {
       const mockPageId = '11111111-1111-1111-1111-111111111111';
       const mockPanel1Id = '22222222-2222-2222-2222-222222222221';

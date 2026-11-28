@@ -1,6 +1,11 @@
 {
   "title": "Kiểm Duyệt Tác Phẩm",
   "subtitle": "So sánh nét vẽ, kiểm tra bất nhất và xử lý bản nộp",
+  "charts": {
+    "queueByStage": "Hàng chờ duyệt theo công đoạn",
+    "submissions": "Số bài nộp",
+    "ariaLabel": "Biểu đồ cột: {title}"
+  },
   "submission": {
     "title": "Bản nộp",
     "status": {

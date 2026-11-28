@@ -42,14 +42,11 @@ export const StudioDirectoryHeader: React.FC<StudioDirectoryHeaderProps> = ({
     <header className='h-16 bg-white/95 backdrop-blur-md border-b border-stone-200 flex items-center sticky top-0 z-40 shadow-[inset_0_2px_0_var(--studio-accent)]'>
       <PageContainer className='max-w-[1840px] mx-auto flex items-center justify-between gap-4'>
         <div className='flex items-center min-w-0'>
-          {/* Logo dự án giống AppShell: BrandMark + chữ PanelForge + nhãn STUDIO */}
+          {/* Logo dự án giống AppShell: BrandMark + chữ PanelForge */}
           <div className='flex items-center gap-2 select-none shrink-0'>
             <BrandMark size={26} className='shrink-0' />
             <span className='font-serif text-lg font-medium tracking-tight text-stone-900'>
               {t('workspace.studioHub.brand')}
-            </span>
-            <span className='hidden sm:inline-flex text-[11px] font-bold tracking-wider uppercase bg-kraft text-sienna px-1.5 py-0.5 rounded'>
-              {t('workspace.studioHub.studioBadge')}
             </span>
           </div>
           <div className='h-5 w-px bg-stone-200 mx-3 shrink-0' aria-hidden='true' />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   AlertCircle,
   ChevronDown,
@@ -25,6 +25,9 @@ import {
 } from '@/services/admin.service';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
+import { Card, CardBody, CardHeader } from '@/shared/ui';
+import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
+import { hasAnyValue } from '@/shared/ui/charts/chartData';
 import {
   AdminBadge,
   AdminButton,
@@ -1885,6 +1888,18 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
     reports.reduce((acc, r) => acc + (Number(r[k]) || 0), 0);
   const COLS = 6;
 
+  const TOP_STUDIOS = 10;
+  const quotaChartData: StatBarDatum[] = useMemo(() => {
+    return reports
+      .map((r) => ({
+        key: r.workspaceId,
+        label: r.workspaceName || r.workspaceId,
+        value: Math.round(r.usagePercent ?? 0),
+      }))
+      .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
+      .slice(0, TOP_STUDIOS);
+  }, [reports]);
+
   return (
     <>
       <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
@@ -1904,6 +1919,24 @@ const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) =>
           value={`${fmt(sum('blockedCount'))} / ${fmt(sum('failedCount'))}`}
         />
       </div>
+
+      {hasAnyValue(quotaChartData) && (
+        <Card>
+          <CardHeader
+            title={t('admin.aiConfig.reports.quotaChartTitle')}
+            subtitle={t('admin.aiConfig.reports.quotaChartSubtitle')}
+          />
+          <CardBody>
+            <StatBarChart
+              data={quotaChartData}
+              variant='ranked'
+              valueLabel={t('admin.aiConfig.reports.quotaChartValueLabel')}
+              formatValue={(n) => `${n}%`}
+              ariaLabel={t('admin.aiConfig.reports.quotaChartAriaLabel')}
+            />
+          </CardBody>
+        </Card>
+      )}
 
       <form
         onSubmit={handleApplyFilter}

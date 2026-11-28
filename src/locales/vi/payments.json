@@ -237,5 +237,30 @@
     "publish": "Phát hành bản {lang}",
     "publishBlocked": "Cần đặt giá trước khi phát hành.",
     "publishWithChapterHint": "Ấn bản gốc được phát hành cùng chương: dùng \"Phát hành chương\" ở Bàn Publisher để chương lên Catalog."
+  },
+  "charts": {
+    "viewsBySeries": "Lượt đọc theo bộ truyện",
+    "viewsByChapter": "Lượt đọc theo chương",
+    "viewsByChapterOf": "Lượt đọc theo chương · {title}",
+    "revenueBySeries": "Doanh thu theo bộ truyện",
+    "revenueByChapter": "Doanh thu theo chương",
+    "rpmByChapter": "Doanh thu / 1.000 lượt đọc (RPM)",
+    "viewsByLanguage": "Lượt đọc theo ấn bản ngôn ngữ",
+    "other": "Khác",
+    "topNote": "{count} bộ truyện đứng đầu, phần còn lại gộp vào \"Khác\". Số liệu đầy đủ ở bảng bên dưới.",
+    "ariaLabel": "Biểu đồ cột: {title}",
+    "chapterTick": "Ch.{number}",
+    "viewsOverTime": "Lượt đọc theo thời gian",
+    "revenueOverTime": "Doanh thu theo thời gian",
+    "period": "Khoảng thời gian",
+    "preset": {
+      "7d": "7 ngày",
+      "30d": "30 ngày",
+      "90d": "90 ngày",
+      "12m": "12 tháng"
+    },
+    "trendEmpty": "Chưa có số liệu trong khoảng thời gian này.",
+    "trendLoadError": "Không tải được số liệu theo thời gian.",
+    "lineAriaLabel": "Biểu đồ đường: {title}"
   }
 }
