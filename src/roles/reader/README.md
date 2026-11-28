@@ -23,4 +23,5 @@
 - Bật: mở bất kỳ trang nào với `?mock=1` (nhớ trong localStorage) hoặc đặt `VITE_READER_MOCK=true`. Tắt: `?mock=0` hoặc nút "Tắt dữ liệu mẫu" trên dải vàng đầu trang.
 - `src/mocks/reader/mockReaderAdapter.ts` là axios adapter giả lập đúng đường dẫn + DTO của BE cho catalog, Ví (nạp VietQR tự duyệt sau ~6 giây, mở khóa ấn bản, gói mở Studio 199.000 ₫), Thư viện, thông báo, lời mời Studio và đăng nhập (email/mật khẩu bất kỳ). Request khác vẫn đi tới BE thật, nên view không có nhánh mock riêng.
 - Dữ liệu: 12 bộ truyện, 4 Studio, chương VI/EN, miễn phí và trả phí (`mockReaderData.ts`); ảnh bìa và trang là SVG sinh bằng code (`mockArt.ts`). Trạng thái độc giả lưu ở localStorage `pf_reader_mock_state`; "Đặt lại dữ liệu" đưa về ban đầu.
+- Khu Studio tối thiểu (`mockStudioData.ts`): sau khi nhận lời mời, `/workspaces`, tổng quan Studio, `/my-work` và trang Việc của tôi theo bộ truyện chạy bằng dữ liệu mẫu theo vai trò (Writer, Artist, Letterer, Editor). Màn soạn kịch bản, canvas vẽ và nộp bài vẫn cần BE thật.
 - Module mock chỉ được nạp động khi bật cờ (`src/main.tsx`), bản build thường không kéo theo.

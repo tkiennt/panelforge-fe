@@ -28,7 +28,7 @@ interface ReaderLayoutProps {
 }
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
-  `inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors ${
+  `inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition-colors sm:px-3 ${
     isActive ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
   }`;
 
@@ -62,7 +62,7 @@ export const ReaderLayout: React.FC<ReaderLayoutProps> = ({
     <div className='flex min-h-screen flex-col bg-[#FAF9F5] text-stone-900'>
       <MockDataBanner />
       <header className='sticky top-0 z-30 h-14 border-b border-stone-200/80 bg-white'>
-        <div className='mx-auto flex h-full max-w-7xl items-center gap-2 px-4 sm:px-6'>
+        <div className='mx-auto flex h-full max-w-7xl items-center gap-1.5 px-4 sm:gap-2 sm:px-6'>
           {onBackToStudio && (
             <button
               type='button'
@@ -88,7 +88,7 @@ export const ReaderLayout: React.FC<ReaderLayoutProps> = ({
 
           <nav
             aria-label={t('workspace.reader.layout.mainNav')}
-            className='ml-auto flex items-center gap-1'
+            className='ml-auto flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] sm:gap-1'
           >
             <NavLink to='/catalog' end className={navClass}>
               <BookOpen className='w-4 h-4' aria-hidden='true' />

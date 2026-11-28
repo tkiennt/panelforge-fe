@@ -19,6 +19,19 @@ import {
   saveMockState,
   seriesDetail,
 } from './mockReaderData';
+import {
+  findStudio,
+  joinedWorkspaceDtos,
+  myAssignments,
+  myTaskLots,
+  myWork,
+  seriesChapters,
+  seriesDetailForStudio,
+  seriesPipeline,
+  toWorkspaceDto,
+  workspaceMembers,
+  workspaceSeries,
+} from './mockStudioData';
 
 export const MOCK_STUDIO_PACKAGE_PRICE_VND = 199_000;
 /** Đơn nạp VietQR mẫu tự được duyệt sau ngần này mili giây (giả lập Publisher duyệt). */
@@ -399,6 +412,63 @@ on('post', /^\/notifications\/([^/]+)\/read$/i, ({ match }) => {
   saveMockState();
   return { data: { marked: 1 } };
 });
+
+// ─── Khu Studio tối thiểu cho thành viên vừa nhận lời mời ────────────────────────────────
+
+on('get', /^\/Workspaces$/i, () => requireSignedIn() ?? { data: joinedWorkspaceDtos() });
+
+on('get', /^\/Workspaces\/(mock-ws-[^/]+)$/i, ({ match }) => {
+  const studio = findStudio(match[1]);
+  const joined = getMockState().joinedWorkspaces.some((w) => w.workspaceId === match[1]);
+  if (!studio) return fail(404, 'Không tìm thấy Studio.');
+  return joined ? { data: toWorkspaceDto(studio) } : fail(403, 'Bạn không thuộc Studio này.');
+});
+
+on('get', /^\/workspaces\/(mock-ws-[^/]+)\/my-assignments$/i, ({ match }) => ({
+  data: myAssignments(match[1]),
+}));
+
+on('get', /^\/Workspaces\/(mock-ws-[^/]+)\/members$/i, ({ match }) => ({
+  data: workspaceMembers(match[1]),
+}));
+
+on('get', /^\/workspaces\/(mock-ws-[^/]+)\/series$/i, ({ match }) => ({
+  data: workspaceSeries(match[1]),
+}));
+
+on('get', /^\/series\/(mock-series-[^/]+)$/i, ({ match }) => {
+  const data = seriesDetailForStudio(match[1]);
+  return data ? { data } : fail(404, 'Không tìm thấy bộ truyện.');
+});
+
+on('get', /^\/series\/(mock-series-[^/]+)\/pipeline$/i, ({ match }) => {
+  const data = seriesPipeline(match[1]);
+  return data ? { data } : fail(404, 'Không tìm thấy pipeline.');
+});
+
+on('get', /^\/series\/(mock-series-[^/]+)\/chapters$/i, ({ match }) => ({
+  data: seriesChapters(match[1]),
+}));
+
+on('get', /^\/series\/(mock-series-[^/]+)\/bible\/design-queue$/i, () => ({ data: [] }));
+
+on('get', /^\/workspaces\/(mock-ws-[^/]+)\/my-task-lots$/i, ({ match, params }) => ({
+  data: myTaskLots(match[1], params.seriesId),
+}));
+
+// Bàn làm việc chưa có bài nộp / yêu cầu sửa / khung tranh: trả danh sách rỗng để màn hình hiện trạng thái trống.
+on('get', /^\/chapters\/mock-chapter-[^/]+\/assignments\/[^/]+\/submissions$/i, () => ({
+  data: [],
+}));
+on('get', /^\/chapters\/mock-chapter-[^/]+\/change-requests$/i, () => ({ data: [] }));
+on('get', /^\/pages\/mock-chapter-[^/]+\/panels$/i, () => ({ data: [] }));
+on('get', /^\/chapters\/mock-chapter-[^/]+\/pages\/[^/]+\/artwork$/i, () =>
+  fail(404, 'Chưa có bản vẽ.'),
+);
+
+on('get', /^\/me\/work$/i, () => requireSignedIn() ?? { data: myWork() });
+
+on('get', /^\/pipeline-templates$/i, () => ({ data: [] }));
 
 // ─── Cài adapter ─────────────────────────────────────────────────────────────────────────
 
