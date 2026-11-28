@@ -1798,6 +1798,13 @@
         "completedPanels": "Completed panels",
         "completedPanelsHint": "Panels approved at the final stage.",
         "stageSubmittedCount": "{count} in review",
+        "stageLegend": {
+          "approved": "Approved",
+          "submitted": "In review",
+          "inProgress": "In progress",
+          "rework": "Rework",
+          "unassigned": "Unassigned"
+        },
         "gateTitle": "Production readiness",
         "productionStartedBadge": "Production started",
         "gatePassedSummary": "{passed}/{required} checks passed",

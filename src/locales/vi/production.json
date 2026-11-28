@@ -1798,6 +1798,13 @@
         "completedPanels": "Khung tranh hoàn tất",
         "completedPanelsHint": "Khung tranh đã duyệt tại công đoạn cuối.",
         "stageSubmittedCount": "{count} chờ duyệt",
+        "stageLegend": {
+          "approved": "Đã duyệt",
+          "submitted": "Chờ duyệt",
+          "inProgress": "Đang làm",
+          "rework": "Cần sửa",
+          "unassigned": "Chưa giao"
+        },
         "gateTitle": "Điều kiện sản xuất",
         "productionStartedBadge": "Đã bắt đầu sản xuất",
         "gatePassedSummary": "{passed}/{required} điều kiện đạt",
