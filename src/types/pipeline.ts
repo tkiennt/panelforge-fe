@@ -328,6 +328,8 @@ export type ChangeRequestLayer = 'Artwork' | 'Lettering';
 export interface ChangeRequestDto {
   id: string;
   assignmentId: string;
+  /** Ô lưới V3 nhận yêu cầu (assignmentId lúc đó cũng là id ô). */
+  stageTaskId?: string | null;
   chapterId: string;
   submissionId?: string | null;
   responsibleUserId: string;
