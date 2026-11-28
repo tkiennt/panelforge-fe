@@ -1,75 +1,99 @@
 import React from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from '@/lib/i18n';
 import { Card, Metric } from '@/shared/ui';
+import { buildEditorDeskUrl, buildSeriesPath } from '@/app/routePaths';
 import type { ReviewTotals } from './reviewStats';
 
-interface ReviewKpiStripProps {
+export interface ReviewKpiStripProps {
   totals: ReviewTotals;
-  avgReviewHours?: number | null;
+  bibleConcepts?: number;
+  workspaceId?: string;
+  seriesId?: string;
 }
 
-/** Một dải số liệu gọn cho Tổng quan duyệt (cấp Series và cấp chương). */
-export const ReviewKpiStrip: React.FC<ReviewKpiStripProps> = ({ totals, avgReviewHours }) => {
+/** Một dải số liệu "Cần bạn xử lý" cho Tổng quan duyệt (cấp Series và cấp chương). */
+export const ReviewKpiStrip: React.FC<ReviewKpiStripProps> = ({
+  totals,
+  bibleConcepts,
+  workspaceId,
+  seriesId,
+}) => {
   const { t, lang } = useTranslation('review');
+  const params = useParams();
+  const ws = workspaceId ?? params.workspaceId ?? '';
+  const sId = seriesId ?? params.seriesId ?? '';
   const n = new Intl.NumberFormat(lang);
-  const alert = 'text-rose-700';
+  const showBible = bibleConcepts !== undefined;
 
   return (
     <Card as='section' aria-label={t('dashboard.kpi.ariaLabel')}>
-      <div className='grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-stone-200/80'>
-        <Metric
-          className='px-4 py-3'
-          label={t('dashboard.kpi.queue')}
-          value={n.format(totals.queue)}
-          hint={t('dashboard.kpi.queueHint', { count: totals.inReview })}
+      <div
+        className={
+          showBible
+            ? 'grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-stone-200/80'
+            : 'grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-stone-200/80'
+        }
+      >
+        <Link
+          to={buildEditorDeskUrl(ws, sId)}
+          className='block hover:bg-stone-50 transition-colors focus-ring'
+          data-testid='editor-dash-kpi-scripts'
+        >
+          <Metric
+            className='px-4 py-3'
+            label={t('dashboard.kpi.scriptsInReview')}
+            value={n.format(totals.scriptsInReview)}
+          />
+        </Link>
+        {showBible && (
+          <Link
+            to={buildSeriesPath(ws, sId, 'bible?tab=review')}
+            className='block hover:bg-stone-50 transition-colors focus-ring'
+            data-testid='editor-dash-kpi-bible'
+          >
+            <Metric
+              className='px-4 py-3'
+              label={t('dashboard.kpi.bibleConcepts')}
+              value={n.format(bibleConcepts)}
+            />
+          </Link>
+        )}
+        <Link
+          to={buildEditorDeskUrl(ws, sId)}
+          className='block hover:bg-stone-50 transition-colors focus-ring'
           data-testid='editor-dash-kpi-queue'
-        />
-        <Metric
-          className='px-4 py-3'
-          label={t('dashboard.kpi.toVerify')}
-          value={n.format(totals.resolvedChangeRequests)}
+        >
+          <Metric
+            className='px-4 py-3'
+            label={t('dashboard.kpi.queue')}
+            value={n.format(totals.queue)}
+            hint={t('dashboard.kpi.queueHint', { count: totals.inReview })}
+          />
+        </Link>
+        <Link
+          to={buildEditorDeskUrl(ws, sId)}
+          className='block hover:bg-stone-50 transition-colors focus-ring'
           data-testid='editor-dash-kpi-verify'
-        />
-        <Metric
-          className='px-4 py-3'
-          label={t('dashboard.kpi.openRequests')}
-          value={n.format(totals.openChangeRequests)}
-          hint={
-            totals.overdueChangeRequests > 0 ? (
-              <span className={alert}>
-                {t('dashboard.kpi.overdueHint', { count: totals.overdueChangeRequests })}
-              </span>
-            ) : undefined
-          }
-          data-testid='editor-dash-kpi-open'
-        />
+        >
+          <Metric
+            className='px-4 py-3'
+            label={t('dashboard.kpi.toVerify')}
+            value={n.format(totals.resolvedChangeRequests)}
+          />
+        </Link>
         <Metric
           className='px-4 py-3'
           label={t('dashboard.kpi.findings')}
           value={n.format(totals.openFindings)}
           hint={
             totals.blockingFindings > 0 ? (
-              <span className={alert}>
+              <span className='font-semibold text-rose-700'>
                 {t('dashboard.kpi.blockingHint', { count: totals.blockingFindings })}
               </span>
             ) : undefined
           }
           data-testid='editor-dash-kpi-findings'
-        />
-        <Metric
-          className='px-4 py-3'
-          label={t('dashboard.kpi.firstPass')}
-          value={totals.firstPassRate == null ? '—' : `${totals.firstPassRate}%`}
-          hint={
-            avgReviewHours != null
-              ? t('dashboard.kpi.avgHours', {
-                  value: new Intl.NumberFormat(lang, { maximumFractionDigits: 1 }).format(
-                    avgReviewHours,
-                  ),
-                })
-              : undefined
-          }
-          data-testid='editor-dash-kpi-firstpass'
         />
       </div>
     </Card>

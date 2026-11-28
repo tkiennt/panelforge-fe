@@ -975,27 +975,29 @@
   "dashboard": {
     "chart": {
       "chapterTick": "Ch.{number}",
-      "queueByChapter": "Chờ duyệt theo chương",
-      "queue": "Chờ duyệt",
-      "decisions30d": "Lượt duyệt 30 ngày",
-      "decisions": "Lượt duyệt",
+      "productionProgress": "Tiến độ sản xuất theo chương",
       "stageApproved": "Khung đã duyệt theo công đoạn",
       "approvedPanels": "Khung đã duyệt"
     },
     "kpi": {
-      "ariaLabel": "Số liệu duyệt",
-      "queue": "Chờ duyệt",
+      "ariaLabel": "Cần bạn xử lý",
+      "scriptsInReview": "Kịch bản chờ góp ý",
+      "bibleConcepts": "Concept Bible chờ xác nhận",
+      "queue": "Bài chờ duyệt",
       "queueHint": "{count} đang được duyệt",
-      "toVerify": "Chờ xác minh",
-      "openRequests": "Yêu cầu sửa mở",
-      "overdueHint": "{count} quá hạn",
+      "toVerify": "Yêu cầu sửa chờ xác minh",
       "findings": "Lỗi nhất quán",
-      "blockingHint": "{count} chặn",
-      "firstPass": "Duyệt lần đầu",
-      "avgHours": "TB {value} giờ/lượt"
+      "blockingHint": "{count} chặn"
+    },
+    "seriesStatus": {
+      "production": "Sản xuất {percent}% · {overdue} việc trễ hạn · {rework} việc làm lại",
+      "bible": "Bible: {locked}/{entries} đã khoá canon",
+      "reviewBoth": "Duyệt lần đầu {rate}% · TB {hours} giờ/lượt",
+      "firstPassOnly": "Duyệt lần đầu {rate}%",
+      "avgHoursOnly": "TB {hours} giờ/lượt"
     },
     "series": {
-      "title": "Tổng quan duyệt",
+      "title": "Tổng quan series",
       "chaptersTitle": "Theo chương",
       "empty": "Series chưa có chương"
     },
@@ -1016,11 +1018,10 @@
     "col": {
       "chapter": "Chương",
       "script": "Kịch bản",
+      "production": "Sản xuất",
       "queue": "Chờ duyệt",
-      "toVerify": "Chờ xác minh",
-      "openRequests": "Yêu cầu mở",
-      "findings": "Nhất quán",
-      "decisions": "Duyệt / Trả"
+      "changeRequests": "Yêu cầu sửa",
+      "findings": "Nhất quán"
     },
     "scriptStatus": {
       "Draft": "Bản nháp",
@@ -1033,8 +1034,10 @@
       "Blocking": "Chặn"
     },
     "chapterNumber": "Chương {number}",
-    "decisionsCell": "{approved} / {rejected}",
-    "open": "Xem",
+    "requestsOpen": "mở",
+    "requestsVerify": "chờ xác minh",
+    "overdueTasks": "trễ {count}",
+    "details": "Chi tiết",
     "openDesk": "Mở bàn duyệt"
   }
 }
