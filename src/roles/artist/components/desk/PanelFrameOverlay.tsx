@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { AlertTriangle, Eye, ImagePlus, Trash2, UploadCloud } from 'lucide-react';
+import { AlertTriangle, Eye, ImagePlus, Loader2, Trash2, UploadCloud } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import type { PanelDto } from '@/types/pipeline';
 import { parseBoundingBox } from '../../utils/panelBoundingBox';
@@ -28,6 +28,8 @@ interface PanelFrameOverlayProps {
   templateCode?: string;
   artworks: Record<string, PanelArtworkData>;
   isLayoutSaved: boolean;
+  mode?: 'page' | 'panel';
+  uploadingPanelId?: string | null;
   canUploadArtwork?: boolean;
   canSelectPanel?: boolean;
   selectedPanelId?: string | null;
@@ -55,6 +57,8 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
   templateCode,
   artworks,
   isLayoutSaved,
+  mode = 'panel',
+  uploadingPanelId = null,
   canUploadArtwork = true,
   canSelectPanel = true,
   selectedPanelId = null,
@@ -76,6 +80,9 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
         const box = boxes[idx];
         const panelNum = pnl.panelNumber || idx + 1;
         const artwork = artworks[pnl.id];
+        const isPageMode = mode === 'page';
+        const isUploading = uploadingPanelId === pnl.id;
+        const isUploadLocked = Boolean(uploadingPanelId && !isUploading);
         const corners = box.corners && box.corners.length >= 3 ? box.corners : null;
         // An inset panel is a small frame drawn on top of a full-width one (TPL-MANGA-06 is the inset template).
         const isInset =
@@ -84,11 +91,11 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
             box.percentH < 50 &&
             boxes.some((b, i) => i !== idx && b.percentW > 80));
         const openPicker = () => {
-          if (!canUploadArtwork) return;
+          if (!canUploadArtwork || isUploadLocked) return;
           fileInputs.current[pnl.id]?.click();
         };
 
-        const isSelected = canSelectPanel && selectedPanelId === pnl.id;
+        const isSelected = !isPageMode && canSelectPanel && selectedPanelId === pnl.id;
         const needsBalloonCheck = Boolean(pnl.balloonCheckRequired);
 
         return (
@@ -99,16 +106,20 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
             data-balloon-check={needsBalloonCheck ? 'true' : undefined}
             onClick={(e) => {
               e.stopPropagation();
-              if (!canSelectPanel) return;
+              if (isPageMode || !canSelectPanel) return;
               onSelectPanel?.(isSelected ? null : pnl.id);
             }}
-            className={`absolute overflow-hidden ${isInset ? 'z-30 shadow-md bg-white' : 'z-20'} ${
-              corners ? '' : frameClass(!!box.borderless, isLayoutSaved, isInset)
+            className={`absolute overflow-hidden ${isInset && !isPageMode ? 'z-30 shadow-md bg-white' : 'z-20'} ${
+              corners
+                ? ''
+                : isPageMode
+                  ? 'border border-dashed border-stone-500 bg-transparent'
+                  : frameClass(!!box.borderless, isLayoutSaved, isInset)
             } ${isSelected ? 'ring-2 ring-[#F97316]' : ''} ${
               needsBalloonCheck
                 ? 'outline-2 outline-dashed -outline-offset-2 outline-orange-500'
                 : ''
-            } pointer-events-auto`}
+            } ${isPageMode ? 'pointer-events-none bg-transparent' : 'pointer-events-auto'}`}
             style={{
               left: `${box.percentX}%`,
               top: `${box.percentY}%`,
@@ -129,13 +140,23 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                 <polygon
                   points={corners.map((c) => `${c.x * 100},${c.y * 100}`).join(' ')}
                   fill={
-                    isInset
-                      ? '#ffffff'
-                      : isLayoutSaved
-                        ? 'rgba(250, 250, 249, 0.2)'
-                        : 'rgba(245, 245, 244, 0.3)'
+                    isPageMode
+                      ? 'transparent'
+                      : isInset
+                        ? '#ffffff'
+                        : isLayoutSaved
+                          ? 'rgba(250, 250, 249, 0.2)'
+                          : 'rgba(245, 245, 244, 0.3)'
                   }
-                  stroke={box.borderless ? '#f97316' : isLayoutSaved ? '#1c1917' : '#78716c'}
+                  stroke={
+                    isPageMode
+                      ? '#78716c'
+                      : box.borderless
+                        ? '#f97316'
+                        : isLayoutSaved
+                          ? '#1c1917'
+                          : '#78716c'
+                  }
                   strokeWidth={isLayoutSaved ? '2.5' : '2'}
                   strokeDasharray={box.borderless || !isLayoutSaved ? '6 4' : undefined}
                   vectorEffect='non-scaling-stroke'
@@ -143,40 +164,46 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
               </svg>
             )}
 
-            <button
-              type='button'
-              disabled={!canSelectPanel}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!canSelectPanel) return;
-                onSelectPanel?.(isSelected ? null : pnl.id);
-              }}
-              data-testid={`canvas-panel-badge-${panelNum}`}
-              title={canSelectPanel ? t('panelFrame.selectPanelTitle', { panelNum }) : undefined}
-              className={`absolute top-2 left-2 z-20 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center transition-colors shadow-2xs disabled:cursor-default ${
-                !canSelectPanel
-                  ? 'bg-stone-100 text-stone-500 border border-stone-200'
-                  : isSelected || !artwork
+            {isPageMode || !canSelectPanel ? (
+              <span
+                data-testid={`canvas-panel-badge-${panelNum}`}
+                className='absolute left-2 top-2 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-stone-200 bg-stone-100 text-xs font-bold text-stone-500 shadow-2xs'
+              >
+                {panelNum}
+              </span>
+            ) : (
+              <button
+                type='button'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectPanel?.(isSelected ? null : pnl.id);
+                }}
+                data-testid={`canvas-panel-badge-${panelNum}`}
+                title={t('panelFrame.selectPanelTitle', { panelNum })}
+                aria-label={t('panelFrame.selectPanelTitle', { panelNum })}
+                className={`focus-ring absolute left-2 top-2 z-20 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shadow-2xs transition-colors ${
+                  isSelected || !artwork
                     ? 'bg-[#EA580C] text-white'
-                    : 'bg-white text-stone-900 border border-stone-200 hover:border-[#EA580C]'
-              }`}
-            >
-              {panelNum}
-            </button>
+                    : 'border border-stone-200 bg-white text-stone-900 hover:border-[#EA580C]'
+                }`}
+              >
+                {panelNum}
+              </button>
+            )}
             {needsBalloonCheck && (
               <span
                 data-testid={`canvas-panel-balloon-check-${panelNum}`}
                 title={t('panelFrame.balloonCheckTitle')}
-                className='absolute top-2 right-2 z-20 w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-2xs pointer-events-auto'
+                className='pointer-events-auto absolute right-2 top-2 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-white shadow-2xs'
               >
                 <AlertTriangle
-                  className='w-3.5 h-3.5'
+                  className='h-3.5 w-3.5'
                   aria-label={t('panelFrame.balloonCheckTitle')}
                 />
               </span>
             )}
 
-            {artwork ? (
+            {isPageMode ? null : artwork ? (
               <div className='relative w-full h-full group'>
                 <img
                   src={artwork.imageUrl}
@@ -202,55 +229,56 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                   >
                     <Eye className='w-4 h-4' aria-hidden='true' />
                   </button>
-                  <button
-                    type='button'
-                    disabled={!canUploadArtwork}
-                    onClick={openPicker}
-                    data-testid={`panel-btn-replace-${panelNum}`}
-                    className={`${HOVER_ACTION} bg-white/90 hover:bg-white text-stone-800 disabled:opacity-40 disabled:cursor-not-allowed`}
-                    title={
-                      canUploadArtwork
-                        ? t('panelFrame.replaceTitle')
-                        : t('common.noOpenSlotForPageStage')
-                    }
-                    aria-label={t('panelFrame.replaceAria', { panelNum })}
-                  >
-                    <UploadCloud className='w-4 h-4' aria-hidden='true' />
-                  </button>
-                  <button
-                    type='button'
-                    disabled={!canUploadArtwork}
-                    onClick={() => canUploadArtwork && onRemoveArtwork(pnl.id, panelNum)}
-                    data-testid={`panel-btn-remove-${panelNum}`}
-                    className={`${HOVER_ACTION} bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-40 disabled:cursor-not-allowed`}
-                    title={
-                      canUploadArtwork
-                        ? t('panelFrame.removeTitle')
-                        : t('common.noOpenSlotForPageStage')
-                    }
-                    aria-label={t('panelFrame.removeAria', { panelNum })}
-                  >
-                    <Trash2 className='w-4 h-4' aria-hidden='true' />
-                  </button>
+                  {canUploadArtwork && (
+                    <>
+                      <button
+                        type='button'
+                        disabled={isUploadLocked || isUploading}
+                        onClick={openPicker}
+                        data-testid={`panel-btn-replace-${panelNum}`}
+                        className={`${HOVER_ACTION} bg-white/90 text-stone-800 hover:bg-white disabled:cursor-wait disabled:opacity-40`}
+                        title={t('panelFrame.replaceTitle')}
+                        aria-label={t('panelFrame.replaceAria', { panelNum })}
+                      >
+                        {isUploading ? (
+                          <Loader2 className='h-4 w-4 animate-spin' aria-hidden='true' />
+                        ) : (
+                          <UploadCloud className='h-4 w-4' aria-hidden='true' />
+                        )}
+                      </button>
+                      <button
+                        type='button'
+                        disabled={Boolean(uploadingPanelId)}
+                        onClick={() => !uploadingPanelId && onRemoveArtwork(pnl.id, panelNum)}
+                        data-testid={`panel-btn-remove-${panelNum}`}
+                        className={`${HOVER_ACTION} bg-rose-600 text-white hover:bg-rose-700 disabled:cursor-wait disabled:opacity-40`}
+                        title={t('panelFrame.removeTitle')}
+                        aria-label={t('panelFrame.removeAria', { panelNum })}
+                      >
+                        <Trash2 className='h-4 w-4' aria-hidden='true' />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-            ) : (
+            ) : canUploadArtwork ? (
               // Khung trống là giấy trắng (che phác thảo/ảnh trang bên dưới) kèm ô nạp ảnh mới,
               // kể cả khi bố cục chưa lưu; bị khoá khi trang không có ô đang mở.
               <button
                 type='button'
-                disabled={!canUploadArtwork}
+                disabled={!canUploadArtwork || Boolean(uploadingPanelId)}
                 onDragOver={(e) => {
-                  if (canUploadArtwork) e.preventDefault();
+                  if (canUploadArtwork && !uploadingPanelId) e.preventDefault();
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
-                  if (!canUploadArtwork) return;
+                  if (!canUploadArtwork || uploadingPanelId) return;
                   const file = e.dataTransfer.files?.[0];
                   if (file) onUploadArtwork(pnl.id, panelNum, file);
                 }}
                 onClick={openPicker}
                 data-testid={`panel-dropzone-${panelNum}`}
+                aria-label={t('panelFrame.uploadPanel', { panelNum })}
                 title={canUploadArtwork ? undefined : t('common.noOpenSlotForPageStage')}
                 className='group focus-ring w-full h-full flex flex-col items-center justify-center gap-1 p-2 bg-white text-stone-600 hover:text-stone-900 hover:bg-orange-50/30 cursor-pointer transition-colors border-2 border-dashed border-stone-300 hover:border-[#EA580C] disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-stone-300'
               >
@@ -267,24 +295,26 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
                   {t('panelFrame.dropOrClick')}
                 </span>
               </button>
-            )}
+            ) : null}
 
-            <input
-              type='file'
-              disabled={!canUploadArtwork}
-              ref={(el) => {
-                fileInputs.current[pnl.id] = el;
-              }}
-              accept={ACCEPTED_IMAGES}
-              className='hidden'
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file && canUploadArtwork) {
-                  onUploadArtwork(pnl.id, panelNum, file);
-                  e.target.value = '';
-                }
-              }}
-            />
+            {mode === 'panel' && canUploadArtwork && (
+              <input
+                type='file'
+                disabled={Boolean(uploadingPanelId)}
+                ref={(el) => {
+                  fileInputs.current[pnl.id] = el;
+                }}
+                accept={ACCEPTED_IMAGES}
+                className='hidden'
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file && !uploadingPanelId) {
+                    onUploadArtwork(pnl.id, panelNum, file);
+                    e.target.value = '';
+                  }
+                }}
+              />
+            )}
           </div>
         );
       })}

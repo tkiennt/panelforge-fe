@@ -33,7 +33,11 @@ import {
 } from '../utils/panelArtworkCarry';
 import { getRoleDefaultPath } from '@/roles/roles';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
-import { getArtistStageKind } from '../utils/artistStage';
+import {
+  ALLOWED_ARTWORK_IMAGE_TYPES,
+  getArtistStageKind,
+  MAX_ARTWORK_IMAGE_BYTES,
+} from '../utils/artistStage';
 import { FocusStudioHeaderBar } from '@/app/FocusWorkspaceLayout';
 import { type FocusStageItem, useFocusHeaderContext } from '@/app/focusHeaderContext';
 import {
@@ -249,7 +253,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [isSubmittingEdition, setIsSubmittingEdition] = useState<boolean>(false);
 
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
-  const [artworkUploadMode, setArtworkUploadMode] = useState<'page' | 'panel'>('page');
+  const [artworkUploadModeByPageId, setArtworkUploadModeByPageId] = useState<
+    Record<string, 'page' | 'panel'>
+  >({});
+  const [uploadingPanelId, setUploadingPanelId] = useState<string | null>(null);
   const [selectedPanelNumberOverride, setSelectedPanelNumberOverride] = useState<number | null>(
     null,
   );
@@ -1948,17 +1955,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     () => (selectedPage ? panelsByPageId[selectedPage.id] || [] : []),
     [selectedPage, panelsByPageId],
   );
-  const handleArtworkUploadModeChange = useCallback((mode: 'page' | 'panel') => {
-    setArtworkUploadMode(mode);
-    setSelectedPanelId(null);
-    setSelectedPanelNumberOverride(null);
-  }, []);
-
-  useEffect(() => {
-    if (currentPagePanels.length === 0 && artworkUploadMode === 'panel') {
-      handleArtworkUploadModeChange('page');
-    }
-  }, [artworkUploadMode, currentPagePanels.length, handleArtworkUploadModeChange]);
+  const artworkUploadMode: 'page' | 'panel' = selectedPage
+    ? (artworkUploadModeByPageId[selectedPage.id] ??
+      ((persistedPanelsByPageId[selectedPage.id] || []).length > 0 ? 'panel' : 'page'))
+    : 'page';
+  const handleArtworkUploadModeChange = useCallback(
+    (mode: 'page' | 'panel') => {
+      if (!selectedPage) return;
+      setArtworkUploadModeByPageId((prev) => ({ ...prev, [selectedPage.id]: mode }));
+      setSelectedPanelId(null);
+      setSelectedPanelNumberOverride(null);
+    },
+    [selectedPage],
+  );
 
   // ART-06: khung có tranh vừa đổi dưới bóng thoại; người làm tranh/chữ xác nhận đã kiểm tra để gỡ cờ
   const balloonCheckCount = useMemo(
@@ -2012,6 +2021,40 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return keys;
   }, [currentPageArtworks]);
   const hasCurrentPageArtwork = Object.keys(currentPageArtworks).length > 0;
+  const hasPendingCurrentPageArtwork = Object.values(currentPageArtworks).some(
+    (artwork) => artwork.pendingUpload,
+  );
+  const hasUnsavedArtworkWork = useMemo(
+    () =>
+      Object.keys(fullPageSketchesByPageId).length > 0 ||
+      Object.entries(panelsByPageId).some(
+        ([pageId, panels]) => panels.length > 0 && !savedLayoutByPageId[pageId],
+      ) ||
+      Object.values(panelArtworksByPageId).some((artworks) =>
+        Object.values(artworks).some((artwork) => artwork.pendingUpload),
+      ),
+    [fullPageSketchesByPageId, panelArtworksByPageId, panelsByPageId, savedLayoutByPageId],
+  );
+  const dirtyArtworkPageIds = useMemo(() => {
+    const ids = new Set<string>(Object.keys(fullPageSketchesByPageId));
+    Object.entries(panelsByPageId).forEach(([pageId, panels]) => {
+      if (panels.length > 0 && !savedLayoutByPageId[pageId]) ids.add(pageId);
+    });
+    Object.entries(panelArtworksByPageId).forEach(([pageId, artworks]) => {
+      if (Object.values(artworks).some((artwork) => artwork.pendingUpload)) ids.add(pageId);
+    });
+    return ids;
+  }, [fullPageSketchesByPageId, panelArtworksByPageId, panelsByPageId, savedLayoutByPageId]);
+
+  useEffect(() => {
+    if (!hasUnsavedArtworkWork) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [hasUnsavedArtworkWork]);
   const currentTemplate = useMemo(
     () =>
       frameTemplates.find((t) => t.id === currentTemplateId) ||
@@ -2143,18 +2186,87 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     activeChapter.isScriptFrozen === false,
   );
 
+  const validateArtworkFile = useCallback(
+    (file: File) => {
+      if (
+        !ALLOWED_ARTWORK_IMAGE_TYPES.includes(
+          file.type as (typeof ALLOWED_ARTWORK_IMAGE_TYPES)[number],
+        )
+      ) {
+        toast.error(t('artist.deskView.invalidImageTitle'), t('artist.deskView.invalidImageType'));
+        return false;
+      }
+      if (file.size > MAX_ARTWORK_IMAGE_BYTES) {
+        toast.error(
+          t('artist.deskView.invalidImageTitle'),
+          t('artist.deskView.imageTooLarge', {
+            max: Math.round(MAX_ARTWORK_IMAGE_BYTES / 1024 / 1024),
+          }),
+        );
+        return false;
+      }
+      return true;
+    },
+    [t, toast],
+  );
+
   // Persist the current dirty layout. Saving never prevents later layout changes.
   const handleSaveLayout = useCallback(async () => {
-    if (isInkOrColorStage) {
-      toast.error(t('artist.deskView.onlyPencilCanEditLayout'));
-      return;
-    }
     if (isPageReadOnly) {
       toast.error(t('artist.deskView.noOpenSlotOnPage'));
       return;
     }
-    if (!selectedPage || currentPagePanels.length === 0 || isCurrentPageLayoutSaved) return;
+    if (!selectedPage || currentPagePanels.length === 0) return;
     const targetPage = selectedPage;
+    if (isInkOrColorStage) {
+      const pending = [...currentPagePanels]
+        .sort((a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber))
+        .map((panel) => ({ panel, artwork: currentPageArtworks[panel.id] }))
+        .filter(({ artwork }) => artwork?.pendingUpload);
+      if (!currentChapterId || pending.length === 0) return;
+      setIsApplyingTemplate(true);
+      try {
+        const currentStg = artistStages[currentStageIndex];
+        const stageId = currentStg?.id && isGuid(currentStg.id) ? currentStg.id : undefined;
+        for (const { panel, artwork } of pending) {
+          const blob = await (await fetch(artwork.imageUrl)).blob();
+          const file = new File([blob], artwork.fileName, { type: blob.type || 'image/png' });
+          await artworkService.uploadArtwork(
+            currentChapterId,
+            targetPage.id,
+            file,
+            stageId,
+            undefined,
+            undefined,
+            panel.id,
+          );
+        }
+        await loadPageArtworks(currentChapterId, [targetPage], currentStageId, {
+          [targetPage.id]: currentPagePanels,
+        });
+        pending.forEach(({ artwork }) => {
+          if (artwork.imageUrl.startsWith('blob:')) URL.revokeObjectURL(artwork.imageUrl);
+        });
+        const sketch = fullPageSketchesByPageId[targetPage.id];
+        if (sketch?.imageUrl.startsWith('blob:')) URL.revokeObjectURL(sketch.imageUrl);
+        setFullPageSketchesByPageId((prev) => {
+          const next = { ...prev };
+          delete next[targetPage.id];
+          return next;
+        });
+        setArtworkUploadModeByPageId((prev) => ({ ...prev, [targetPage.id]: 'panel' }));
+        toast.success(t('artist.deskView.saveImagesSuccessTitle'), '');
+      } catch (err: any) {
+        toast.error(
+          t('artist.deskView.uploadErrorTitle'),
+          err?.response?.data?.message || err?.message || t('artist.deskView.uploadR2Error'),
+        );
+      } finally {
+        setIsApplyingTemplate(false);
+      }
+      return;
+    }
+    if (isCurrentPageLayoutSaved) return;
     const templateId = activeTemplateByPageId[targetPage.id];
     const template =
       frameTemplates.find((t) => t.id === templateId) ||
@@ -2299,6 +2411,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
 
     setSavedLayoutByPageId((prev) => ({ ...prev, [targetPage.id]: true }));
+    const sketch = fullPageSketchesByPageId[targetPage.id];
+    if (sketch?.imageUrl.startsWith('blob:')) URL.revokeObjectURL(sketch.imageUrl);
+    setFullPageSketchesByPageId((prev) => {
+      const next = { ...prev };
+      delete next[targetPage.id];
+      return next;
+    });
+    setArtworkUploadModeByPageId((prev) => ({ ...prev, [targetPage.id]: 'panel' }));
     toast.success(
       t('artist.deskView.saveLayoutSuccessTitle'),
       t('artist.deskView.saveLayoutSuccessDesc', {
@@ -2316,6 +2436,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     currentStageId,
     currentStageIndex,
     frameTemplates,
+    fullPageSketchesByPageId,
     isCurrentPageLayoutSaved,
     isInkOrColorStage,
     isPageReadOnly,
@@ -2328,14 +2449,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const handleUploadPanelArtwork = useCallback(
     async (panelId: string, panelNum: number, file: File) => {
       if (!selectedPage) return;
-      if (artworkUploadMode !== 'panel') {
-        toast.error(t('layoutToolbar.panelModeRequired'));
-        return;
-      }
+      if (artworkUploadMode !== 'panel' || uploadingPanelId || !validateArtworkFile(file)) return;
       if (!canUploadCurrentPageArtwork) {
         toast.error(t('artist.deskView.noUploadPermission'));
         return;
       }
+      setUploadingPanelId(panelId);
       // Bố cục chưa lưu thì khung chưa có mã trên server: giữ ảnh ở máy, tải lên khi lưu bố cục.
       const isLayoutSaved = Boolean(savedLayoutByPageId[selectedPage.id]);
       const shouldPersistToServer = Boolean(
@@ -2382,6 +2501,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               t('artist.deskView.uploadErrorDesc', { panel: panelNum, error: errorMsg }),
             );
           }
+          setUploadingPanelId(null);
           return;
         }
       }
@@ -2412,10 +2532,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           ? t('artist.deskView.uploadSuccessDesc', { file: file.name, panel: panelNum })
           : t('artist.deskView.uploadPendingDesc', { file: file.name, panel: panelNum }),
       );
+      setUploadingPanelId(null);
     },
     [
       selectedPage,
       artworkUploadMode,
+      uploadingPanelId,
+      validateArtworkFile,
       canUploadCurrentPageArtwork,
       currentChapterId,
       artistStages,
@@ -2503,6 +2626,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     setOrphanedArtworksByPageId((prev) => ({ ...prev, [targetPage.id]: carried.orphans }));
     setSavedLayoutByPageId((prev) => ({ ...prev, [targetPage.id]: false }));
     setActiveTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: template.id }));
+    setArtworkUploadModeByPageId((prev) => ({ ...prev, [targetPage.id]: 'panel' }));
     setPages((prev) =>
       prev.map((pg) =>
         pg.id === targetPage.id ? { ...pg, elementsCount: localPanels.length } : pg,
@@ -2575,21 +2699,41 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // Nhận diện gửi file sang split-artwork (BE không lưu); khi xác nhận chỉ các khung đã cắt
   // được tải lên. Lý do: ảnh cả trang trên máy chủ được ghép trang (Editor / Reader) ưu tiên hơn
   // ảnh từng khung, và tốn quota cho một bản không dùng tới.
-  const handleUploadFullPageSketch = (file: File) => {
+  const handleUploadFullPageSketch = async (file: File) => {
     if (!selectedPage) return;
-    if (artworkUploadMode !== 'page') {
-      toast.error(t('layoutToolbar.pageModeRequired'));
-      return;
-    }
-    if (isInkOrColorStage) {
-      toast.error(t('artist.deskView.onlyPencilCanEditLayout'));
-      return;
-    }
+    if (artworkUploadMode !== 'page' || !validateArtworkFile(file)) return;
     if (isPageReadOnly) {
       toast.error(t('artist.deskView.noOpenSlotOnPage'));
       return;
     }
     const targetPage = selectedPage;
+    if (hasPendingCurrentPageArtwork) {
+      const accepted = await confirm({
+        title: t('artist.deskView.resplitTitle'),
+        description: t('artist.deskView.switchTemplateDesc'),
+        confirmLabel: t('artist.deskView.resplitConfirm'),
+        cancelLabel: t('artist.deskView.keepCurrentLayout'),
+        variant: 'warning',
+      });
+      if (!accepted) return;
+
+      const pending = Object.values(currentPageArtworks).filter((artwork) => artwork.pendingUpload);
+      revokeArtworkUrls(pending);
+      setPanelArtworksByPageId((prev) => ({
+        ...prev,
+        [targetPage.id]: Object.fromEntries(
+          Object.entries(prev[targetPage.id] || {}).filter(([, artwork]) => !artwork.pendingUpload),
+        ),
+      }));
+      if (!isInkOrColorStage) {
+        const persistedPanels = persistedPanelsByPageId[targetPage.id] || [];
+        setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: persistedPanels }));
+        setSavedLayoutByPageId((prev) => ({
+          ...prev,
+          [targetPage.id]: persistedPanels.length > 0,
+        }));
+      }
+    }
     const previous = fullPageSketchesByPageId[targetPage.id];
     if (previous && previous.imageUrl.startsWith('blob:')) {
       URL.revokeObjectURL(previous.imageUrl);
@@ -2643,15 +2787,73 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // Tự động tách panel từ ảnh phác thảo toàn trang (Chỉ nhận diện Panel, KHÔNG đụng đến thoại)
   const handleAutoDetectPanels = async () => {
     if (!selectedPage || !currentSketch) return;
-    if (isInkOrColorStage) {
-      toast.error(t('artist.deskView.onlyPencilCanEditLayout'));
-      return;
-    }
     if (isPageReadOnly) {
       toast.error(t('artist.deskView.noOpenSlotOnPage'));
       return;
     }
     const targetPage = selectedPage;
+
+    if (isInkOrColorStage) {
+      if (currentPagePanels.length === 0) return;
+      setIsDetectingPanels(true);
+      try {
+        const boxes = currentPagePanels.map((panel) => {
+          const box = parseBoundingBox(
+            panel.boundingBox,
+            targetPage.widthPx || 1200,
+            targetPage.heightPx || 1800,
+          );
+          return {
+            x: box.percentX / 100,
+            y: box.percentY / 100,
+            w: box.percentW / 100,
+            h: box.percentH / 100,
+            corners: box.corners || undefined,
+          };
+        });
+        const croppedUrls = await cropImagesByBoundingBoxes(currentSketch.imageUrl, boxes);
+        const nowIso = new Date().toISOString();
+        const nextArtworks: Record<string, PanelArtworkData> = {};
+        currentPagePanels.forEach((panel, index) => {
+          const croppedUrl = croppedUrls[index];
+          if (!croppedUrl) return;
+          nextArtworks[panel.id] = {
+            id: `art-${panel.id}-${Date.now()}-${index}`,
+            panelId: panel.id,
+            panelNumber: panel.panelNumber || index + 1,
+            imageUrl: croppedUrl,
+            fileName: `panel-${panel.panelNumber || index + 1}.png`,
+            uploadedAt: nowIso,
+            source: 'auto-split',
+            pendingUpload: true,
+          };
+        });
+        const emptyCount = currentPagePanels.length - Object.keys(nextArtworks).length;
+        if (emptyCount > 0) {
+          toast.warning(
+            t('artist.deskView.panelCropFailedTitle', { count: emptyCount }),
+            t('artist.deskView.panelCropFailedDesc'),
+          );
+        }
+        revokeArtworkUrls(
+          Object.values(currentPageArtworks).filter((artwork) => artwork.pendingUpload),
+        );
+        setPanelArtworksByPageId((prev) => ({
+          ...prev,
+          [targetPage.id]: { ...(prev[targetPage.id] || {}), ...nextArtworks },
+        }));
+        toast.success(t('artist.deskView.panelsSplitSuccess'), '');
+      } catch (err) {
+        console.error('Lỗi cắt ảnh theo bố cục đã lưu:', err);
+        toast.error(
+          t('artist.deskView.panelsSplitErrorTitle'),
+          t('artist.deskView.panelsSplitErrorDesc'),
+        );
+      } finally {
+        setIsDetectingPanels(false);
+      }
+      return;
+    }
 
     if (hasCurrentPageArtwork) {
       const accepted = await confirm({
@@ -2671,6 +2873,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       const detection = await detectPanelsFromSketchImage(currentSketch.imageUrl, {
         readingDirection: isRTL ? 'rtl' : 'ltr',
       });
+      if (detection.panels.length === 0) {
+        throw new Error('No panels detected');
+      }
 
       const nowIso = new Date().toISOString();
       const detectedPanels: PanelDto[] = detection.panels.map((p) => ({
@@ -2711,6 +2916,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           pendingUpload: true,
         };
       });
+      const emptyCount = detectedPanels.length - Object.keys(newArtworks).length;
+      if (emptyCount > 0) {
+        toast.warning(
+          t('artist.deskView.panelCropFailedTitle', { count: emptyCount }),
+          t('artist.deskView.panelCropFailedDesc'),
+        );
+      }
 
       // Tranh đã tải lên vẫn chuyển theo thứ tự đọc; khung còn trống nhận ảnh vừa cắt.
       const carried = mergeResplitArtworks(
@@ -3438,14 +3650,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               sketch={currentSketch}
               hasPanels={currentPagePanels.length > 0}
               isLayoutSaved={isCurrentPageLayoutSaved}
+              hasPendingArtwork={hasPendingCurrentPageArtwork}
               isDetectingPanels={isDetectingPanels}
               isSavingLayout={isApplyingTemplate}
               readOnly={isPageReadOnly}
-              layoutLockedReason={
-                isInkOrColorStage ? t('artist.deskView.onlyPencilCanEditLayout') : undefined
-              }
+              isInkOrColorStage={isInkOrColorStage}
               uploadMode={artworkUploadMode}
-              canUsePanelMode={currentPagePanels.length > 0}
               onUploadModeChange={handleArtworkUploadModeChange}
               onCanvasClick={() => {
                 balloons.setSelectedElementId(null);
@@ -3467,8 +3677,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   templateCode={currentTemplate?.code}
                   artworks={currentPageArtworks}
                   isLayoutSaved={isCurrentPageLayoutSaved}
+                  mode={artworkUploadMode}
+                  uploadingPanelId={uploadingPanelId}
                   canUploadArtwork={canUploadCurrentPageArtwork && artworkUploadMode === 'panel'}
-                  canSelectPanel={artworkUploadMode === 'panel'}
+                  canSelectPanel={artworkUploadMode === 'panel' && !isPageReadOnly}
                   selectedPanelId={selectedPanelId}
                   onSelectPanel={handleSelectPanelById}
                   onUploadArtwork={handleUploadPanelArtwork}
@@ -3586,6 +3798,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             isFullscreen={isFullscreen}
             onToggleFullscreen={handleToggleFullscreen}
             canEdit={!isPageReadOnly}
+            dirtyPageIds={dirtyArtworkPageIds}
             onOpenReader={
               workspaceId && seriesId && currentChapterId
                 ? () =>

@@ -109,29 +109,30 @@ export const SplitPanelStrip: React.FC<SplitPanelStripProps> = ({
                   >
                     <Eye className='w-3.5 h-3.5' aria-hidden='true' />
                   </button>
-                  <a
-                    href={artwork.imageUrl}
-                    download={artwork.fileName}
-                    data-testid={`split-strip-download-${panelNum}`}
-                    title={t('splitStrip.downloadTitle')}
-                    aria-label={t('splitStrip.downloadAria', { panelNum })}
-                    className={`${ACTION} text-stone-600 hover:bg-stone-200`}
-                  >
-                    <Download className='w-3.5 h-3.5' aria-hidden='true' />
-                  </a>
-                  <button
-                    type='button'
-                    disabled={!canEdit}
-                    onClick={() => canEdit && onRemoveArtwork(panel.id, panelNum)}
-                    data-testid={`split-strip-remove-${panelNum}`}
-                    title={
-                      canEdit ? t('panelFrame.removeTitle') : t('common.noOpenSlotForPageStage')
-                    }
-                    aria-label={t('panelFrame.removeAria', { panelNum })}
-                    className={`${ACTION} text-rose-600 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed`}
-                  >
-                    <Trash2 className='w-3.5 h-3.5' aria-hidden='true' />
-                  </button>
+                  {canEdit && (
+                    <>
+                      <a
+                        href={artwork.imageUrl}
+                        download={artwork.fileName}
+                        data-testid={`split-strip-download-${panelNum}`}
+                        title={t('splitStrip.downloadTitle')}
+                        aria-label={t('splitStrip.downloadAria', { panelNum })}
+                        className={`${ACTION} text-stone-600 hover:bg-stone-200`}
+                      >
+                        <Download className='w-3.5 h-3.5' aria-hidden='true' />
+                      </a>
+                      <button
+                        type='button'
+                        onClick={() => onRemoveArtwork(panel.id, panelNum)}
+                        data-testid={`split-strip-remove-${panelNum}`}
+                        title={t('panelFrame.removeTitle')}
+                        aria-label={t('panelFrame.removeAria', { panelNum })}
+                        className={`${ACTION} text-rose-600 hover:bg-rose-50`}
+                      >
+                        <Trash2 className='w-3.5 h-3.5' aria-hidden='true' />
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </li>

@@ -479,6 +479,12 @@
     "noUploadPermission": "You do not have permission to upload artwork for this slot.",
     "saveLayoutBeforeUpload": "Save layout before uploading artwork",
     "uploadR2Error": "Could not upload artwork to R2 storage server.",
+    "invalidImageTitle": "Invalid image",
+    "invalidImageType": "Only PNG, JPEG, or WebP images are supported.",
+    "imageTooLarge": "Image must be smaller than {max} MB.",
+    "saveImagesSuccessTitle": "Panel images saved",
+    "panelCropFailedTitle": "Could not crop {count} panel(s)",
+    "panelCropFailedDesc": "Switch to Per panel to upload the missing images.",
     "uploadErrorTitle": "Server upload error",
     "uploadErrorDesc": "Panel #{panel}: {error}",
     "uploadSuccessTitle": "Artwork uploaded to panel",
@@ -684,42 +690,35 @@
     "exitFullscreen": "Exit fullscreen",
     "fullscreen": "Fullscreen",
     "readChapterLabel": "Read demo",
-    "readChapterTooltip": "Read full chapter demo"
+    "readChapterTooltip": "Read full chapter demo",
+    "unsavedChanges": "Has unsaved changes"
   },
   "canvasViewport": {
     "trimLineTitle": "Trim Line (3mm Bleed)",
     "safeAreaTitle": "Live Safe Area (dialogue & main artwork)",
     "detectingPanels": "Extracting panels...",
-    "originalPage": "Original page image",
-    "noPageImage": "No image",
-    "emptyTitle": "No page image",
-    "emptyPrompt": "Use Upload page image in the toolbar to begin."
+    "originalPage": "Original page",
+    "dropPageTitle": "Upload page",
+    "dropHint": "Drag and drop or click",
+    "noPanelsTitle": "This page has no panels"
   },
   "dialogs": {
     "closeArtworkPreview": "Close artwork preview"
   },
   "layoutToolbar": {
-    "steps": {
-      "pageImage": "Upload",
-      "extract": "Extract",
-      "review": "Review",
-      "saved": "Saved"
-    },
-    "processingTitle": "Image processing",
-    "needSketchFirst": "Upload a sketch first",
-    "needPanelsFirst": "Choose a template or split panels first",
-    "noChangesToSave": "No changes to save",
     "ariaLabel": "Page layout workflow",
     "uploadModeLabel": "Artwork upload mode",
-    "panelModeHint": "Choose a panel on the page to upload or replace its image",
-    "panelModeUnavailable": "Create panels before uploading per-panel artwork",
-    "pageModeRequired": "Switch to Full page mode to upload a page image.",
-    "panelModeRequired": "Switch to Per panel mode to upload panel artwork.",
-    "uploadPageImage": "Upload page image",
+    "uploadModePage": "Whole page",
+    "uploadModePanel": "Per panel",
+    "uploadPageImage": "Upload page",
+    "replacePageImage": "Replace image",
     "chooseTemplate": "Choose layout",
-    "splittingPanels": "Splitting panels...",
-    "extractPanels": "Extract panels",
-    "saveLayout": "Save layout"
+    "splittingPanels": "Splitting…",
+    "extractPanels": "Split panels",
+    "reExtractPanels": "Re-split",
+    "saveLayout": "Save layout",
+    "saveImages": "Save images",
+    "readOnly": "View only"
   },
   "scriptRefSidebar": {
     "sceneNumbered": "Scene {sceneNumber}",

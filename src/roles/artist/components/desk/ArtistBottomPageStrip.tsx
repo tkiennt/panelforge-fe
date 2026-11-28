@@ -30,6 +30,7 @@ export interface ArtistBottomPageStripProps {
   onToggleFullscreen?: () => void;
   canEdit?: boolean;
   onOpenReader?: () => void;
+  dirtyPageIds?: ReadonlySet<string>;
 }
 
 /**
@@ -53,6 +54,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
   onToggleFullscreen,
   canEdit = true,
   onOpenReader,
+  dirtyPageIds,
 }) => {
   const { t } = useTranslation('artist');
   const selectedIndex = pages.findIndex((p) => p.id === selectedPageId);
@@ -98,6 +100,12 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                     aria-label={t('bottomPageStrip.pageAria', { pageNumber: page.pageNumber })}
                   >
                     <span>{page.pageNumber}</span>
+                    {dirtyPageIds?.has(page.id) && (
+                      <span
+                        aria-label={t('bottomPageStrip.unsavedChanges')}
+                        className='absolute -left-1 -top-1 h-2 w-2 rounded-full border border-white bg-orange-500'
+                      />
+                    )}
 
                     {/* Nút tác vụ nhanh khi hover (Xóa / Nhân bản) */}
                     {canEdit && (
