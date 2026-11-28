@@ -142,124 +142,115 @@ export interface EditMemberAccessModalProps {
   onClose: () => void;
   role: string;
   onRoleChange: (r: string) => void;
-  task: string;
-  onTaskChange: (t: string) => void;
   onSave: () => void;
   error?: string | null;
   saving?: boolean;
 }
+
+const EDITABLE_ROLES = ['PRODUCER', 'WRITER', 'ARTIST', 'LETTERER', 'EDITOR'] as const;
+const ROLE_LABEL_KEY: Record<(typeof EDITABLE_ROLES)[number], string> = {
+  PRODUCER: 'members.crewTab.roleProducer',
+  WRITER: 'members.crewTab.roleWriter',
+  ARTIST: 'members.crewTab.roleArtist',
+  LETTERER: 'members.crewTab.roleLetterer',
+  EDITOR: 'members.crewTab.roleEditor',
+};
 
 export const EditMemberAccessModal: React.FC<EditMemberAccessModalProps> = ({
   member,
   onClose,
   role,
   onRoleChange,
-  task,
-  onTaskChange,
   onSave,
   error,
   saving = false,
 }) => {
+  const { t } = useTranslation();
   if (!member) return null;
+  const memberName = member.fullName || member.name || member.email;
 
   return (
     <Modal
       isOpen={Boolean(member)}
       onClose={onClose}
-      closeLabel='Close'
-      size='sm'
-      title='Edit member access'
-    >
-      <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden'>
-        <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
-          <div className='flex items-center gap-2'>
-            <Shield className='w-4 h-4 text-[#F97316]' />
-            <h3 className='font-serif font-bold text-base text-[#171717]'>
-              Edit Access Policies: {member.name}
-            </h3>
-          </div>
-          <button
-            onClick={onClose}
-            className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
-          >
-            <X className='w-4 h-4' />
-          </button>
-        </div>
-
-        <div className='p-6 space-y-4 text-xs'>
-          {error && (
-            <div
-              role='alert'
-              data-testid='edit-member-role-error'
-              className='p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-start gap-2'
-            >
-              <AlertTriangle className='w-4 h-4 shrink-0 mt-0.5' />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div>
-            <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5 text-xs'>
-              Assigned Production Role (Single Role)
-            </label>
-            <div className='flex flex-wrap gap-2 mt-1'>
-              {(['PRODUCER', 'ARTIST', 'WRITER', 'LETTERER', 'EDITOR'] as const).map((roleKey) => {
-                const isSelected = role.toUpperCase() === roleKey;
-                return (
-                  <label
-                    key={roleKey}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold tracking-wider cursor-pointer transition-colors ${
-                      isSelected
-                        ? 'bg-[#171717] text-white border-[#171717] shadow-xs'
-                        : 'bg-white text-[#555555] border-[#E7E7E7] hover:bg-[#FAF8F4]'
-                    }`}
-                  >
-                    <input
-                      type='radio'
-                      name='memberRole'
-                      value={roleKey}
-                      className='hidden'
-                      checked={isSelected}
-                      onChange={() => onRoleChange(roleKey)}
-                    />
-                    <span>{roleKey}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5 text-xs'>
-              Current Assignment / Scope
-            </label>
-            <input
-              type='text'
-              value={task}
-              onChange={(e) => onTaskChange(e.target.value)}
-              className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
-            />
-          </div>
-        </div>
-
-        <div className='p-4 bg-[#FAF8F4] border-t border-[#E7E7E7] flex items-center justify-between'>
+      closeLabel={t('members.crewTab.editAccess.cancel')}
+      size='md'
+      dismissible={!saving}
+      title={t('members.crewTab.editAccess.title', { name: memberName })}
+      description={t('members.crewTab.editAccess.description')}
+      footer={
+        <div className='flex items-center justify-end gap-2'>
           <button
             type='button'
             onClick={onClose}
             disabled={saving}
-            className='px-3.5 py-1.5 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] text-[#555555] rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50'
+            className='focus-ring min-h-9 rounded-lg border border-stone-200 bg-white px-4 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50 cursor-pointer'
           >
-            Cancel
+            {t('members.crewTab.editAccess.cancel')}
           </button>
           <button
             type='button'
             onClick={onSave}
             disabled={saving}
-            className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50'
+            data-testid='edit-member-role-save'
+            className='focus-ring min-h-9 rounded-lg bg-orange-600 px-4 text-sm font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 cursor-pointer'
           >
-            {saving ? 'Saving...' : 'Save Policies'}
+            {saving ? t('members.crewTab.editAccess.saving') : t('members.crewTab.editAccess.save')}
           </button>
         </div>
+      }
+    >
+      <div className='space-y-4'>
+        {error && (
+          <div
+            role='alert'
+            data-testid='edit-member-role-error'
+            className='flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700'
+          >
+            <AlertTriangle className='mt-0.5 size-4 shrink-0' aria-hidden='true' />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <fieldset>
+          <legend className='mb-2 text-xs font-semibold text-stone-600'>
+            {t('members.crewTab.editAccess.roleLabel')}
+          </legend>
+          <div className='grid gap-2 sm:grid-cols-2'>
+            {EDITABLE_ROLES.map((roleKey) => {
+              const isSelected = role.toUpperCase() === roleKey;
+              return (
+                <label
+                  key={roleKey}
+                  className={`flex cursor-pointer items-start gap-2.5 rounded-lg border p-3 transition-studio has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-orange-300 ${
+                    isSelected
+                      ? 'border-orange-300 bg-accent-soft'
+                      : 'border-stone-200 bg-white hover:border-head-line hover:bg-stone-50'
+                  }`}
+                >
+                  <input
+                    type='radio'
+                    name='memberRole'
+                    value={roleKey}
+                    checked={isSelected}
+                    onChange={() => onRoleChange(roleKey)}
+                    className='mt-0.5 accent-orange-600'
+                  />
+                  <span className='min-w-0'>
+                    <span
+                      className={`block text-sm font-semibold ${isSelected ? 'text-accent-dark' : 'text-stone-900'}`}
+                    >
+                      {t(ROLE_LABEL_KEY[roleKey])}
+                    </span>
+                    <span className='mt-0.5 block text-xs text-stone-500'>
+                      {t(`members.crewTab.editAccess.hints.${roleKey}`)}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
       </div>
     </Modal>
   );

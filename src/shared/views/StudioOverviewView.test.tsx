@@ -112,15 +112,15 @@ describe('StudioOverviewView Library UX/UI', () => {
     renderWithRouter();
 
     await waitFor(() => {
-      expect(screen.getByText('Danh sách Bộ truyện')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Bộ truyện' })).toBeInTheDocument();
       expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
       expect(screen.getByText('Thành Phố Hoàng Hôn')).toBeInTheDocument();
     });
 
-    // Check primary actions (cover + CTA open buttons for the 2 series)
+    // Cover-first card: the cover is the single open control per series
     expect(screen.getAllByRole('article')).toHaveLength(2);
     const openButtons = screen.getAllByRole('button', { name: /^Mở bộ truyện: /i });
-    expect(openButtons.length).toBe(4);
+    expect(openButtons.length).toBe(2);
 
     // Thẻ tối giản: bìa là nút mở bộ truyện
     expect(openButtons[0]).toHaveAccessibleName(/Mở bộ truyện: /);
@@ -131,13 +131,15 @@ describe('StudioOverviewView Library UX/UI', () => {
     expect(screen.getAllByText(/Đọc phải → trái/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Cuộn dọc/).length).toBeGreaterThan(0);
 
-    // Check studio metrics strip
-    expect(screen.getByLabelText('Chỉ số vận hành Studio')).toBeInTheDocument();
-    expect(screen.getByText('Dung lượng lưu trữ')).toBeInTheDocument();
+    // Header meta line replaces the old metrics strip (series, chapters, members, storage)
+    expect(screen.getByText(/2 bộ · 17 chương/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Chỉ số vận hành Studio')).not.toBeInTheDocument();
 
     // Check PageHeader primary CTA + clean unified SeriesCardItem (TASK-369)
     const createBtn = screen.getByTestId('studio-hub-create-series');
-    expect(createBtn).toHaveTextContent('Tạo Series mới');
+    expect(createBtn).toHaveTextContent('Tạo bộ truyện');
+    // Không còn ô "Tạo bộ truyện" dashed khi đã có bộ truyện
+    expect(screen.queryByTestId('series-create-tile')).not.toBeInTheDocument();
     // Bỏ thông tin lặp & avatar PD/ED giả
     expect(screen.queryByText('PD')).not.toBeInTheDocument();
     expect(screen.queryByText('ED')).not.toBeInTheDocument();
@@ -152,7 +154,7 @@ describe('StudioOverviewView Library UX/UI', () => {
     expect(optionsMenu).toHaveTextContent('Chỉnh sửa thông tin');
     expect(optionsMenu).toHaveTextContent('Xóa bộ truyện');
 
-    // Bấm nút Tạo Series mới trong PageHeader mở modal tạo series
+    // Bấm nút Tạo bộ truyện trong PageHeader mở modal tạo series
     fireEvent.click(createBtn);
     expect(await screen.findByText('Khởi tạo Dự án Series mới')).toBeInTheDocument();
   });
@@ -172,8 +174,8 @@ describe('StudioOverviewView Library UX/UI', () => {
       expect(screen.getByText('Thành Phố Hoàng Hôn')).toBeInTheDocument();
     });
 
-    // Clear filter
-    const clearBtn = screen.getByRole('button', { name: /Xóa bộ lọc/i });
+    // Clear the search via the search box's own clear button
+    const clearBtn = screen.getByRole('button', { name: 'Xoá tìm kiếm' });
     fireEvent.click(clearBtn);
 
     await waitFor(() => {
@@ -189,7 +191,7 @@ describe('StudioOverviewView Library UX/UI', () => {
       expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
     });
 
-    const genreSelect = screen.getByLabelText('Tất cả thể loại');
+    const genreSelect = screen.getByLabelText('Thể loại');
     fireEvent.change(genreSelect, { target: { value: 'Action' } });
 
     await waitFor(() => {
@@ -198,7 +200,7 @@ describe('StudioOverviewView Library UX/UI', () => {
     });
 
     // Change direction to VERTICAL while genre is Action (should be empty)
-    const dirSelect = screen.getByLabelText('Tất cả định dạng đọc');
+    const dirSelect = screen.getByLabelText('Định dạng đọc');
     fireEvent.change(dirSelect, { target: { value: 'VERTICAL' } });
 
     await waitFor(() => {
@@ -206,14 +208,54 @@ describe('StudioOverviewView Library UX/UI', () => {
     });
   });
 
-  it('renders Studio resource governance metrics strip with storage usage', async () => {
+  it('shows storage and AI usage in the resource strip (existing usage DTO fields only)', async () => {
     renderWithRouter();
 
     await waitFor(() => {
       expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
-      expect(screen.getByText('Dung lượng lưu trữ')).toBeInTheDocument();
-      expect(screen.getByText('25%')).toBeInTheDocument();
+      expect(screen.getByTestId('series-resource-storage')).toHaveTextContent('2.33 GB / 9.31 GB');
     });
+    const strip = screen.getByTestId('series-resource-strip');
+    expect(strip).toHaveTextContent('Token AI');
+    expect(strip).toHaveTextContent('Không giới hạn');
+    expect(screen.queryByTestId('series-resource-ai-images')).not.toBeInTheDocument();
+  });
+
+  it('shows <1% low storage usage, omits AI images meter, and navigates to members tab via header link', async () => {
+    vi.spyOn(workspaceService, 'getWorkspaceUsage').mockResolvedValueOnce({
+      ...mockUsage,
+      storage: { used: 22334669, quota: 10737418240, percentUsed: 0.21, isUnlimited: false },
+      aiTokens: { used: 91118, quota: 1000000, percentUsed: 9.1, isUnlimited: false },
+      images: { used: 3, quota: -1, percentUsed: null, isUnlimited: true },
+    } as any);
+
+    renderWithRouter();
+
+    const storageCell = await screen.findByTestId('series-resource-storage');
+    expect(storageCell).toHaveTextContent('<1%');
+    expect(screen.getByTestId('series-resource-ai-tokens')).toHaveTextContent('9.1%');
+    expect(screen.queryByTestId('series-resource-ai-images')).not.toBeInTheDocument();
+
+    const membersLink = screen.getByTestId('studio-hub-members-link');
+    fireEvent.click(membersLink);
+    expect(await screen.findByText(/Danh sách Nhân sự Studio/i)).toBeInTheDocument();
+  });
+
+  it('switches between list and grid views and remembers the choice', async () => {
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
+    });
+    // Mặc định là danh sách (thẻ ngang)
+    expect(screen.getByTestId('series-view-list')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('article')[0]).toHaveAttribute('data-variant', 'list');
+
+    fireEvent.click(screen.getByTestId('series-view-grid'));
+
+    expect(screen.getByTestId('series-view-grid')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('article')[0]).toHaveAttribute('data-variant', 'grid');
+    expect(localStorage.getItem('pf.studioSeriesView')).toBe('grid');
   });
 
   it('displays empty state when studio has no series', async () => {
@@ -275,7 +317,7 @@ describe('StudioOverviewView Library UX/UI', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
-      expect(screen.getByText('Dung lượng lưu trữ')).toBeInTheDocument();
+      expect(screen.getByTestId('series-resource-storage')).toHaveTextContent('2.33 GB / 9.31 GB');
     });
 
     expect(usageSpy).toHaveBeenCalledTimes(1);
@@ -313,12 +355,12 @@ describe('StudioOverviewView Library UX/UI', () => {
       </MemoryRouter>,
     );
 
-    const adjustBtn = await screen.findByRole('button', { name: 'Điều chỉnh' });
+    const adjustBtn = await screen.findByRole('button', { name: 'Sửa quyền' });
     fireEvent.click(adjustBtn);
 
-    const artistOption = screen.getByLabelText('ARTIST');
+    const artistOption = screen.getByLabelText(/Họa sĩ chính/);
     fireEvent.click(artistOption);
-    fireEvent.click(screen.getByRole('button', { name: 'Save Policies' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu vai trò' }));
 
     const alert = await screen.findByTestId('edit-member-role-error');
     expect(alert).toHaveAttribute('role', 'alert');
@@ -326,12 +368,12 @@ describe('StudioOverviewView Library UX/UI', () => {
 
     // Changing role clears the previous conflict alert; happy path closes modal
     vi.spyOn(axiosClient, 'put').mockResolvedValueOnce({ data: {} });
-    fireEvent.click(screen.getByLabelText('EDITOR'));
+    fireEvent.click(screen.getByLabelText(/Biên tập viên/));
     expect(screen.queryByTestId('edit-member-role-error')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save Policies' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu vai trò' }));
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'Save Policies' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Lưu vai trò' })).not.toBeInTheDocument();
     });
   });
 
@@ -799,7 +841,15 @@ describe('StudioOverviewView Library UX/UI', () => {
         '/workspaces/ws-test/series/series-2/workspace?chapterId=chap-22&board=grid-v3',
       );
 
-      fireEvent.click(links[0]);
+      // Click stat tile to filter recent activity by kind, then reset to all
+      fireEvent.click(screen.getByTestId('automation-stat-skipped'));
+      expect(screen.getAllByTestId('automation-activity-item')).toHaveLength(1);
+      expect(screen.getByTestId('automation-activity-item')).toHaveTextContent(/Không có Inker\./);
+      fireEvent.click(screen.getByTestId('automation-activity-filter-clear'));
+      const restoredLinks = screen.getAllByTestId('automation-activity-item');
+      expect(restoredLinks).toHaveLength(3);
+
+      fireEvent.click(restoredLinks[0]);
       expect(await screen.findByTestId('grid-v3-destination')).toBeInTheDocument();
     });
 
@@ -924,6 +974,8 @@ describe('StudioOverviewView Library UX/UI', () => {
       fireEvent.click(screen.getByTestId('escalation-quick-chip-48'));
       expect(escalationInput.value).toBe('48');
       expect(screen.getByTestId('escalation-duration-preview')).toHaveTextContent(/2 ngày/i);
+      expect(screen.getByTestId('automation-deadline-timeline')).toHaveTextContent('-24h');
+      expect(screen.getByTestId('automation-deadline-timeline')).toHaveTextContent('+48h');
 
       fireEvent.click(escalationSwitch);
       expect(escalationSwitch).not.toBeChecked();

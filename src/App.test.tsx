@@ -120,7 +120,7 @@ describe('App Integration Smoke Test', () => {
     await waitFor(
       () => {
         // Menu Members & Roles đã gộp vào ProducerWorkspaceView, chỉ cần kiểm tra nút của Producer
-        expect(screen.getByText('Tạo Series mới')).toBeInTheDocument();
+        expect(screen.getByText('Tạo bộ truyện')).toBeInTheDocument();
       },
       { timeout: 10000 },
     );
@@ -138,7 +138,7 @@ describe('App Integration Smoke Test', () => {
         ).toBeInTheDocument();
         expect(screen.getByText('Workspace Beta (Artist)')).toBeInTheDocument();
         // Menu / hành động của Producer đã biến mất hoàn toàn
-        expect(screen.queryByText('Tạo Series mới')).not.toBeInTheDocument();
+        expect(screen.queryByText('Tạo bộ truyện')).not.toBeInTheDocument();
       },
       { timeout: 10000 },
     );
@@ -155,7 +155,7 @@ describe('App Integration Smoke Test', () => {
       },
       { timeout: 10000 },
     );
-    expect(screen.queryByText('Tạo Series mới')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tạo bộ truyện')).not.toBeInTheDocument();
 
     // 10. User chọn Series One để vào môi trường làm việc chính của Artist
     fireEvent.click(screen.getByRole('button', { name: /Xem việc của tôi/i }));
@@ -165,7 +165,7 @@ describe('App Integration Smoke Test', () => {
     });
     // Menu / hành động dành riêng cho Producer TUYỆT ĐỐI KHÔNG xuất hiện
     expect(screen.queryByText('Members & Roles')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tạo Series mới')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tạo bộ truyện')).not.toBeInTheDocument();
   }, 30000);
 
   it('đăng nhập ADMINISTRATOR -> điều hướng tới /admin và render AdminDashboardView, TUYỆT ĐỐI KHÔNG bị đẩy về /workspaces', async () => {

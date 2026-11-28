@@ -31,12 +31,15 @@ export const ProgressBar = forwardRef<HTMLDivElement, ProgressBarProps>(function
       aria-valuemin={0}
       aria-valuemax={safeMax}
       aria-valuenow={safeValue}
-      className={cn('h-2 overflow-hidden rounded-full bg-stone-100', className)}
+      className={cn('h-2 overflow-hidden rounded-full bg-stone-200/80', className)}
       {...props}
     >
       <div
         className={cn('h-full rounded-full transition-[width]', fillClasses[tone])}
-        style={{ width: `${percentage}%` }}
+        style={{
+          width: `${percentage}%`,
+          ...(safeValue > 0 ? { minWidth: '6px' } : {}),
+        }}
       />
     </div>
   );

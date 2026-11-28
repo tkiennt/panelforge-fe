@@ -202,9 +202,9 @@ export const StudioHubTabBar: React.FC<StudioHubTabBarProps> = ({
         ref={navRef}
         aria-label={t('workspace.studioHub.tabsLabel')}
         data-testid='studio-hub-tabs'
-        className='flex items-center gap-2 h-11 px-4 md:px-8 xl:px-12 overflow-hidden'
+        className='flex items-end gap-2 h-12 max-w-[1440px] mx-auto w-full px-4 md:px-8 xl:px-12'
       >
-        <div className='flex items-center gap-1 min-w-0 flex-1 overflow-x-clip'>
+        <div className='flex items-end gap-1 min-w-0 flex-1 overflow-x-clip'>
           {tabs.map((item) => {
             const Icon = item.icon;
             const isCurrent = activeTab === item.id;
@@ -220,10 +220,10 @@ export const StudioHubTabBar: React.FC<StudioHubTabBarProps> = ({
                 aria-hidden={isOverflowed || undefined}
                 tabIndex={isOverflowed ? -1 : undefined}
                 onClick={() => onSelectTab(item.id)}
-                className={`focus-ring relative h-11 inline-flex items-center gap-2 px-3 text-sm whitespace-nowrap shrink-0 border-b-2 transition-studio cursor-pointer ${
+                className={`focus-ring relative inline-flex items-center gap-2 px-3.5 text-sm whitespace-nowrap shrink-0 transition-studio cursor-pointer ${
                   isCurrent
-                    ? 'border-accent text-accent-dark font-semibold'
-                    : 'border-transparent text-stone-600 hover:text-stone-900 hover:border-head-line font-medium'
+                    ? 'z-10 -mb-px h-10 rounded-t-lg border-x border-t-2 border-b border-x-head-line border-t-accent border-b-[#FAF9F5] bg-[#FAF9F5] text-stone-900 font-semibold'
+                    : 'mb-1 h-9 rounded-lg border border-transparent text-stone-600 hover:bg-stone-100 hover:text-stone-900 font-medium'
                 } ${isOverflowed ? 'invisible pointer-events-none' : ''}`}
               >
                 <Icon
@@ -250,10 +250,12 @@ export const StudioHubTabBar: React.FC<StudioHubTabBarProps> = ({
               aria-controls={moreMenuId}
               {...invokerAttrs(moreMenuId)}
               onClick={handleMoreTriggerClick}
-              className={`focus-ring h-11 inline-flex items-center gap-1.5 px-2.5 text-sm whitespace-nowrap border-b-2 transition-studio cursor-pointer ${
-                hasActiveInOverflow || isMoreOpen
-                  ? 'border-accent text-accent-dark font-semibold'
-                  : 'border-transparent text-stone-600 hover:text-stone-900 font-medium'
+              className={`focus-ring inline-flex items-center gap-1.5 px-3 text-sm whitespace-nowrap transition-studio cursor-pointer ${
+                hasActiveInOverflow
+                  ? 'relative z-10 -mb-px h-10 rounded-t-lg border-x border-t-2 border-b border-x-head-line border-t-accent border-b-[#FAF9F5] bg-[#FAF9F5] text-stone-900 font-semibold'
+                  : isMoreOpen
+                    ? 'mb-1 h-9 rounded-lg border border-orange-200 bg-accent-soft text-accent-dark font-semibold'
+                    : 'mb-1 h-9 rounded-lg border border-transparent text-stone-600 hover:bg-stone-100 hover:text-stone-900 font-medium'
               }`}
             >
               <span>{t('workspace.studioHub.tabsMore')}</span>

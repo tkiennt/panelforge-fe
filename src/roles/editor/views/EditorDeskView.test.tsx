@@ -269,6 +269,31 @@ describe('EditorDeskView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Hàng Đợi Thẩm Định Đang Sạch (Inbox Zero)')).toBeInTheDocument();
     });
+
+    // Quick-action links are available from the clean empty state
+    fireEvent.click(screen.getByRole('button', { name: /Đọc bộ truyện/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/workspaces/ws-1/series/series-001/read');
+  });
+
+  it('toggles status filter via header KPI buttons and renders Gate tabs without horizontal scrollbar', async () => {
+    const getQueueSpy = vi
+      .spyOn(assignmentService, 'getEditorReviewQueue')
+      .mockResolvedValue([sampleItem({ status: 'Submitted' })]);
+    vi.spyOn(seriesService, 'getSeriesById').mockResolvedValue({ id: 'series-001' } as any);
+
+    renderView();
+
+    const pendingKpiBtn = await screen.findByTestId('editor-kpi-submitted');
+    expect(pendingKpiBtn).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(pendingKpiBtn);
+    await waitFor(() => {
+      expect(pendingKpiBtn).toHaveAttribute('aria-pressed', 'true');
+      expect(getQueueSpy).toHaveBeenCalledWith('series-001', {
+        gate: undefined,
+        status: 'Submitted',
+      });
+    });
   });
 
   it('Lát cắt 4 (Clean Cutover): đọc hàng đợi từ getTaskGridReviewQueue, khoá tự duyệt BR-06 và cho Duyệt / Yêu cầu sửa ô Lưới V3', async () => {

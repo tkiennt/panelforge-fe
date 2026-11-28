@@ -19,6 +19,7 @@ import { getRoleDefaultPath } from '@/roles/roles';
 import { SeriesDto, seriesService } from '@/services/series.service';
 import { useTranslation } from '@/lib/i18n';
 import { SidebarItem } from '@/shared/ui';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
 
 /** Ảnh đại diện người dùng; ảnh lỗi/không có thì hiện chữ viết tắt (giống header AppShell). */
@@ -525,6 +526,16 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   })();
 
   const seriesLabel = `Series: ${seriesId ? activeSeries?.title || t('navigation.sidebar.activeSeriesFallback', 'Bộ truyện') : t('navigation.sidebar.chooseSeries', 'Chọn Series')}`;
+  const seriesTitle = seriesId
+    ? activeSeries?.title || t('navigation.sidebar.activeSeriesFallback', 'Bộ truyện')
+    : activeWorkspace?.name || t('navigation.sidebar.chooseSeries', 'Chọn Series...');
+  const seriesInitials =
+    seriesTitle
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join('') || 'PF';
   const themeLabel = t('navigation.sidebar.appearance', 'Giao diện thanh bên');
   const themeName = (id: SidebarTheme) => t(`navigation.sidebar.themes.${id}`);
   const profileSettingsLabel = t('navigation.sidebar.profileAndSettings', 'Hồ sơ & cài đặt');
@@ -795,17 +806,8 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         {/* Card: BỘ TRUYỆN ĐANG MỞ */}
         <div className={`shrink-0 ${showFullContent ? 'px-4 py-3' : 'p-2'}`}>
           {showFullContent ? (
-            <div className='pf-sb-surface p-3.5 rounded-lg'>
-              <div className='flex items-center justify-between gap-2 mb-1.5'>
-                <span className='pf-sb-muted text-xs uppercase tracking-wider font-semibold truncate'>
-                  {t('navigation.sidebar.activeSeriesLabel', 'BỘ TRUYỆN ĐANG MỞ')}
-                </span>
-                {displayChapterNum && (
-                  <span className='px-2 py-0.5 rounded text-xs font-medium bg-[#EA580C] text-white shrink-0 whitespace-nowrap tabular-nums'>
-                    {`${t('navigation.breadcrumbs.chapters')} ${displayChapterNum}`}
-                  </span>
-                )}
-              </div>
+            <div>
+              {/* Ảnh bìa + tên + 1 dòng phụ; cả khối là nút đổi bộ truyện */}
               <button
                 ref={seriesBtnRef}
                 id={seriesTriggerId}
@@ -815,35 +817,48 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 aria-expanded={seriesMenuOpen}
                 onClick={handleSeriesTriggerClick}
                 {...invokerAttrs(seriesMenuId)}
-                className='w-full flex items-center justify-between gap-1 text-left cursor-pointer group'
+                className='pf-sb-surface w-full flex items-center gap-3 p-2.5 rounded-lg text-left cursor-pointer group border border-transparent hover:border-[var(--sb-accent)] transition-colors'
                 title={seriesLabel}
                 aria-label={seriesLabel}
               >
-                <span className='pf-sb-text text-[15px] font-bold truncate group-hover:text-[var(--sb-accent)] transition-colors'>
-                  {seriesId
-                    ? activeSeries?.title ||
-                      t('navigation.sidebar.activeSeriesFallback', 'Bộ truyện')
-                    : activeWorkspace?.name ||
-                      t('navigation.sidebar.chooseSeries', 'Chọn Series...')}
+                <span className='w-10 h-[52px] shrink-0 overflow-hidden rounded-md bg-orange-50 border border-orange-200/70 text-[#C2410C] flex items-center justify-center font-serif text-sm font-bold'>
+                  {seriesId && matchedSeries?.avatarUrl ? (
+                    <AuthenticatedImage
+                      src={matchedSeries.avatarUrl}
+                      alt=''
+                      className='w-full h-full object-cover'
+                      fallback={<span aria-hidden='true'>{seriesInitials}</span>}
+                    />
+                  ) : (
+                    <span aria-hidden='true'>{seriesInitials}</span>
+                  )}
+                </span>
+                <span className='min-w-0 flex-1'>
+                  <span className='line-clamp-2 pf-sb-text text-[15px] font-bold leading-snug group-hover:text-[var(--sb-accent)] transition-colors'>
+                    {seriesTitle}
+                  </span>
+                  <span className='mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs pf-sb-muted'>
+                    {displayChapterNum && (
+                      <span className='whitespace-nowrap font-semibold tabular-nums text-[var(--sb-accent)]'>
+                        {`${t('navigation.breadcrumbs.chapters')} ${displayChapterNum}`}
+                      </span>
+                    )}
+                    <span
+                      data-testid='sidebar-series-status-badge'
+                      className='inline-flex items-center gap-1.5 whitespace-nowrap'
+                    >
+                      {seriesStatusMeta.dotClass && (
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${seriesStatusMeta.dotClass}`}
+                          aria-hidden='true'
+                        />
+                      )}
+                      {seriesStatusMeta.label}
+                    </span>
+                  </span>
                 </span>
                 <ChevronsUpDown className='pf-sb-muted w-3.5 h-3.5 group-hover:text-[var(--sb-text)] transition-colors shrink-0' />
               </button>
-              {!displayChapterNum && (
-                <div className='mt-1.5 flex items-center'>
-                  <span
-                    data-testid='sidebar-series-status-badge'
-                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium ${seriesStatusMeta.className}`}
-                  >
-                    {seriesStatusMeta.dotClass && (
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${seriesStatusMeta.dotClass}`}
-                        aria-hidden='true'
-                      />
-                    )}
-                    {seriesStatusMeta.label}
-                  </span>
-                </div>
-              )}
               {seriesPopoverEl}
             </div>
           ) : (
