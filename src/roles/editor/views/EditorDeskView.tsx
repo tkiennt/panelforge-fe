@@ -570,7 +570,10 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                   size='sm'
                   disabled={loading}
                   leadingIcon={
-                    <RotateCcw className={loading ? 'animate-spin' : undefined} aria-hidden='true' />
+                    <RotateCcw
+                      className={loading ? 'animate-spin' : undefined}
+                      aria-hidden='true'
+                    />
                   }
                   onClick={loadData}
                   title={t('desk.refreshQueueTitle')}
