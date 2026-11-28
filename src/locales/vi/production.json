@@ -1820,6 +1820,8 @@
         "noBlockersPreProd": "Không có điểm chặn. Chương sẵn sàng bắt đầu sản xuất.",
         "noPendingActions": "Không có việc cần xử lý ngay.",
         "actionCenterTitle": "Việc cần xử lý",
+        "actionCenterShowMore": "Xem thêm {count} mục",
+        "actionCenterShowLess": "Thu gọn",
         "blockerCountBadge": "{count} điểm chặn",
         "warningCountBadge": "{count} cảnh báo",
         "productionActionsCountBadge": "{count} mục sản xuất",

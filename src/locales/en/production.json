@@ -1820,6 +1820,8 @@
         "noBlockersPreProd": "No blockers. Chapter is ready to start production.",
         "noPendingActions": "No immediate actions required.",
         "actionCenterTitle": "Action required",
+        "actionCenterShowMore": "Show {count} more",
+        "actionCenterShowLess": "Show less",
         "blockerCountBadge": "{count} blockers",
         "warningCountBadge": "{count} warnings",
         "productionActionsCountBadge": "{count} production items",

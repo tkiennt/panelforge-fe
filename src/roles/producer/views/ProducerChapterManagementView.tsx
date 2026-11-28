@@ -50,6 +50,7 @@ import { ReasonForm } from '@/shared/components/ReasonForm';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
 import { ProductionMetricsList } from '../components/chapter-overview/ProductionMetricsList';
 import { StageProgressBars } from '../components/chapter-overview/StageProgressBars';
+import { ActionCenterList } from '../components/chapter-overview/ActionCenterList';
 import {
   Alert,
   Badge,
@@ -1063,205 +1064,15 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
     );
 
   // Action Center (Blockers + Warnings + Production tasks needing attention)
-  const blockerCount = readiness?.blockers.length ?? 0;
-  const warningCount = readiness?.warnings.length ?? 0;
-  const productionActionItems: Array<{
-    key: 'overdue' | 'rework' | 'submitted' | 'unassigned';
-    tone: 'danger' | 'warning';
-    tag: string;
-    message: string;
-  }> = [];
-  if (readiness?.production) {
-    if ((readiness.production.overdueTasks ?? 0) > 0) {
-      productionActionItems.push({
-        key: 'overdue',
-        tone: 'danger',
-        tag: t('producer.chapterManagement.overview.overdueTag'),
-        message: t('producer.chapterManagement.overview.actionOverdueDesc', {
-          count: readiness.production.overdueTasks,
-        }),
-      });
-    }
-    if ((readiness.production.reworkTasks ?? 0) > 0) {
-      productionActionItems.push({
-        key: 'rework',
-        tone: 'danger',
-        tag: t('producer.chapterManagement.overview.reworkTag'),
-        message: t('producer.chapterManagement.overview.actionReworkDesc', {
-          count: readiness.production.reworkTasks,
-        }),
-      });
-    }
-    if ((readiness.production.submittedTasks ?? 0) > 0) {
-      productionActionItems.push({
-        key: 'submitted',
-        tone: 'warning',
-        tag: t('producer.chapterManagement.overview.submittedTag'),
-        message: t('producer.chapterManagement.overview.actionSubmittedDesc', {
-          count: readiness.production.submittedTasks,
-        }),
-      });
-    }
-    if ((readiness.production.unassignedTasks ?? 0) > 0) {
-      productionActionItems.push({
-        key: 'unassigned',
-        tone: 'warning',
-        tag: t('producer.chapterManagement.overview.unassignedTag'),
-        message: t('producer.chapterManagement.overview.actionUnassignedDesc', {
-          count: readiness.production.unassignedTasks,
-        }),
-      });
-    }
-  }
-  const hasDangerProductionAction = productionActionItems.some((item) => item.tone === 'danger');
-  const totalActionCount = blockerCount + warningCount + productionActionItems.length;
-
-  const actionCenterSection =
-    totalActionCount === 0 ? (
-      <div
-        data-testid='overview-action-center'
-        className='rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3 text-xs text-emerald-800 flex items-center gap-2'
-      >
-        <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' aria-hidden='true' />
-        <span className='font-medium'>
-          {isPreProduction
-            ? t('producer.chapterManagement.overview.noBlockersPreProd')
-            : t('producer.chapterManagement.overview.noPendingActions')}
-        </span>
-      </div>
-    ) : (
-      <Card
-        as='section'
-        tone={blockerCount > 0 || hasDangerProductionAction ? 'danger' : 'warning'}
-        data-testid='overview-action-center'
-      >
-        <CardHeader
-          icon={<AlertTriangle aria-hidden='true' />}
-          title={t('producer.chapterManagement.overview.actionCenterTitle')}
-          actions={
-            <div className='flex flex-wrap items-center gap-1.5'>
-              {blockerCount > 0 && (
-                <Badge tone='danger'>
-                  {t('producer.chapterManagement.overview.blockerCountBadge', {
-                    count: blockerCount,
-                  })}
-                </Badge>
-              )}
-              {warningCount > 0 && (
-                <Badge tone='warning'>
-                  {t('producer.chapterManagement.overview.warningCountBadge', {
-                    count: warningCount,
-                  })}
-                </Badge>
-              )}
-              {productionActionItems.length > 0 && (
-                <Badge tone={hasDangerProductionAction ? 'danger' : 'warning'}>
-                  {t('producer.chapterManagement.overview.productionActionsCountBadge', {
-                    count: productionActionItems.length,
-                  })}
-                </Badge>
-              )}
-            </div>
-          }
-        />
-        <CardBody className='space-y-2'>
-          {(readiness?.blockers ?? []).map((issue, idx) => (
-            <div
-              key={`${issue.code}-${issue.resourceId || idx}`}
-              data-testid={`action-blocker-${issue.code}`}
-              className='rounded-lg border border-rose-200/80 bg-rose-50/40 px-3.5 py-2.5 flex items-center justify-between gap-3'
-            >
-              <div className='flex items-center gap-2.5 min-w-0'>
-                <Badge tone='danger'>{t('producer.chapterManagement.overview.blockerTag')}</Badge>
-                <p className='text-xs text-stone-800 min-w-0'>{issue.message}</p>
-              </div>
-              {chapter && (
-                <Button
-                  variant='danger'
-                  size='sm'
-                  onClick={() =>
-                    navigate(
-                      buildReadinessResolutionUrl(
-                        workspaceId,
-                        seriesId,
-                        chapter.id,
-                        issue.resolutionTarget,
-                      ),
-                    )
-                  }
-                >
-                  {t('producer.chapterManagement.overview.openResolveBtn')}
-                </Button>
-              )}
-            </div>
-          ))}
-
-          {productionActionItems.map((item) => (
-            <div
-              key={`prod-${item.key}`}
-              data-testid={`action-production-${item.key}`}
-              className={`rounded-lg border px-3.5 py-2.5 flex items-center justify-between gap-3 ${
-                item.tone === 'danger'
-                  ? 'border-rose-200/80 bg-rose-50/40'
-                  : 'border-amber-200/80 bg-amber-50/40'
-              }`}
-            >
-              <div className='flex items-center gap-2.5 min-w-0'>
-                <Badge tone={item.tone}>{item.tag}</Badge>
-                <p className='text-xs text-stone-800 min-w-0'>{item.message}</p>
-              </div>
-              {chapter && (
-                <Button
-                  variant={item.tone === 'danger' ? 'danger' : 'warning'}
-                  size='sm'
-                  onClick={() =>
-                    navigate(
-                      buildProductionWorkspaceUrl(workspaceId, seriesId, {
-                        chapterId: chapter.id,
-                        tab: 'progress',
-                      }),
-                    )
-                  }
-                >
-                  {t('producer.chapterManagement.overview.openProdBoard')}
-                </Button>
-              )}
-            </div>
-          ))}
-
-          {(readiness?.warnings ?? []).map((issue, idx) => (
-            <div
-              key={`${issue.code}-${issue.resourceId || idx}`}
-              data-testid={`action-warning-${issue.code}`}
-              className='rounded-lg border border-amber-200/80 bg-amber-50/40 px-3.5 py-2.5 flex items-center justify-between gap-3'
-            >
-              <div className='flex items-center gap-2.5 min-w-0'>
-                <Badge tone='warning'>{t('producer.chapterManagement.overview.warningTag')}</Badge>
-                <p className='text-xs text-stone-800 min-w-0'>{issue.message}</p>
-              </div>
-              {chapter && (
-                <Button
-                  variant='warning'
-                  size='sm'
-                  onClick={() =>
-                    navigate(
-                      buildReadinessResolutionUrl(
-                        workspaceId,
-                        seriesId,
-                        chapter.id,
-                        issue.resolutionTarget,
-                      ),
-                    )
-                  }
-                >
-                  {t('producer.chapterManagement.overview.viewDetails')}
-                </Button>
-              )}
-            </div>
-          ))}
-        </CardBody>
-      </Card>
-    );
+  const actionCenterSection = (
+    <ActionCenterList
+      workspaceId={workspaceId}
+      seriesId={seriesId}
+      chapter={chapter}
+      readiness={readiness}
+      isPreProduction={isPreProduction}
+    />
+  );
 
   return (
     <div
