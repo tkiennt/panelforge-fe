@@ -70,7 +70,11 @@
     "auditTrail": "Audit Trail"
   },
   "desk": {
-    "title": "Editor review desk",
+    "title": "Review & Proofing",
+    "seriesOverview": "Series overview",
+    "chapterFilterChip": "Chapter {number}",
+    "chapterFilterChipGeneric": "Chapter",
+    "clearChapterFilter": "Clear chapter filter",
     "subtitle": "Editorial quality control inbox organized by Gate 1 & Gate 2",
     "gateAll": "All Gates",
     "gate1": "Gate 1: Storyboard / Layout",
