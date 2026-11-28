@@ -998,6 +998,7 @@ export interface TaskGridReviewItemDto {
   reviewerUserId?: string | null;
   reviewerName?: string | null;
   isInputOutdated?: boolean;
+  awaitingStageName?: string | null;
   attemptNumber?: number | null;
   submittedAt?: string | null;
 }

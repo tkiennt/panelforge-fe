@@ -30,7 +30,7 @@ import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import { workspaceService } from '@/services/workspace.service';
 import { buildScriptReviewUrl, buildSeriesPath, buildTaskReviewUrl } from '@/app/routePaths';
-import { Card, CardBody, CardHeader } from '@/shared/ui';
+import { Badge, Card, CardBody, CardHeader } from '@/shared/ui';
 import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
 import { hasAnyValue } from '@/shared/ui/charts/chartData';
 
@@ -46,6 +46,7 @@ type DeskQueueItem = EditorReviewQueueItemDto & {
   reviewerUserId?: string | null;
   reviewerName?: string | null;
   isInputOutdated?: boolean;
+  awaitingStageName?: string | null;
 };
 
 const inferGateFromStage = (stageName: string): 'gate1' | 'gate2' => {
@@ -186,6 +187,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
           reviewerUserId: g.reviewerUserId ?? null,
           reviewerName,
           isInputOutdated: Boolean(g.isInputOutdated),
+          awaitingStageName: g.awaitingStageName ?? null,
           chapterId: g.chapterId,
           chapterNumber: g.chapterNumber,
           chapterTitle: g.chapterTitle ?? null,
@@ -835,6 +837,22 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                               <span>{t('chapterReview.inputOutdatedBadge')}</span>
                             </span>
                           )}
+                          {item.awaitingStageName && (
+                            <Badge
+                              tone='warning'
+                              icon={
+                                <Clock
+                                  className='w-3 h-3 text-amber-700 shrink-0'
+                                  aria-hidden='true'
+                                />
+                              }
+                              data-testid={`editor-awaiting-stage-${item.assignmentId}`}
+                            >
+                              {t('chapterReview.awaitingStageBadge', {
+                                stage: item.awaitingStageName,
+                              })}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <p className='text-xs text-[#57534E] mt-0.5 truncate'>
@@ -1007,6 +1025,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
                             disabled={
                               isLockedByOther ||
                               Boolean(item.isInputOutdated) ||
+                              Boolean(item.awaitingStageName) ||
                               gridBusyTaskId !== null
                             }
                             onClick={() => void handleApproveGridItem(item)}
