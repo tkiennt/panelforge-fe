@@ -108,7 +108,23 @@
     "enterHub": "Vào Studio Hub",
     "createCardTitle": "+ Tạo Không Gian Studio Mới",
     "createCardDesc": "Khởi tạo Studio riêng biệt với kho lưu trữ, ê-kíp và danh mục xuất bản độc lập",
-    "createCardCta": "Bắt đầu thiết lập"
+    "createCardCta": "Bắt đầu thiết lập",
+    "ownedByYou": "Studio của bạn",
+    "invitedBy": "Được mời bởi {name}",
+    "ownerBadge": "Chủ Studio",
+    "openOwn": {
+      "title": "Mở Studio của riêng bạn",
+      "desc": "Bạn đang làm trong Studio người khác mời. Mua gói Mở Studio để tạo Studio của mình, các Studio đang tham gia vẫn giữ nguyên.",
+      "cta": "Xem gói Mở Studio",
+      "notice": "Tài khoản chưa có quyền tạo Studio. Mua gói Mở Studio một lần để tạo Studio của riêng bạn; vai trò ở các Studio bạn đang tham gia không đổi."
+    },
+    "groups": {
+      "owned": "Studio của tôi",
+      "ownedHint": "Bạn là chủ: quản lý thành viên, chia tài nguyên.",
+      "joined": "Studio tôi tham gia",
+      "joinedHint": "Studio người khác mời bạn vào, theo vai trò được giao.",
+      "manageResources": "Tài nguyên Studio"
+    }
   },
   "hub": "Studio Hub",
   "loading": "Đang tải danh sách Workspace...",
@@ -336,7 +352,15 @@
       "follow": "Theo dõi",
       "following": "Đang theo dõi",
       "readLater": "Đọc sau",
-      "inReadLater": "Đã lưu đọc sau"
+      "inReadLater": "Đã lưu đọc sau",
+      "featuredRank": "#{rank} đọc nhiều tuần này",
+      "weeklyViews": "{count} lượt đọc tuần này",
+      "heroPrev": "Truyện nổi bật trước",
+      "heroNext": "Truyện nổi bật tiếp theo",
+      "continueReading": "Đọc tiếp",
+      "continueProgress": "Chương {chapter} · trang {page}/{total}",
+      "continueAction": "Đọc tiếp chương này",
+      "exploreGenres": "Khám phá theo thể loại"
     },
     "layout": {
       "backToStudio": "Về Studio",
@@ -424,7 +448,119 @@
       "confirmDesc": "Trừ {price} từ Ví để mua gói mở Studio. Gói không hoàn tiền và có hiệu lực vĩnh viễn.",
       "confirm": "Mua gói",
       "cancel": "Hủy",
-      "reload": "Tải lại giá mới"
+      "reload": "Tải lại giá mới",
+      "eyebrow": "Dành cho nhóm sáng tác",
+      "heroTitle": "Mở Studio của riêng bạn trên PanelForge",
+      "seePackage": "Xem gói mở Studio",
+      "boardTitle": "Tiến độ một chương trong Studio",
+      "pipeline": {
+        "script": "Kịch bản",
+        "pencil": "Phác thảo",
+        "ink": "Đi nét",
+        "color": "Tô màu",
+        "lettering": "Chèn chữ",
+        "review": "Duyệt"
+      },
+      "stepsTitle": "Mở Studio trong 4 bước",
+      "stepBuy": "Mua gói bằng Ví",
+      "stepBuyDesc": "Thanh toán một lần từ số dư Ví. Thiếu tiền thì nạp VietQR đúng số còn thiếu.",
+      "stepCreate": "Tạo Studio",
+      "stepCreateDesc": "Đặt tên Studio, bạn trở thành Producer và quản lý mọi Series của Studio.",
+      "stepInvite": "Mời đội ngũ",
+      "stepInviteDesc": "Mời Writer, Artist, Letterer và Editor bằng email. Họ nhận lời mời ngay trong mục Thông báo.",
+      "stepPublish": "Sản xuất và bàn giao phát hành",
+      "stepPublishDesc": "Giao việc theo từng chương, Editor duyệt, rồi bàn giao cho Publisher để phát hành tới độc giả.",
+      "teamTitle": "Đội ngũ trong một Studio",
+      "teamSubtitle": "Mỗi thành viên có một vai trò rõ ràng trong quy trình sản xuất chương.",
+      "youBadge": "Bạn",
+      "faqTitle": "Câu hỏi thường gặp",
+      "faqRefundQ": "Gói có được hoàn tiền không?",
+      "faqRefundA": "Không. Gói được trừ một lần từ Ví và có hiệu lực vĩnh viễn cho tài khoản của bạn.",
+      "faqRolesQ": "Thành viên tôi mời có phải mua gói không?",
+      "faqRolesA": "Không. Chỉ người tạo Studio cần gói. Thành viên được mời chỉ cần tài khoản PanelForge và nhận lời mời.",
+      "faqPublishQ": "Truyện của Studio được phát hành thế nào?",
+      "faqPublishA": "Sau khi Editor duyệt chương, Studio bàn giao cho Publisher. Publisher đặt giá, chọn miễn phí hoặc trả phí rồi phát hành lên trang đọc.",
+      "faqReaderQ": "Tôi còn đọc truyện được không?",
+      "faqReaderA": "Được. Bạn vẫn đọc truyện, giữ Ví, Thư viện và các chương đã mở khóa như trước.",
+      "guarantee": "Giá gói do PanelForge niêm yết. Nếu giá đổi trong lúc bạn thanh toán, hệ thống dừng lại để bạn xem giá mới trước khi trừ tiền."
+    },
+    "mock": {
+      "title": "Đang dùng dữ liệu mẫu",
+      "hint": "Khu độc giả chưa gọi API thật. Đăng nhập bằng email và mật khẩu bất kỳ để thử Ví, Thư viện và lời mời Studio.",
+      "reset": "Đặt lại dữ liệu",
+      "disable": "Tắt dữ liệu mẫu"
+    },
+    "studioRoles": {
+      "producer": {
+        "summary": "Lập kế hoạch Series, giao việc từng chương và theo dõi tiến độ tới khi bàn giao phát hành.",
+        "duty1": "Tạo Series, chương và mời thành viên vào Studio.",
+        "duty2": "Giao việc theo chặng và theo dõi hạn chót.",
+        "duty3": "Bàn giao chương đã duyệt cho Publisher.",
+        "firstStep1": "Tạo Series đầu tiên của Studio.",
+        "firstStep2": "Mời Writer, Artist, Letterer và Editor.",
+        "firstStep3": "Lập chương 1 và giao việc cho từng người."
+      },
+      "writer": {
+        "summary": "Viết kịch bản theo cảnh và lời thoại, gắn nhân vật với Series Bible để giữ nhất quán.",
+        "duty1": "Soạn kịch bản theo cảnh, khung và lời thoại.",
+        "duty2": "Liên kết nhân vật, địa danh với Series Bible.",
+        "duty3": "Gửi kịch bản để Editor duyệt rồi khóa kịch bản.",
+        "firstStep1": "Mở mục Việc của tôi để xem chương được giao.",
+        "firstStep2": "Đọc Series Bible để nắm nhân vật và thế giới truyện.",
+        "firstStep3": "Viết kịch bản cảnh đầu tiên rồi gửi duyệt."
+      },
+      "artist": {
+        "summary": "Dựng khung trang và vẽ phác thảo, đi nét, tô màu cho từng khung theo kịch bản đã khóa.",
+        "duty1": "Dựng bố cục trang và khung truyện.",
+        "duty2": "Tải lên phác thảo, bản đi nét và bản màu theo từng khung.",
+        "duty3": "Sửa theo yêu cầu chỉnh sửa khoanh vùng của Editor.",
+        "firstStep1": "Mở mục Việc của tôi để xem trang được giao.",
+        "firstStep2": "Xem kịch bản đã khóa và ảnh tham chiếu nhân vật.",
+        "firstStep3": "Dựng khung trang đầu tiên và gửi phác thảo."
+      },
+      "letterer": {
+        "summary": "Đặt bóng thoại, chữ hiệu ứng và lời dẫn lên trang theo kịch bản và thứ tự đọc.",
+        "duty1": "Đặt bóng thoại và lời dẫn theo kịch bản.",
+        "duty2": "Thêm chữ hiệu ứng (SFX) và chỉnh kiểu chữ.",
+        "duty3": "Kiểm tra thứ tự đọc trước khi gửi duyệt.",
+        "firstStep1": "Mở mục Việc của tôi để xem trang chờ chèn chữ.",
+        "firstStep2": "Đối chiếu lời thoại trong kịch bản đã khóa.",
+        "firstStep3": "Chèn chữ trang đầu tiên và gửi duyệt."
+      },
+      "editor": {
+        "summary": "Duyệt kịch bản, tranh và chữ của từng chương, yêu cầu chỉnh sửa có khoanh vùng khi cần.",
+        "duty1": "Duyệt kịch bản, bản vẽ và trang đã chèn chữ.",
+        "duty2": "Gửi yêu cầu chỉnh sửa khoanh đúng vùng cần sửa.",
+        "duty3": "Duyệt chương hoàn chỉnh để Studio bàn giao phát hành.",
+        "firstStep1": "Mở hàng chờ duyệt của Studio.",
+        "firstStep2": "Đọc Series Bible để nắm chuẩn nhân vật.",
+        "firstStep3": "Duyệt mục đầu tiên hoặc gửi yêu cầu chỉnh sửa."
+      }
+    },
+    "invitations": {
+      "title": "Lời mời vào Studio",
+      "subtitle": "Xem vai trò được mời trước khi nhận. Nhận lời mời là bạn vào khu Studio để làm việc cùng nhóm.",
+      "invitedBy": "{name} mời bạn",
+      "whatYouDo": "Bạn sẽ làm gì",
+      "viewDetail": "Xem chi tiết",
+      "accept": "Nhận lời mời",
+      "detailTitle": "Lời mời từ {studio}",
+      "acceptAs": "Nhận lời mời làm {role}",
+      "invitedByEmail": "Mời bởi {name} ({email})",
+      "dutiesTitle": "Công việc của vai trò này",
+      "afterAccept": "Sau khi nhận, tài khoản của bạn thành thành viên Studio. Bạn vẫn đọc truyện, giữ Ví và Thư viện như cũ."
+    },
+    "welcome": {
+      "eyebrow": "Đã nhận lời mời",
+      "title": "Chào mừng bạn đến {studio}",
+      "subtitle": "Bạn tham gia Studio với vai trò {role}.",
+      "subtitleWithOwner": "{owner} đã thêm bạn vào Studio với vai trò {role}.",
+      "stepsTitle": "Bắt đầu từ đây",
+      "genericStep": "Mở Studio để xem các việc được giao cho bạn.",
+      "enterStudio": "Vào Studio",
+      "stillReaderTitle": "Bạn vẫn là độc giả",
+      "stillReaderDesc": "Ví, Thư viện và các chương đã mở khóa vẫn giữ nguyên. Bạn quay lại trang đọc truyện bất cứ lúc nào.",
+      "backToCatalog": "Về trang đọc truyện"
     }
   },
   "formatters": {
@@ -1078,5 +1214,52 @@
     },
     "granted": "Đã cấp {value}",
     "adminNote": "Admin: {note}"
+  },
+  "resources": {
+    "back": "Về danh sách Studio",
+    "eyebrow": "Kho tài nguyên",
+    "title": "Tài nguyên Studio",
+    "subtitle": "Dung lượng lưu trữ và token AI bạn đã mua, chia cho từng Studio bạn sở hữu. Token mua một lần, dùng hết thì mua thêm.",
+    "buyMore": "Mua thêm",
+    "legacyTitle": "Chưa có kho tài nguyên",
+    "legacyDesc": "Các Studio hiện dùng hạn mức do Administrator đặt riêng. Mua thêm tài nguyên để bắt đầu tự chia cho từng Studio.",
+    "storageTitle": "Dung lượng lưu trữ",
+    "tokensTitle": "Token AI",
+    "tokensNote": "Token mua một lần, không reset theo tháng.",
+    "remaining": "Còn lại để chia",
+    "total": "Đã mua",
+    "allocated": "Đã chia cho Studio",
+    "studiosTitle": "Chia cho từng Studio",
+    "noStudios": "Bạn chưa tạo Studio nào. Tài nguyên sẽ được chia khi tạo Studio mới.",
+    "usedLine": "Đang dùng {storage} · {tokens}",
+    "unlimited": "Studio tạo trước khi có kho, đang không giới hạn. Lưu một mức để đưa vào kho.",
+    "maxHint": "Tối đa {value}",
+    "save": "Lưu phần chia",
+    "gb": "{value} GB",
+    "millionTokens": "{value} triệu token",
+    "create": {
+      "legend": "Tài nguyên cho Studio này",
+      "poolLeft": "Kho còn {storage} GB và {tokens} triệu token để chia.",
+      "storageGb": "Dung lượng (GB)",
+      "tokenMillions": "Token AI (triệu)",
+      "shortageTitle": "Kho tài nguyên không đủ",
+      "shortageDesc": "Giảm phần chia, thu bớt từ Studio khác hoặc mua thêm dung lượng và token.",
+      "reallocate": "Chia lại tài nguyên"
+    },
+    "buy": {
+      "title": "Mua thêm tài nguyên",
+      "subtitle": "Trả bằng Ví, cộng ngay vào kho để chia cho các Studio.",
+      "notOnSale": "Administrator chưa mở bán tài nguyên. Liên hệ Administrator để mua thêm.",
+      "storage": "Dung lượng (GB)",
+      "tokens": "Token AI (triệu token)",
+      "unitPriceGb": "{price} mỗi GB",
+      "unitPriceTokens": "{price} mỗi 1 triệu token",
+      "total": "Thành tiền",
+      "balance": "Số dư Ví",
+      "topup": "Nạp thêm {amount}",
+      "submit": "Mua bằng Ví",
+      "done": "Đã mua, trừ {total} từ Ví. Kho đã được cộng thêm.",
+      "adminNote": "Cần số lượng lớn hoặc xuất hóa đơn? Liên hệ Administrator để được cộng trực tiếp vào kho."
+    }
   }
 }

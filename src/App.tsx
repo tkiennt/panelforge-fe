@@ -874,10 +874,17 @@ function AppContent() {
         onApiLoginSuccess={handleApiLoginSuccess}
         onRegisterSuccess={handleRegisterSuccess}
         isReader={readerAccount.isReader}
-        onReaderJoinedStudio={async () => {
+        onReaderJoinedStudio={async (invitation) => {
           // Nhận lời mời = thành viên Studio, landing-context chắc chắn không còn PublicCatalog.
+          // Qua màn chào theo vai trò trước khi vào khu Studio.
           readerAccount.markStudioMember();
-          navigate('/workspaces');
+          navigate(`/catalog/welcome/${invitation.workspaceId}`, {
+            state: {
+              workspaceName: invitation.workspaceName,
+              role: invitation.role,
+              ownerName: invitation.ownerName,
+            },
+          });
         }}
         onStudioUnlocked={async () => {
           // Có quyền tạo Studio (D11) thì không còn là độc giả: mở khu Studio ngay, không chờ thêm request.
@@ -889,7 +896,8 @@ function AppContent() {
             // bản lưu tạm hỏng: /Auth/me lần sau sẽ ghi lại
           }
           readerAccount.markStudioMember();
-          navigate('/workspaces');
+          // D12: vào sảnh và mở ngay hộp tạo Studio đầu tiên
+          navigate('/workspaces?create=1');
         }}
       />
 

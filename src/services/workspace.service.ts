@@ -4,6 +4,9 @@ import { translate } from '@/lib/i18n';
 
 export interface CreateWorkspaceRequest {
   name: string;
+  /** D12: phần chia từ kho Producer; bỏ trống = hạn mức mặc định. Server bỏ qua khi chưa có kho. */
+  storageQuotaBytes?: number;
+  tokenQuota?: number;
 }
 
 export interface UpdateWorkspaceRequest {
@@ -193,7 +196,12 @@ export const workspaceService = {
     try {
       const response = await axiosClient.post('/Workspaces', request);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.response?.data?.code === 'INSUFFICIENT_STUDIO_RESOURCES') {
+        throw Object.assign(new Error(error.response.data.message), {
+          code: 'INSUFFICIENT_STUDIO_RESOURCES',
+        });
+      }
       throw new Error(
         await parseErrorResponse(error, translate('errors.services.workspace.createFailed')),
       );

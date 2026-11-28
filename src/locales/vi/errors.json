@@ -266,7 +266,10 @@
       "getWorkspacesFailed": "Không thể tải danh sách Studio Workspace.",
       "updateWorkspaceQuotaFailed": "Không thể cập nhật hạn mức lưu trữ (Quota) của Workspace.",
       "studioPackageLoadFailed": "Không tải được giá gói mở Studio.",
-      "studioPackageSaveFailed": "Không lưu được giá gói mở Studio."
+      "studioPackageSaveFailed": "Không lưu được giá gói mở Studio.",
+      "studioResourcePriceLoadFailed": "Không tải được đơn giá tài nguyên Studio.",
+      "studioResourcePriceSaveFailed": "Không lưu được đơn giá tài nguyên Studio.",
+      "studioResourceGrantFailed": "Không cộng được tài nguyên cho Producer."
     },
     "auth": {
       "unauthorized": "Phiên đăng nhập đã hết hạn hoặc token không hợp lệ (401 Unauthorized). Vui lòng đăng nhập lại.",
@@ -406,6 +409,11 @@
     "uploadLimits": {
       "loadFailed": "Không tải được giới hạn kích thước file.",
       "saveFailed": "Không lưu được giới hạn kích thước file."
+    },
+    "studioResources": {
+      "loadFailed": "Không tải được kho tài nguyên Studio.",
+      "allocateFailed": "Không lưu được phần chia tài nguyên.",
+      "purchaseFailed": "Không mua được tài nguyên Studio."
     }
   },
   "FILE_TOO_LARGE": "File vượt giới hạn kích thước do Quản trị viên đặt. Chọn file nhỏ hơn rồi thử lại."
