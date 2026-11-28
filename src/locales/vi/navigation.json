@@ -87,7 +87,8 @@
     "crewManagement": "Quản lý Ê-kíp",
     "productionScript": "Kịch bản",
     "readerAndReview": "Đọc thử & Soát trang",
-    "handoff": "Bàn giao"
+    "handoff": "Bàn giao",
+    "seriesOverview": "Tổng quan series"
   },
   "header": {
     "searchPlaceholder": "Tìm kiếm khung tranh, thoại, tư liệu...",
@@ -147,7 +148,10 @@
     "crew": "Đội ngũ",
     "profileAndSettings": "Hồ sơ & cài đặt",
     "readOnlyBadge": "Chỉ đọc",
-    "scriptReadOnlyTooltip": "Kịch bản — chỉ đọc (chỉ xem, không chỉnh sửa)"
+    "scriptReadOnlyTooltip": "Kịch bản — chỉ đọc (chỉ xem, không chỉnh sửa)",
+    "seriesLevel": "SERIES",
+    "chapterLevel": "CHƯƠNG",
+    "chapterLevelNumbered": "CHƯƠNG {number}"
   },
   "focus": {
     "workspaceTitle": {
