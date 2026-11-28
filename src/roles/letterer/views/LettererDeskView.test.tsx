@@ -308,8 +308,13 @@ describe('LettererDeskView', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(await screen.findByTestId('lettering-element-el-bubble-1'));
-    expect(await screen.findByTestId('lettering-property-panel')).toBeInTheDocument();
+    // CI chậm: panel thuộc tính có thể hiện sau mốc 1 giây mặc định của findBy*.
+    fireEvent.click(
+      await screen.findByTestId('lettering-element-el-bubble-1', {}, { timeout: 3000 }),
+    );
+    expect(
+      await screen.findByTestId('lettering-property-panel', {}, { timeout: 3000 }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Rút gọn bằng AI/i })).not.toBeInTheDocument();
   });
 

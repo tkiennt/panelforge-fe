@@ -1,4 +1,9 @@
 import '@testing-library/jest-dom/vitest';
+import { configure } from '@testing-library/react';
+
+// findBy* / waitFor mặc định chỉ đợi 1 giây; runner CI chậm hơn máy dev nên nhiều test render nặng hết giờ
+// dù code đúng. 3 giây vẫn dưới testTimeout 5 giây của Vitest.
+configure({ asyncUtilTimeout: 3000 });
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

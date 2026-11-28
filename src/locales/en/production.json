@@ -737,6 +737,8 @@
       "toastSuccessTitle": "Production started",
       "toastSuccessDesc": "Chapter {number} transitioned to InProduction. Script has been frozen.",
       "markCrowdQuickBtn": "Mark as Crowd",
+      "versionOutdatedTitle": "The Writer submitted a newer script (v{version}).",
+      "versionOutdatedDesc": "The version you are viewing is outdated. Review the changes below, then confirm starting production again.",
       "crowdMarkedTitle": "Marked as Crowd",
       "crowdMarkFailed": "Failed to mark as Crowd",
       "firstStageOnlyLabel": "Assign first stage only",

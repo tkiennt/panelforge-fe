@@ -36,6 +36,15 @@ const KNOWN_NOTIFICATION_TYPES = new Set<string>([
   'ExportCompleted',
   'ExportFailed',
   'ChapterHandedOff',
+  'ScriptCommentAdded',
+  'PageCommentAdded',
+  'PageCommentResolved',
+  'PageCommentReopened',
+  'ConceptCommentAdded',
+  'ConceptCommentReplied',
+  'AiRunCompleted',
+  'AiRunFailed',
+  'AiRunWaitingForHuman',
 ]);
 
 type PendingInvitation = Awaited<ReturnType<typeof workspaceService.getPendingInvitations>>[number];

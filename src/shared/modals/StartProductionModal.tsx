@@ -18,6 +18,7 @@ import {
   StartChapterProductionRequest,
   StartChapterProductionResultDto,
   ProductionPageAssignmentRequest,
+  ScriptVersionOutdatedDetails,
 } from '@/services/chapter.service';
 import {
   chapterCastService,
@@ -28,6 +29,7 @@ import { bibleService } from '@/services/bible.service';
 import { workspaceService } from '@/services/workspace.service';
 import { pageService, PageDto } from '@/services/page.service';
 import { SeriesMemberDto } from '@/services/series.service';
+import { ScriptVersionDiff } from '@/shared/features/script-versions/ScriptVersionDiff';
 
 export interface StartProductionModalProps {
   isOpen: boolean;
@@ -36,9 +38,13 @@ export interface StartProductionModalProps {
   chapterId: string;
   chapterNumber?: number | string;
   chapterTitle?: string;
+  /** Q26: bản kịch bản đã nộp Producer đang xem (chapter.lastSubmittedVersionId). Gửi kèm khi bắt đầu sản xuất. */
+  expectedSubmittedVersionId?: string | null;
   onClose: () => void;
   onSuccess?: (result?: StartChapterProductionResultDto) => void;
   onShowToast?: (title: string, desc: string) => void;
+  /** Q26: 409 SCRIPT_VERSION_OUTDATED → cha tải lại dữ liệu chương để Producer thấy bản mới. */
+  onVersionOutdated?: () => void;
 }
 
 interface RangeItem {
@@ -55,9 +61,11 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
   chapterId,
   chapterNumber,
   chapterTitle,
+  expectedSubmittedVersionId,
   onClose,
   onSuccess,
   onShowToast,
+  onVersionOutdated,
 }) => {
   const { t } = useTranslation('production');
 
@@ -84,6 +92,11 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
   // Inline submit error (409)
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitBlockers, setSubmitBlockers] = useState<ChapterCastBlockerDto[]>([]);
+  // Q26: Writer đã nộp bản mới sau bản Producer đang xem → hiện thông báo và diff, Producer xác nhận lại
+  const [outdated, setOutdated] = useState<{
+    fromVersionId: string | null;
+    versionNumber: number | null;
+  } | null>(null);
   const [togglingCrowdId, setTogglingCrowdId] = useState<string | null>(null);
 
   const minPage = useMemo(() => {
@@ -108,6 +121,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
     setSubmitError(null);
     setSubmitBlockers([]);
     setTogglingCrowdId(null);
+    setOutdated(null);
   }, []);
 
   useEffect(() => {
@@ -352,6 +366,7 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
         pageAssignments,
         lettererAssignments,
         ...(firstStageOnly ? { firstStageOnly: true } : {}),
+        ...(expectedSubmittedVersionId ? { expectedSubmittedVersionId } : {}),
       };
 
       const result = await chapterService.startProduction(chapterId, body);
@@ -369,6 +384,17 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
       onSuccess?.(result);
       onClose();
     } catch (err: any) {
+      if (err?.code === 'SCRIPT_VERSION_OUTDATED') {
+        // Không tự gửi lại: báo Writer đã nộp bản mới, tải lại dữ liệu để Producer xem và xác nhận lần nữa
+        const details: Partial<ScriptVersionOutdatedDetails> = err.details ?? {};
+        setOutdated({
+          fromVersionId: details.expectedSubmittedVersionId ?? expectedSubmittedVersionId ?? null,
+          versionNumber: details.currentVersionNumber ?? null,
+        });
+        setSubmitError(null);
+        onVersionOutdated?.();
+        return;
+      }
       const blockers = err.blockers || err.response?.data?.blockers || [];
       const msg =
         err?.response?.data?.message ||
@@ -985,6 +1011,38 @@ export const StartProductionModal: React.FC<StartProductionModalProps> = ({
                   </>
                 )}
               </div>
+
+              {/* 5a. Q26: kịch bản đã có bản nộp mới hơn bản đang xem */}
+              {outdated && (
+                <div
+                  role='alert'
+                  data-testid='gate1-version-outdated'
+                  className='rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-amber-900 space-y-3'
+                >
+                  <div className='flex items-start gap-2'>
+                    <AlertTriangle className='w-4 h-4 text-amber-600 mt-0.5 shrink-0' />
+                    <div className='space-y-1'>
+                      <p className='font-semibold text-xs leading-relaxed'>
+                        {t('seriesChaptersModal.startProductionModal.versionOutdatedTitle', {
+                          version: outdated.versionNumber ?? '?',
+                          defaultValue: `Writer đã nộp kịch bản mới (v${outdated.versionNumber ?? '?'}).`,
+                        })}
+                      </p>
+                      <p className='text-xs leading-relaxed'>
+                        {t('seriesChaptersModal.startProductionModal.versionOutdatedDesc', {
+                          defaultValue:
+                            'Bản bạn đang xem đã cũ. Xem thay đổi bên dưới rồi xác nhận bắt đầu sản xuất lại.',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <ScriptVersionDiff
+                    chapterId={chapterId}
+                    defaultFromId={outdated.fromVersionId}
+                    defaultToId={null}
+                  />
+                </div>
+              )}
 
               {/* 5. Inline 409 / Submit error display */}
               {submitError && (

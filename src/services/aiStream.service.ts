@@ -33,7 +33,11 @@ class AiStreamService {
   private isConnecting = false;
 
   private getHubUrl(): string {
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    // Cùng base với axiosClient (đã gồm /api): BE map hub tại /api/hubs/ai-stream để cookie pf_access (Path=/api) đi kèm.
+    const apiBase =
+      import.meta.env.VITE_API_URL ||
+      import.meta.env.VITE_API_BASE_URL ||
+      'http://localhost:5044/api';
     return `${apiBase.replace(/\/$/, '')}/hubs/ai-stream`;
   }
 
@@ -53,6 +57,8 @@ class AiStreamService {
         .withUrl(hubUrl, {
           accessTokenFactory: () => token || '',
           withCredentials: true,
+          // Hub bắt đăng nhập: negotiate là POST, BE chỉ nhận cookie pf_access cho POST khi có header chống CSRF.
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
         .configureLogging(LogLevel.Warning)

@@ -737,6 +737,8 @@
       "toastSuccessTitle": "Đã bắt đầu sản xuất",
       "toastSuccessDesc": "Chương {number} đã chuyển sang InProduction. Kịch bản đã được đóng băng.",
       "markCrowdQuickBtn": "Đánh dấu Quần chúng",
+      "versionOutdatedTitle": "Writer đã nộp kịch bản mới (v{version}).",
+      "versionOutdatedDesc": "Bản bạn đang xem đã cũ. Xem thay đổi bên dưới rồi xác nhận bắt đầu sản xuất lại.",
       "crowdMarkedTitle": "Đã đánh dấu Quần chúng",
       "crowdMarkFailed": "Không thể đánh dấu Quần chúng",
       "firstStageOnlyLabel": "Chỉ giao công đoạn đầu",
