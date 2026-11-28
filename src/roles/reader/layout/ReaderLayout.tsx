@@ -13,6 +13,7 @@ import {
 import { workspaceService } from '@/services/workspace.service';
 import { useTranslation } from '@/lib/i18n';
 import type { ReaderContextValue } from './readerContext';
+import { MockDataBanner } from '../components/MockDataBanner';
 
 interface ReaderLayoutProps {
   /** Đã đăng nhập: tên hiển thị trên header. */
@@ -59,6 +60,7 @@ export const ReaderLayout: React.FC<ReaderLayoutProps> = ({
 
   return (
     <div className='flex min-h-screen flex-col bg-[#FAF9F5] text-stone-900'>
+      <MockDataBanner />
       <header className='sticky top-0 z-30 h-14 border-b border-stone-200/80 bg-white'>
         <div className='mx-auto flex h-full max-w-7xl items-center gap-2 px-4 sm:px-6'>
           {onBackToStudio && (

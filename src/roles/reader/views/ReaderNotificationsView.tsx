@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { workspaceService } from '@/services/workspace.service';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { NotificationCenterView } from '@/shared/views/NotificationCenterView';
-import { PendingInvitations, type PendingInvitation } from '@/shared/views/WorkspaceShelfSections';
-import { normalizeWorkspaceRole } from '@/types';
+import type { PendingInvitation } from '@/shared/views/WorkspaceShelfSections';
 import { useTranslation } from '@/lib/i18n';
+import { StudioInvitationList } from '../components/StudioInvitationList';
 
 interface ReaderNotificationsViewProps {
-  /** Độc giả vừa nhận lời mời: tài khoản thành thành viên Studio, rời khu độc giả. */
-  onJoinedStudio: (workspaceId: string) => Promise<void>;
+  /** Độc giả vừa nhận lời mời: tài khoản thành thành viên Studio, sang màn chào theo vai trò. */
+  onJoinedStudio: (invitation: PendingInvitation) => Promise<void>;
 }
 
 /** Thông báo của độc giả, kèm lời mời vào Studio đang chờ (nhận lời mời là lối duy nhất sang Studio). */
@@ -35,13 +35,6 @@ export const ReaderNotificationsView: React.FC<ReaderNotificationsViewProps> = (
     };
   }, [t]);
 
-  const roleLabel = (raw: string) => {
-    const role = normalizeWorkspaceRole(raw);
-    const key = `workspace.shelf.role.${(role || 'member').toLowerCase()}`;
-    const translated = t(key);
-    return translated !== key ? translated : role || t('workspace.shelf.role.member');
-  };
-
   const timeAgo = (date: string) => {
     const days = Math.floor((now - new Date(date).getTime()) / 86400000);
     if (days <= 0) return t('workspace.today');
@@ -62,7 +55,7 @@ export const ReaderNotificationsView: React.FC<ReaderNotificationsViewProps> = (
     // Đã là thành viên: bỏ lời mời khỏi danh sách trước, để lỗi chuyển trang không để lại nút nhận lần nữa.
     setInvitations((prev) => prev.filter((i) => i.workspaceId !== inv.workspaceId));
     setBusyId(null);
-    await onJoinedStudio(inv.workspaceId);
+    await onJoinedStudio(inv);
   };
 
   const reject = async (inv: PendingInvitation) => {
@@ -89,13 +82,11 @@ export const ReaderNotificationsView: React.FC<ReaderNotificationsViewProps> = (
   return (
     <main className='w-full flex-1'>
       {invitations.length > 0 && (
-        <div className='mx-auto max-w-4xl px-4 pt-6 sm:px-6 lg:px-8'>
-          <PendingInvitations
+        <div className='mx-auto max-w-5xl px-4 pt-8 sm:px-6 lg:px-8'>
+          <StudioInvitationList
             invitations={invitations}
             busyId={busyId}
             error={error}
-            t={t}
-            roleLabel={roleLabel}
             timeAgo={timeAgo}
             onAccept={(inv) => void accept(inv)}
             onReject={(inv) => void reject(inv)}

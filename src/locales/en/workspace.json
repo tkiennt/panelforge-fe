@@ -336,7 +336,15 @@
       "follow": "Follow",
       "following": "Following",
       "readLater": "Read later",
-      "inReadLater": "Saved for later"
+      "inReadLater": "Saved for later",
+      "featuredRank": "#{rank} most read this week",
+      "weeklyViews": "{count} reads this week",
+      "heroPrev": "Previous featured series",
+      "heroNext": "Next featured series",
+      "continueReading": "Continue reading",
+      "continueProgress": "Chapter {chapter} · page {page}/{total}",
+      "continueAction": "Continue this chapter",
+      "exploreGenres": "Explore by genre"
     },
     "layout": {
       "backToStudio": "Back to Studio",
@@ -424,7 +432,119 @@
       "confirmDesc": "{price} will be taken from your wallet for the studio package. The package is non-refundable and never expires.",
       "confirm": "Buy package",
       "cancel": "Cancel",
-      "reload": "Load the new price"
+      "reload": "Load the new price",
+      "eyebrow": "For creative teams",
+      "heroTitle": "Open your own Studio on PanelForge",
+      "seePackage": "See the Studio package",
+      "boardTitle": "A chapter's progress in a Studio",
+      "pipeline": {
+        "script": "Script",
+        "pencil": "Pencils",
+        "ink": "Inks",
+        "color": "Colors",
+        "lettering": "Lettering",
+        "review": "Review"
+      },
+      "stepsTitle": "Open a Studio in 4 steps",
+      "stepBuy": "Buy the package with your Wallet",
+      "stepBuyDesc": "Pay once from your Wallet balance. If you are short, top up exactly the missing amount via VietQR.",
+      "stepCreate": "Create your Studio",
+      "stepCreateDesc": "Name your Studio. You become its Producer and manage every Series in it.",
+      "stepInvite": "Invite your team",
+      "stepInviteDesc": "Invite Writers, Artists, Letterers and Editors by email. They accept from their Notifications.",
+      "stepPublish": "Produce and hand off for release",
+      "stepPublishDesc": "Assign work chapter by chapter, the Editor approves, then hand off to the Publisher for release to readers.",
+      "teamTitle": "The team inside a Studio",
+      "teamSubtitle": "Each member has a clear role in the chapter production flow.",
+      "youBadge": "You",
+      "faqTitle": "Frequently asked questions",
+      "faqRefundQ": "Is the package refundable?",
+      "faqRefundA": "No. The package is charged once from your Wallet and stays active on your account permanently.",
+      "faqRolesQ": "Do the members I invite need to buy the package?",
+      "faqRolesA": "No. Only the Studio creator needs it. Invited members only need a PanelForge account and to accept the invitation.",
+      "faqPublishQ": "How are the Studio's series released?",
+      "faqPublishA": "After the Editor approves a chapter, the Studio hands it off to the Publisher, who sets it as free or paid and releases it to readers.",
+      "faqReaderQ": "Can I still read comics?",
+      "faqReaderA": "Yes. You keep reading, along with your Wallet, Library and unlocked chapters.",
+      "guarantee": "The package price is set by PanelForge. If it changes while you pay, checkout stops so you can review the new price before you are charged."
+    },
+    "mock": {
+      "title": "Using sample data",
+      "hint": "The reader area is not calling the real API. Sign in with any email and password to try the Wallet, Library and Studio invitations.",
+      "reset": "Reset data",
+      "disable": "Turn off sample data"
+    },
+    "studioRoles": {
+      "producer": {
+        "summary": "Plans the series, assigns work per chapter and tracks progress until hand-off for release.",
+        "duty1": "Create series and chapters, and invite members to the Studio.",
+        "duty2": "Assign work per stage and track deadlines.",
+        "duty3": "Hand off approved chapters to the Publisher.",
+        "firstStep1": "Create the Studio's first series.",
+        "firstStep2": "Invite a Writer, Artist, Letterer and Editor.",
+        "firstStep3": "Set up chapter 1 and assign work to each member."
+      },
+      "writer": {
+        "summary": "Writes the script by scene and dialogue, linking characters to the Series Bible to stay consistent.",
+        "duty1": "Write the script by scene, panel and dialogue.",
+        "duty2": "Link characters and places to the Series Bible.",
+        "duty3": "Send the script for Editor review, then lock it.",
+        "firstStep1": "Open My work to see your assigned chapters.",
+        "firstStep2": "Read the Series Bible to learn the cast and world.",
+        "firstStep3": "Write the first scene and send it for review."
+      },
+      "artist": {
+        "summary": "Lays out pages and draws pencils, inks and colors for each panel from the locked script.",
+        "duty1": "Lay out pages and panels.",
+        "duty2": "Upload pencils, inks and colors panel by panel.",
+        "duty3": "Revise from the Editor's region-marked change requests.",
+        "firstStep1": "Open My work to see your assigned pages.",
+        "firstStep2": "Check the locked script and character references.",
+        "firstStep3": "Lay out the first page and submit pencils."
+      },
+      "letterer": {
+        "summary": "Places balloons, sound effects and captions on pages following the script and reading order.",
+        "duty1": "Place balloons and captions from the script.",
+        "duty2": "Add sound effects (SFX) and adjust lettering style.",
+        "duty3": "Check the reading order before sending for review.",
+        "firstStep1": "Open My work to see pages waiting for lettering.",
+        "firstStep2": "Compare dialogue against the locked script.",
+        "firstStep3": "Letter the first page and send it for review."
+      },
+      "editor": {
+        "summary": "Reviews each chapter's script, art and lettering, and sends region-marked change requests when needed.",
+        "duty1": "Review scripts, artwork and lettered pages.",
+        "duty2": "Send change requests that mark the exact region to fix.",
+        "duty3": "Approve finished chapters so the Studio can hand them off for release.",
+        "firstStep1": "Open the Studio's review queue.",
+        "firstStep2": "Read the Series Bible to learn the character standards.",
+        "firstStep3": "Review the first item or send a change request."
+      }
+    },
+    "invitations": {
+      "title": "Studio invitations",
+      "subtitle": "See the role you are invited to before accepting. Accepting takes you into the Studio area to work with the team.",
+      "invitedBy": "Invited by {name}",
+      "whatYouDo": "What you will do",
+      "viewDetail": "View details",
+      "accept": "Accept",
+      "detailTitle": "Invitation from {studio}",
+      "acceptAs": "Accept as {role}",
+      "invitedByEmail": "Invited by {name} ({email})",
+      "dutiesTitle": "What this role does",
+      "afterAccept": "After accepting, your account becomes a Studio member. You keep reading, along with your Wallet and Library."
+    },
+    "welcome": {
+      "eyebrow": "Invitation accepted",
+      "title": "Welcome to {studio}",
+      "subtitle": "You joined the Studio as {role}.",
+      "subtitleWithOwner": "{owner} added you to the Studio as {role}.",
+      "stepsTitle": "Start here",
+      "genericStep": "Open the Studio to see the work assigned to you.",
+      "enterStudio": "Enter Studio",
+      "stillReaderTitle": "You are still a reader",
+      "stillReaderDesc": "Your Wallet, Library and unlocked chapters stay the same. You can return to reading anytime.",
+      "backToCatalog": "Back to reading"
     }
   },
   "formatters": {

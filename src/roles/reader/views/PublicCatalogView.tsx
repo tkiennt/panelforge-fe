@@ -12,6 +12,8 @@ import {
 import { catalogService, PublicSeriesDetailDto, PublicSeriesDto } from '@/services/catalog.service';
 import { CONTENT_LANGUAGES } from '@/services/payment.service';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
+import { CatalogHero } from '../components/CatalogHero';
+import { ContinueReadingRow } from '../components/ContinueReadingRow';
 import { EmptyState, Skeleton, Tabs } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -264,6 +266,12 @@ export const PublicCatalogView: React.FC = () => {
 
   const latestUpdates = useMemo(() => sortByLatestUpdate(homeList), [homeList]);
   const featured = useMemo(() => pickFeatured(homeList), [homeList]);
+  // Băng nổi bật: top lượt đọc tuần; tuần chưa có lượt đọc thì lấy truyện vừa cập nhật.
+  const heroItems = useMemo(() => {
+    const ranked = rankByViews(homeList, 'week').filter((s) => (s.viewsLast7Days ?? 0) > 0);
+    return (ranked.length > 0 ? ranked : sortByLatestUpdate(homeList)).slice(0, 4);
+  }, [homeList]);
+  const seriesById = useMemo(() => new Map(homeList.map((s) => [s.id, s])), [homeList]);
   const weeklyTop = useMemo(() => rankByViews(homeList, 'week').slice(0, 5), [homeList]);
   const ranking = useMemo(() => rankByViews(homeList, rankingPeriod), [homeList, rankingPeriod]);
   const dayGroups = useMemo(() => groupByUpdateDay(homeList, now), [homeList, now]);
@@ -429,45 +437,17 @@ export const PublicCatalogView: React.FC = () => {
     return (
       <div className='space-y-12'>
         <div className='grid gap-6 lg:grid-cols-3'>
-          <article className='flex flex-col gap-5 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-xs sm:flex-row lg:col-span-2'>
-            <button
-              type='button'
-              onClick={() => openDetail(featured.id)}
-              className='group w-40 shrink-0 self-start sm:w-48'
-              aria-label={featured.title}
-            >
-              <SeriesCover title={featured.title} coverUrl={featured.coverUrl} priority />
-            </button>
-            <div className='flex min-w-0 flex-1 flex-col'>
-              <span className='text-xs font-semibold uppercase tracking-wide text-[#EA580C]'>
-                {t('workspace.reader.catalog.featuredLabel')}
-              </span>
-              <h2 className='mt-1 font-serif text-2xl font-bold leading-tight text-stone-900 sm:text-3xl'>
-                {featured.title}
-              </h2>
-              <p className='mt-1 text-xs text-stone-500'>
-                {featured.studioName} · {featured.genre} · {featured.format}
-              </p>
-              <p className='mt-3 line-clamp-4 text-sm leading-relaxed text-stone-700'>
-                {featured.synopsis || t('workspace.reader.catalog.noSynopsis')}
-              </p>
-              <div className='mt-auto flex flex-wrap items-center gap-3 pt-4'>
-                <button
-                  type='button'
-                  onClick={() => openDetail(featured.id)}
-                  className='btn-cta-primary rounded-full px-5 py-2 text-xs font-semibold'
-                >
-                  {t('workspace.reader.catalog.viewSeries')}
-                </button>
-                <span className='text-xs text-stone-500'>
-                  {t('workspace.reader.catalog.publishedChaptersCount', {
-                    count: featured.publishedChapterCount,
-                  })}
-                  {featured.latestPublishedAt && ` · ${updatedAgo(featured.latestPublishedAt)}`}
-                </span>
-              </div>
-            </div>
-          </article>
+          <div className='lg:col-span-2'>
+            <CatalogHero
+              items={heroItems}
+              onOpen={openDetail}
+              metaLine={(item) =>
+                t('workspace.reader.catalog.publishedChaptersCount', {
+                  count: item.publishedChapterCount,
+                }) + (item.latestPublishedAt ? ` · ${updatedAgo(item.latestPublishedAt)}` : '')
+              }
+            />
+          </div>
 
           <aside className='rounded-2xl border border-stone-200/80 bg-white p-4 shadow-xs'>
             <div className='mb-2 flex items-center justify-between px-2'>
@@ -485,6 +465,42 @@ export const PublicCatalogView: React.FC = () => {
             <ol>{weeklyTop.map((item, i) => rankRow(item, i + 1, 'week', true))}</ol>
           </aside>
         </div>
+
+        {isSignedIn && library && (
+          <ContinueReadingRow
+            history={library.history}
+            seriesById={seriesById}
+            onContinue={setReadingChapterId}
+          />
+        )}
+
+        {genres.length > 1 && (
+          <section aria-labelledby='genre-chips-title'>
+            <h2 id='genre-chips-title' className='mb-3 font-serif text-xl font-bold text-stone-900'>
+              {t('workspace.reader.catalog.exploreGenres')}
+            </h2>
+            <ul className='flex flex-wrap gap-2'>
+              {genres.map((g) => (
+                <li key={g}>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setGenre(g);
+                      setPageIndex(1);
+                      setTab('browse');
+                    }}
+                    className='rounded-full border border-stone-200/80 bg-white px-4 py-2 text-xs font-semibold text-stone-700 shadow-xs hover:border-orange-300 hover:bg-orange-50 hover:text-[#EA580C]'
+                  >
+                    {g}
+                    <span className='ml-1.5 font-mono text-stone-400 tabular-nums'>
+                      {homeList.filter((item) => item.genre === g).length}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section>
           {sectionHeader(t('workspace.reader.catalog.latestUpdates'), () => setTab('updates'))}

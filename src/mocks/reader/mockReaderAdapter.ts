@@ -1,0 +1,460 @@
+// Axios adapter giả lập các endpoint của khu độc giả. Request khác vẫn đi tới BE thật.
+// Giữ đúng đường dẫn + hình dạng DTO của BE để bỏ mock là chạy được với API thật, không sửa view.
+import axios, {
+  AxiosError,
+  type AxiosAdapter,
+  type AxiosInstance,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from 'axios';
+import type { NotificationDto } from '@/types';
+import {
+  chapterHasLanguage,
+  chapterLabel,
+  chapterPriceOf,
+  editionKey,
+  getMockState,
+  listSeries,
+  readChapter,
+  saveMockState,
+  seriesDetail,
+} from './mockReaderData';
+
+export const MOCK_STUDIO_PACKAGE_PRICE_VND = 199_000;
+/** Đơn nạp VietQR mẫu tự được duyệt sau ngần này mili giây (giả lập Publisher duyệt). */
+const TOPUP_APPROVE_AFTER_MS = 6_000;
+const LATENCY_MS = 280;
+
+type Handler = (ctx: {
+  match: RegExpMatchArray;
+  params: Record<string, any>;
+  body: any;
+  config: InternalAxiosRequestConfig;
+}) => { status?: number; data?: unknown } | undefined;
+
+interface Route {
+  method: string;
+  pattern: RegExp;
+  handler: Handler;
+}
+
+const routes: Route[] = [];
+const on = (method: string, pattern: RegExp, handler: Handler) =>
+  routes.push({ method, pattern, handler });
+
+const fail = (status: number, message: string, code?: string) => ({
+  status,
+  data: { message, code },
+});
+
+const now = () => Date.now();
+const orderCode = (prefix: string) =>
+  `PF-${prefix}-${Math.floor(now() / 1000)
+    .toString(36)
+    .toUpperCase()}`;
+
+function pushTransaction(title: string, amountVnd: number, code?: string) {
+  const s = getMockState();
+  s.balanceVnd += amountVnd;
+  s.transactions.unshift({
+    id: `mock-tx-${now()}`,
+    title,
+    amountVnd,
+    createdAt: new Date().toISOString(),
+    balanceAfter: s.balanceVnd,
+    orderCode: code,
+  });
+}
+
+function requireSignedIn() {
+  return getMockState().signedIn ? undefined : fail(401, 'Bạn cần đăng nhập.');
+}
+
+function mockUser() {
+  const s = getMockState();
+  return {
+    id: 'mock-reader-1',
+    email: s.email,
+    fullName: s.userName,
+    role: 'USER',
+    canCreateStudio: s.canCreateStudio,
+    twoFactorEnabled: false,
+    avatarUrl: null,
+  };
+}
+
+// ─── Catalog (BR-23, BR-24, BR-32, BR-33, BR-34) ─────────────────────────────────────────────
+
+on('get', /^\/catalog\/series$/, ({ params }) => ({ data: listSeries(params) }));
+
+on('get', /^\/catalog\/series\/([^/]+)$/, ({ match, params }) => {
+  const data = seriesDetail(match[1], params.lang);
+  return data ? { data } : fail(404, 'Không tìm thấy truyện.');
+});
+
+on('get', /^\/catalog\/chapters\/([^/]+)$/, ({ match, params }) => {
+  const data = readChapter(match[1], params.lang);
+  return data ? { data } : fail(404, 'Không tìm thấy chương.');
+});
+
+on('post', /^\/catalog\/chapters\/([^/]+)\/views$/, () => ({ status: 204 }));
+
+on('get', /^\/catalog\/studio-package$/, () => ({
+  data: { isOnSale: true, priceVnd: MOCK_STUDIO_PACKAGE_PRICE_VND },
+}));
+
+// ─── Ví (BR-33, D11) ────────────────────────────────────────────────────────────────────────
+
+function settleTopups() {
+  const s = getMockState();
+  const due = s.pendingTopups.filter((t) => now() - t.createdAt >= TOPUP_APPROVE_AFTER_MS);
+  if (due.length === 0) return;
+  s.pendingTopups = s.pendingTopups.filter((t) => !due.includes(t));
+  due.forEach((t) => pushTransaction('Nạp Ví qua VietQR', t.amountVnd, t.orderCode));
+  saveMockState();
+}
+
+on('get', /^\/wallet\/me$/, () => {
+  const denied = requireSignedIn();
+  if (denied) return denied;
+  settleTopups();
+  const s = getMockState();
+  return {
+    data: {
+      balanceVnd: s.balanceVnd,
+      unlockedChapterIds: s.unlockedEditions.map((k) => k.split('::')[0]),
+      transactions: s.transactions,
+    },
+  };
+});
+
+on('post', /^\/wallet\/topup$/, ({ body }) => {
+  const denied = requireSignedIn();
+  if (denied) return denied;
+  const amountVnd = Number(body?.amountVnd);
+  if (!Number.isInteger(amountVnd) || amountVnd < 1_000) {
+    return fail(400, 'Số tiền nạp không hợp lệ.');
+  }
+  const code = orderCode('TOPUP');
+  getMockState().pendingTopups.push({ orderCode: code, amountVnd, createdAt: now() });
+  saveMockState();
+  const addInfo = encodeURIComponent(code);
+  return {
+    data: {
+      orderId: code,
+      amountVnd,
+      // Ảnh QR mẫu (tài khoản giả, không chuyển tiền được).
+      qrCodeUrl: `https://img.vietqr.io/image/970422-0000000000-compact2.png?amount=${amountVnd}&addInfo=${addInfo}&accountName=PANELFORGE%20DEMO`,
+      bankName: 'MB Bank (mẫu)',
+      accountNumber: '0000000000',
+      accountName: 'PANELFORGE DEMO',
+      transferContent: code,
+      isCompleted: false,
+      status: 'Pending',
+    },
+  };
+});
+
+on('get', /^\/wallet\/transactions\/([^/]+)\/status$/, ({ match }) => {
+  const code = decodeURIComponent(match[1]);
+  settleTopups();
+  const s = getMockState();
+  const pending = s.pendingTopups.find((t) => t.orderCode === code);
+  const done = s.transactions.find((t) => t.orderCode === code);
+  if (!pending && !done) return fail(404, 'Không tìm thấy đơn.');
+  return {
+    data: {
+      orderCode: code,
+      status: pending ? 'Pending' : 'Approved',
+      isCompleted: !pending,
+      amountVnd: pending?.amountVnd ?? done?.amountVnd ?? 0,
+      confirmedAt: pending ? null : done?.createdAt,
+    },
+  };
+});
+
+on('post', /^\/wallet\/unlock-chapter$/, ({ body }) => {
+  const denied = requireSignedIn();
+  if (denied) return denied;
+  const { chapterId, language, expectedPriceVnd } = body ?? {};
+  const price = chapterPriceOf(chapterId);
+  if (price === undefined || !chapterHasLanguage(chapterId, language)) {
+    return fail(404, 'Ấn bản chưa phát hành.');
+  }
+  if (price !== expectedPriceVnd) return fail(409, 'Giá đã thay đổi.', 'PRICE_CHANGED');
+  const s = getMockState();
+  const key = editionKey(chapterId, language);
+  if (!s.unlockedEditions.includes(key)) {
+    if (s.balanceVnd < price) return fail(400, 'Số dư Ví không đủ.', 'INSUFFICIENT_BALANCE');
+    s.unlockedEditions.push(key);
+    pushTransaction(`Mở khóa ${chapterLabel(chapterId, language)}`, -price);
+    saveMockState();
+  }
+  return {
+    data: { chapterId, success: true, remainingBalanceVnd: s.balanceVnd },
+  };
+});
+
+on('post', /^\/wallet\/studio-package$/, ({ body }) => {
+  const denied = requireSignedIn();
+  if (denied) return denied;
+  const s = getMockState();
+  if (s.canCreateStudio) return fail(409, 'Bạn đã có quyền tạo Studio.', 'ALREADY_OWNED');
+  if (body?.expectedPriceVnd !== MOCK_STUDIO_PACKAGE_PRICE_VND) {
+    return fail(409, 'Giá gói đã thay đổi.', 'PRICE_CHANGED');
+  }
+  if (s.balanceVnd < MOCK_STUDIO_PACKAGE_PRICE_VND) {
+    return fail(400, 'Số dư Ví không đủ.', 'INSUFFICIENT_BALANCE');
+  }
+  const code = orderCode('STUDIO');
+  pushTransaction('Mua gói mở Studio', -MOCK_STUDIO_PACKAGE_PRICE_VND, code);
+  s.canCreateStudio = true;
+  saveMockState();
+  return {
+    data: {
+      priceVnd: MOCK_STUDIO_PACKAGE_PRICE_VND,
+      remainingBalanceVnd: s.balanceVnd,
+      orderCode: code,
+      canCreateStudio: true,
+    },
+  };
+});
+
+// ─── Thư viện cá nhân ─────────────────────────────────────────────────────────────────────
+
+on('get', /^\/users\/me\/library$/i, () => requireSignedIn() ?? { data: getMockState().library });
+
+on('put', /^\/users\/me\/library\/history$/i, ({ body }) => {
+  const lib = getMockState().library;
+  lib.history = [body, ...lib.history.filter((h) => h.seriesId !== body?.seriesId)].slice(0, 30);
+  saveMockState();
+  return { status: 204 };
+});
+
+const LIST_KEYS = {
+  'read-later': 'readLater',
+  following: 'following',
+  favorites: 'favorites',
+} as const;
+
+const setLibraryEntry: Handler = ({ match, config }) => {
+  const denied = requireSignedIn();
+  if (denied) return denied;
+  const list = LIST_KEYS[match[1] as keyof typeof LIST_KEYS];
+  const id = match[2];
+  const add = config.method === 'put';
+  const lib = getMockState().library;
+  if (list === 'following') {
+    lib.following = lib.following.filter((f) => f.seriesId !== id);
+    if (add) lib.following.unshift({ seriesId: id, lastSeenAt: new Date().toISOString() });
+  } else {
+    lib[list] = lib[list].filter((x) => x !== id);
+    if (add) lib[list].unshift(id);
+  }
+  saveMockState();
+  return { status: 204 };
+};
+on('put', /^\/users\/me\/library\/(read-later|following|favorites)\/([^/]+)$/i, setLibraryEntry);
+on('delete', /^\/users\/me\/library\/(read-later|following|favorites)\/([^/]+)$/i, setLibraryEntry);
+
+// ─── Tài khoản độc giả mẫu ───────────────────────────────────────────────────────────────
+
+on('post', /^\/Auth\/login$/i, ({ body }) => {
+  const s = getMockState();
+  s.signedIn = true;
+  if (typeof body?.email === 'string' && body.email.includes('@')) s.email = body.email.trim();
+  saveMockState();
+  return { data: { token: 'readermock-token', user: mockUser() } };
+});
+
+on('post', /^\/Auth\/logout$/i, () => {
+  getMockState().signedIn = false;
+  saveMockState();
+  return { status: 204 };
+});
+
+on('get', /^\/Auth\/me$/i, () => requireSignedIn() ?? { data: mockUser() });
+
+on('get', /^\/Auth\/me\/landing-context$/i, () => {
+  const denied = requireSignedIn();
+  if (denied) return denied;
+  const s = getMockState();
+  const studio = s.joinedWorkspaces.length > 0;
+  return {
+    data: {
+      userId: 'mock-reader-1',
+      systemRole: 'USER',
+      canCreateStudio: s.canCreateStudio,
+      workspaces: s.joinedWorkspaces,
+      suggestedLanding: studio
+        ? 'YourWorkspaces'
+        : s.canCreateStudio
+          ? 'StudioCreation'
+          : 'PublicCatalog',
+    },
+  };
+});
+
+on('get', /^\/Users\/me$/i, () => {
+  const denied = requireSignedIn();
+  if (denied) return denied;
+  const s = getMockState();
+  return {
+    data: {
+      id: 'mock-reader-1',
+      username: s.userName,
+      email: s.email,
+      avatar: null,
+      isActive: true,
+      role: 'USER',
+      createdAt: new Date(now() - 40 * 86_400_000).toISOString(),
+      preferredReadingLanguage: 'vi',
+    },
+  };
+});
+
+on('put', /^\/Users\/me\/reading-language$/i, ({ body }) => ({
+  data: { preferredReadingLanguage: body?.languageCode ?? null },
+}));
+
+// ─── Lời mời vào Studio ──────────────────────────────────────────────────────────────────
+
+on('get', /^\/Workspaces\/pending-invitations$/i, () =>
+  getMockState().signedIn ? { data: getMockState().invitations } : { data: [] },
+);
+
+on('post', /^\/Workspaces\/([^/]+)\/(accept|reject)-invitation$/i, ({ match }) => {
+  const s = getMockState();
+  const inv = s.invitations.find((i) => i.workspaceId === match[1]);
+  if (!inv) return fail(404, 'Lời mời không còn hiệu lực.');
+  s.invitations = s.invitations.filter((i) => i !== inv);
+  if (match[2] === 'accept') {
+    s.joinedWorkspaces.push({
+      workspaceId: inv.workspaceId,
+      name: inv.workspaceName,
+      role: inv.role,
+    });
+  }
+  saveMockState();
+  return match[2] === 'accept'
+    ? { data: { workspaceId: inv.workspaceId, role: inv.role, status: 'Active' } }
+    : { status: 204 };
+});
+
+// ─── Thông báo ───────────────────────────────────────────────────────────────────────────
+
+function mockNotifications(): NotificationDto[] {
+  const read = new Set(getMockState().readNotificationIds);
+  const items: Omit<NotificationDto, 'readAt'>[] = [
+    {
+      id: 'mock-n-1',
+      type: 'ChapterPublished',
+      title: 'Kiếm Sĩ Bóng Đêm có chương mới',
+      message: 'Chương 24 "Đêm trắng" vừa phát hành. Đọc ngay trước khi bị spoil!',
+      createdAt: new Date(now() - 40 * 60_000).toISOString(),
+    },
+    {
+      id: 'mock-n-2',
+      type: 'ChapterPublished',
+      title: 'Hoa Phượng Mùa Hạ cập nhật',
+      message: 'Truyện bạn theo dõi vừa ra chương 30.',
+      createdAt: new Date(now() - 5 * 3_600_000).toISOString(),
+    },
+    {
+      id: 'mock-n-3',
+      type: 'ChapterPublished',
+      title: 'Nạp Ví thành công',
+      message: 'Ví của bạn đã được cộng 30.000 ₫.',
+      createdAt: new Date(now() - 6 * 86_400_000).toISOString(),
+    },
+  ];
+  return items.map((n) => ({ ...n, readAt: read.has(n.id) ? n.createdAt : null }));
+}
+
+on('get', /^\/notifications$/i, ({ params }) => {
+  if (!getMockState().signedIn) return fail(401, 'Bạn cần đăng nhập.');
+  const all = mockNotifications();
+  const items = params.unreadOnly ? all.filter((n) => !n.readAt) : all;
+  return {
+    data: {
+      items,
+      totalCount: items.length,
+      unreadCount: all.filter((n) => !n.readAt).length,
+      pageIndex: 1,
+      pageSize: 20,
+    },
+  };
+});
+
+on('post', /^\/notifications\/read-all$/i, () => {
+  const s = getMockState();
+  s.readNotificationIds = mockNotifications().map((n) => n.id);
+  saveMockState();
+  return { data: { marked: s.readNotificationIds.length } };
+});
+
+on('post', /^\/notifications\/([^/]+)\/read$/i, ({ match }) => {
+  const s = getMockState();
+  if (!s.readNotificationIds.includes(match[1])) s.readNotificationIds.push(match[1]);
+  saveMockState();
+  return { data: { marked: 1 } };
+});
+
+// ─── Cài adapter ─────────────────────────────────────────────────────────────────────────
+
+function pathOf(config: InternalAxiosRequestConfig): string {
+  const raw = config.url ?? '';
+  const path = /^https?:\/\//i.test(raw) ? new URL(raw).pathname : raw.split('?')[0];
+  return ('/' + path.replace(/^\/+/, '')).replace(/^\/api\//i, '/');
+}
+
+function parseBody(data: unknown) {
+  if (typeof data !== 'string') return data;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return data;
+  }
+}
+
+export function installReaderMockAdapter(client: AxiosInstance): void {
+  const realAdapter = axios.getAdapter(client.defaults.adapter);
+  const mockAdapter: AxiosAdapter = async (config) => {
+    const method = (config.method ?? 'get').toLowerCase();
+    const path = pathOf(config);
+    for (const route of routes) {
+      if (route.method !== method) continue;
+      const match = path.match(route.pattern);
+      if (!match) continue;
+      const result = route.handler({
+        match,
+        params: config.params ?? {},
+        body: parseBody(config.data),
+        config: { ...config, method },
+      });
+      if (!result) break;
+      await new Promise((r) => setTimeout(r, LATENCY_MS));
+      const status = result.status ?? 200;
+      const response: AxiosResponse = {
+        data: result.data ?? '',
+        status,
+        statusText: String(status),
+        headers: {},
+        config,
+        request: {},
+      };
+      if (status >= 400) {
+        throw new AxiosError(
+          (result.data as { message?: string })?.message ?? 'Mock error',
+          String(status),
+          config,
+          {},
+          response,
+        );
+      }
+      return response;
+    }
+    return realAdapter(config);
+  };
+  client.defaults.adapter = mockAdapter;
+}

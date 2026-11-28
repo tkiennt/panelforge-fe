@@ -228,6 +228,18 @@
   }
 }
 
+/* Băng truyện nổi bật khu độc giả (CatalogHero): hiện dần khi đổi truyện. */
+@keyframes reader-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes float {
   0%,
   100% {

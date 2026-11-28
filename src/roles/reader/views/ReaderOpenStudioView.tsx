@@ -1,10 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Check, Wallet } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpenCheck,
+  Building2,
+  Check,
+  ShieldCheck,
+  UserPlus,
+  Wallet,
+} from 'lucide-react';
 import { Alert, Button, Card, CardBody, CardHeader, Modal, Skeleton } from '@/shared/ui';
 import { StudioPackageDto, WalletApiError, walletService } from '@/services/wallet.service';
 import { useTranslation } from '@/lib/i18n';
 import { useReaderContext } from '../layout/readerContext';
+import { STUDIO_ROLES } from '../components/studioRoles';
 
 interface ReaderOpenStudioViewProps {
   /** Tài khoản đã có quyền tạo Studio (đã mua hoặc được Admin cấp): không bán lại. */
@@ -14,6 +23,19 @@ interface ReaderOpenStudioViewProps {
 }
 
 const BENEFIT_KEYS = ['benefitCreate', 'benefitTeam', 'benefitPipeline'] as const;
+
+/** Các bước sau khi mua: đúng luồng thật (mua bằng Ví → tạo Studio → mời đội → sản xuất & bàn giao phát hành). */
+const STEPS = [
+  { key: 'stepBuy', Icon: Wallet },
+  { key: 'stepCreate', Icon: Building2 },
+  { key: 'stepInvite', Icon: UserPlus },
+  { key: 'stepPublish', Icon: BookOpenCheck },
+] as const;
+
+/** Chặng sản xuất của một chương trong Studio (pipeline Script → Bible → Pencil/Ink/Color → Lettering → Editor). */
+const PIPELINE_KEYS = ['script', 'pencil', 'ink', 'color', 'lettering', 'review'] as const;
+
+const FAQ_KEYS = ['faqRefund', 'faqRoles', 'faqPublish', 'faqReader'] as const;
 
 /**
  * Gói mở Studio (spec D11): độc giả mua một lần bằng Ví, được quyền tạo Studio và làm Producer vĩnh viễn.
@@ -165,44 +187,176 @@ export const ReaderOpenStudioView: React.FC<ReaderOpenStudioViewProps> = ({
   })();
 
   return (
-    <main className='mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-8 sm:px-6'>
-      <div>
-        <h1 className='font-serif text-2xl font-bold text-stone-900'>
-          {t('workspace.reader.openStudio.title')}
-        </h1>
-        <p className='mt-1 text-sm text-stone-600'>{t('workspace.reader.openStudio.subtitle')}</p>
-      </div>
+    <main className='w-full flex-1'>
+      <section className='border-b border-stone-200/80 bg-stone-900 text-white'>
+        <div className='mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.1fr_1fr] md:items-center md:py-14'>
+          <div>
+            <p className='text-xs font-bold uppercase tracking-widest text-orange-300'>
+              {t('workspace.reader.openStudio.eyebrow')}
+            </p>
+            <h1 className='mt-2 font-serif text-3xl font-bold leading-tight sm:text-4xl'>
+              {t('workspace.reader.openStudio.heroTitle')}
+            </h1>
+            <p className='mt-3 max-w-xl text-sm leading-relaxed text-stone-300'>
+              {t('workspace.reader.openStudio.subtitle')}
+            </p>
+            <ul className='mt-5 space-y-2 text-sm text-stone-200'>
+              {BENEFIT_KEYS.map((key) => (
+                <li key={key} className='flex gap-2'>
+                  <Check className='mt-0.5 w-4 h-4 shrink-0 text-emerald-400' aria-hidden='true' />
+                  <span>{t(`workspace.reader.openStudio.${key}`)}</span>
+                </li>
+              ))}
+            </ul>
+            <a
+              href='#open-studio-package'
+              className='mt-6 inline-flex min-h-10 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-stone-900 hover:bg-orange-50'
+            >
+              {t('workspace.reader.openStudio.seePackage')}
+              <ArrowRight className='w-4 h-4' aria-hidden='true' />
+            </a>
+          </div>
 
-      {loadError && (
-        <Alert tone='danger' className='text-sm'>
-          {loadError}
-        </Alert>
-      )}
+          {/* Minh hoạ bảng tiến độ một chương: các chặng thật của pipeline, không phải số liệu. */}
+          <div
+            aria-hidden='true'
+            className='rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg'
+          >
+            <div className='mb-3 flex items-center justify-between text-xs text-stone-400'>
+              <span className='font-semibold text-stone-200'>
+                {t('workspace.reader.openStudio.boardTitle')}
+              </span>
+              <span className='font-mono'>CH.01</span>
+            </div>
+            <div className='grid grid-cols-3 gap-2 sm:grid-cols-6'>
+              {PIPELINE_KEYS.map((key, i) => (
+                <div key={key} className='flex flex-col gap-2'>
+                  <span className='truncate text-xs font-semibold text-stone-300'>
+                    {t(`workspace.reader.openStudio.pipeline.${key}`)}
+                  </span>
+                  {Array.from({ length: 3 - (i % 3) }, (_, j) => (
+                    <span
+                      key={j}
+                      className={`h-9 rounded-md ${
+                        i < 2 ? 'bg-emerald-400/70' : i < 4 ? 'bg-blue-400/70' : 'bg-white/15'
+                      } ${j === 0 && i === 3 ? 'ring-2 ring-orange-400' : ''}`}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader
-          icon={<Building2 className='w-4 h-4' />}
-          title={t('workspace.reader.openStudio.packageTitle')}
-          subtitle={t('workspace.reader.openStudio.packageSubtitle')}
-        />
-        <CardBody className='grid gap-6 md:grid-cols-[1fr_auto] md:items-start'>
-          <ul className='space-y-2 text-sm text-stone-700'>
-            {BENEFIT_KEYS.map((key) => (
-              <li key={key} className='flex gap-2'>
-                <Check className='mt-0.5 w-4 h-4 shrink-0 text-emerald-600' aria-hidden='true' />
-                <span>{t(`workspace.reader.openStudio.${key}`)}</span>
-              </li>
-            ))}
-          </ul>
+      <div className='mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_22rem] lg:items-start'>
+        <div className='space-y-10'>
+          {loadError && (
+            <Alert tone='danger' className='text-sm'>
+              {loadError}
+            </Alert>
+          )}
 
-          <div className='min-w-64 space-y-4 rounded-xl border border-stone-200/80 bg-[#FAF9F5] p-4'>
+          <section aria-labelledby='open-studio-steps'>
+            <h2 id='open-studio-steps' className='font-serif text-xl font-bold text-stone-900'>
+              {t('workspace.reader.openStudio.stepsTitle')}
+            </h2>
+            <ol className='mt-4 grid gap-3 sm:grid-cols-2'>
+              {STEPS.map(({ key, Icon }, i) => (
+                <li
+                  key={key}
+                  className='flex gap-3 rounded-xl border border-stone-200/80 bg-white p-4 shadow-xs'
+                >
+                  <span className='grid size-9 shrink-0 place-items-center rounded-lg bg-orange-50 text-[#EA580C]'>
+                    <Icon className='w-4 h-4' aria-hidden='true' />
+                  </span>
+                  <div>
+                    <p className='text-sm font-semibold text-stone-900'>
+                      <span className='mr-1 font-mono text-stone-400'>{i + 1}.</span>
+                      {t(`workspace.reader.openStudio.${key}`)}
+                    </p>
+                    <p className='mt-1 text-xs leading-relaxed text-stone-600'>
+                      {t(`workspace.reader.openStudio.${key}Desc`)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section aria-labelledby='open-studio-team'>
+            <h2 id='open-studio-team' className='font-serif text-xl font-bold text-stone-900'>
+              {t('workspace.reader.openStudio.teamTitle')}
+            </h2>
+            <p className='mt-1 text-sm text-stone-600'>
+              {t('workspace.reader.openStudio.teamSubtitle')}
+            </p>
+            <ul className='mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3'>
+              {STUDIO_ROLES.map(({ id, Icon, tone }) => (
+                <li
+                  key={id}
+                  className='rounded-xl border border-stone-200/80 bg-white p-4 shadow-xs'
+                >
+                  <div className='flex items-center gap-2'>
+                    <span className={`grid size-8 place-items-center rounded-lg ring-1 ${tone}`}>
+                      <Icon className='w-4 h-4' aria-hidden='true' />
+                    </span>
+                    <p className='text-sm font-bold text-stone-900'>
+                      {t(`workspace.shelf.role.${id}`)}
+                    </p>
+                    {id === 'producer' && (
+                      <span className='ml-auto rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-[#EA580C]'>
+                        {t('workspace.reader.openStudio.youBadge')}
+                      </span>
+                    )}
+                  </div>
+                  <p className='mt-2 text-xs leading-relaxed text-stone-600'>
+                    {t(`workspace.reader.studioRoles.${id}.summary`)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section aria-labelledby='open-studio-faq'>
+            <h2 id='open-studio-faq' className='font-serif text-xl font-bold text-stone-900'>
+              {t('workspace.reader.openStudio.faqTitle')}
+            </h2>
+            <div className='mt-4 divide-y divide-stone-200/80 rounded-xl border border-stone-200/80 bg-white'>
+              {FAQ_KEYS.map((key) => (
+                <details key={key} className='group px-4 py-3'>
+                  <summary className='cursor-pointer list-none text-sm font-semibold text-stone-900 marker:hidden'>
+                    <span className='flex items-center justify-between gap-3'>
+                      {t(`workspace.reader.openStudio.${key}Q`)}
+                      <ArrowRight
+                        className='w-4 h-4 shrink-0 text-stone-400 transition-transform group-open:rotate-90'
+                        aria-hidden='true'
+                      />
+                    </span>
+                  </summary>
+                  <p className='mt-2 text-sm leading-relaxed text-stone-600'>
+                    {t(`workspace.reader.openStudio.${key}A`)}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <Card as='section' id='open-studio-package' className='scroll-mt-20 lg:sticky lg:top-20'>
+          <CardHeader
+            icon={<Building2 className='w-4 h-4' />}
+            title={t('workspace.reader.openStudio.packageTitle')}
+            subtitle={t('workspace.reader.openStudio.packageSubtitle')}
+          />
+          <CardBody className='space-y-4'>
             {!canCreateStudio && (
               <dl className='space-y-2 text-sm'>
                 <div className='flex items-baseline justify-between gap-4'>
                   <dt className='text-xs text-stone-500'>
                     {t('workspace.reader.openStudio.price')}
                   </dt>
-                  <dd className='font-mono text-xl font-bold tabular-nums text-stone-900'>
+                  <dd className='font-mono text-2xl font-bold tabular-nums text-stone-900'>
                     {pkg ? (price !== null ? money.format(price) : '—') : '…'}
                   </dd>
                 </div>
@@ -219,9 +373,13 @@ export const ReaderOpenStudioView: React.FC<ReaderOpenStudioViewProps> = ({
               </dl>
             )}
             {action}
-          </div>
-        </CardBody>
-      </Card>
+            <p className='flex gap-2 border-t border-stone-200/80 pt-3 text-xs leading-relaxed text-stone-500'>
+              <ShieldCheck className='w-4 h-4 shrink-0 text-emerald-600' aria-hidden='true' />
+              {t('workspace.reader.openStudio.guarantee')}
+            </p>
+          </CardBody>
+        </Card>
+      </div>
 
       <Modal
         isOpen={confirming}

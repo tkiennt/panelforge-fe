@@ -14,6 +14,7 @@ import { FocusWorkspaceLayout } from './FocusWorkspaceLayout';
 import { RequireWorkspaceRole } from './RequireWorkspaceRole';
 import { resolveCurrentWorkspaceRole } from './workspaceRoleGuard';
 import { readerPathFor } from './readerAccount';
+import type { PendingInvitation } from '@/shared/views/WorkspaceShelfSections';
 import { ReaderLayout } from '@/roles/reader/layout/ReaderLayout';
 import { getRoleDefaultPath } from '@/roles/roles';
 import {
@@ -183,6 +184,9 @@ const ReaderOpenStudioView = lazy(() =>
   import('@/roles/reader/views/ReaderOpenStudioView').then((m) => ({
     default: m.ReaderOpenStudioView,
   })),
+);
+const StudioWelcomeView = lazy(() =>
+  import('@/roles/reader/views/StudioWelcomeView').then((m) => ({ default: m.StudioWelcomeView })),
 );
 const ReaderNotificationsView = lazy(() =>
   import('@/roles/reader/views/ReaderNotificationsView').then((m) => ({
@@ -371,7 +375,7 @@ export interface AppRoutesProps {
   /** Độc giả (User không thuộc Studio, không được tạo Studio); null khi đang kiểm tra. */
   isReader: boolean | null;
   /** Độc giả vừa nhận lời mời vào Studio. */
-  onReaderJoinedStudio: (workspaceId: string) => Promise<void>;
+  onReaderJoinedStudio: (invitation: PendingInvitation) => Promise<void>;
   /** Độc giả vừa mua gói mở Studio (D11), hoặc tài khoản đã có quyền tạo Studio. */
   onStudioUnlocked: () => Promise<void>;
 }
@@ -560,6 +564,14 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             element={
               <PrivateRoute isAuthenticated={isAuthenticated}>
                 <ReaderNotificationsView onJoinedStudio={onReaderJoinedStudio} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='welcome/:workspaceId'
+            element={
+              <PrivateRoute isAuthenticated={isAuthenticated}>
+                <StudioWelcomeView />
               </PrivateRoute>
             }
           />
