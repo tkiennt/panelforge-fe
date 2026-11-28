@@ -244,6 +244,7 @@
     "viewsByChapterOf": "Reads by chapter · {title}",
     "revenueBySeries": "Revenue by series",
     "revenueByChapter": "Revenue by chapter",
+    "rpmByChapter": "Revenue per 1,000 reads (RPM)",
     "viewsByLanguage": "Reads by language edition",
     "other": "Other",
     "topNote": "Top {count} series; the rest are grouped into \"Other\". Full numbers are in the table below.",
