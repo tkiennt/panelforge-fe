@@ -2047,6 +2047,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     myChangeRequests,
     panelsByPageId,
   ]);
+  const markNumberById = useMemo<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    currentPageChangeMarks.forEach((mark, index) => {
+      map[mark.id] = index + 1;
+    });
+    return map;
+  }, [currentPageChangeMarks]);
   const currentTemplate = useMemo(
     () =>
       frameTemplates.find((t) => t.id === currentTemplateId) ||
@@ -3311,6 +3318,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onResolveChangeRequest={handleResolveChangeRequest}
           isResolvingChangeRequest={isResolvingChangeRequest}
           onNavigateToChangeRequestTarget={handleNavigateToChangeRequestTarget}
+          markNumberById={markNumberById}
           pageHistory={pageHistory}
           isLoadingPageHistory={isLoadingPageHistory}
           onRestoreVersion={handleRestoreVersion}

@@ -92,6 +92,87 @@ describe('changeRequestMarksForPage', () => {
     expect(marks.map((m) => m.id)).toEqual(['open-pencil', 'numeric-open']);
   });
 
+  it('skips non-Open requests', () => {
+    const requests: ChangeRequestDto[] = [
+      {
+        ...base,
+        id: 'open-req',
+        pageId: 'page-1',
+        pipelineStageId: 'pencil',
+        regionJson: region,
+        status: 'Open',
+      },
+      {
+        ...base,
+        id: 'resolved-req',
+        pageId: 'page-1',
+        pipelineStageId: 'pencil',
+        regionJson: region,
+        status: 'Resolved',
+      },
+      {
+        ...base,
+        id: 'rejected-req',
+        pageId: 'page-1',
+        pipelineStageId: 'pencil',
+        regionJson: region,
+        status: 'Rejected',
+      },
+      {
+        ...base,
+        id: 'numeric-closed',
+        pageId: 'page-1',
+        pipelineStageId: 'pencil',
+        regionJson: region,
+        status: 1,
+      },
+    ];
+    const marks = changeRequestMarksForPage(requests, 'page-1', {}, ['pencil'], ['art-v1']);
+    expect(marks.map((m) => m.id)).toEqual(['open-req']);
+  });
+
+  it('skips requests of other pages', () => {
+    const requests: ChangeRequestDto[] = [
+      {
+        ...base,
+        id: 'page-1-req',
+        pageId: 'page-1',
+        pipelineStageId: 'pencil',
+        regionJson: region,
+        status: 'Open',
+      },
+      {
+        ...base,
+        id: 'page-2-req',
+        pageId: 'page-2',
+        pipelineStageId: 'pencil',
+        regionJson: region,
+        status: 'Open',
+      },
+    ];
+    const marks = changeRequestMarksForPage(requests, 'page-1', {}, ['pencil'], ['art-v1']);
+    expect(marks.map((m) => m.id)).toEqual(['page-1-req']);
+  });
+
+  it('onOlderVersion is true when assetReferenceId is not in shownArtworkIds', () => {
+    const requests: ChangeRequestDto[] = [
+      {
+        ...base,
+        id: 'cr-old',
+        pageId: 'page-1',
+        pipelineStageId: 'pencil',
+        regionJson: region,
+        assetReferenceId: 'art-v1',
+        status: 'Open',
+      },
+    ];
+    const withOld = changeRequestMarksForPage(requests, 'page-1', {}, ['pencil'], ['art-v2']);
+    expect(withOld[0].onOlderVersion).toBe(true);
+
+    const withCurrent = changeRequestMarksForPage(requests, 'page-1', {}, ['pencil'], ['art-v1']);
+    expect(withCurrent[0].onOlderVersion).toBe(false);
+  });
+
   it('tải bản mới không xoá vùng, chỉ đánh dấu "khoanh trên bản cũ"', () => {
     const before = changeRequestMarksForPage(crs, 'page-1', {}, ['pencil'], ['art-v1']);
     const after = changeRequestMarksForPage(crs, 'page-1', {}, ['pencil'], ['art-v2']);
