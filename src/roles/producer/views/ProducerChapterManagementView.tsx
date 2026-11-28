@@ -1896,6 +1896,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
             chapterId={chapter.id}
             chapterNumber={chapter.chapterNumber}
             chapterTitle={chapter.title || undefined}
+            expectedSubmittedVersionId={chapter.lastSubmittedVersionId}
             onClose={() => setStartProductionOpen(false)}
             onSuccess={() => {
               setStartProductionOpen(false);
@@ -1906,6 +1907,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               void refreshAll();
             }}
             onShowToast={onShowToast}
+            onVersionOutdated={() => void refreshAll()}
           />
         ) : (
           <RefreezeScriptModal
