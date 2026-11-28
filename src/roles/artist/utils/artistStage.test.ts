@@ -6,7 +6,6 @@ import {
   isArtistInkStage,
   isArtistLetteringStage,
   isArtistPencilStage,
-  MAX_ARTWORK_IMAGE_BYTES,
 } from './artistStage';
 
 describe('getArtistStageKind', () => {
@@ -62,11 +61,5 @@ describe('generateSafeId', () => {
     expect(id1).toBeTruthy();
     expect(id2).toBeTruthy();
     expect(id1).not.toBe(id2);
-  });
-});
-
-describe('MAX_ARTWORK_IMAGE_BYTES', () => {
-  it('là 20 MB để thống nhất với nhận diện vùng', () => {
-    expect(MAX_ARTWORK_IMAGE_BYTES).toBe(20 * 1024 * 1024);
   });
 });

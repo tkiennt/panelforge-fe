@@ -60,6 +60,7 @@ import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { EmptyFolderState } from '@/shared/components/lucian';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useTranslation } from '@/lib/i18n';
+import { useUploadLimit } from '@/hooks/useUploadLimit';
 import { CollapsibleSidebar, Modal, PageHeader, SidebarSection } from '@/shared/ui';
 import {
   CATEGORIES,
@@ -201,6 +202,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 }) => {
   const confirm = useConfirm();
   const { t } = useTranslation();
+  const referenceLimit = useUploadLimit('referenceImage');
   const [searchParams, setSearchParams] = useSearchParams();
   const [localEntities, setLocalEntities] = useState<BibleEntity[]>(entities);
   const [rawEntries, setRawEntries] = useState<Record<string, BibleEntryDto>>({});
@@ -2561,6 +2563,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         uploadingRevImage={uploadingRevImage}
         onUploadImage={async (file: File) => {
           if (!effectiveSeries?.id || !revisionTarget) return;
+          if (file.size > referenceLimit.maxBytes) {
+            onShowToast(
+              t('bible.view.revisionImageUploadErrorTitle', 'Lỗi tải ảnh tham chiếu'),
+              t('bible.view.revisionImageSizeExceededDesc', { max: referenceLimit.maxMb }),
+            );
+            return;
+          }
           setUploadingRevImage(true);
           try {
             const uploaded = await bibleService.uploadReferenceImage(effectiveSeries.id, file);

@@ -670,6 +670,19 @@
       "deleteConfirmDescription": "Báo cáo đang có {count} file mồ côi thuộc các Studio. File đã xoá không khôi phục được.",
       "deleteConfirmNote": "Chỉ xoá file cũ hơn 7 ngày của Studio đang hoạt động. File không rõ Studio, ảnh thu nhỏ, file xuất bản và mọi bản ghi lịch sử được giữ nguyên. Sau khi xoá, bấm \"Cập nhật dung lượng\" nếu số đang ghi còn lệch.",
       "deleteConfirm": "Xoá vĩnh viễn"
+    },
+    "uploadLimits": {
+      "title": "Giới hạn kích thước file tải lên",
+      "description": "Áp ngay cho mọi Studio từ lượt tải lên tiếp theo. File đã lưu không bị ảnh hưởng.",
+      "notConfigured": "Chưa lưu giới hạn: đang dùng mặc định của máy chủ (artwork 25 MB, ảnh tham chiếu 10 MB, ảnh bìa 5 MB).",
+      "artwork": "Artwork trang / panel (MB)",
+      "artworkHint": "Gồm ảnh trang gửi đi nhận diện panel. Tối đa {max} MB.",
+      "reference": "Ảnh tham chiếu Bible (MB)",
+      "referenceHint": "Reference sheet, concept art. Tối đa {max} MB.",
+      "cover": "Ảnh bìa, avatar, banner (MB)",
+      "coverHint": "Bìa Series, Chương, Studio; avatar và banner Series. Tối đa {max} MB.",
+      "range": "Nhập số MB lớn hơn 0 và không quá {max} MB.",
+      "saved": "Đã lưu giới hạn kích thước file."
     }
   },
   "details": {

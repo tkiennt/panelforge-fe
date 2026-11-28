@@ -32,6 +32,7 @@ import {
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { Alert, Modal } from '@/shared/ui';
 import { translate, useTranslation } from '@/lib/i18n';
+import { useUploadLimit } from '@/hooks/useUploadLimit';
 import { BibleStubAiDraftSection } from './BibleStubAiDraftSection';
 import { getCategoryLabel } from './bibleCategory';
 import {
@@ -402,6 +403,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   onRefreshBible,
 }) => {
   const { t, lang } = useTranslation();
+  const referenceLimit = useUploadLimit('referenceImage');
   const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
   const [activeArtTab, setActiveArtTab] = useState<'turnaround' | 'action'>('turnaround');
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -598,10 +600,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       );
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > referenceLimit.maxBytes) {
       onShowToast(
         t('bible.detailModal.invalidImageTitle', 'Tệp không hợp lệ'),
-        t('bible.detailModal.imageTooLargeDesc', 'Ảnh phải nhỏ hơn hoặc bằng 10 MB.'),
+        t('bible.detailModal.imageTooLargeDesc', { max: referenceLimit.maxMb }),
       );
       return;
     }

@@ -670,6 +670,19 @@
       "deleteConfirmDescription": "The report shows {count} orphan files that belong to studios. Deleted files cannot be recovered.",
       "deleteConfirmNote": "Only files older than 7 days that belong to active studios are deleted. Files with no known studio, thumbnails, exports and all history records are kept. After deleting, select \"Update usage\" if recorded usage still differs.",
       "deleteConfirm": "Delete permanently"
+    },
+    "uploadLimits": {
+      "title": "Upload file size limits",
+      "description": "Applies to every Studio from the next upload. Files already stored are not affected.",
+      "notConfigured": "Not saved yet: using server defaults (artwork 25 MB, reference images 10 MB, cover images 5 MB).",
+      "artwork": "Page / panel artwork (MB)",
+      "artworkHint": "Includes page images sent for panel detection. Up to {max} MB.",
+      "reference": "Bible reference images (MB)",
+      "referenceHint": "Reference sheets and concept art. Up to {max} MB.",
+      "cover": "Covers, avatars, banners (MB)",
+      "coverHint": "Series, chapter and Studio covers; Series avatar and banner. Up to {max} MB.",
+      "range": "Enter a size above 0 and no more than {max} MB.",
+      "saved": "File size limits saved."
     }
   },
   "details": {

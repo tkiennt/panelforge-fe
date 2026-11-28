@@ -30,6 +30,7 @@ import {
 import { errorMessage, parseRegionBox } from './collaborationRules';
 import { parseBoundingBox } from '@/shared/utils/panelBoundingBox';
 import { useTranslation } from '@/lib/i18n';
+import { useUploadLimit } from '@/hooks/useUploadLimit';
 
 type TranslateFn = (
   key: string,
@@ -472,8 +473,6 @@ export const PageArtCrop: React.FC<{
   );
 };
 
-/** Khớp giới hạn của Backend (25 MB, PNG/JPEG/WebP); Backend vẫn kiểm lại nội dung thật. */
-const MAX_BYTES = 25 * 1024 * 1024;
 const ACCEPTED = ['image/png', 'image/jpeg', 'image/webp'];
 
 interface ArtworkPanelProps {
@@ -520,6 +519,8 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
   onOpenBible,
 }) => {
   const { t, lang } = useTranslation('collaboration');
+  // Giới hạn do Admin đặt; Backend vẫn kiểm lại nội dung thật
+  const artworkLimit = useUploadLimit('artwork');
   const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
   const assignedPanelObj = assignedPanelId ? panels.find((p) => p.id === assignedPanelId) : null;
   const fileInput = useRef<HTMLInputElement>(null);
@@ -561,8 +562,8 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       setError(t('artworkPanel.invalidFormatError'));
       return;
     }
-    if (file.size > MAX_BYTES) {
-      setError(t('artworkPanel.fileTooLargeError'));
+    if (file.size > artworkLimit.maxBytes) {
+      setError(t('artworkPanel.fileTooLargeError', { max: artworkLimit.maxMb }));
       return;
     }
 

@@ -22,7 +22,7 @@
     "removeCover": "Revert to default",
     "coverDropzone": "Drag & drop or click to choose an image",
     "chooseDifferent": "Choose a different image",
-    "coverHint": "Supports PNG, JPEG or WebP. Up to 5 MB.",
+    "coverHint": "Supports PNG, JPEG or WebP. Up to {max} MB.",
     "coverPreview": "Preview (2:1 Ratio)",
     "willUseDefault": "Will revert to default cover",
     "apply": "Apply",

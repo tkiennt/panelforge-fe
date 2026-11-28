@@ -316,7 +316,7 @@
     "discardCancel": "Giữ lại chỉnh sửa",
     "fetchArtworkExpiredError": "Không tải được artwork để nhận diện (link có thể đã hết hạn), hãy thử lại.",
     "unsupportedTypeError": "Nhận diện chỉ hỗ trợ ảnh PNG, JPEG, WEBP.",
-    "sizeLimitError": "Ảnh {size} vượt giới hạn nhận diện 20 MB.",
+    "sizeLimitError": "Ảnh {size} vượt giới hạn {max} MB cho artwork.",
     "foundPanelsNotice": "Tìm thấy {count} panel.",
     "detectFailedError": "Nhận diện thất bại.",
     "fetchArtworkError": "Không tải được artwork để nhận diện.",

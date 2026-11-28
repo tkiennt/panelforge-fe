@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { translate, useTranslation } from '@/lib/i18n';
+import { useUploadLimit } from '@/hooks/useUploadLimit';
 import {
   AlertCircle,
   Check,
@@ -179,6 +180,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
   onApplied,
 }) => {
   const { t } = useTranslation('features');
+  const coverLimit = useUploadLimit('coverImage');
   const isAvatar = kind === 'avatar';
   const presets = isAvatar ? SERIES_AVATAR_PRESETS : SERIES_BANNER_PRESETS;
   const [choice, setChoice] = useState<Choice>(null);
@@ -227,9 +229,12 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
       setFileError(t('seriesIdentity.invalidFileType'));
       return;
     }
-    if (file.size > SERIES_IMAGE_RULES.maxBytes) {
+    if (file.size > coverLimit.maxBytes) {
       setFileError(
-        t('seriesIdentity.fileTooLarge', { size: (file.size / 1024 / 1024).toFixed(1) }),
+        t('seriesIdentity.fileTooLarge', {
+          size: (file.size / 1024 / 1024).toFixed(1),
+          max: coverLimit.maxMb,
+        }),
       );
       return;
     }
@@ -444,7 +449,7 @@ export const SeriesImagePickerDialog: React.FC<Props> = ({
             </h2>
             <p className='text-xs text-[#57534E] mt-0.5'>
               {isAvatar ? t('seriesIdentity.avatarRuleHint') : t('seriesIdentity.bannerRuleHint')} ·{' '}
-              {SERIES_IMAGE_RULES.label}. {t('seriesIdentity.applyHint')}
+              {SERIES_IMAGE_RULES.label(coverLimit.maxMb)}. {t('seriesIdentity.applyHint')}
             </p>
           </div>
           <button

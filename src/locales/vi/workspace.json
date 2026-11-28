@@ -22,7 +22,7 @@
     "removeCover": "Quay về ảnh mặc định",
     "coverDropzone": "Kéo thả hoặc bấm để chọn ảnh",
     "chooseDifferent": "Chọn ảnh khác",
-    "coverHint": "Hỗ trợ PNG, JPEG hoặc WebP. Tối đa 5 MB.",
+    "coverHint": "Hỗ trợ PNG, JPEG hoặc WebP. Tối đa {max} MB.",
     "coverPreview": "Xem trước (Tỷ lệ 2:1)",
     "willUseDefault": "Sẽ quay về ảnh mặc định",
     "apply": "Áp dụng",

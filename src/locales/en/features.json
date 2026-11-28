@@ -539,7 +539,7 @@
     "titleAvatar": "Change Series Avatar",
     "titleBanner": "Change Series Banner",
     "invalidFileType": "Only PNG, JPEG, or WebP images are accepted.",
-    "fileTooLarge": "Image ({size} MB) exceeds the 5 MB limit.",
+    "fileTooLarge": "Image ({size} MB) exceeds the {max} MB limit.",
     "saveErrorFallback": "Unable to save image.",
     "willUseDefault": "Will use default image",
     "dragToMoveTitle": "Click and drag to reposition image",

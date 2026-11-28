@@ -28,6 +28,7 @@ import { HealthBadge, UsageBar } from './ResourceUi';
 import { useLocale } from './resourceFormat';
 import { ConfigureStudioModal } from './ConfigureStudioModal';
 import { ResourcePolicyPanel } from './ResourcePolicyPanel';
+import { UploadLimitsPanel } from './UploadLimitsPanel';
 import { ResourceRequestsPanel } from './ResourceRequestsPanel';
 
 type View = 'allocation' | 'policy' | 'requests' | 'reconcile';
@@ -178,7 +179,12 @@ export const ResourcesView: React.FC = () => {
         ))}
       </div>
 
-      {view === 'policy' && <ResourcePolicyPanel onSaved={(m) => showToast(m)} />}
+      {view === 'policy' && (
+        <div className='space-y-6'>
+          <ResourcePolicyPanel onSaved={(m) => showToast(m)} />
+          <UploadLimitsPanel onSaved={(m) => showToast(m)} />
+        </div>
+      )}
 
       {view === 'reconcile' && <StorageReconcileCard onApplied={load} />}
 
