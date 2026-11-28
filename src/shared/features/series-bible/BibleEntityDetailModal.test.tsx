@@ -634,6 +634,25 @@ describe('BibleEntityDetailModal UX/UI', () => {
       expect(screen.getByTestId('bible-workbench-sidebar')).toHaveClass('order-2');
     });
 
+    it('keeps controls compact and exposes the desktop viewport workspace', () => {
+      render(<BibleEntityDetailModal {...defaultProps} />);
+
+      expect(screen.getByTestId('bible-control-deck')).toHaveClass('rounded-t-xl');
+      expect(screen.getByTestId('variant-selector')).toHaveClass('-mt-3', 'rounded-b-xl');
+      expect(screen.getByTestId('detail-status-workflow-banner')).toHaveClass('px-3', 'py-2');
+      expect(screen.getByTestId('bible-workbench-primary')).toHaveClass(
+        'xl:grid-rows-[auto_minmax(0,1fr)]',
+      );
+      expect(screen.getByTestId('bible-workbench-sidebar')).toHaveClass(
+        'xl:grid-rows-[minmax(0,0.65fr)_minmax(0,1.35fr)]',
+      );
+
+      const comments = screen.getByTestId('concept-comments-section');
+      expect(comments).toHaveClass('xl:absolute', 'xl:w-64');
+      fireEvent.click(screen.getByRole('button', { name: /Nhận xét/i }));
+      expect(comments).toHaveFocus();
+    });
+
     it('shows a compact handoff for Artist on a Draft visual entry', () => {
       localStorage.setItem(
         'activeWorkspace',
