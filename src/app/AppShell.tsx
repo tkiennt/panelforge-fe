@@ -482,6 +482,11 @@ export function AppShell({
             section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
             items: [
               {
+                icon: Gauge,
+                label: t('navigation.menu.reviewOverview', 'Tổng quan duyệt'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/editor/dashboard`,
+              },
+              {
                 icon: ShieldCheck,
                 label: t('navigation.menu.editorReviewDesk', 'Kiểm tra & Hiệu đính'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/editor/desk`,

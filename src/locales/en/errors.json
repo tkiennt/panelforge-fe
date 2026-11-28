@@ -64,6 +64,7 @@
       "getVisualReportFailed": "Failed to load visual consistency report",
       "runVisualCheckFailed": "Failed to run visual consistency check",
       "getEditorReviewQueueFailed": "Failed to load Editor review queue",
+      "getSeriesReviewStatsFailed": "Failed to load review overview",
       "getTaskGridFailed": "Failed to load chapter task grid",
       "generateTaskGridFailed": "Failed to generate chapter task cells",
       "getAutoAssignPlanFailed": "Failed to load auto-assignment plan",

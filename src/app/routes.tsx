@@ -132,6 +132,12 @@ const ArtistChapterSelectionView = lazy(() =>
 const ReviewView = lazy(() =>
   import('@/roles/editor/views/ReviewView').then((m) => ({ default: m.ReviewView })),
 );
+const EditorSeriesDashboardView = lazy(
+  () => import('@/roles/editor/views/dashboard/EditorSeriesDashboardView'),
+);
+const EditorChapterDashboardView = lazy(
+  () => import('@/roles/editor/views/dashboard/EditorChapterDashboardView'),
+);
 const EditorDeskView = lazy(() =>
   import('@/roles/editor/views/EditorDeskView').then((m) => ({ default: m.EditorDeskView })),
 );
@@ -747,6 +753,32 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 />
 
                 {/* Review workspace stays in AppShell for Editor and Producer fallback (BR-06 / Gate 2). */}
+                <Route
+                  path='editor/dashboard'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['EDITOR', 'PRODUCER', 'ADMINISTRATOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <EditorSeriesDashboardView />
+                    </RequireWorkspaceRole>
+                  }
+                />
+                <Route
+                  path='editor/dashboard/:chapterId'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['EDITOR', 'PRODUCER', 'ADMINISTRATOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <EditorChapterDashboardView />
+                    </RequireWorkspaceRole>
+                  }
+                />
                 <Route
                   path='editor/desk'
                   element={

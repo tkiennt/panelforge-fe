@@ -71,6 +71,7 @@ import {
   parseStageTaskCanvasVersions,
   pickLatestDecisionComment,
   resolveReworkDecisionComments,
+  SeriesReviewStatsDto,
 } from '@/types';
 
 export {
@@ -833,6 +834,18 @@ export const assignmentService = {
       console.warn('Không thể nạp hàng đợi thẩm định Editor:', error);
       throw new Error(
         extractError(error, translate('errors.services.assignment.getEditorReviewQueueFailed')),
+      );
+    }
+  },
+
+  /** Tổng quan duyệt theo chương cho Editor (GET /api/series/{seriesId}/editor/review-stats) */
+  getSeriesReviewStats: async (seriesId: string): Promise<SeriesReviewStatsDto> => {
+    try {
+      const response = await axiosClient.get(`/series/${seriesId}/editor/review-stats`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.assignment.getSeriesReviewStatsFailed')),
       );
     }
   },
