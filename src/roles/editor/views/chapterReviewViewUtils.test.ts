@@ -115,6 +115,29 @@ describe('chapterReviewViewUtils', () => {
       expect(findIntersectingPanelIds(mostlyBottomBox, panels)).toEqual(['panel-bottom']);
     });
 
+    it('vùng khoanh lớn phủ trọn Panel nhỏ vẫn chọn Panel đó (D8: mẫu số là diện tích nhỏ hơn)', () => {
+      const smallPanel: PanelDto[] = [
+        {
+          id: 'panel-small',
+          pageId: 'page-1',
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({
+            x: 480,
+            y: 720,
+            width: 240,
+            height: 360,
+            unit: 'px',
+            pageWidthPx: 1200,
+            pageHeightPx: 1800,
+          }),
+          createdAt: '2026-10-17T00:00:00Z',
+        },
+      ];
+      const fullBox = { x: 0, y: 0, w: 1, h: 1 };
+      expect(findIntersectingPanelIds(fullBox, smallPanel)).toEqual(['panel-small']);
+    });
+
     it('trả về undefined khi vùng không giao với panel nào', () => {
       const box = { x: 0.1, y: 0.1, w: 0, h: 0 };
       expect(findIntersectingPanelIds(box, panels)).toEqual([]);

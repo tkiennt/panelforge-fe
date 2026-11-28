@@ -63,9 +63,8 @@ export const SeriesReaderView: React.FC<SeriesReaderViewProps> = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation('review');
 
-  const isProducer = ['producer', 'owner', 'admin', 'administrator'].includes(
-    (workspaceRole ?? '').toLowerCase(),
-  );
+  // Admin không có quyền Studio (AUD-BE-01 trả 403), không được coi như Producer.
+  const isProducer = ['producer', 'owner'].includes((workspaceRole ?? '').toLowerCase());
   // Khớp PageCommentsController: Producer/Editor/Writer xem và tạo góp ý;
   // đóng / mở lại / chuyển rework chỉ Producer/Editor. Vai trò khác gọi sẽ nhận 403.
   const canViewComments = ['producer', 'owner', 'editor', 'writer'].includes(
