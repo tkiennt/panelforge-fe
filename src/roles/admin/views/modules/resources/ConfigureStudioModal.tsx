@@ -15,7 +15,7 @@ const parseNonNegative = (v: string) => {
   return Number.isFinite(n) && n >= 0 ? n : null;
 };
 
-/** Cấu hình AI + Storage Quota của một Studio. 0 = không giới hạn. Lý do bắt buộc (ghi Audit). */
+/** Cấu hình AI (token, ảnh, lượt gọi/tháng và /phút) + Storage Quota của một Studio. 0 = không giới hạn. Lý do bắt buộc (ghi Audit). */
 export const ConfigureStudioModal: React.FC<{
   studio: AdminWorkspaceResourceDto;
   onClose: () => void;
@@ -26,6 +26,8 @@ export const ConfigureStudioModal: React.FC<{
   const [storageGb, setStorageGb] = useState(toGbInput(studio.storage.quota));
   const [tokens, setTokens] = useState(String(studio.aiTokens?.quota ?? 0));
   const [images, setImages] = useState(String(studio.aiImages?.quota ?? 0));
+  const [requests, setRequests] = useState(String(studio.aiRequests?.quota ?? 0));
+  const [perMinute, setPerMinute] = useState(String(studio.requestsPerMinuteLimit ?? 0));
   const [aiEnabled, setAiEnabled] = useState(studio.aiEnabled);
   const [reason, setReason] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -42,12 +44,18 @@ export const ConfigureStudioModal: React.FC<{
     if (saving) return;
     const tokenNum = parseNonNegative(tokens);
     const imageNum = parseNonNegative(images);
+    const requestNum = parseNonNegative(requests);
+    const perMinuteNum = parseNonNegative(perMinute);
     const next: Record<string, string> = {};
     if (storageBytes === null) next.storage = t('admin.resources.validation.nonNegative');
     if (tokenNum === null || !Number.isInteger(tokenNum))
       next.tokens = t('admin.resources.validation.nonNegativeInt');
     if (imageNum === null || !Number.isInteger(imageNum))
       next.images = t('admin.resources.validation.nonNegativeInt');
+    if (requestNum === null || !Number.isInteger(requestNum))
+      next.requests = t('admin.resources.validation.nonNegativeInt');
+    if (perMinuteNum === null || !Number.isInteger(perMinuteNum))
+      next.perMinute = t('admin.resources.validation.nonNegativeInt');
     if (!reason.trim()) next.reason = t('admin.resources.validation.reasonRequired');
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -59,6 +67,8 @@ export const ConfigureStudioModal: React.FC<{
         storageQuotaBytes: storageBytes!,
         monthlyTokenQuota: tokenNum!,
         monthlyImageQuota: imageNum!,
+        monthlyRequestQuota: requestNum!,
+        requestsPerMinute: perMinuteNum!,
         aiEnabled,
         reason: reason.trim(),
       });
@@ -189,6 +199,48 @@ export const ConfigureStudioModal: React.FC<{
               value={images}
               onChange={(e) => setImages(e.target.value)}
               aria-invalid={!!errors.images}
+              className={cn(adminFieldClass, 'tabular-nums')}
+            />
+          </AdminField>
+          <AdminField
+            label={t('admin.resources.configure.requestQuota')}
+            htmlFor='rq-requests'
+            required
+            error={errors.requests}
+            hint={current(
+              unlimitedOr(studio.aiRequests?.quota ?? 0, (n) => n.toLocaleString(locale)),
+            )}
+          >
+            <input
+              id='rq-requests'
+              type='number'
+              min='0'
+              step='1'
+              inputMode='numeric'
+              value={requests}
+              onChange={(e) => setRequests(e.target.value)}
+              aria-invalid={!!errors.requests}
+              className={cn(adminFieldClass, 'tabular-nums')}
+            />
+          </AdminField>
+          <AdminField
+            label={t('admin.resources.configure.requestsPerMinute')}
+            htmlFor='rq-per-minute'
+            required
+            error={errors.perMinute}
+            hint={current(
+              unlimitedOr(studio.requestsPerMinuteLimit ?? 0, (n) => n.toLocaleString(locale)),
+            )}
+          >
+            <input
+              id='rq-per-minute'
+              type='number'
+              min='0'
+              step='1'
+              inputMode='numeric'
+              value={perMinute}
+              onChange={(e) => setPerMinute(e.target.value)}
+              aria-invalid={!!errors.perMinute}
               className={cn(adminFieldClass, 'tabular-nums')}
             />
           </AdminField>

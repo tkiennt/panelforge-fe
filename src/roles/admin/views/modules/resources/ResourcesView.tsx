@@ -33,7 +33,7 @@ import { ResourceRequestsPanel } from './ResourceRequestsPanel';
 type View = 'allocation' | 'policy' | 'requests' | 'reconcile';
 const VIEWS: View[] = ['allocation', 'policy', 'requests', 'reconcile'];
 type HealthFilter = 'all' | 'attention';
-const COLS = 7;
+const COLS = 8;
 
 /**
  * Admin → Tài nguyên: cấp phát Storage + AI theo Studio, chính sách mặc định, duyệt yêu cầu tăng tài nguyên.
@@ -232,6 +232,7 @@ export const ResourcesView: React.FC = () => {
                   <th className={adminTable.th}>{t('admin.resources.allocation.colStorage')}</th>
                   <th className={adminTable.th}>{t('admin.resources.allocation.colTokens')}</th>
                   <th className={adminTable.th}>{t('admin.resources.allocation.colImages')}</th>
+                  <th className={adminTable.th}>{t('admin.resources.allocation.colRequests')}</th>
                   <th className={adminTable.th}>{t('admin.resources.allocation.colReset')}</th>
                   <th className={adminTable.th}>{t('admin.resources.allocation.colStatus')}</th>
                   <th className={`${adminTable.th} text-right`}>
@@ -330,6 +331,27 @@ export const ResourcesView: React.FC = () => {
                             warningPercent={warn}
                             label={t('admin.resources.allocation.imagesAria', { name: s.name })}
                           />
+                        ) : (
+                          <span className='text-admin-muted text-sm'>—</span>
+                        )}
+                      </td>
+                      <td className={adminTable.td}>
+                        {s.aiEnabled && s.aiRequests ? (
+                          <>
+                            <UsageBar
+                              meter={s.aiRequests}
+                              type='AiTokens'
+                              warningPercent={warn}
+                              label={t('admin.resources.allocation.requestsAria', { name: s.name })}
+                            />
+                            <div className='mt-1 text-xs text-admin-muted tabular-nums'>
+                              {s.requestsPerMinuteLimit
+                                ? t('admin.resources.allocation.perMinute', {
+                                    count: s.requestsPerMinuteLimit,
+                                  })
+                                : t('admin.resources.allocation.perMinuteUnlimited')}
+                            </div>
+                          </>
                         ) : (
                           <span className='text-admin-muted text-sm'>—</span>
                         )}

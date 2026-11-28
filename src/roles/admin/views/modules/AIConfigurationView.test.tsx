@@ -268,8 +268,6 @@ describe('AIConfigurationView', () => {
       expect(adminService.setWorkspaceAiProvider).toHaveBeenCalledWith('ws-1', 'cred-cf-1');
       expect(adminService.updateWorkspaceAiConfig).toHaveBeenCalledWith('ws-1', {
         isEnabled: true,
-        monthlyTokenQuota: 1000000,
-        monthlyImageQuota: 0,
         allowedModels: ['@cf/meta/llama-3.3-70b-instruct-fp8-fast'],
       });
     });
@@ -304,10 +302,12 @@ describe('AIConfigurationView', () => {
     expect(screen.queryByLabelText(/^Nhà cung cấp$|^Provider$/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/^API key$/i)).not.toBeInTheDocument();
 
-    // Giữ nguyên 2 ô quota
-    expect(screen.getByLabelText(/Quota token mỗi tháng|Monthly token quota/i)).toBeInTheDocument();
+    // OPS-24: hạn mức chỉ sửa ở màn Tài nguyên, màn này không còn ô quota
     expect(
-      screen.getByLabelText(/Quota sinh ảnh mỗi tháng|Monthly image quota/i),
+      screen.queryByLabelText(/Quota token mỗi tháng|Monthly token quota/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/tab Tài nguyên & hạn mức|Resources & quotas tab/i),
     ).toBeInTheDocument();
 
     // Dòng Trạng thái key hiện theo API đã chọn
@@ -470,8 +470,6 @@ describe('AIConfigurationView', () => {
       expect(adminService.setWorkspaceAiProvider).not.toHaveBeenCalled();
       expect(adminService.updateWorkspaceAiConfig).toHaveBeenCalledWith('ws-1', {
         isEnabled: true,
-        monthlyTokenQuota: 1000000,
-        monthlyImageQuota: 0,
         allowedModels: ['@cf/black-forest-labs/flux-1-schnell'],
       });
     });
