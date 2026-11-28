@@ -978,7 +978,9 @@
       "queueByChapter": "Waiting by chapter",
       "queue": "Waiting",
       "decisions30d": "Reviews, last 30 days",
-      "decisions": "Reviews"
+      "decisions": "Reviews",
+      "stageApproved": "Approved panels by stage",
+      "approvedPanels": "Approved panels"
     },
     "kpi": {
       "ariaLabel": "Review metrics",

@@ -4,6 +4,7 @@ import { ArrowLeft, ClipboardCheck, FileWarning, Gauge, ListChecks } from 'lucid
 import { useTranslation } from '@/lib/i18n';
 import { Alert, Badge, Card, CardBody, CardHeader, PageHeader } from '@/shared/ui';
 import { assignmentService } from '@/services/assignment.service';
+import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import {
   buildEditorDashboardUrl,
   buildEditorDeskUrl,
@@ -14,7 +15,10 @@ import type {
   ChapterReviewStatsDto,
   ConsistencyFindingDto,
   SeriesReviewStatsDto,
+  StageProgressDto,
 } from '@/types';
+import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
+import { hasAnyValue } from '@/shared/ui/charts/chartData';
 import { ReviewKpiStrip } from './ReviewKpiStrip';
 import { sumReviewStats } from './reviewStats';
 
@@ -29,6 +33,8 @@ export const EditorChapterDashboardView: React.FC = () => {
   const [stats, setStats] = useState<SeriesReviewStatsDto | null>(null);
   const [requests, setRequests] = useState<ChangeRequestDto[]>([]);
   const [findings, setFindings] = useState<ConsistencyFindingDto[]>([]);
+  const [stages, setStages] = useState<PipelineStageDto[]>([]);
+  const [stageProgress, setStageProgress] = useState<StageProgressDto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadedAt, setLoadedAt] = useState(0);
@@ -44,12 +50,16 @@ export const EditorChapterDashboardView: React.FC = () => {
       assignmentService
         .getConsistencyFindings(chapterId)
         .catch(() => [] as ConsistencyFindingDto[]),
+      assignmentService.getStageProgress(chapterId).catch(() => [] as StageProgressDto[]),
+      pipelineService.getPipelineStages(seriesId).catch(() => [] as PipelineStageDto[]),
     ])
-      .then(([s, crs, fs]) => {
+      .then(([s, crs, fs, sps, pss]) => {
         if (!mounted) return;
         setStats(s);
         setRequests(crs);
         setFindings(fs);
+        setStageProgress(sps);
+        setStages(pss);
         setLoadedAt(Date.now());
       })
       .catch((e: unknown) => mounted && setError(e instanceof Error ? e.message : String(e)))
@@ -59,6 +69,7 @@ export const EditorChapterDashboardView: React.FC = () => {
     };
   }, [seriesId, chapterId]);
 
+  const n = new Intl.NumberFormat(lang);
   const dateFmt = new Intl.DateTimeFormat(lang, { dateStyle: 'medium' });
   const row: ChapterReviewStatsDto | undefined = stats?.chapters.find(
     (c) => c.chapterId === chapterId,
@@ -70,6 +81,27 @@ export const EditorChapterDashboardView: React.FC = () => {
   const openFindings = findings
     .filter((f) => f.status === 'Open' || f.status === 'NeedsClarification')
     .sort((a, b) => Number(b.severity === 'Blocking') - Number(a.severity === 'Blocking'));
+
+  const stageApprovedCounts = new Map<string, number>();
+  for (const sp of stageProgress) {
+    if (sp.status === 'Approved') {
+      stageApprovedCounts.set(
+        sp.pipelineStageId,
+        (stageApprovedCounts.get(sp.pipelineStageId) ?? 0) + 1,
+      );
+    }
+  }
+
+  const stageApprovedData: StatBarDatum[] = stages
+    .filter((st) => !st.isTerminal)
+    .sort((a, b) => a.stageOrder - b.stageOrder)
+    .map((st) => ({
+      key: st.id,
+      label: st.name,
+      value: stageApprovedCounts.get(st.id) ?? 0,
+    }));
+  const hasStageApproved = hasAnyValue(stageApprovedData);
+
   const deskUrl = buildEditorDeskUrl(workspaceId, seriesId, { chapterId });
 
   const linkClass =
@@ -128,7 +160,20 @@ export const EditorChapterDashboardView: React.FC = () => {
         <>
           <ReviewKpiStrip totals={sumReviewStats([row])} />
 
-          {/* AG-9 (agy): biểu đồ "Duyệt theo công đoạn" (getStageProgress) đặt ở đây. */}
+          {hasStageApproved && (
+            <Card>
+              <CardHeader title={t('dashboard.chart.stageApproved')} />
+              <CardBody>
+                <StatBarChart
+                  variant='sequence'
+                  data={stageApprovedData}
+                  valueLabel={t('dashboard.chart.approvedPanels')}
+                  formatValue={n.format}
+                  ariaLabel={t('dashboard.chart.stageApproved')}
+                />
+              </CardBody>
+            </Card>
+          )}
 
           <div className='grid grid-cols-1 xl:grid-cols-2 gap-4'>
             <Card data-testid='editor-dash-to-verify'>

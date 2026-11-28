@@ -978,7 +978,9 @@
       "queueByChapter": "Chờ duyệt theo chương",
       "queue": "Chờ duyệt",
       "decisions30d": "Lượt duyệt 30 ngày",
-      "decisions": "Lượt duyệt"
+      "decisions": "Lượt duyệt",
+      "stageApproved": "Khung đã duyệt theo công đoạn",
+      "approvedPanels": "Khung đã duyệt"
     },
     "kpi": {
       "ariaLabel": "Số liệu duyệt",
