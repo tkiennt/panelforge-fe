@@ -22,6 +22,10 @@ const PAGE_SIZE = 20;
 
 type ResultFilter = 'all' | 'failed' | 'sent';
 
+// Ô date là ngày địa phương: từ đầu ngày "Từ" tới hết ngày "Đến", gửi lên dạng UTC.
+const startOfDay = (d: string) => new Date(`${d}T00:00:00`).toISOString();
+const endOfDay = (d: string) => new Date(`${d}T23:59:59.999`).toISOString();
+
 /**
  * Nhật ký gửi email (GET /api/admin/email-logs): mỗi lần hệ thống gửi OTP, đặt lại mật khẩu, lời mời Studio
  * hay email thử đều có một dòng, kèm lý do và phản hồi của SMTP khi lỗi. Nội dung thư không được lưu.
@@ -37,12 +41,16 @@ export const EmailDeliveryLogCard: React.FC = () => {
   const [mailType, setMailType] = useState<EmailMailType | ''>('');
   const [searchDraft, setSearchDraft] = useState('');
   const [search, setSearch] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [page, setPage] = useState(1);
 
   const params: EmailLogsQuery = {
     succeeded: result === 'all' ? undefined : result === 'sent',
     mailType: mailType || undefined,
     search: search || undefined,
+    from: fromDate ? startOfDay(fromDate) : undefined,
+    to: toDate ? endOfDay(toDate) : undefined,
     page,
     pageSize: PAGE_SIZE,
   };
@@ -52,7 +60,8 @@ export const EmailDeliveryLogCard: React.FC = () => {
     placeholderData: keepPreviousData,
   });
 
-  const filtered = result !== 'all' || mailType !== '' || search !== '';
+  const filtered =
+    result !== 'all' || mailType !== '' || search !== '' || fromDate !== '' || toDate !== '';
   const totalPages = data ? Math.ceil(data.totalCount / PAGE_SIZE) : 1;
 
   return (
@@ -112,6 +121,36 @@ export const EmailDeliveryLogCard: React.FC = () => {
             </option>
           ))}
         </select>
+        <label className='sr-only' htmlFor='email-log-from'>
+          {t('admin.emailLogs.filterFrom')}
+        </label>
+        <input
+          id='email-log-from'
+          type='date'
+          value={fromDate}
+          max={toDate || undefined}
+          title={t('admin.emailLogs.filterFrom')}
+          onChange={(e) => {
+            setFromDate(e.target.value);
+            setPage(1);
+          }}
+          className={`${adminFieldClass} md:w-40`}
+        />
+        <label className='sr-only' htmlFor='email-log-to'>
+          {t('admin.emailLogs.filterTo')}
+        </label>
+        <input
+          id='email-log-to'
+          type='date'
+          value={toDate}
+          min={fromDate || undefined}
+          title={t('admin.emailLogs.filterTo')}
+          onChange={(e) => {
+            setToDate(e.target.value);
+            setPage(1);
+          }}
+          className={`${adminFieldClass} md:w-40`}
+        />
         <div className='flex flex-1 gap-2 min-w-0'>
           <label className='sr-only' htmlFor='email-log-search'>
             {t('admin.emailLogs.searchLabel')}

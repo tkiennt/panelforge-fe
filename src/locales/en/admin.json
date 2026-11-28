@@ -101,6 +101,7 @@
       "aiConfig": "AI Configuration",
       "sessionPolicy": "Session Policy",
       "emailSettings": "Email settings",
+      "emailLogs": "Email log",
       "audit": "Audit Logs",
       "analytics": "Reader Analytics",
       "resources": "Resources & quotas",
@@ -928,6 +929,18 @@
       "WORKSPACE_ADDED": "Added to Studio",
       "TEST": "Test email",
       "OTHER": "Other"
-    }
+    },
+    "filterFrom": "From",
+    "filterTo": "To",
+    "pageTitle": "Email log",
+    "pageDescription": "Every system email sent (verification OTP, password reset, Studio invitations, test emails) and why a send failed."
+  },
+  "emailHealth": {
+    "notConfiguredTitle": "System email is not configured",
+    "notConfiguredBody": "There are no usable SMTP settings, so users will not receive verification codes, password reset codes or Studio invitations.",
+    "lastFailedTitle": "Email sending is failing",
+    "lastFailedBody": "The last send ({date}) failed. {failed}/{total} emails failed in the last {hours} hours.",
+    "openSettings": "Open email settings",
+    "openLogs": "View email log"
   }
 }

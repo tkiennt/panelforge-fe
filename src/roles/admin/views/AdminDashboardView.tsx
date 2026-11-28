@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 import { AdminButton, AdminCard, AdminPageHeader, AdminStat } from './components/AdminUi';
 import { adminFocusRing } from './components/adminUiStyles';
+import { EmailHealthAlert } from './modules/EmailHealthAlert';
 
 interface AdminDashboardViewProps {
   onNavigateToUsers?: () => void;
@@ -30,6 +31,8 @@ interface AdminDashboardViewProps {
   onNavigateToAnalytics?: () => void;
   /** Mở Tài nguyên với query phụ (view=requests, filter=attention…). */
   onNavigateToResources?: (extra?: Record<string, string>) => void;
+  onNavigateToEmailSettings?: () => void;
+  onNavigateToEmailLogs?: () => void;
 }
 
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
@@ -40,6 +43,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   onNavigateToStorage,
   onNavigateToAnalytics,
   onNavigateToResources,
+  onNavigateToEmailSettings,
+  onNavigateToEmailLogs,
 }) => {
   const { t, lang } = useTranslation();
   const locale = lang === 'en' ? 'en-US' : 'vi-VN';
@@ -155,6 +160,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           </AdminButton>
         </div>
       )}
+
+      <EmailHealthAlert
+        onOpenSettings={onNavigateToEmailSettings}
+        onOpenLogs={onNavigateToEmailLogs}
+      />
 
       <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
         <AdminStat

@@ -7,6 +7,7 @@ import { AIConfigurationView } from './modules/AIConfigurationView';
 import { ResourcesView } from './modules/resources/ResourcesView';
 import { SessionPolicySettings } from './modules/SessionPolicySettings';
 import { EmailSettingsView } from './modules/EmailSettingsView';
+import { EmailLogsView } from './modules/EmailLogsView';
 import { ReaderStatsView } from '@/shared/views/ReaderStatsView';
 import { AdminUserDetailView } from './modules/details/AdminUserDetailView';
 import { AdminStudioDetailView } from './modules/details/AdminStudioDetailView';
@@ -20,6 +21,7 @@ export type AdminTab =
   | 'resources'
   | 'session-policy'
   | 'email-settings'
+  | 'email-logs'
   | 'audit'
   | 'analytics'
   | 'system-health';
@@ -32,6 +34,7 @@ const VALID_TABS: AdminTab[] = [
   'resources',
   'session-policy',
   'email-settings',
+  'email-logs',
   'audit',
   'analytics',
   'system-health',
@@ -72,6 +75,8 @@ export const AdminDashboard: React.FC = () => {
             onNavigateToSettings={() => go('ai-config')}
             onNavigateToAudit={() => go('audit')}
             onNavigateToSessionPolicy={() => go('session-policy')}
+            onNavigateToEmailSettings={() => go('email-settings')}
+            onNavigateToEmailLogs={() => go('email-logs')}
             onNavigateToStorage={() => go('resources')}
             onNavigateToResources={(extra) =>
               setSearchParams(new URLSearchParams({ tab: 'resources', ...extra }))
@@ -103,6 +108,7 @@ export const AdminDashboard: React.FC = () => {
           ))}
         {activeTab === 'session-policy' && <SessionPolicySettings />}
         {activeTab === 'email-settings' && <EmailSettingsView />}
+        {activeTab === 'email-logs' && <EmailLogsView />}
         {activeTab === 'audit' && (
           <AdminAuditLogView
             key={searchParams.get('userEmail') ?? ''}

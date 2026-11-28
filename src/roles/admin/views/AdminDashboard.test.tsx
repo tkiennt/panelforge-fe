@@ -7,6 +7,7 @@ import { AdminDashboard } from './AdminDashboard';
 
 vi.mock('@/services/admin.service', () => ({
   adminService: {
+    getEmailHealth: vi.fn().mockResolvedValue({ status: 'OK' }),
     getSystemStats: vi.fn().mockResolvedValue({
       totalUsers: 10,
       activeUsers: 8,
