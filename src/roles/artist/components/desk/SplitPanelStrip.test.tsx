@@ -71,11 +71,11 @@ describe('SplitPanelStrip', () => {
     expect(h.onSelectPanel).toHaveBeenCalledWith('b');
   });
 
-  it('disables removal when the page is not editable', () => {
+  it('shows view only when the page is not editable', () => {
     const h = setup(false);
-    const remove = screen.getByTestId('split-strip-remove-1');
-    expect(remove).toBeDisabled();
-    fireEvent.click(remove);
+    expect(screen.getByTestId('split-strip-view-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('split-strip-remove-1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('split-strip-download-1')).not.toBeInTheDocument();
     expect(h.onRemoveArtwork).not.toHaveBeenCalled();
   });
 });

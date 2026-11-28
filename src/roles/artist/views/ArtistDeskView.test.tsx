@@ -1156,8 +1156,9 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     expect(saveBtn).toBeInTheDocument();
     expect(saveBtn).toHaveTextContent('Lưu bố cục');
 
-    // Chế độ Cả trang không cho nạp ảnh vào từng khung.
-    expect(screen.getByTestId('panel-dropzone-1')).toBeDisabled();
+    // Chọn bố cục chuyển sang Từng khung và cho phép nạp ảnh vào đúng khung.
+    expect(screen.getByTestId('upload-mode-panel')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('panel-dropzone-1')).toBeEnabled();
 
     // Verify smooth template switching in draft mode (switch to 4-Koma without any modal blocking)
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
@@ -1182,9 +1183,10 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     // Save layout (lucian button) -> saves and button turns off (disappears)
     fireEvent.click(screen.getByTestId('canvas-btn-save-layout'));
 
-    expect(screen.getByTestId('canvas-btn-save-layout')).toBeDisabled();
-
-    fireEvent.click(screen.getByTestId('upload-mode-panel'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('canvas-btn-save-layout')).not.toBeInTheDocument();
+      expect(screen.getByTestId('upload-mode-panel')).toHaveAttribute('aria-pressed', 'true');
+    });
 
     // Dropzone is now enabled for each panel
     expect(screen.getByTestId('panel-dropzone-1')).toBeInTheDocument();
@@ -2239,31 +2241,26 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
         );
 
         await waitFor(() => {
-          expect(screen.getByTestId('btn-upload-sketch-simple')).toBeDisabled();
+          expect(screen.getByTestId('canva-tab-templates')).toHaveAttribute(
+            'aria-disabled',
+            'true',
+          );
+          expect(screen.getByTestId('panel-dropzone-1')).toBeEnabled();
         });
 
-        expect(screen.queryByTestId('artist-layout-locked-notice')).not.toBeInTheDocument();
-
-        // Thao tác bố cục khung bị khoá ở công đoạn Color (vẫn hiện tab mờ kèm tooltip lý do)
-        expect(screen.getByTestId('btn-upload-sketch-simple')).toHaveAttribute(
-          'title',
-          'Chỉ công đoạn Pencil mới được sửa bố cục khung',
-        );
-        expect(screen.getByTestId('btn-open-templates-simple')).toBeDisabled();
-        expect(screen.getByTestId('btn-open-templates-simple')).toHaveAttribute(
-          'title',
-          'Chỉ công đoạn Pencil mới được sửa bố cục khung',
-        );
-        expect(screen.getByTestId('btn-split-panels-simple')).toBeDisabled();
-        expect(screen.getByTestId('btn-split-panels-simple')).toHaveAttribute(
-          'title',
-          'Chỉ công đoạn Pencil mới được sửa bố cục khung',
-        );
-        expect(screen.getByTestId('canvas-btn-save-layout')).toBeDisabled();
+        // Color vẫn có hai chế độ, nhưng không có thao tác sửa bố cục.
+        expect(screen.getByTestId('upload-mode-page')).toBeEnabled();
+        expect(screen.getByTestId('upload-mode-panel')).toBeEnabled();
+        expect(screen.queryByTestId('btn-open-templates-simple')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('btn-split-panels-simple')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('canvas-btn-save-layout')).not.toBeInTheDocument();
         expect(screen.getByTestId('canva-tab-templates')).toHaveAttribute('aria-disabled', 'true');
 
-        // Nạp tranh vào khung vẫn hoạt động bình thường
+        fireEvent.click(screen.getByTestId('upload-mode-page'));
+        expect(screen.getByTestId('btn-upload-sketch-simple')).toBeEnabled();
         fireEvent.click(screen.getByTestId('upload-mode-panel'));
+
+        // Nạp tranh vào khung vẫn hoạt động bình thường
         const dropzone = screen.getByTestId('panel-dropzone-1');
         expect(dropzone).not.toBeDisabled();
 

@@ -479,6 +479,12 @@
     "noUploadPermission": "Bạn không có quyền tải artwork cho ô này.",
     "saveLayoutBeforeUpload": "Lưu bố cục trước khi nạp tranh",
     "uploadR2Error": "Không thể tải tranh lên máy chủ lưu trữ R2.",
+    "invalidImageTitle": "Ảnh không hợp lệ",
+    "invalidImageType": "Chỉ hỗ trợ ảnh PNG, JPEG hoặc WebP.",
+    "imageTooLarge": "Ảnh phải nhỏ hơn {max} MB.",
+    "saveImagesSuccessTitle": "Đã lưu ảnh từng khung",
+    "panelCropFailedTitle": "Có {count} khung chưa cắt được ảnh",
+    "panelCropFailedDesc": "Chuyển sang Từng khung để tải bù ảnh còn thiếu.",
     "uploadErrorTitle": "Lỗi lưu tranh lên máy chủ",
     "uploadErrorDesc": "Khung #{panel}: {error}",
     "uploadSuccessTitle": "Đã nạp tranh vào ô",
@@ -675,42 +681,35 @@
     "exitFullscreen": "Thoát toàn màn hình",
     "fullscreen": "Toàn màn hình",
     "readChapterLabel": "Đọc demo",
-    "readChapterTooltip": "Đọc thử toàn bộ chương"
+    "readChapterTooltip": "Đọc thử toàn bộ chương",
+    "unsavedChanges": "Có thay đổi chưa lưu"
   },
   "canvasViewport": {
     "trimLineTitle": "Đường xén thành phẩm (Trim Line - 3mm Bleed)",
     "safeAreaTitle": "Vùng an toàn nội dung thoại & hình vẽ chính (Live Safe Area)",
     "detectingPanels": "Đang tách khung tranh...",
-    "originalPage": "Ảnh trang truyện gốc",
-    "noPageImage": "Chưa có ảnh",
-    "emptyTitle": "Chưa có ảnh trang",
-    "emptyPrompt": "Dùng nút Tải ảnh trang truyện lên trên thanh công cụ để bắt đầu."
+    "originalPage": "Ảnh trang gốc",
+    "dropPageTitle": "Tải ảnh trang",
+    "dropHint": "Kéo thả hoặc nhấn",
+    "noPanelsTitle": "Trang này chưa có khung"
   },
   "dialogs": {
     "closeArtworkPreview": "Đóng xem tranh"
   },
   "layoutToolbar": {
-    "steps": {
-      "pageImage": "Tải ảnh",
-      "extract": "Tách khung",
-      "review": "Kiểm tra",
-      "saved": "Đã lưu"
-    },
-    "processingTitle": "Xử lý ảnh",
-    "needSketchFirst": "Cần tải phác thảo trước",
-    "needPanelsFirst": "Cần chọn mẫu khung hoặc tách khung trước",
-    "noChangesToSave": "Chưa có thay đổi để lưu",
     "ariaLabel": "Quy trình bố cục trang",
     "uploadModeLabel": "Chế độ tải ảnh",
-    "panelModeHint": "Chọn một khung trên trang để tải hoặc thay ảnh",
-    "panelModeUnavailable": "Cần tạo khung trước khi tải ảnh từng khung",
-    "pageModeRequired": "Chuyển sang chế độ Cả trang để tải ảnh trang.",
-    "panelModeRequired": "Chuyển sang chế độ Từng khung để tải ảnh cho khung.",
-    "uploadPageImage": "Tải ảnh trang truyện lên",
+    "uploadModePage": "Cả trang",
+    "uploadModePanel": "Từng khung",
+    "uploadPageImage": "Tải ảnh trang",
+    "replacePageImage": "Đổi ảnh",
     "chooseTemplate": "Chọn bố cục mẫu",
-    "splittingPanels": "Đang tách khung...",
-    "extractPanels": "Tách khung tranh",
-    "saveLayout": "Lưu bố cục"
+    "splittingPanels": "Đang tách…",
+    "extractPanels": "Tách khung",
+    "reExtractPanels": "Tách lại",
+    "saveLayout": "Lưu bố cục",
+    "saveImages": "Lưu ảnh",
+    "readOnly": "Chỉ xem"
   },
   "scriptRefSidebar": {
     "sceneNumbered": "Phân cảnh {sceneNumber}",
