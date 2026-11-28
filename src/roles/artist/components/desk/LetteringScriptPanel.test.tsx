@@ -60,6 +60,28 @@ describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)
     vi.clearAllMocks();
   });
 
+  it('phạm vi trang mặc định và chuyển đổi Cả chương / Trang này', () => {
+    renderPanel();
+    // Mặc định phạm vi 'page': trang 1 có 2 dòng thoại (l-speech, l-narr), l-dir bị bỏ qua
+    expect(screen.getByTestId('lettering-script-total')).toHaveTextContent('Tổng: 2 dòng');
+    expect(screen.queryByTestId('lettering-script-line-l-dir')).not.toBeInTheDocument();
+    expect(screen.getByTestId('lettering-script-line-l-speech')).toBeInTheDocument();
+    expect(screen.getByTestId('lettering-script-line-l-narr')).toBeInTheDocument();
+    expect(screen.queryByTestId('lettering-script-line-l-sfx')).not.toBeInTheDocument();
+
+    // Chuyển sang phạm vi 'chapter': hiện toàn bộ 3 dòng thoại
+    fireEvent.click(screen.getByTestId('lettering-scope-chapter'));
+    expect(screen.getByTestId('lettering-script-total')).toHaveTextContent('Tổng: 3 dòng');
+    expect(screen.getByTestId('lettering-script-line-l-sfx')).toHaveTextContent('3');
+    expect(screen.getByTestId('lettering-script-kind-l-sfx')).toHaveTextContent('SFX');
+    expect(screen.getByTestId('lettering-script-kind-l-sfx')).toHaveTextContent('Khung 1');
+
+    // Chuyển lại về phạm vi 'page'
+    fireEvent.click(screen.getByTestId('lettering-scope-page'));
+    expect(screen.getByTestId('lettering-script-total')).toHaveTextContent('Tổng: 2 dòng');
+    expect(screen.queryByTestId('lettering-script-line-l-sfx')).not.toBeInTheDocument();
+  });
+
   it('chỉ hiển thị dòng có chữ của trang hiện tại và giữ số thứ tự toàn chương', () => {
     renderPanel();
     expect(screen.getByTestId('lettering-script-total')).toHaveTextContent('Tổng: 2 dòng');
@@ -71,7 +93,17 @@ describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)
 
   it('bấm dòng tạo bóng đúng loại, gắn dòng kịch bản', () => {
     const onAdd = vi.fn();
-    renderPanel({ onAddElement: onAdd, activePageNumber: 2 });
+    renderPanel({ onAddElement: onAdd });
+    fireEvent.click(screen.getByTestId('lettering-script-line-l-speech'));
+    expect(onAdd).toHaveBeenCalledWith(
+      'SPEECH_BALLOON',
+      expect.objectContaining({ id: 'l-speech' }),
+    );
+    fireEvent.click(screen.getByTestId('lettering-script-line-l-narr'));
+    expect(onAdd).toHaveBeenCalledWith('NARRATION_BOX', expect.objectContaining({ id: 'l-narr' }));
+
+    // Chuyển sang Cả chương để click dòng l-sfx ở trang 2
+    fireEvent.click(screen.getByTestId('lettering-scope-chapter'));
     fireEvent.click(screen.getByTestId('lettering-script-line-l-sfx'));
     expect(onAdd).toHaveBeenCalledWith('SOUND_EFFECT', expect.objectContaining({ id: 'l-sfx' }));
   });
@@ -286,5 +318,52 @@ describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)
     expect(await screen.findByTestId('lettering-preview-input-l-narr')).toHaveValue(
       'Three years later...',
     );
+  });
+
+  it('chế độ readOnly không cho phép kéo/thêm bóng và vô hiệu hóa 4 nút bóng trống', () => {
+    const onAdd = vi.fn();
+    renderPanel({ readOnly: true, onAddElement: onAdd });
+
+    const line = screen.getByTestId('lettering-script-line-l-speech');
+    expect(line).toHaveAttribute('draggable', 'false');
+    expect(line).toHaveClass('cursor-default');
+
+    fireEvent.click(line);
+    fireEvent.keyDown(line, { key: 'Enter' });
+    expect(onAdd).not.toHaveBeenCalled();
+
+    const speechBtn = screen.getByTestId('lettering-drag-speech');
+    expect(speechBtn).toBeDisabled();
+    expect(speechBtn).toHaveAttribute('draggable', 'false');
+    fireEvent.click(speechBtn);
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it('áp dụng bản dịch không ghi vào bóng đang chọn của dòng khác (chỉ ghi vào bóng có scriptLineId khớp)', async () => {
+    vi.mocked(translateText).mockResolvedValueOnce({ text: 'Add title!', isFallback: false });
+    const onUpdate = vi.fn();
+
+    // el-selected đang chọn, nhưng scriptLineId là 'l-other' (không khớp l-speech)
+    const otherBalloon = balloon({ elementId: 'el-selected', scriptLineId: 'l-other' });
+
+    renderPanel({
+      activeLang: 'en',
+      originalLang: 'vi',
+      elements: [otherBalloon],
+      selectedElementId: 'el-selected',
+      onUpdateElementTranslation: onUpdate,
+      pageId: 'page-123',
+    });
+
+    // Dịch dòng l-speech (chưa có bóng nào trên trang gắn scriptLineId: 'l-speech')
+    fireEvent.click(screen.getByTestId('lettering-translate-line-l-speech'));
+    await screen.findByTestId('lettering-preview-input-l-speech');
+
+    // Nút Áp dụng của l-speech phải disabled vì không có bóng nào gắn với l-speech (không fallback sang el-selected)
+    const applyBtn = screen.getByTestId('lettering-apply-line-l-speech');
+    expect(applyBtn).toBeDisabled();
+
+    fireEvent.click(applyBtn);
+    expect(onUpdate).not.toHaveBeenCalled();
   });
 });

@@ -8,8 +8,10 @@ Chuyên viên chèn thoại (Letterer) chịu trách nhiệm chèn bóng thoại
 
 - **Route mặc định**: `/workspaces/{wsId}/series/{seriesId}/letterer`
 - **Màn hình chính**:
-  - `LetteringWorkspace.tsx`: Không gian làm việc chèn bóng thoại tương tác trên canvas tranh vẽ trong Task Editor / Letterer Desk.
-  - `LettererWorkspace.tsx`: Bàn làm việc chèn chữ chuyên sâu tích hợp liên kết kịch bản (Script Binding) và căn chỉnh kiểu chữ.
+  - `LettererDeskView` (bọc `ArtistDeskView` tab Thoại):
+    - Cột trái: `LetteringScriptPanel` (Script truyện & danh sách thoại).
+    - Cột phải: `LetteringPropertyPanel` (Thuộc tính & kiểu dáng bóng thoại).
+    - Canvas trung tâm: `LetteringBalloonOverlay` (Hiển thị & thao tác bóng thoại trên trang).
 
 ## 3. Quy tắc phân loại dòng kịch bản (Script Line Classification)
 
@@ -36,7 +38,8 @@ Hàm phân loại duy nhất `classifyScriptLine` (`src/shared/lib/lettering/tex
   - Bấm vào khung trên Canvas -> tự động cuộn danh sách đến nhóm của khung đó và highlight nhóm.
   - Bấm vào header nhóm -> chọn và highlight khung đó trên Canvas (`ring-2 ring-amber-500 bg-amber-500/10`).
 - **Bộ đếm tiến độ**: Hiển thị chính xác `x/y đã đặt` kèm thanh tiến độ mảnh (`placedCount / totalLetterable`), chỉ tính các dòng thoại/dẫn truyện/SFX thực tế.
-- **Bộ lọc nhanh**: 3 nút chuyển nhanh `Tất cả` / `Chưa đặt` / `Khung đang chọn`.
+- **Bộ lọc kịch bản**: Chuyển đổi "Tất cả / Chưa liên kết / Đã liên kết", kết hợp phạm vi "Trang này / Cả chương".
+- **Thứ tự đọc**: Nút bật/tắt hiển thị số thứ tự đọc trên từng bóng thoại.
 
 ## 5. Phân lớp ảnh nền Canvas (Background Artwork Hierarchy)
 

@@ -49,7 +49,17 @@
     "linkedToLine": "Linked to line {line}",
     "saving": "Saving…",
     "unlinked": "Unlinked",
-    "addEmptyBalloon": "Add empty balloon"
+    "addEmptyBalloon": "Add empty balloon",
+    "dialoguePanelCount": "{count}/{total} panels with dialogue",
+    "showNonDialogue": "Show silent panels",
+    "hideNonDialogue": "Hide silent panels",
+    "nonDialoguePanelsHeader": "Panels without dialogue",
+    "visualOnly": "Visual only",
+    "panelLabel": "Panel {n}",
+    "panelSuffix": "Panel {n}",
+    "scopePage": "This page",
+    "scopeChapter": "Whole chapter",
+    "scopeAriaLabel": "List scope"
   },
   "pipelineHeader": {
     "regionAriaLabel": "Stage progress and handoff",
@@ -218,43 +228,6 @@
     "offset": "Offset {diff}%",
     "marginTopBottom": "Top {top}% · Bottom {bottom}%",
     "selectPanelHint": "Click a panel to inspect position & size"
-  },
-  "bottomDock": {
-    "toolbarAriaLabel": "Floating desk toolbar",
-    "viewLayerTitle": "Only changes the image viewed on canvas, not your active stage",
-    "viewLayerLabel": "Display layer:",
-    "stageSelectTitle": "Only changes the image viewed on canvas, not your active stage",
-    "autoOption": "Auto",
-    "stageDisabledSuffix": " (disabled)",
-    "stageLockedSuffix": " (locked)",
-    "uploadModeAriaLabel": "Upload mode: {mode}",
-    "uploadModePageLower": "full page",
-    "uploadModePanelLower": "per panel",
-    "uploadModeTitle": "Choose upload mode: upload a full seamless page or individual panels",
-    "uploadModePage": "Full page",
-    "uploadModePanel": "Per panel",
-    "uploadModeMenuAriaLabel": "Upload mode",
-    "uploadModePanelSelectedHint": "Upload for selected Panel #{panel}",
-    "uploadModePanelEmptyHint": "Select a panel on the page to upload separately",
-    "uploadModePageHint": "One image for all of Page {page}, with panel & balloon detection",
-    "editLayout": "Edit layout",
-    "generateScenePrompts": "Generate drawing prompts (scene)",
-    "zoomGroupAriaLabel": "Zoom",
-    "zoomOut": "Zoom out",
-    "zoomReset": "Reset to 100%",
-    "zoomResetAriaLabel": "Zoom {percent}%, click to reset to 100%",
-    "zoomIn": "Zoom in",
-    "fitScreenTitle": "Fit to screen: view full page",
-    "fitScreen": "Fit",
-    "openDetailsTitle": "Open details & layers panel",
-    "closeDetailsTitle": "Close details panel",
-    "details": "Details",
-    "pageActionsAriaLabel": "Page actions",
-    "refresh": "Refresh",
-    "bibleReference": "Series Bible Reference",
-    "createNewPage": "Create new page",
-    "pageSettings": "Page settings",
-    "deletePage": "Delete Page {page}…"
   },
   "pageSidebar": {
     "stagePencil": "Pencil",
@@ -535,7 +508,10 @@
     "rollbackPencilTitle": "Reopen Pencil for this page?",
     "rollbackPencilReasonLabel": "Reason",
     "rollbackPencilSuccess": "Pencil reopened for fixes",
-    "rollbackPencilError": "Could not go back to Pencil."
+    "rollbackPencilError": "Could not go back to Pencil.",
+    "scriptUnfrozenBanner": "The script is unlocked for editing — keep this in mind before submitting new work.",
+    "scriptChangedBadge": "Script changed",
+    "visualImpactFallback": "Visual content on this page was updated when the script was finalized."
   },
   "canvaSidebar": {
     "narrationFlashback": "Flashback",
@@ -750,6 +726,7 @@
     "shortDescriptionTag": "[Desc]"
   },
   "lettering": {
+    "readingOrder": "Reading order",
     "textEditor": {
       "displayContent": "Display content ({lang})",
       "fromScript": "From script",
@@ -826,21 +803,6 @@
     "safeZoneButton": "Safe Zone",
     "handoffTitle": "Hand off ink to Lettering",
     "handoffButton": "Hand off to Lettering"
-  },
-  "letteringBar": {
-    "script": "Script",
-    "aiSplitTitle": "AI Split Dialogue: Automatically assign dialogue lines to panels",
-    "aiSplitButton": "AI Split Dialogue",
-    "toolBalloonTitle": "Speech Balloon",
-    "toolBalloon": "Speech",
-    "toolThoughtTitle": "Thought Bubble",
-    "toolThought": "💭 Thought",
-    "toolTailTitle": "Adjust balloon tail",
-    "toolTail": "Tail",
-    "toolSfxTitle": "Sound Effects (Manga SFX)",
-    "readingFlowTitle": "Show / hide Manga Reading Flow (Z-pattern)",
-    "readingFlow": "Reading Flow",
-    "submitGate2Title": "Submit for Gate 2 Review"
   },
   "pencilBar": {
     "stageBadgeTitle": "Pencil Stage: Upload pencil art",

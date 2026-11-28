@@ -1074,6 +1074,8 @@ export function useLetteringBalloons(
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElementId) {
         e.preventDefault();
         deleteElement(selectedElementId);
+      } else if (e.key === 'Escape') {
+        setSelectedElementId(null);
       } else if (mod && key === 'c' && selected) {
         e.preventDefault();
         copyElement(selected);

@@ -157,4 +157,81 @@ describe('LetteringBalloonOverlay – cỡ chữ theo tỉ lệ trang', () => {
     fireEvent.click(target);
     expect(draggedSelect).not.toHaveBeenCalled();
   });
+
+  it('badge "#" thứ tự đọc ẩn khi showOrder là false (hoặc mặc định), hiện khi true', () => {
+    const { rerender } = render(
+      <LetteringBalloonOverlay {...props} elements={[balloon]} selectedId={null} />,
+    );
+    expect(screen.queryByText('#1')).toBeNull();
+
+    rerender(
+      <LetteringBalloonOverlay
+        {...props}
+        elements={[balloon]}
+        selectedId={null}
+        showOrder={false}
+      />,
+    );
+    expect(screen.queryByText('#1')).toBeNull();
+
+    rerender(
+      <LetteringBalloonOverlay
+        {...props}
+        elements={[balloon]}
+        selectedId={null}
+        showOrder={true}
+      />,
+    );
+    expect(screen.getByText('#1')).not.toBeNull();
+  });
+
+  it('menu ⋮ dùng Popover API (popover="auto", popovertarget), đóng sau khi sao chép và xoá, giữ mở khi phóng/thu', () => {
+    const onCopy = vi.fn();
+    const onDelete = vi.fn();
+    const onScale = vi.fn();
+
+    render(
+      <LetteringBalloonOverlay
+        {...props}
+        elements={[balloon]}
+        selectedId='el-1'
+        onCopy={onCopy}
+        onDelete={onDelete}
+        onScale={onScale}
+      />,
+    );
+
+    const menuBtn = screen.getByTestId('lettering-menu-el-1');
+    const popover = screen.getByTestId('lettering-toolbar-el-1');
+
+    expect(popover).toHaveAttribute('popover', 'auto');
+    expect(menuBtn).toHaveAttribute('popovertarget', 'lettering-toolbar-el-1');
+    expect(menuBtn).toHaveAttribute('aria-expanded', 'false');
+
+    // Mở menu
+    fireEvent.click(menuBtn);
+    expect(menuBtn).toHaveAttribute('aria-expanded', 'true');
+
+    // Phóng to giữ menu mở
+    fireEvent.click(screen.getByTestId('btn-zoom-in-el-1'));
+    expect(onScale).toHaveBeenCalledWith('el-1', 1.15);
+    expect(menuBtn).toHaveAttribute('aria-expanded', 'true');
+
+    // Thu nhỏ giữ menu mở
+    fireEvent.click(screen.getByTestId('btn-zoom-out-el-1'));
+    expect(onScale).toHaveBeenCalledWith('el-1', 0.85);
+    expect(menuBtn).toHaveAttribute('aria-expanded', 'true');
+
+    // Sao chép đóng menu
+    fireEvent.click(screen.getByTestId('btn-copy-el-1'));
+    expect(onCopy).toHaveBeenCalledWith(balloon);
+    expect(menuBtn).toHaveAttribute('aria-expanded', 'false');
+
+    // Mở lại rồi Xoá đóng menu
+    fireEvent.click(menuBtn);
+    expect(menuBtn).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(screen.getByTestId('btn-delete-el-1'));
+    expect(onDelete).toHaveBeenCalledWith('el-1');
+    expect(menuBtn).toHaveAttribute('aria-expanded', 'false');
+  });
 });

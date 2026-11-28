@@ -142,6 +142,7 @@ export interface ArtistCanvaSidebarProps {
   isApplyingTemplate?: boolean;
   templateError?: string | null;
   layoutLocked?: boolean;
+  canEditPages?: boolean;
   // Controlled tab & drawer props
   activeTab?: CanvaSidebarTab;
   onTabChange?: (tab: CanvaSidebarTab) => void;
@@ -175,6 +176,7 @@ export interface ArtistCanvaSidebarProps {
   activeLang?: string;
   originalLang?: string;
   translationReadOnly?: boolean;
+  letteringReadOnly?: boolean;
   onUpdateElementText?: (id: string, text: string) => Promise<void> | void;
   onUpdateElementTranslation?: (id: string, text: string) => Promise<void> | void;
   /** Dòng script đã có bóng trên toàn chương (không chỉ trang hiện tại). */
@@ -225,6 +227,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   isApplyingTemplate = false,
   templateError = null,
   layoutLocked = false,
+  canEditPages = true,
   activeTab: activeTabProp,
   onTabChange,
   isDrawerOpen: isDrawerOpenProp,
@@ -251,6 +254,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   activeLang,
   originalLang = 'vi',
   translationReadOnly = false,
+  letteringReadOnly = false,
   onUpdateElementText,
   onUpdateElementTranslation,
   linkedScriptLineIds,
@@ -821,14 +825,16 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               </div>
 
               {/* Nút thêm trang đồng bộ màu accent hệ thống */}
-              <button
-                type='button'
-                onClick={onAddPage}
-                data-testid='canva-btn-add-page-header'
-                className='h-8 px-2.5 rounded-lg bg-[var(--sb-accent)] hover:opacity-90 text-white text-xs font-semibold flex items-center gap-1 transition-all shadow-xs cursor-pointer'
-              >
-                <Plus className='w-3.5 h-3.5' /> {t('canvaSidebar.addPageBtn')}
-              </button>
+              {canEditPages && (
+                <button
+                  type='button'
+                  onClick={onAddPage}
+                  data-testid='canva-btn-add-page-header'
+                  className='h-8 px-2.5 rounded-lg bg-[var(--sb-accent)] hover:opacity-90 text-white text-xs font-semibold flex items-center gap-1 transition-all shadow-xs cursor-pointer'
+                >
+                  <Plus className='w-3.5 h-3.5' /> {t('canvaSidebar.addPageBtn')}
+                </button>
+              )}
             </div>
 
             {/* Thanh lọc & tìm kiếm trang */}
@@ -983,28 +989,32 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           <EyeOff className='w-3.5 h-3.5 opacity-50' />
                         )}
                       </button>
-                      <button
-                        type='button'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDuplicatePage(page.id);
-                        }}
-                        className='p-1 text-[var(--sb-muted)] hover:text-[var(--sb-text)] rounded hover:bg-[var(--sb-hover)] cursor-pointer'
-                        title={t('canvaSidebar.duplicatePage')}
-                      >
-                        <Copy className='w-3.5 h-3.5' />
-                      </button>
-                      <button
-                        type='button'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeletePage(page.id);
-                        }}
-                        className='p-1 text-rose-400 hover:text-rose-200 rounded hover:bg-rose-950/50 cursor-pointer'
-                        title={t('canvaSidebar.deletePage')}
-                      >
-                        <Trash2 className='w-3.5 h-3.5' />
-                      </button>
+                      {canEditPages && (
+                        <>
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDuplicatePage(page.id);
+                            }}
+                            className='p-1 text-[var(--sb-muted)] hover:text-[var(--sb-text)] rounded hover:bg-[var(--sb-hover)] cursor-pointer'
+                            title={t('canvaSidebar.duplicatePage')}
+                          >
+                            <Copy className='w-3.5 h-3.5' />
+                          </button>
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeletePage(page.id);
+                            }}
+                            className='p-1 text-rose-400 hover:text-rose-200 rounded hover:bg-rose-950/50 cursor-pointer'
+                            title={t('canvaSidebar.deletePage')}
+                          >
+                            <Trash2 className='w-3.5 h-3.5' />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -1927,6 +1937,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             activeLang={activeLang}
             originalLang={originalLang}
             translationReadOnly={translationReadOnly}
+            readOnly={letteringReadOnly}
           />
         )}
       </aside>

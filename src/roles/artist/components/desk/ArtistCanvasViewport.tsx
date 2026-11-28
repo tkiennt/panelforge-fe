@@ -20,6 +20,7 @@ interface ArtistCanvasViewportProps {
   isSavingLayout: boolean;
   readOnly?: boolean;
   isInkOrColorStage?: boolean;
+  hideArtTools?: boolean;
   uploadMode?: 'page' | 'panel';
   onUploadModeChange?: (mode: 'page' | 'panel') => void;
   onCanvasClick: () => void;
@@ -48,6 +49,7 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
   isSavingLayout,
   readOnly = false,
   isInkOrColorStage = false,
+  hideArtTools = false,
   uploadMode = 'page',
   onUploadModeChange,
   onCanvasClick,
@@ -60,30 +62,32 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
   const { t } = useTranslation('artist');
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const acceptDrop = uploadMode === 'page' && !readOnly;
+  const acceptDrop = !hideArtTools && uploadMode === 'page' && !readOnly;
 
   return (
     <main
       className='relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden'
       data-testid='artist-canvas-shell'
     >
-      <ArtistLayoutToolbar
-        hasSketch={Boolean(sketch)}
-        hasPanels={hasPanels}
-        isLayoutSaved={isLayoutSaved}
-        hasPendingArtwork={hasPendingArtwork}
-        isDetectingPanels={isDetectingPanels}
-        isSavingLayout={isSavingLayout}
-        readOnly={readOnly}
-        isInkOrColorStage={isInkOrColorStage}
-        uploadMode={uploadMode}
-        onUploadModeChange={onUploadModeChange}
-        onUploadSketch={onUploadSketch}
-        onOpenTemplates={onOpenTemplates}
-        onSplitPanels={onSplitPanels}
-        onSaveLayout={onSaveLayout}
-      />
-      {uploadMode === 'page' && sketch && (
+      {!hideArtTools && (
+        <ArtistLayoutToolbar
+          hasSketch={Boolean(sketch)}
+          hasPanels={hasPanels}
+          isLayoutSaved={isLayoutSaved}
+          hasPendingArtwork={hasPendingArtwork}
+          isDetectingPanels={isDetectingPanels}
+          isSavingLayout={isSavingLayout}
+          readOnly={readOnly}
+          isInkOrColorStage={isInkOrColorStage}
+          uploadMode={uploadMode}
+          onUploadModeChange={onUploadModeChange}
+          onUploadSketch={onUploadSketch}
+          onOpenTemplates={onOpenTemplates}
+          onSplitPanels={onSplitPanels}
+          onSaveLayout={onSaveLayout}
+        />
+      )}
+      {!hideArtTools && uploadMode === 'page' && sketch && (
         <div className='flex h-8 shrink-0 items-center justify-between border-b border-stone-800 bg-stone-900 px-3 text-xs text-stone-200'>
           <span className='font-semibold'>{t('canvasViewport.originalPage')}</span>
           <span className='truncate text-stone-400'>{sketch.fileName}</span>
@@ -163,7 +167,7 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
                     </div>
                   </div>
                 )}
-                {uploadMode === 'page' && !sketch && !readOnly && (
+                {!hideArtTools && uploadMode === 'page' && !sketch && !readOnly && (
                   <button
                     type='button'
                     onClick={(event) => {
@@ -191,7 +195,7 @@ export const ArtistCanvasViewport: React.FC<ArtistCanvasViewportProps> = ({
                     <p className='text-sm font-bold text-stone-900'>
                       {t('canvasViewport.noPanelsTitle')}
                     </p>
-                    {!readOnly && !isInkOrColorStage && (
+                    {!hideArtTools && !readOnly && !isInkOrColorStage && (
                       <button
                         type='button'
                         onClick={onOpenTemplates}

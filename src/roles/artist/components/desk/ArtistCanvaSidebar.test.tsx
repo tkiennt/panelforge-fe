@@ -210,6 +210,29 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(handleToggleVis).toHaveBeenCalledWith('page-1');
   });
 
+  it('hides add, duplicate, and delete page buttons when canEditPages is false', () => {
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        canEditPages={false}
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+      />,
+    );
+
+    // Open pages drawer
+    fireEvent.click(screen.getByTestId('canva-tab-pages'));
+
+    expect(screen.queryByTestId('canva-btn-add-page-header')).not.toBeInTheDocument();
+    expect(screen.queryByTitle(/nhân bản trang|duplicate page/i)).not.toBeInTheDocument();
+    expect(screen.queryByTitle(/xóa trang|delete page/i)).not.toBeInTheDocument();
+  });
+
   it('keeps the artist tool drawer on its independent paper theme', () => {
     renderWithRouter(
       <ArtistCanvaSidebar
@@ -563,5 +586,35 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     // Refresh button
     fireEvent.click(screen.getByTestId('btn-refresh-history'));
     expect(handleRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('truyền letteringReadOnly={true} xuống LetteringScriptPanel khi mở tab lettering', () => {
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+        activeTab='lettering'
+        isDrawerOpen={true}
+        letteringReadOnly={true}
+        scriptLines={[
+          {
+            id: 'line-1',
+            pageNumber: 1,
+            dialogueText: 'Xin chào',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId('canva-drawer-lettering')).toBeInTheDocument();
+    const line = screen.getByTestId('lettering-script-line-line-1');
+    expect(line).toHaveAttribute('draggable', 'false');
+    expect(screen.getByTestId('lettering-drag-speech')).toBeDisabled();
   });
 });
