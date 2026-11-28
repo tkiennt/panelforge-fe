@@ -13,8 +13,41 @@ import { useTranslation } from '@/lib/i18n';
 
 const PRESETS = [20_000, 50_000, 100_000, 200_000, 500_000];
 const POLL_MS = 3000;
+/** Quá thời gian này mà Publisher chưa duyệt thì ngừng hỏi; người dùng tự bấm kiểm tra lại. */
+const POLL_LIMIT_MS = 15 * 60 * 1000;
+/** Đơn đang chờ giữ trong tab: rời trang Ví rồi quay lại vẫn thấy mã QR và tiếp tục chờ. */
+const PENDING_ORDER_KEY = 'panelforge.reader.pendingTopup';
 
-type OrderState = 'pending' | 'approved' | 'rejected';
+type OrderState = 'pending' | 'stalled' | 'approved' | 'rejected';
+
+interface StoredOrder {
+  order: TopupResponseDto;
+  startedAt: number;
+}
+
+const readStoredOrder = (): StoredOrder | null => {
+  try {
+    const raw = sessionStorage.getItem(PENDING_ORDER_KEY);
+    return raw ? (JSON.parse(raw) as StoredOrder) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredOrder = (value: StoredOrder | null) => {
+  try {
+    if (value) sessionStorage.setItem(PENDING_ORDER_KEY, JSON.stringify(value));
+    else sessionStorage.removeItem(PENDING_ORDER_KEY);
+  } catch {
+    // Không lưu được (chế độ riêng tư): đơn vẫn chờ bình thường khi còn ở trang này.
+  }
+};
+
+const clampSuggestedAmount = (raw: string | null) => {
+  const suggested = Number(raw);
+  if (!Number.isFinite(suggested) || suggested < TOPUP_MIN_VND) return '';
+  return String(Math.min(TOPUP_MAX_VND, Math.ceil(suggested / 1000) * 1000));
+};
 
 /** Ví VNĐ của độc giả (BR-33, Q13): số dư, nạp qua VietQR vào tài khoản nền tảng, lịch sử giao dịch. */
 export const ReaderWalletView: React.FC = () => {
@@ -32,17 +65,15 @@ export const ReaderWalletView: React.FC = () => {
 
   const [wallet, setWallet] = useState<UserWalletDto | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [amount, setAmount] = useState(() => {
-    const suggested = Number(params.get('amount'));
-    return Number.isFinite(suggested) && suggested >= TOPUP_MIN_VND
-      ? String(Math.ceil(suggested / 1000) * 1000)
-      : '';
-  });
+  const [amount, setAmount] = useState(() => clampSuggestedAmount(params.get('amount')));
   const [creating, setCreating] = useState(false);
   const [topupError, setTopupError] = useState<string | null>(null);
-  const [order, setOrder] = useState<TopupResponseDto | null>(null);
+  const [stored] = useState(readStoredOrder);
+  const [order, setOrder] = useState<TopupResponseDto | null>(stored?.order ?? null);
+  const [pollStartedAt, setPollStartedAt] = useState(stored?.startedAt ?? 0);
   const [orderState, setOrderState] = useState<OrderState>('pending');
   const [orderNote, setOrderNote] = useState<string | null>(null);
+  const [pollError, setPollError] = useState<string | null>(null);
 
   const loadWallet = useCallback(async () => {
     setLoadError(null);
@@ -57,25 +88,53 @@ export const ReaderWalletView: React.FC = () => {
     void loadWallet();
   }, [loadWallet]);
 
-  // Chờ Publisher duyệt / webhook xác nhận: hỏi trạng thái định kỳ tới khi đơn kết thúc.
+  // Chờ Publisher duyệt / webhook xác nhận: hỏi lần lượt (không chồng request) tới khi đơn kết thúc,
+  // rời trang hoặc quá POLL_LIMIT_MS.
   useEffect(() => {
     if (!order || orderState !== 'pending') return;
-    const timer = window.setInterval(async () => {
+    let active = true;
+    let timer: number | undefined;
+    const tick = async () => {
+      if (Date.now() - pollStartedAt > POLL_LIMIT_MS) {
+        setOrderState('stalled');
+        return;
+      }
       try {
         const status = await walletService.getTransactionStatus(order.orderId);
+        if (!active) return;
+        setPollError(null);
         if (status.isCompleted || status.status === 'Approved') {
+          writeStoredOrder(null);
           setOrderState('approved');
           void loadWallet();
-        } else if (status.status === 'Rejected' || status.status === 'Expired') {
+          return;
+        }
+        if (status.status === 'Rejected' || status.status === 'Expired') {
+          writeStoredOrder(null);
           setOrderState('rejected');
           setOrderNote(status.rejectionReason ?? null);
+          return;
         }
       } catch (err) {
-        setOrderNote((err as Error).message);
+        if (!active) return;
+        setPollError((err as Error).message);
       }
-    }, POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [order, orderState, loadWallet]);
+      timer = window.setTimeout(() => void tick(), POLL_MS);
+    };
+    timer = window.setTimeout(() => void tick(), POLL_MS);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [order, orderState, pollStartedAt, loadWallet]);
+
+  const checkAgain = () => {
+    const now = Date.now();
+    setPollStartedAt(now);
+    if (order) writeStoredOrder({ order, startedAt: now });
+    setPollError(null);
+    setOrderState('pending');
+  };
 
   const amountVnd = Number(amount);
   const amountValid =
@@ -88,9 +147,14 @@ export const ReaderWalletView: React.FC = () => {
     setTopupError(null);
     try {
       const created = await walletService.createTopup(amountVnd);
+      const now = Date.now();
       setOrder(created);
+      setPollStartedAt(now);
       setOrderNote(null);
+      setPollError(null);
       setOrderState(created.isCompleted ? 'approved' : 'pending');
+      writeStoredOrder(created.isCompleted ? null : { order: created, startedAt: now });
+      if (created.isCompleted) void loadWallet();
     } catch (err) {
       setTopupError((err as Error).message);
     } finally {
@@ -249,10 +313,30 @@ export const ReaderWalletView: React.FC = () => {
                   )}
                 </dl>
                 {orderState === 'pending' ? (
-                  <p className='flex items-center gap-2 text-xs text-amber-800'>
-                    <RefreshCw className='w-3.5 h-3.5 animate-spin' aria-hidden='true' />
-                    {t('workspace.reader.wallet.orderPending')}
-                  </p>
+                  <>
+                    <p className='flex items-center gap-2 text-xs text-amber-800'>
+                      <RefreshCw className='w-3.5 h-3.5 animate-spin' aria-hidden='true' />
+                      {t('workspace.reader.wallet.orderPending')}
+                    </p>
+                    {pollError && (
+                      <Alert tone='warning' className='text-xs'>
+                        {t('workspace.reader.wallet.orderPollError', { message: pollError })}
+                      </Alert>
+                    )}
+                  </>
+                ) : orderState === 'stalled' ? (
+                  <div className='space-y-2'>
+                    <Alert tone='warning' className='text-xs'>
+                      {t('workspace.reader.wallet.orderStalled')}
+                    </Alert>
+                    <Button
+                      variant='secondary'
+                      leadingIcon={<RefreshCw className='w-4 h-4' />}
+                      onClick={checkAgain}
+                    >
+                      {t('workspace.reader.wallet.orderCheckAgain')}
+                    </Button>
+                  </div>
                 ) : (
                   <Alert tone='danger' className='text-xs'>
                     {t('workspace.reader.wallet.orderRejected')}

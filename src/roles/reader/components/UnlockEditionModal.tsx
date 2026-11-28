@@ -42,6 +42,8 @@ export const UnlockEditionModal: React.FC<UnlockEditionModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [priceChanged, setPriceChanged] = useState(false);
 
+  // Tăng để đọc lại số dư (vd. Ví vừa bị trừ ở tab khác nên server báo không đủ).
+  const [balanceKey, setBalanceKey] = useState(0);
   useEffect(() => {
     if (!target || !isSignedIn) return;
     let active = true;
@@ -52,7 +54,7 @@ export const UnlockEditionModal: React.FC<UnlockEditionModalProps> = ({
     return () => {
       active = false;
     };
-  }, [target, isSignedIn]);
+  }, [target, isSignedIn, balanceKey]);
 
   const close = () => {
     setBalance(null);
@@ -64,7 +66,7 @@ export const UnlockEditionModal: React.FC<UnlockEditionModalProps> = ({
   const shortfall = target && balance !== null ? Math.max(0, target.priceVnd - balance) : 0;
 
   const unlock = async () => {
-    if (!target) return;
+    if (!target || busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -78,7 +80,9 @@ export const UnlockEditionModal: React.FC<UnlockEditionModalProps> = ({
     } catch (err) {
       const e = err as WalletApiError;
       setError(e.message);
-      if (e.status === 409) setPriceChanged(true);
+      if (e.code === 'PRICE_CHANGED') setPriceChanged(true);
+      // 400 = Ví không đủ: đọc lại số dư để hiện số còn thiếu và nút nạp.
+      else if (e.status === 400) setBalanceKey((k) => k + 1);
     } finally {
       setBusy(false);
     }

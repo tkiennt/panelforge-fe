@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
@@ -178,24 +178,32 @@ export const PublicCatalogView: React.FC = () => {
   }, [tab, appliedSearch, genre, pageIndex]);
 
   // Chi tiết truyện đi theo URL (?series=) để chia sẻ link và để Thư viện mở thẳng một bộ.
-  const loadDetail = useCallback(
-    async (seriesId: string, language: string) => {
-      setDetailLoading(true);
-      setDetailError(null);
-      try {
-        setSelectedSeries(await catalogService.getPublicSeriesDetail(seriesId, language));
-      } catch (err: any) {
-        setDetailError(err?.message || t('workspace.reader.catalog.detailLoadError'));
-      } finally {
-        setDetailLoading(false);
-      }
-    },
-    [t],
-  );
+  // Chỉ nhận kết quả của lần tải mới nhất: lướt nhanh qua nhiều truyện không để chi tiết cũ đè lên.
+  const detailSeq = useRef(0);
+  const tRef = useRef(t);
+  tRef.current = t;
+  const loadDetail = useCallback(async (seriesId: string, language: string) => {
+    const seq = ++detailSeq.current;
+    setDetailLoading(true);
+    setDetailError(null);
+    try {
+      const detail = await catalogService.getPublicSeriesDetail(seriesId, language);
+      if (seq === detailSeq.current) setSelectedSeries(detail);
+    } catch (err: any) {
+      if (seq === detailSeq.current)
+        setDetailError(err?.message || tRef.current('workspace.reader.catalog.detailLoadError'));
+    } finally {
+      if (seq === detailSeq.current) setDetailLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (seriesParam) void loadDetail(seriesParam, contentLang);
-    else setSelectedSeries(null);
+    else {
+      detailSeq.current++;
+      setSelectedSeries(null);
+      setDetailLoading(false);
+    }
   }, [seriesParam, contentLang, loadDetail]);
 
   const openDetail = (seriesId: string) => setSeriesParam(seriesId);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import {
   X,
@@ -59,6 +59,8 @@ const pageUrl = (url?: string | null, lang?: string) => {
   return `${resolved}${separator}lang=${encodeURIComponent(lang)}`;
 };
 
+const PROGRESS_SAVE_DELAY_MS = 1000;
+
 export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
   isOpen,
   onClose,
@@ -105,44 +107,35 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
     userService.updateReadingLanguage(newLang).catch(() => {});
   };
 
+  // Lỗi tải hiển thị theo ngôn ngữ giao diện hiện hành nhưng không làm effect tải lại chương khi đổi ngôn ngữ.
+  const tRef = useRef(t);
+  tRef.current = t;
+  // Chỉ về trang 1 khi đổi chương / ngôn ngữ đọc; tải lại sau khi mở khóa (reloadKey) giữ nguyên trang.
+  const loadedKey = useRef<string | null>(null);
+
   useEffect(() => {
     if (!isOpen || !chapterId) return;
 
     let mounted = true;
     setLoading(true);
     setError(null);
-    setCurrentPageIndex(0);
+    const key = `${chapterId}|${readingLang}`;
+    if (loadedKey.current !== key) {
+      loadedKey.current = key;
+      setCurrentPageIndex(0);
+    }
 
     catalogService
       .getPublicChapter(chapterId, readingLang)
       .then((res) => {
-        if (mounted) {
-          setData(res);
-          setViewMode(res.readingDirection === 'Vertical' ? 'vertical' : 'single');
-          setLoading(false);
-          const language = res.language ?? readingLang;
-          // Lượt đọc và tiến độ là số liệu phụ: lỗi mạng không được chặn việc đọc.
-          if (trackReading && res.isUnlocked !== false) {
-            catalogService.recordChapterView(chapterId, language).catch(() => undefined);
-          }
-          if (saveProgress) {
-            readerLibraryService
-              .saveProgress({
-                seriesId: res.seriesId,
-                chapterId: res.id,
-                chapterNumber: res.chapterNumber,
-                lastPageNumber: res.pages[0]?.pageNumber ?? 1,
-                totalPages: res.pages.length,
-                language,
-                readAt: new Date().toISOString(),
-              })
-              .catch(() => undefined);
-          }
-        }
+        if (!mounted) return;
+        setData(res);
+        setViewMode(res.readingDirection === 'Vertical' ? 'vertical' : 'single');
+        setLoading(false);
       })
       .catch((err) => {
         if (mounted) {
-          setError(err.message || t('common.modals.chapterReader.notReadyError'));
+          setError(err.message || tRef.current('common.modals.chapterReader.notReadyError'));
           setLoading(false);
         }
       });
@@ -150,7 +143,48 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
     return () => {
       mounted = false;
     };
-  }, [isOpen, chapterId, readingLang, t, trackReading, saveProgress, reloadKey]);
+  }, [isOpen, chapterId, readingLang, reloadKey]);
+
+  useEffect(() => {
+    if (!isOpen) loadedKey.current = null;
+  }, [isOpen]);
+
+  // Một lượt đọc cho mỗi (chương, ngôn ngữ) đọc được trong một lần mở; ref chặn lặp khi tải lại / StrictMode.
+  const viewedKeys = useRef(new Set<string>());
+  useEffect(() => {
+    if (!isOpen) {
+      viewedKeys.current.clear();
+      return;
+    }
+    if (!trackReading || !data || data.isUnlocked === false) return;
+    const language = data.language ?? readingLang;
+    const key = `${data.id}|${language}`;
+    if (viewedKeys.current.has(key)) return;
+    viewedKeys.current.add(key);
+    // Lượt đọc là số liệu phụ: lỗi mạng không được chặn việc đọc.
+    catalogService.recordChapterView(data.id, language).catch(() => undefined);
+  }, [isOpen, trackReading, data, readingLang]);
+
+  // Tiến độ = trang đang xem, lưu sau khi dừng lật 1 giây để không gửi mỗi lần lật.
+  useEffect(() => {
+    // Đang tải chương khác thì `data` còn là chương cũ: không ghi đè tiến độ của chương cũ về trang 1.
+    if (!isOpen || !saveProgress || loading || !data || data.pages.length === 0) return;
+    const page = data.pages[Math.min(currentPageIndex, data.pages.length - 1)];
+    const timer = window.setTimeout(() => {
+      readerLibraryService
+        .saveProgress({
+          seriesId: data.seriesId,
+          chapterId: data.id,
+          chapterNumber: data.chapterNumber,
+          lastPageNumber: page?.pageNumber ?? currentPageIndex + 1,
+          totalPages: data.pages.length,
+          language: data.language ?? readingLang,
+          readAt: new Date().toISOString(),
+        })
+        .catch(() => undefined);
+    }, PROGRESS_SAVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, saveProgress, loading, data, currentPageIndex, readingLang]);
 
   const totalPages = data?.pages.length || 0;
   const isRTL = data?.readingDirection === 'RightToLeft';

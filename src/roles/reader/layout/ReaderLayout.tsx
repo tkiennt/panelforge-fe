@@ -48,7 +48,9 @@ export const ReaderLayout: React.FC<ReaderLayoutProps> = ({
     let active = true;
     workspaceService
       .getPendingInvitations()
-      .then((list) => active && setInviteCount(list?.length ?? 0));
+      .then((list) => active && setInviteCount(list?.length ?? 0))
+      // Chỉ là huy hiệu đếm: lỗi thì ẩn số, trang Thông báo tự báo lỗi khi mở.
+      .catch(() => active && setInviteCount(0));
     return () => {
       active = false;
     };

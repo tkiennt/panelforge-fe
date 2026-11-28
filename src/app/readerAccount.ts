@@ -19,85 +19,62 @@ export function readerPathFor(pathname: string): string {
   return '/catalog';
 }
 
-const CACHE_KEY = 'pf_reader_account';
-
-const readCache = (): boolean | null => {
-  try {
-    const v = localStorage.getItem(CACHE_KEY);
-    return v === '1' ? true : v === '0' ? false : null;
-  } catch {
-    return null;
-  }
-};
-
-const writeCache = (value: boolean | null) => {
-  try {
-    if (value === null) localStorage.removeItem(CACHE_KEY);
-    else localStorage.setItem(CACHE_KEY, value ? '1' : '0');
-  } catch {
-    // trình duyệt chặn storage: chỉ mất phần hiển thị nhanh khi tải lại trang
-  }
-};
+const RETRY_BASE_MS = 1000;
+const RETRY_MAX_MS = 15000;
 
 /**
  * `isReader`: true/false khi đã biết, null khi đang chờ landing-context (chỉ với User).
- * Giá trị lần trước được nhớ trên máy để tải lại trang không phải chờ.
+ * Không nhớ kết quả trên máy: lời mời được nhận hay gói vừa mua làm kết quả cũ sai ngay, và gate đã có
+ * màn chờ khi null. Lỗi mạng thì giữ null và thử lại (lùi dần), không đoán là thành viên Studio.
  */
-export function useReaderAccount(isAuthenticated: boolean, currentRole: SystemRole) {
-  const [fetched, setFetched] = useState<boolean | null>(() =>
-    isAuthenticated ? readCache() : null,
-  );
+export function useReaderAccount(
+  isAuthenticated: boolean,
+  currentRole: SystemRole,
+  userId?: string | null,
+) {
   const isUser = isAuthenticated && currentRole === 'USER';
-  // Đăng xuất / đổi vai trò: bỏ kết quả của phiên trước để người đăng nhập sau không dùng nhầm.
-  const [prevIsUser, setPrevIsUser] = useState(isUser);
-  if (prevIsUser !== isUser) {
-    setPrevIsUser(isUser);
-    if (!isUser) setFetched(null);
+  const accountKey = isUser ? (userId ?? '') : null;
+  const [fetched, setFetched] = useState<boolean | null>(null);
+  // Đăng xuất / đổi tài khoản / đổi vai trò: bỏ kết quả của tài khoản trước.
+  const [prevKey, setPrevKey] = useState(accountKey);
+  if (prevKey !== accountKey) {
+    setPrevKey(accountKey);
+    setFetched(null);
   }
 
-  useEffect(() => {
-    if (!isAuthenticated) writeCache(null);
-  }, [isAuthenticated]);
+  const isMock = () => localStorage.getItem('token')?.startsWith('mock-') ?? false;
 
   useEffect(() => {
-    if (!isUser || localStorage.getItem('token')?.startsWith('mock-')) return;
+    if (accountKey === null || isMock()) return;
     let active = true;
-    authService
-      .getLandingContext()
-      .then((landing) => {
-        if (!active) return;
-        const value = isReaderLanding(landing);
-        writeCache(value);
-        setFetched(value);
-      })
-      .catch(() => {
-        // Không đọc được landing-context: giữ giao diện Studio như trước, backend vẫn chặn quyền.
-        if (active) setFetched(false);
-      });
+    let timer: number | undefined;
+    const load = (attempt: number) => {
+      authService
+        .getLandingContext()
+        .then((landing) => {
+          if (active) setFetched(isReaderLanding(landing));
+        })
+        .catch(() => {
+          if (!active) return;
+          const delay = Math.min(RETRY_BASE_MS * 2 ** attempt, RETRY_MAX_MS);
+          timer = window.setTimeout(() => load(attempt + 1), delay);
+        });
+    };
+    load(0);
     return () => {
       active = false;
+      window.clearTimeout(timer);
     };
-  }, [isUser]);
+  }, [accountKey]);
 
   const setFromLanding = useCallback((landing?: LandingContextDto | null) => {
-    if (!landing) return;
-    const value = isReaderLanding(landing);
-    writeCache(value);
-    setFetched(value);
+    if (landing) setFetched(isReaderLanding(landing));
   }, []);
 
-  /** Gọi lại sau khi độc giả nhận lời mời vào Studio. */
-  const refresh = useCallback(async (): Promise<boolean> => {
-    const landing = await authService.getLandingContext();
-    setFromLanding(landing);
-    return isReaderLanding(landing);
-  }, [setFromLanding]);
+  /** Tài khoản vừa thành thành viên / được tạo Studio: mở khu Studio ngay, không chờ landing-context. */
+  const markStudioMember = useCallback(() => setFetched(false), []);
 
-  const isReader: boolean | null = !isUser
-    ? false
-    : localStorage.getItem('token')?.startsWith('mock-')
-      ? false
-      : fetched;
+  const isReader: boolean | null = !isUser ? false : isMock() ? false : fetched;
 
-  return { isReader, setFromLanding, refresh };
+  return { isReader, setFromLanding, markStudioMember };
 }

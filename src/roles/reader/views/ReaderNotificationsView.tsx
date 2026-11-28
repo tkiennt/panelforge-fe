@@ -24,11 +24,16 @@ export const ReaderNotificationsView: React.FC<ReaderNotificationsViewProps> = (
 
   useEffect(() => {
     let active = true;
-    workspaceService.getPendingInvitations().then((list) => active && setInvitations(list || []));
+    workspaceService
+      .getPendingInvitations()
+      .then((list) => active && setInvitations(list || []))
+      .catch((err: Error) => {
+        if (active) setError(err?.message || t('workspace.shelf.invitations.error'));
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [t]);
 
   const roleLabel = (raw: string) => {
     const role = normalizeWorkspaceRole(raw);
@@ -49,11 +54,15 @@ export const ReaderNotificationsView: React.FC<ReaderNotificationsViewProps> = (
     setError(null);
     try {
       await workspaceService.acceptInvitation(inv.workspaceId);
-      await onJoinedStudio(inv.workspaceId);
     } catch (err) {
       setError((err as Error)?.message || t('workspace.shelf.invitations.error'));
       setBusyId(null);
+      return;
     }
+    // Đã là thành viên: bỏ lời mời khỏi danh sách trước, để lỗi chuyển trang không để lại nút nhận lần nữa.
+    setInvitations((prev) => prev.filter((i) => i.workspaceId !== inv.workspaceId));
+    setBusyId(null);
+    await onJoinedStudio(inv.workspaceId);
   };
 
   const reject = async (inv: PendingInvitation) => {

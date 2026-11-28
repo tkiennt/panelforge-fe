@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import App from './App';
 import { workspaceService } from './services/workspace.service';
+import { authService } from './services/auth.service';
 import { seriesService } from './services/series.service';
 import { WorkspaceDto, readCachedWorkspace, writeCachedWorkspace } from './types';
 import axiosClient from './api/axiosClient';
@@ -255,6 +256,10 @@ describe('App Integration Smoke Test', () => {
     );
 
     vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([]);
+    // Không phải độc giả: khu Studio mở sau khi landing-context trả lời (lỗi mạng thì gate chờ, không đoán).
+    vi.spyOn(authService, 'getLandingContext').mockResolvedValue({
+      suggestedLanding: 'YourWorkspaces',
+    } as never);
 
     render(<App />);
 

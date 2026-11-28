@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Check, Wallet } from 'lucide-react';
 import { Alert, Button, Card, CardBody, CardHeader, Modal, Skeleton } from '@/shared/ui';
@@ -40,7 +40,10 @@ export const ReaderOpenStudioView: React.FC<ReaderOpenStudioViewProps> = ({
   const [buyError, setBuyError] = useState<string | null>(null);
   const [priceChanged, setPriceChanged] = useState(false);
 
+  // Chỉ nhận kết quả của lần tải mới nhất: đổi tài khoản / bấm tải lại nhanh không để response cũ đè lên.
+  const loadSeq = useRef(0);
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     setLoadError(null);
     setPriceChanged(false);
     try {
@@ -48,39 +51,54 @@ export const ReaderOpenStudioView: React.FC<ReaderOpenStudioViewProps> = ({
         walletService.getStudioPackage(),
         isSignedIn && !canCreateStudio ? walletService.getMyWallet() : Promise.resolve(null),
       ]);
+      if (seq !== loadSeq.current) return;
       setPkg(nextPkg);
       setBalance(wallet?.balanceVnd ?? null);
     } catch (err) {
-      setLoadError((err as Error).message);
+      if (seq === loadSeq.current) setLoadError((err as Error).message);
     }
   }, [isSignedIn, canCreateStudio]);
 
   useEffect(() => {
     void load();
+    const seq = loadSeq;
+    return () => {
+      seq.current++;
+    };
   }, [load]);
 
   const price = pkg?.isOnSale ? pkg.priceVnd : null;
   const shortfall = price !== null && balance !== null ? Math.max(0, price - balance) : 0;
 
   const buy = async () => {
-    if (price === null) return;
+    if (price === null || buying) return;
     setBuying(true);
     setBuyError(null);
+    let owned = false;
     try {
       await walletService.purchaseStudioPackage(price);
-      setConfirming(false);
-      await onStudioUnlocked();
+      owned = true;
     } catch (err) {
       const e = err as WalletApiError;
       if (e.code === 'ALREADY_OWNED') {
-        setConfirming(false);
-        await onStudioUnlocked();
-        return;
+        owned = true;
+      } else {
+        setBuyError(e.message);
+        if (e.code === 'PRICE_CHANGED') setPriceChanged(true);
+        // 400 = Ví không đủ (số dư vừa đổi ở nơi khác): tải lại để hiện số còn thiếu và nút nạp.
+        else if (e.status === 400) void load();
       }
-      setBuyError(e.message);
-      if (e.code === 'PRICE_CHANGED') setPriceChanged(true);
     } finally {
       setBuying(false);
+    }
+    // Tiền đã trừ: đóng hộp thoại rồi mới chuyển trang, nên lỗi ở bước sau không bị báo thành "mua thất bại".
+    if (owned) {
+      setConfirming(false);
+      try {
+        await onStudioUnlocked();
+      } catch {
+        setLoadError(t('workspace.reader.openStudio.ownedButRedirectFailed'));
+      }
     }
   };
 

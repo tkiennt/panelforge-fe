@@ -23,7 +23,7 @@ const renderView = ({
   isSignedIn = true,
   canCreateStudio = false,
 }: { isSignedIn?: boolean; canCreateStudio?: boolean } = {}) => {
-  const onStudioUnlocked = vi.fn();
+  const onStudioUnlocked = vi.fn<() => Promise<void> | void>();
   const requestLogin = vi.fn();
   render(
     <MemoryRouter initialEntries={['/catalog/open-studio']}>
@@ -126,5 +126,50 @@ describe('ReaderOpenStudioView', () => {
 
     expect(onStudioUnlocked).toHaveBeenCalled();
     expect(walletService.getMyWallet).not.toHaveBeenCalled();
+  });
+
+  it('sends only one purchase when the confirm button is clicked twice', async () => {
+    vi.mocked(walletService.getMyWallet).mockResolvedValue(wallet(150_000));
+    vi.mocked(walletService.purchaseStudioPackage).mockReturnValue(new Promise(() => undefined));
+    renderView();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Mua gói ·/ }));
+    const confirm = await screen.findByRole('button', { name: 'Mua gói' });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+
+    await waitFor(() => expect(walletService.purchaseStudioPackage).toHaveBeenCalledTimes(1));
+  });
+
+  it('treats ALREADY_OWNED as owned and opens studio creation without an error', async () => {
+    vi.mocked(walletService.getMyWallet).mockResolvedValue(wallet(150_000));
+    vi.mocked(walletService.purchaseStudioPackage).mockRejectedValue(
+      new WalletApiError('Bạn đã có gói', 409, 'ALREADY_OWNED'),
+    );
+    const { onStudioUnlocked } = renderView();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Mua gói ·/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Mua gói' }));
+
+    await waitFor(() => expect(onStudioUnlocked).toHaveBeenCalled());
+    expect(screen.queryByText('Bạn đã có gói')).not.toBeInTheDocument();
+  });
+
+  it('does not report a failed purchase when only the redirect afterwards fails', async () => {
+    vi.mocked(walletService.getMyWallet).mockResolvedValue(wallet(150_000));
+    vi.mocked(walletService.purchaseStudioPackage).mockResolvedValue({
+      priceVnd: 100_000,
+      remainingBalanceVnd: 50_000,
+      orderCode: 'PF1',
+      canCreateStudio: true,
+    });
+    const { onStudioUnlocked } = renderView();
+    onStudioUnlocked.mockRejectedValue(new Error('navigation failed'));
+
+    fireEvent.click(await screen.findByRole('button', { name: /Mua gói ·/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Mua gói' }));
+
+    expect(await screen.findByText(/đã sở hữu gói mở Studio/)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

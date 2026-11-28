@@ -91,7 +91,7 @@ function AppContent() {
     avatarUrl?: string | null;
   } | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const readerAccount = useReaderAccount(isAuthenticated, currentRole);
+  const readerAccount = useReaderAccount(isAuthenticated, currentRole, currentUserInfo?.id);
 
   useEffect(() => {
     const handleProfileUpdate = (event: Event) => {
@@ -875,11 +875,12 @@ function AppContent() {
         onRegisterSuccess={handleRegisterSuccess}
         isReader={readerAccount.isReader}
         onReaderJoinedStudio={async () => {
-          const stillReader = await readerAccount.refresh();
-          navigate(stillReader ? '/catalog' : '/workspaces');
+          // Nhận lời mời = thành viên Studio, landing-context chắc chắn không còn PublicCatalog.
+          readerAccount.markStudioMember();
+          navigate('/workspaces');
         }}
         onStudioUnlocked={async () => {
-          // Quyền tạo Studio vừa được cấp (D11): cập nhật bản lưu tạm để màn Studio hiện nút tạo ngay.
+          // Có quyền tạo Studio (D11) thì không còn là độc giả: mở khu Studio ngay, không chờ thêm request.
           setCurrentUserInfo((prev) => (prev ? { ...prev, canCreateStudio: true } : prev));
           try {
             const saved = JSON.parse(localStorage.getItem('user') || '{}');
@@ -887,7 +888,7 @@ function AppContent() {
           } catch {
             // bản lưu tạm hỏng: /Auth/me lần sau sẽ ghi lại
           }
-          await readerAccount.refresh();
+          readerAccount.markStudioMember();
           navigate('/workspaces');
         }}
       />
