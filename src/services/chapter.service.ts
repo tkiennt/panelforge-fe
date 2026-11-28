@@ -66,6 +66,15 @@ export interface StartChapterProductionRequest {
   pageAssignments: ProductionPageAssignmentRequest[];
   lettererAssignments?: ProductionPageAssignmentRequest[] | null;
   firstStageOnly?: boolean;
+  /** Q26: id bản kịch bản Producer đang xem. Backend trả 409 SCRIPT_VERSION_OUTDATED nếu Writer đã nộp bản mới. */
+  expectedSubmittedVersionId?: string | null;
+}
+
+/** Chi tiết đi kèm 409 SCRIPT_VERSION_OUTDATED (Q26). */
+export interface ScriptVersionOutdatedDetails {
+  expectedSubmittedVersionId: string;
+  currentSubmittedVersionId: string | null;
+  currentVersionNumber: number | null;
 }
 
 export interface StartChapterProductionResultDto {
@@ -936,6 +945,7 @@ export const chapterService = {
       err.status = error.response?.status;
       err.code = error.response?.data?.code;
       err.blockers = error.response?.data?.blockers;
+      err.details = error.response?.data?.details;
       err.response = error.response;
       throw err;
     }

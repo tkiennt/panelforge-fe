@@ -8,6 +8,12 @@ import { workspaceService } from '@/services/workspace.service';
 import { pageService } from '@/services/page.service';
 import { bibleService } from '@/services/bible.service';
 
+vi.mock('@/shared/features/script-versions/ScriptVersionDiff', () => ({
+  ScriptVersionDiff: ({ defaultFromId }: { defaultFromId?: string | null }) => (
+    <div data-testid='script-version-diff-stub' data-from={defaultFromId ?? ''} />
+  ),
+}));
+
 vi.mock('@/services/bible.service', () => ({
   bibleService: {
     setBibleEntryCrowd: vi.fn().mockResolvedValue({ id: 'entry-2', isCrowd: true }),
@@ -385,5 +391,49 @@ describe('StartProductionModal Component', () => {
         firstStageOnly: true,
       });
     });
+  });
+
+  it('Q26: sends the viewed submitted version and on 409 SCRIPT_VERSION_OUTDATED shows the notice, reloads and does not auto-retry', async () => {
+    const onVersionOutdated = vi.fn();
+    render(
+      <StartProductionModal
+        {...defaultProps}
+        expectedSubmittedVersionId='ver-1'
+        onVersionOutdated={onVersionOutdated}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('gate1-artist-select')).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId('gate1-artist-select'), {
+      target: { value: 'user-artist-1' },
+    });
+
+    const outdatedErr: any = new Error('Writer đã nộp kịch bản mới');
+    outdatedErr.status = 409;
+    outdatedErr.code = 'SCRIPT_VERSION_OUTDATED';
+    outdatedErr.details = {
+      expectedSubmittedVersionId: 'ver-1',
+      currentSubmittedVersionId: 'ver-2',
+      currentVersionNumber: 2,
+    };
+    vi.mocked(chapterService.startProduction).mockRejectedValueOnce(outdatedErr);
+
+    fireEvent.click(screen.getByTestId('gate1-submit-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('gate1-version-outdated')).toHaveTextContent('v2');
+      expect(screen.getByTestId('script-version-diff-stub')).toHaveAttribute('data-from', 'ver-1');
+      expect(onVersionOutdated).toHaveBeenCalledTimes(1);
+    });
+    expect(chapterService.startProduction).toHaveBeenCalledTimes(1);
+    expect(chapterService.startProduction).toHaveBeenCalledWith('chap-1', {
+      pageAssignments: [{ artistId: 'user-artist-1', pageFrom: 1, pageTo: 3 }],
+      lettererAssignments: null,
+      expectedSubmittedVersionId: 'ver-1',
+    });
+    expect(defaultProps.onSuccess).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('gate1-submit-error')).not.toBeInTheDocument();
   });
 });
