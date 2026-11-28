@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Eye, ImagePlus, Trash2, UploadCloud } from 'lucide-react';
+import { AlertTriangle, Eye, ImagePlus, Trash2, UploadCloud } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import type { PanelDto } from '@/types/pipeline';
 import { parseBoundingBox } from '../../utils/panelBoundingBox';
@@ -87,19 +87,25 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
         };
 
         const isSelected = selectedPanelId === pnl.id;
+        const needsBalloonCheck = Boolean(pnl.balloonCheckRequired);
 
         return (
           <div
             key={pnl.id}
             data-testid={`canvas-panel-frame-${panelNum}`}
             data-panel-selected={isSelected ? 'true' : 'false'}
+            data-balloon-check={needsBalloonCheck ? 'true' : undefined}
             onClick={(e) => {
               e.stopPropagation();
               onSelectPanel?.(isSelected ? null : pnl.id);
             }}
             className={`absolute overflow-hidden ${isInset ? 'z-30 shadow-md bg-white' : 'z-20'} ${
               corners ? '' : frameClass(!!box.borderless, isLayoutSaved, isInset)
-            } ${isSelected ? 'ring-2 ring-[#F97316]' : ''} pointer-events-auto`}
+            } ${isSelected ? 'ring-2 ring-[#F97316]' : ''} ${
+              needsBalloonCheck
+                ? 'outline-2 outline-dashed -outline-offset-2 outline-orange-500'
+                : ''
+            } pointer-events-auto`}
             style={{
               left: `${box.percentX}%`,
               top: `${box.percentY}%`,
@@ -150,6 +156,18 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
             >
               {panelNum}
             </button>
+            {needsBalloonCheck && (
+              <span
+                data-testid={`canvas-panel-balloon-check-${panelNum}`}
+                title={t('panelFrame.balloonCheckTitle')}
+                className='absolute top-2 right-2 z-20 w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-2xs pointer-events-auto'
+              >
+                <AlertTriangle
+                  className='w-3.5 h-3.5'
+                  aria-label={t('panelFrame.balloonCheckTitle')}
+                />
+              </span>
+            )}
 
             {artwork ? (
               <div className='relative w-full h-full group'>

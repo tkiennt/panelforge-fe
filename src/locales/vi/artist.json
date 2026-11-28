@@ -511,7 +511,11 @@
     "startCellErrorTitle": "Không bắt đầu được",
     "uploadPendingDesc": "Đã nạp {file} vào Khung #{panel}. Ảnh sẽ được tải lên khi lưu bố cục.",
     "pendingUploadFailedTitle": "{count} ảnh khung chưa tải lên được",
-    "pendingUploadFailedDesc": "Ảnh vẫn ở trên khung; nạp lại ảnh đó để thử tải lên."
+    "pendingUploadFailedDesc": "Ảnh vẫn ở trên khung; nạp lại ảnh đó để thử tải lên.",
+    "balloonCheckBanner": "Tranh vừa đổi: {count} khung cần kiểm tra lại vị trí bóng thoại.",
+    "balloonCheckAck": "Đã kiểm tra",
+    "balloonCheckAckSuccess": "Đã xác nhận vị trí bóng thoại",
+    "balloonCheckAckError": "Không xác nhận được, thử lại sau."
   },
   "canvaSidebar": {
     "narrationFlashback": "Hồi tưởng",
@@ -788,7 +792,8 @@
     "removeTitle": "Gỡ tranh",
     "removeAria": "Gỡ tranh khung {panelNum}",
     "uploadPanel": "+ Tải ảnh khung #{panelNum} lên",
-    "dropOrClick": "Kéo thả hoặc nhấn để chọn"
+    "dropOrClick": "Kéo thả hoặc nhấn để chọn",
+    "balloonCheckTitle": "Kiểm tra lại bóng thoại (tranh vừa đổi)"
   },
   "inkBar": {
     "stageBadgeTitle": "Công đoạn Ink: Upload Line-art",

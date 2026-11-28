@@ -22,6 +22,7 @@ import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
 import { PanelDto, ChangeRequestDto, AssetReferenceDto } from '@/types/pipeline';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
 import { useToast } from '@/shared/context/ToastContext';
+import { Button } from '@/shared/ui/Button';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { detectPanelsFromSketchImage, cropImagesByBoundingBoxes } from '../lib/panelDetection';
 import {
@@ -1869,6 +1870,29 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     () => (selectedPage ? panelsByPageId[selectedPage.id] || [] : []),
     [selectedPage, panelsByPageId],
   );
+  // ART-06: khung có tranh vừa đổi dưới bóng thoại; người làm tranh/chữ xác nhận đã kiểm tra để gỡ cờ
+  const balloonCheckCount = useMemo(
+    () => currentPagePanels.filter((p) => p.balloonCheckRequired).length,
+    [currentPagePanels],
+  );
+  const [isAckingBalloonCheck, setIsAckingBalloonCheck] = useState(false);
+  const handleAcknowledgeBalloonCheck = useCallback(async () => {
+    if (!currentChapterId || !selectedPage || isAckingBalloonCheck) return;
+    const pageId = selectedPage.id;
+    setIsAckingBalloonCheck(true);
+    try {
+      await assignmentService.acknowledgeBalloonCheck(currentChapterId, pageId);
+      setPanelsByPageId((prev) => ({
+        ...prev,
+        [pageId]: (prev[pageId] || []).map((p) => ({ ...p, balloonCheckRequired: false })),
+      }));
+      toast.success(t('artist.deskView.balloonCheckAckSuccess'));
+    } catch (err: any) {
+      toast.error(err?.message || t('artist.deskView.balloonCheckAckError'));
+    } finally {
+      setIsAckingBalloonCheck(false);
+    }
+  }, [currentChapterId, selectedPage, isAckingBalloonCheck, toast, t]);
   const selectedPanelNumber = useMemo(() => {
     if (!selectedPanelId) return selectedPanelNumberOverride;
     const found = currentPagePanels.find((p) => p.id === selectedPanelId);
@@ -3026,6 +3050,27 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             {currentVisualImpactCell.outdatedReason ||
               'Nội dung hình ảnh của trang này đã được cập nhật khi chốt lại kịch bản.'}
           </span>
+        </div>
+      )}
+
+      {balloonCheckCount > 0 && (
+        <div
+          data-testid='balloon-check-banner'
+          role='status'
+          className='shrink-0 border-b border-orange-200 bg-orange-50 px-4 py-2 text-xs font-medium text-orange-900 flex items-center gap-2'
+        >
+          <AlertTriangle className='w-4 h-4 text-orange-600 shrink-0' aria-hidden='true' />
+          <span className='flex-1'>
+            {t('artist.deskView.balloonCheckBanner', { count: balloonCheckCount })}
+          </span>
+          <Button
+            size='sm'
+            data-testid='balloon-check-ack'
+            onClick={handleAcknowledgeBalloonCheck}
+            disabled={isAckingBalloonCheck}
+          >
+            {t('artist.deskView.balloonCheckAck')}
+          </Button>
         </div>
       )}
 

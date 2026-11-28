@@ -1222,6 +1222,62 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
   });
 
   describe('ArtistDeskView - Artwork Persistence & Error Notification (CF2 / WAITING_FE Fix)', () => {
+    it('ART-06: shows Check Balloon Fit banner and clears it after acknowledging', async () => {
+      const mockPageId = '11111111-1111-1111-1111-111111111111';
+      const mockChapterId = 'chap-1';
+      vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([
+        {
+          id: mockPageId,
+          chapterId: mockChapterId,
+          pageNumber: 1,
+          widthPx: 1200,
+          heightPx: 1800,
+          layoutFormat: 'PORTRAIT',
+          dpi: 300,
+          elementsCount: 1,
+        },
+      ]);
+      vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValue([
+        {
+          id: 'panel-flagged',
+          pageId: mockPageId,
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({ normalized: { x: 0, y: 0, w: 100, h: 50 } }),
+          createdAt: new Date().toISOString(),
+          balloonCheckRequired: true,
+        },
+      ]);
+      vi.spyOn(artworkService, 'getArtworks').mockResolvedValue([]);
+      const ackSpy = vi
+        .spyOn(assignmentService, 'acknowledgeBalloonCheck')
+        .mockResolvedValue({ cleared: 1 });
+
+      render(
+        <ToastProvider>
+          <MemoryRouter
+            initialEntries={[`/workspaces/ws-1/series/ser-1/artist?chapterId=${mockChapterId}`]}
+          >
+            <Routes>
+              <Route
+                path='/workspaces/:workspaceId/series/:seriesId/artist'
+                element={<ArtistDeskView workspaceRole='LETTERER' />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>,
+      );
+
+      const banner = await screen.findByTestId('balloon-check-banner');
+      expect(banner).toHaveTextContent('1 khung');
+      fireEvent.click(screen.getByTestId('balloon-check-ack'));
+
+      await waitFor(() => expect(ackSpy).toHaveBeenCalledWith(mockChapterId, mockPageId));
+      await waitFor(() =>
+        expect(screen.queryByTestId('balloon-check-banner')).not.toBeInTheDocument(),
+      );
+    });
+
     it('loads existing artworks from R2 on page load and hydrates panels with latest version', async () => {
       const mockPageId = '11111111-1111-1111-1111-111111111111';
       const mockPanel1Id = '22222222-2222-2222-2222-222222222221';

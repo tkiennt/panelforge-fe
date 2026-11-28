@@ -841,6 +841,27 @@ export const assignmentService = {
   // Assignment Grid V3 (StageTask × StageTaskLot)
   // ==========================================
 
+  /** ART-06: gỡ cờ Check Balloon Fit của trang (POST /api/chapters/{chapterId}/task-grid/pages/{pageId}/balloon-check/ack) */
+  acknowledgeBalloonCheck: async (
+    chapterId: string,
+    pageId: string,
+    panelId?: string,
+  ): Promise<{ cleared: number }> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/task-grid/pages/${pageId}/balloon-check/ack`,
+        { panelId: panelId ?? null },
+      );
+      return response.data;
+    } catch (error: any) {
+      const err: any = new Error(
+        extractError(error, translate('artist.deskView.balloonCheckAckError')),
+      );
+      err.status = error?.response?.status;
+      throw err;
+    }
+  },
+
   /** Lấy lưới giao việc V3 của chương (GET /api/chapters/{chapterId}/task-grid) */
   getTaskGrid: async (chapterId: string): Promise<TaskGridDto> => {
     try {
