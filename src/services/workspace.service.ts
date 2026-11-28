@@ -4,7 +4,6 @@ import { translate } from '@/lib/i18n';
 
 export interface CreateWorkspaceRequest {
   name: string;
-  storageQuotaBytes?: number;
 }
 
 export interface UpdateWorkspaceRequest {

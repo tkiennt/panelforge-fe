@@ -22,7 +22,6 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('🏢');
   const [role, setRole] = useState('Producer');
-  const [quotaGb, setQuotaGb] = useState('300');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,11 +38,7 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const quotaBytes = (parseFloat(quotaGb) || 300) * 1024 * 1024 * 1024;
-      const created = await workspaceService.createWorkspace({
-        name: trimmedName,
-        storageQuotaBytes: quotaBytes,
-      });
+      const created = await workspaceService.createWorkspace({ name: trimmedName });
 
       if (onShowToast) {
         onShowToast(
@@ -153,39 +148,6 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
             </option>
             <option value='Editor'>{t('workspace.studioHub.createStudio.roleEditor')}</option>
           </select>
-        </div>
-
-        <div className='flex flex-col gap-1.5'>
-          <span className='font-medium text-stone-700'>
-            {t('workspace.studioHub.createStudio.quotaLabel')}
-          </span>
-          <div className='grid grid-cols-3 gap-2'>
-            {[
-              { gb: '100', tier: t('workspace.studioHub.createStudio.tierBasic') },
-              { gb: '300', tier: t('workspace.studioHub.createStudio.tierTeam') },
-              { gb: '500', tier: t('workspace.studioHub.createStudio.tierEnterprise') },
-            ].map((item) => (
-              <label
-                key={item.gb}
-                className={`border rounded-xl p-3 flex flex-col items-center justify-center gap-1 cursor-pointer text-center transition-all ${
-                  quotaGb === item.gb
-                    ? 'border-orange-600 bg-orange-50/50 shadow-2xs'
-                    : 'border-stone-200 hover:bg-stone-50'
-                }`}
-              >
-                <span className='font-bold text-stone-900 text-sm'>{item.gb} GB</span>
-                <span className='text-xs text-stone-500 font-medium'>{item.tier}</span>
-                <input
-                  type='radio'
-                  name='studio_quota'
-                  value={item.gb}
-                  checked={quotaGb === item.gb}
-                  onChange={() => setQuotaGb(item.gb)}
-                  className='sr-only'
-                />
-              </label>
-            ))}
-          </div>
         </div>
 
         <div className='flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100'>
