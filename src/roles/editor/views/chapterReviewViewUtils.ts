@@ -108,7 +108,7 @@ export function parseRegionBox(regionJson?: string | null): Box | null {
 
 /**
  * Tìm mọi Panel chiếm ít nhất 15% diện tích vùng khoanh (chuẩn hoá 0..1).
- * Tỷ lệ được tính trên diện tích vùng lỗi, không phải diện tích Panel.
+ * Theo D8: mẫu số là diện tích nhỏ hơn giữa vùng khoanh và Panel (khớp BE PanelOverlap).
  */
 export function findIntersectingPanelIds(box: Box, panels: PanelDto[]): string[] {
   if (!panels || panels.length === 0 || box.w <= 0 || box.h <= 0) return [];
@@ -129,7 +129,10 @@ export function findIntersectingPanelIds(box: Box, panels: PanelDto[]): string[]
 
       const ox = Math.max(0, Math.min(box.x + box.w, pBox.x + pBox.w) - Math.max(box.x, pBox.x));
       const oy = Math.max(0, Math.min(box.y + box.h, pBox.y + pBox.h) - Math.max(box.y, pBox.y));
-      const overlapRatio = (ox * oy) / errorArea;
+      // Mẫu số là min(diện tích vùng khoanh, diện tích Panel); Panel diện tích 0 không khớp.
+      const minArea = Math.min(errorArea, pBox.w * pBox.h);
+      if (minArea <= 0) continue;
+      const overlapRatio = (ox * oy) / minArea;
       if (overlapRatio >= 0.15) matches.push(p.id);
     } catch {
       /* ignore invalid boundingBox */
