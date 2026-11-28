@@ -157,6 +157,7 @@ export interface ArtistCanvaSidebarProps {
   onResolveChangeRequest?: (id: string, note?: string) => Promise<void> | void;
   isResolvingChangeRequest?: boolean;
   onNavigateToChangeRequestTarget?: (cr: ChangeRequestDto) => void;
+  markNumberById?: Record<string, number>;
   // Page History & Restore
   pageHistory?: PageHistoryDto | null;
   isLoadingPageHistory?: boolean;
@@ -235,6 +236,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   onResolveChangeRequest,
   isResolvingChangeRequest = false,
   onNavigateToChangeRequestTarget,
+  markNumberById = {},
   pageHistory = null,
   isLoadingPageHistory = false,
   onRestoreVersion,
@@ -1553,6 +1555,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     Boolean(cr.reviewerComment) &&
                     cr.description.trim() !== cr.reviewerComment?.trim();
 
+                  const markNumber = markNumberById[cr.id];
+
                   return (
                     <div
                       key={cr.id}
@@ -1560,39 +1564,49 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       className='bg-white border border-[#E7E5E4] rounded-lg p-3 flex flex-col gap-2.5 shadow-2xs'
                     >
                       <div className='flex items-center justify-between gap-2'>
-                        {locationText ? (
-                          <span
-                            className={`font-mono text-xs font-semibold px-2 py-0.5 rounded border ${
-                              isUrgent
-                                ? 'bg-rose-50 border-rose-200 text-rose-700'
-                                : isOpen
-                                  ? 'bg-amber-50 border-amber-200 text-amber-800'
-                                  : 'bg-stone-100 border-[#E7E5E4] text-stone-700'
-                            }`}
-                          >
-                            {locationText}
-                          </span>
-                        ) : (
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs font-semibold border ${
-                              isOpen
-                                ? 'bg-rose-50 border-rose-200 text-rose-700'
-                                : isResolved
-                                  ? 'bg-amber-50 border-amber-200 text-amber-800'
-                                  : isVerified
-                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                        <div className='flex items-center gap-1.5 min-w-0'>
+                          {markNumber !== undefined && (
+                            <span
+                              data-testid={`cr-mark-number-${cr.id}`}
+                              className='w-5 h-5 min-w-5 rounded-full bg-rose-600 text-white text-xs font-bold flex items-center justify-center shrink-0'
+                            >
+                              {markNumber}
+                            </span>
+                          )}
+                          {locationText ? (
+                            <span
+                              className={`font-mono text-xs font-semibold px-2 py-0.5 rounded border ${
+                                isUrgent
+                                  ? 'bg-rose-50 border-rose-200 text-rose-700'
+                                  : isOpen
+                                    ? 'bg-amber-50 border-amber-200 text-amber-800'
                                     : 'bg-stone-100 border-[#E7E5E4] text-stone-700'
-                            }`}
-                          >
-                            {isOpen
-                              ? t('canvaSidebar.crStatusOpen')
-                              : isResolved
-                                ? t('canvaSidebar.crStatusResolved')
-                                : isVerified
-                                  ? t('canvaSidebar.crStatusVerified')
-                                  : t('canvaSidebar.crStatusClosed')}
-                          </span>
-                        )}
+                              }`}
+                            >
+                              {locationText}
+                            </span>
+                          ) : (
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-semibold border ${
+                                isOpen
+                                  ? 'bg-rose-50 border-rose-200 text-rose-700'
+                                  : isResolved
+                                    ? 'bg-amber-50 border-amber-200 text-amber-800'
+                                    : isVerified
+                                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                      : 'bg-stone-100 border-[#E7E5E4] text-stone-700'
+                              }`}
+                            >
+                              {isOpen
+                                ? t('canvaSidebar.crStatusOpen')
+                                : isResolved
+                                  ? t('canvaSidebar.crStatusResolved')
+                                  : isVerified
+                                    ? t('canvaSidebar.crStatusVerified')
+                                    : t('canvaSidebar.crStatusClosed')}
+                            </span>
+                          )}
+                        </div>
 
                         <span
                           className={`text-xs font-medium flex items-center gap-1 shrink-0 ${

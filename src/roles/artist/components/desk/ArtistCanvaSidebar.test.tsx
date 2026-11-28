@@ -444,6 +444,56 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(handleResolve).toHaveBeenCalledWith('cr-1', 'Đã xoay góc kiếm 15 độ');
   });
 
+  it('renders mark number badge for a card whose id is in markNumberById', () => {
+    const mockCRs = [
+      {
+        id: 'cr-1',
+        assignmentId: 'assign-1',
+        chapterId: 'chap-1',
+        responsibleUserId: 'user-1',
+        createdByUserId: 'editor-1',
+        description: 'Vẽ lại góc nghiêng thanh kiếm',
+        status: 'Open' as const,
+        createdAt: '2026-11-10T10:00:00Z',
+      },
+      {
+        id: 'cr-2',
+        assignmentId: 'assign-1',
+        chapterId: 'chap-1',
+        responsibleUserId: 'user-1',
+        createdByUserId: 'editor-1',
+        description: 'Bổ sung hiệu ứng tốc độ',
+        status: 'Open' as const,
+        createdAt: '2026-11-10T09:00:00Z',
+      },
+    ];
+
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+        changeRequests={mockCRs}
+        markNumberById={{ 'cr-1': 1 }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('canva-tab-changes'));
+
+    const card1 = screen.getByTestId('change-request-card-cr-1');
+    const card2 = screen.getByTestId('change-request-card-cr-2');
+
+    expect(card1).toHaveTextContent('1');
+    expect(screen.getByTestId('cr-mark-number-cr-1')).toHaveTextContent('1');
+    expect(card2).not.toHaveTextContent('1');
+    expect(screen.queryByTestId('cr-mark-number-cr-2')).toBeNull();
+  });
+
   it('renders History Drawer (Tab 6) as compact drawer with timeline and restore action', () => {
     const handleRestore = vi.fn();
     const handleRefresh = vi.fn();
