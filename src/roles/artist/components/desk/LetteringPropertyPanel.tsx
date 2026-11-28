@@ -131,6 +131,9 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
     number: displayNumber ?? element.readingOrder ?? '',
   }).trim();
   const currentBubbleText = (element.renderedText || element.content || '').trim();
+  // The script reference already shows this text; only offer the editor once the
+  // balloon diverges from the script (e.g. after an AI shorten).
+  const matchesScriptText = scriptText != null && currentBubbleText === scriptText.trim();
 
   const [sizeDraft, setSizeDraft] = useState(String(text.fontSize));
   useEffect(() => setSizeDraft(String(text.fontSize)), [text.fontSize]);
@@ -407,7 +410,7 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
         </section>
 
         {/* Nội dung hiển thị */}
-        {(!isOriginal || !element.scriptLineId) && (
+        {(!isOriginal || !element.scriptLineId || !matchesScriptText) && (
           <BalloonTextEditor
             key={`${element.elementId}-${element.version}-${activeLang ?? originalLang}`}
             element={element}

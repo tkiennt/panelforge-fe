@@ -45,6 +45,18 @@ describe('LetteringPropertyPanel (BR-05, BR-34)', () => {
     expect(screen.getByTestId('lettering-property-script')).toHaveTextContent('Trang 2');
   });
 
+  it('bóng gắn kịch bản có chữ khác kịch bản (vd đã rút gọn) vẫn có lettering-text-input', () => {
+    render(
+      <LetteringPropertyPanel
+        element={balloon({ content: 'Đi!', renderedText: 'Đi!' })}
+        scriptLine={line}
+        onCommitText={vi.fn()}
+        onChangeStyle={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('lettering-text-input')).toHaveValue('Đi!');
+  });
+
   it('bóng gắn kịch bản ở ngôn ngữ gốc không có lettering-text-input', () => {
     render(
       <LetteringPropertyPanel
