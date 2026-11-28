@@ -142,6 +142,9 @@
     "actionDetails": "Details",
     "actionAdjust": "Adjust",
     "actionResend": "Resend",
+    "actionResendInvitation": "Resend invitation",
+    "actionResending": "Sending...",
+    "emailNotSentBadge": "Email not sent",
     "actionDelete": "Delete",
     "empty": "No members match the filter.",
     "roleProducer": "Producer / Lead",
@@ -180,6 +183,8 @@
     "submitting": "Sending...",
     "toastSuccessTitle": "Invitation Sent Successfully",
     "toastSuccessDesc": "Collaboration invite sent to {email}",
+    "toastEmailFailedTitle": "Invitation email not sent",
+    "toastEmailFailedDesc": "{email} was added to the Studio, but the invitation email could not be sent. Check the email settings, then use \"Resend invitation\" in the member list.",
     "errorEmptyEmail": "Please enter recipient email.",
     "errorInvalidEmail": "Please enter a valid email address.",
     "errorSendFailed": "Failed to send invitation. Please try again."
