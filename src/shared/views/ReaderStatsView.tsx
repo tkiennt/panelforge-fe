@@ -3,8 +3,12 @@ import { useParams } from 'react-router-dom';
 import { Eye, Users, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { Alert, Card, EmptyState, PageHeader } from '@/shared/ui';
+import { Alert, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/shared/ui';
+import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
+import { hasAnyValue, rankWithOther } from '@/shared/ui/charts/chartData';
 import { monetizationService, type WorkspaceReaderStatsDto } from '@/services/payment.service';
+
+const TOP_SERIES = 8;
 
 /**
  * Thống kê lượt đọc / người đọc bộ truyện của Studio (dùng chung cho Producer và Admin).
@@ -51,6 +55,25 @@ export const ReaderStatsView: React.FC = () => {
 
   const series = (data?.series ?? []).filter((s) => !seriesId || s.seriesId === seriesId);
 
+  // Một bộ truyện → cột theo chương (giữ thứ tự chương); nhiều bộ → xếp hạng bộ truyện, gộp đuôi vào "Khác".
+  const singleSeries = series.length === 1 ? series[0] : null;
+  const chartData: StatBarDatum[] = singleSeries
+    ? [...singleSeries.chapters]
+        .sort((a, b) => a.chapterNumber - b.chapterNumber)
+        .map((c) => ({
+          key: c.chapterId,
+          label: t('charts.chapterTick', { number: c.chapterNumber }),
+          value: c.views,
+        }))
+    : rankWithOther(
+        series.map((s) => ({ key: s.seriesId, label: s.title, value: s.views })),
+        TOP_SERIES,
+        t('charts.other'),
+      );
+  const chartTitle = singleSeries
+    ? t('charts.viewsByChapterOf', { title: singleSeries.title })
+    : t('charts.viewsBySeries');
+
   return (
     <div className='p-6 max-w-6xl mx-auto space-y-6'>
       <PageHeader
@@ -91,6 +114,28 @@ export const ReaderStatsView: React.FC = () => {
               value={fmt(data.totalUniqueReaders)}
             />
           </div>
+
+          {hasAnyValue(chartData) && (
+            <Card>
+              <CardHeader
+                title={chartTitle}
+                subtitle={
+                  !singleSeries && series.length > TOP_SERIES
+                    ? t('charts.topNote', { count: TOP_SERIES })
+                    : undefined
+                }
+              />
+              <CardBody>
+                <StatBarChart
+                  data={chartData}
+                  variant={singleSeries ? 'sequence' : 'ranked'}
+                  valueLabel={t('readerStats.views')}
+                  formatValue={fmt}
+                  ariaLabel={t('charts.ariaLabel', { title: chartTitle })}
+                />
+              </CardBody>
+            </Card>
+          )}
 
           {series.length === 0 ? (
             <EmptyState icon={<Eye className='w-8 h-8' />} title={t('readerStats.empty')} />
