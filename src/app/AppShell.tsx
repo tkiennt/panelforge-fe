@@ -38,6 +38,7 @@ import {
   Search,
   UserCircle,
   Eye,
+  Activity,
   Layers,
   LogOut,
   KeyRound,
@@ -126,6 +127,11 @@ const getRoleNavConfig = (
       items: [
         { icon: List, label: t('admin.nav.items.audit'), href: '/admin?tab=audit' },
         { icon: Eye, label: t('admin.nav.items.analytics'), href: '/admin?tab=analytics' },
+        {
+          icon: Activity,
+          label: t('admin.nav.items.systemHealth'),
+          href: '/admin?tab=system-health',
+        },
       ],
     },
   ],

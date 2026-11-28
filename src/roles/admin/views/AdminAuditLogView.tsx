@@ -57,7 +57,10 @@ const formatJson = (raw?: string | null) => {
   }
 };
 
-export const AdminAuditLogView: React.FC = () => {
+/** initialUserEmail: mở sẵn bộ lọc theo một tài khoản (từ trang chi tiết User, OPS-30). */
+export const AdminAuditLogView: React.FC<{ initialUserEmail?: string }> = ({
+  initialUserEmail = '',
+}) => {
   const { t, lang } = useTranslation();
   const locale = lang === 'en' ? 'en-US' : 'vi-VN';
   const [logs, setLogs] = useState<AuditLogDto[]>([]);
@@ -66,7 +69,7 @@ export const AdminAuditLogView: React.FC = () => {
   const [loadError, setLoadError] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const [userEmail, setUserEmail] = useState('');
+  const [userEmail, setUserEmail] = useState(initialUserEmail);
   const [entityName, setEntityName] = useState('');
   const [entityId, setEntityId] = useState('');
   const [action, setAction] = useState('');

@@ -102,7 +102,8 @@
       "sessionPolicy": "Session Policy",
       "audit": "Audit Logs",
       "analytics": "Reader Analytics",
-      "resources": "Resources & quotas"
+      "resources": "Resources & quotas",
+      "systemHealth": "System health"
     }
   },
   "users": {
@@ -560,7 +561,8 @@
       "configure": "Configure",
       "empty": "No Studios yet.",
       "noResults": "No Studios match the filters.",
-      "clearFilters": "Clear filters"
+      "clearFilters": "Clear filters",
+      "openDetail": "View studio {name}"
     },
     "configure": {
       "title": "Configure Resource Allocation",
@@ -662,6 +664,151 @@
       "deleteConfirmDescription": "The report shows {count} orphan files that belong to studios. Deleted files cannot be recovered.",
       "deleteConfirmNote": "Only files older than 7 days that belong to active studios are deleted. Files with no known studio, thumbnails, exports and all history records are kept. After deleting, select \"Update usage\" if recorded usage still differs.",
       "deleteConfirm": "Delete permanently"
+    }
+  },
+  "details": {
+    "loading": "Loading…",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "openAudit": "View system log",
+    "recentActivity": "Recent activity",
+    "noActivity": "No activity recorded yet.",
+    "joinedAt": "Joined {time}",
+    "aiCallsHint": "{calls} calls · {failed} failed",
+    "memberStatus": {
+      "Pending": "Pending",
+      "Active": "Active",
+      "Rejected": "Rejected"
+    },
+    "user": {
+      "back": "Back to users",
+      "active": "Active",
+      "locked": "Locked",
+      "pendingInvitation": "Invitation not accepted",
+      "sessions": "Open sessions",
+      "lastActive": "Last active: {time}",
+      "studios": "Studios joined",
+      "walletBalance": "Wallet balance",
+      "walletHint": "Topped up {topUp} · {unlocked} editions unlocked",
+      "noWallet": "No wallet yet",
+      "aiThisMonth": "AI tokens this month",
+      "profile": "Account profile",
+      "pendingTopUps": "Top-ups awaiting approval",
+      "memberships": "Studios",
+      "noMemberships": "This account has not joined any studio.",
+      "openStudio": "Open studio",
+      "activeSessions": "Active sign-in sessions",
+      "colDevice": "Device",
+      "colIp": "IP",
+      "colStarted": "Started",
+      "colLastActive": "Last active",
+      "noSessions": "No open sessions.",
+      "unknownDevice": "Unknown device"
+    },
+    "studio": {
+      "back": "Back to resources & quotas",
+      "owner": "Studio owner: {name}",
+      "configure": "Configure resources",
+      "saved": "Resource settings saved.",
+      "resources": "Resources",
+      "storage": "Storage",
+      "aiTokens": "AI tokens / month",
+      "aiImages": "AI images / month",
+      "noAi": "AI not configured",
+      "ai30Tokens": "AI tokens, 30 days",
+      "ai30Calls": "AI calls, 30 days",
+      "ai30Failed": "Failed calls",
+      "ai30FailedRuns": "Failed AI runs",
+      "settings": "Settings",
+      "aiStatus": "AI",
+      "aiOn": "On",
+      "aiOff": "Off",
+      "aiProvider": "AI provider",
+      "aiReset": "AI counters reset at",
+      "sessionLifetime": "Session lifetime",
+      "sessionIdle": "Idle timeout",
+      "maxSessions": "Max sessions per person",
+      "defaultPolicy": "Default",
+      "minutes": "{n} min",
+      "createdAt": "Created",
+      "members": "Members ({n})",
+      "noMembers": "This studio has no members.",
+      "openUser": "View account",
+      "series": "Series ({n})",
+      "colTitle": "Title",
+      "colChapters": "Chapters",
+      "colPublished": "Published",
+      "colStatus": "Status",
+      "colCreated": "Created",
+      "noSeries": "This studio has no series yet.",
+      "completed": "Completed",
+      "ongoing": "Ongoing",
+      "requests": "Recent quota requests",
+      "noRequests": "This studio has not sent any request."
+    }
+  },
+  "health": {
+    "title": "System health",
+    "description": "Probes the database, file storage and AI service, plus background work that is stuck or failing. Rechecks every minute while open.",
+    "recheck": "Recheck",
+    "checkedAt": "Checked {time}",
+    "startedAt": "Server up since {time}",
+    "version": "Version {version}",
+    "status": {
+      "Healthy": "Healthy",
+      "Degraded": "Degraded",
+      "Down": "Down"
+    },
+    "dependency": {
+      "database": "Database",
+      "storage": "File storage",
+      "ai": "AI service"
+    },
+    "latency": "Response time",
+    "queueDepth": "Queued jobs",
+    "reason": {
+      "SLOW": "Responded slower than 1.5 s.",
+      "TIMEOUT": "No response within 5 s.",
+      "UNREACHABLE": "Could not connect.",
+      "SERVICE_KEY_MISSING": "The service is up but the backend has no AI service key, so every AI job will be rejected."
+    },
+    "signalsTitle": "Background work",
+    "signalsDescription": "Counted from the database at check time.",
+    "noSignals": "The database could not be read, so background work was not counted.",
+    "colSignal": "Item",
+    "colCount": "Count",
+    "colOldest": "Oldest",
+    "colAction": "Action",
+    "open": "Open screen",
+    "signal": {
+      "aiRunsStuck": {
+        "label": "Stuck AI runs",
+        "hint": "Queued or running with no activity for over 15 minutes."
+      },
+      "aiRunsFailed24h": {
+        "label": "AI runs failed in 24h",
+        "hint": "Multi-agent runs that ended with an error or were interrupted."
+      },
+      "aiCallsFailed24h": {
+        "label": "AI calls failed in 24h",
+        "hint": "Provider error or no response. Quota limits are not counted."
+      },
+      "exportsStuck": {
+        "label": "Stuck exports",
+        "hint": "Queued or rendering for over 30 minutes."
+      },
+      "exportsFailed24h": {
+        "label": "Exports failed in 24h",
+        "hint": "CBZ / PDF / image render failed."
+      },
+      "pendingTopUps": {
+        "label": "Wallet top-ups awaiting approval",
+        "hint": "Approved by hand by the Publisher. Warns when one waits over 24 hours."
+      },
+      "pendingQuotaRequests": {
+        "label": "Quota requests awaiting review",
+        "hint": "Warns when one waits over 3 days."
+      }
     }
   }
 }
