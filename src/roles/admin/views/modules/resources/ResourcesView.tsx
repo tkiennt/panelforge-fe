@@ -285,12 +285,17 @@ export const ResourcesView: React.FC = () => {
                   studios.map((s) => (
                     <tr key={s.workspaceId} className={adminTable.tr}>
                       <td className={cn(adminTable.td, 'max-w-[260px]')}>
-                        <div
-                          className='font-semibold text-admin-ink-strong truncate'
-                          title={s.name}
+                        <button
+                          type='button'
+                          onClick={() => setParam('studio', s.workspaceId)}
+                          className={cn(
+                            'block max-w-full font-semibold text-admin-ink-strong truncate text-left hover:text-admin-accent-text hover:underline rounded',
+                            adminFocusRing,
+                          )}
+                          title={t('admin.resources.allocation.openDetail', { name: s.name })}
                         >
                           {s.name}
-                        </div>
+                        </button>
                         <div className='text-xs text-admin-muted truncate' title={s.ownerEmail}>
                           {s.ownerName || s.ownerEmail}
                         </div>

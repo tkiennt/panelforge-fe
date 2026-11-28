@@ -383,6 +383,11 @@
       "saveResourcesFailed": "Could not update the quotas.",
       "reconcileFailed": "Could not reconcile storage. Try again later.",
       "deleteOrphansFailed": "Could not delete orphan files. Try again later."
+    },
+    "adminDetail": {
+      "loadUserFailed": "Could not load account details.",
+      "loadWorkspaceFailed": "Could not load studio details.",
+      "loadHealthFailed": "Could not load system health."
     }
   }
 }

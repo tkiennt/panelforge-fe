@@ -7,6 +7,9 @@ import { AIConfigurationView } from './modules/AIConfigurationView';
 import { ResourcesView } from './modules/resources/ResourcesView';
 import { SessionPolicySettings } from './modules/SessionPolicySettings';
 import { ReaderStatsView } from '@/shared/views/ReaderStatsView';
+import { AdminUserDetailView } from './modules/details/AdminUserDetailView';
+import { AdminStudioDetailView } from './modules/details/AdminStudioDetailView';
+import { SystemHealthView } from './modules/details/SystemHealthView';
 
 export type AdminTab =
   | 'dashboard'
@@ -16,7 +19,8 @@ export type AdminTab =
   | 'resources'
   | 'session-policy'
   | 'audit'
-  | 'analytics';
+  | 'analytics'
+  | 'system-health';
 
 const VALID_TABS: AdminTab[] = [
   'dashboard',
@@ -27,6 +31,7 @@ const VALID_TABS: AdminTab[] = [
   'session-policy',
   'audit',
   'analytics',
+  'system-health',
 ];
 
 /**
@@ -39,6 +44,12 @@ export const AdminDashboard: React.FC = () => {
   const rawTab = searchParams.get('tab');
   const tabParam = (rawTab === 'storage' ? 'resources' : rawTab) as AdminTab | null;
   const activeTab: AdminTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'dashboard';
+
+  // Trang chi tiết là tham số con của tab danh sách để menu vẫn sáng đúng mục (OPS-30, OPS-31).
+  const userId = activeTab === 'users' ? searchParams.get('user') : null;
+  const studioId = activeTab === 'resources' ? searchParams.get('studio') : null;
+  const openParams = (params: Record<string, string>) =>
+    setSearchParams(new URLSearchParams(params));
 
   const go = (tab: AdminTab) => {
     setSearchParams((prev) => {
@@ -65,12 +76,37 @@ export const AdminDashboard: React.FC = () => {
             onNavigateToAnalytics={() => go('analytics')}
           />
         )}
-        {activeTab === 'users' && <AdminUserManagementView />}
+        {activeTab === 'users' &&
+          (userId ? (
+            <AdminUserDetailView
+              userId={userId}
+              onBack={() => openParams({ tab: 'users' })}
+              onOpenStudio={(id) => openParams({ tab: 'resources', studio: id })}
+              onOpenAudit={(email) => openParams({ tab: 'audit', userEmail: email })}
+            />
+          ) : (
+            <AdminUserManagementView onOpenUser={(id) => openParams({ tab: 'users', user: id })} />
+          ))}
         {activeTab === 'ai-config' && <AIConfigurationView />}
-        {activeTab === 'resources' && <ResourcesView />}
+        {activeTab === 'resources' &&
+          (studioId ? (
+            <AdminStudioDetailView
+              workspaceId={studioId}
+              onBack={() => openParams({ tab: 'resources' })}
+              onOpenUser={(id) => openParams({ tab: 'users', user: id })}
+            />
+          ) : (
+            <ResourcesView />
+          ))}
         {activeTab === 'session-policy' && <SessionPolicySettings />}
-        {activeTab === 'audit' && <AdminAuditLogView />}
+        {activeTab === 'audit' && (
+          <AdminAuditLogView
+            key={searchParams.get('userEmail') ?? ''}
+            initialUserEmail={searchParams.get('userEmail') ?? ''}
+          />
+        )}
         {activeTab === 'analytics' && <ReaderStatsView />}
+        {activeTab === 'system-health' && <SystemHealthView onNavigate={openParams} />}
       </div>
     </div>
   );
