@@ -1096,11 +1096,12 @@ export const assignmentService = {
     chapterId: string,
     taskId: string,
     comment: string,
+    changes?: ChangeRequestItemRequest[],
   ): Promise<StageTaskDto> => {
     try {
       const response = await axiosClient.post(
         `/chapters/${chapterId}/task-grid/tasks/${taskId}/request-changes`,
-        { comment },
+        changes?.length ? { comment, changes } : { comment },
       );
       return response.data;
     } catch (error: any) {
