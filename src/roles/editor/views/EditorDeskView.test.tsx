@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { EditorDeskView } from './EditorDeskView';
 import { assignmentService } from '@/services/assignment.service';
 import { bibleService } from '@/services/bible.service';
@@ -52,6 +52,11 @@ const sampleItem = (
   artworkReferenceIds: ['art-001'],
   ...overrides,
 });
+
+const LocationConsumer: React.FC = () => {
+  const location = useLocation();
+  return <div data-testid='current-search'>{location.search}</div>;
+};
 
 const renderView = (props: Partial<React.ComponentProps<typeof EditorDeskView>> = {}) =>
   render(
@@ -113,7 +118,7 @@ describe('EditorDeskView Component', () => {
     expect(screen.getAllByText(/Gate 2:.*Composite/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders KPI metric summary cards correctly', async () => {
+  it('hiển thị số đếm hàng đợi trên các nút lọc gate và trạng thái các mục duyệt (không còn dải KPI trên header)', async () => {
     vi.spyOn(assignmentService, 'getEditorReviewQueue').mockResolvedValue([
       sampleItem({ status: 'Submitted', gate: 'gate1' }),
       sampleItem({
@@ -605,6 +610,88 @@ describe('EditorDeskView Component', () => {
     expect(screen.getByTestId('editor-reject-toggle-grid-task-awaiting-letter')).not.toBeDisabled();
   });
 
+  it('không có nút Duyệt nhanh / Trả nhanh cho ô Lưới V3 Submitted (chưa ai mở duyệt) và ô UnderReview của Editor khác, chỉ có nút Mở duyệt', async () => {
+    vi.spyOn(assignmentService, 'getEditorReviewQueue').mockResolvedValue([]);
+    vi.spyOn(assignmentService, 'getTaskGridReviewQueue').mockResolvedValue([
+      {
+        taskId: 'grid-task-submitted-unopened',
+        seriesId: 'series-001',
+        seriesTitle: 'Đại Chiến Thần Binh',
+        chapterId: 'chap-101',
+        chapterNumber: 12,
+        chapterTitle: 'Trận Chiến Ở Đền Thờ',
+        pipelineStageId: 'stg-pencil',
+        stageName: 'Pencil',
+        pageId: 'page-011',
+        pageNumber: 11,
+        status: 'Submitted',
+        assigneeUserId: 'usr-artist-1',
+        reviewerUserId: null,
+        attemptNumber: 1,
+        submittedAt: '2026-11-14T11:00:00Z',
+      },
+      {
+        taskId: 'grid-task-other-review',
+        seriesId: 'series-001',
+        seriesTitle: 'Đại Chiến Thần Binh',
+        chapterId: 'chap-101',
+        chapterNumber: 12,
+        chapterTitle: 'Trận Chiến Ở Đền Thờ',
+        pipelineStageId: 'stg-ink',
+        stageName: 'Ink',
+        pageId: 'page-012',
+        pageNumber: 12,
+        status: 'UnderReview',
+        assigneeUserId: 'usr-artist-1',
+        reviewerUserId: 'usr-editor-2',
+        reviewerName: 'Biên tập Minh',
+        attemptNumber: 1,
+        submittedAt: '2026-11-14T11:15:00Z',
+      },
+    ]);
+    vi.spyOn(seriesService, 'getSeriesById').mockResolvedValue({ id: 'series-001' } as any);
+
+    renderView({ currentUserId: 'usr-editor-1', workspaceRole: 'EDITOR' });
+
+    await waitFor(() => {
+      expect(screen.getByText('Trang 11')).toBeInTheDocument();
+      expect(screen.getByText('Trang 12')).toBeInTheDocument();
+    });
+
+    // Ô Submitted (chưa ai mở duyệt): không có nút Duyệt nhanh / Trả nhanh, chỉ có nút Mở duyệt (enabled)
+    expect(
+      screen.queryByTestId('editor-approve-grid-grid-task-submitted-unopened'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('editor-reject-toggle-grid-task-submitted-unopened'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('editor-confirm-reject-grid-task-submitted-unopened'),
+    ).not.toBeInTheDocument();
+    const openSubmittedBtn = screen.getByTestId(
+      'editor-open-grid-review-grid-task-submitted-unopened',
+    );
+    expect(openSubmittedBtn).toBeInTheDocument();
+    expect(openSubmittedBtn).not.toBeDisabled();
+
+    // Ô UnderReview do Editor khác giữ: không có nút Duyệt nhanh / Trả nhanh, chỉ có nút Mở duyệt (disabled)
+    expect(
+      screen.queryByTestId('editor-approve-grid-grid-task-other-review'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('editor-reject-toggle-grid-task-other-review'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('editor-confirm-reject-grid-task-other-review'),
+    ).not.toBeInTheDocument();
+    const openOtherBtn = screen.getByTestId('editor-open-grid-review-grid-task-other-review');
+    expect(openOtherBtn).toBeInTheDocument();
+    expect(openOtherBtn).toBeDisabled();
+    expect(screen.getByTestId('editor-locked-by-other-grid-task-other-review')).toHaveTextContent(
+      /Đang được duyệt bởi Biên tập Minh/i,
+    );
+  });
+
   it('D4: hiển thị chip "Chương {number} ✕" khi có query param ?chapterId= và xóa param khi click ✕', async () => {
     vi.spyOn(assignmentService, 'getEditorReviewQueue').mockResolvedValue([]);
     vi.spyOn(assignmentService, 'getTaskGridReviewQueue').mockResolvedValue([
@@ -646,7 +733,12 @@ describe('EditorDeskView Component', () => {
         <Routes>
           <Route
             path='/workspaces/:workspaceId/series/:seriesId/editor/desk'
-            element={<EditorDeskView workspaceRole='EDITOR' />}
+            element={
+              <>
+                <EditorDeskView workspaceRole='EDITOR' />
+                <LocationConsumer />
+              </>
+            }
           />
         </Routes>
       </MemoryRouter>,
@@ -655,6 +747,7 @@ describe('EditorDeskView Component', () => {
     await waitFor(() => {
       expect(screen.getByTestId('editor-chapter-filter-chip')).toBeInTheDocument();
       expect(screen.getByTestId('editor-chapter-filter-chip')).toHaveTextContent(/Chương 12/i);
+      expect(screen.getByTestId('current-search')).toHaveTextContent('?chapterId=chap-101');
       expect(screen.getByText('Trang 1')).toBeInTheDocument();
       expect(screen.queryByText('Trang 2')).not.toBeInTheDocument();
     });
@@ -665,6 +758,9 @@ describe('EditorDeskView Component', () => {
 
     await waitFor(() => {
       expect(screen.queryByTestId('editor-chapter-filter-chip')).not.toBeInTheDocument();
+      expect(screen.getByTestId('current-search')).not.toHaveTextContent('chapterId');
+      expect(screen.getByTestId('current-search').textContent).toBe('');
+      expect(screen.getByText('Trang 1')).toBeInTheDocument();
       expect(screen.getByText('Trang 2')).toBeInTheDocument();
     });
   });
