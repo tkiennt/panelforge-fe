@@ -123,7 +123,7 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
 
     // Kiểm tra xem văn bản đã có cấu trúc Trang/Panel rõ ràng chưa
     const hasExplicitMarkers =
-      /^(?:[!#📄]?\s*(?:Trang|Page)\s*\d+|(?:[-"”]\s*)?(?:Panel|Khung)\s*[\d.]+)/im.test(trimmed);
+      /^(?:[!#📄]?\s*(?:Trang|Page)\s*\d+|(?:[-"”]\s*)?(?:Panel|Khung)\s*[\d.]+)/imu.test(trimmed);
 
     let bibleCtx = seriesBibleContext;
     if (!bibleCtx && characters && characters.length > 0) {
@@ -149,7 +149,8 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
       characters,
     });
 
-    const pagesCount = blocks.filter((b) => b.type === 'page').length || (blocks.length > 0 ? 1 : 0);
+    const pagesCount =
+      blocks.filter((b) => b.type === 'page').length || (blocks.length > 0 ? 1 : 0);
     const panelsCount = blocks.filter((b) => b.type === 'panel').length;
     const dialoguesCount = blocks.filter((b) => b.type === 'dialogue').length;
     const sfxCount = blocks.filter((b) => b.type === 'sfx').length;
@@ -228,9 +229,15 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
       className='max-w-[min(1180px,calc(100vw-32px))]'
       footer={
         <div className='flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between'>
-          <div className='flex min-w-0 items-center gap-2 text-xs text-stone-600' aria-live='polite'>
+          <div
+            className='flex min-w-0 items-center gap-2 text-xs text-stone-600'
+            aria-live='polite'
+          >
             {parsedResult.pagesCount > 0 ? (
-              <Badge tone={confirmReplace ? 'warning' : 'success'} icon={confirmReplace ? <Replace /> : <Check />}>
+              <Badge
+                tone={confirmReplace ? 'warning' : 'success'}
+                icon={confirmReplace ? <Replace /> : <Check />}
+              >
                 {confirmReplace
                   ? t('scriptImport.replaceWarning')
                   : t('scriptImport.readySummary', {
@@ -354,44 +361,55 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
         </Card>
 
         <div className='grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]'>
-          <Card as='section' className='flex min-h-[28rem] flex-col xl:h-[clamp(30rem,56dvh,36rem)]'>
+          <Card
+            as='section'
+            className='flex min-h-[28rem] flex-col xl:h-[clamp(30rem,56dvh,36rem)]'
+          >
             <CardHeader
               icon={<BookOpenText aria-hidden='true' />}
               title={t('scriptImport.sourceTitle')}
-              subtitle={fileName ? t('scriptImport.loadedFile', { name: fileName }) : t('scriptImport.sourceSubtitle')}
+              subtitle={
+                fileName
+                  ? t('scriptImport.loadedFile', { name: fileName })
+                  : t('scriptImport.sourceSubtitle')
+              }
               actions={
-                <div className='flex items-center rounded-lg bg-stone-100 p-1' role='tablist' aria-label={t('scriptImport.sourceTabsLabel')}>
-                <button
-                  type='button'
-                  onClick={() => setActiveTab('paste')}
-                  role='tab'
-                  aria-selected={activeTab === 'paste'}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    activeTab === 'paste'
-                      ? 'bg-white text-stone-900 shadow-sm'
-                      : 'text-stone-600 hover:text-stone-900'
-                  }`}
+                <div
+                  className='flex items-center rounded-lg bg-stone-100 p-1'
+                  role='tablist'
+                  aria-label={t('scriptImport.sourceTabsLabel')}
                 >
-                  {t('scriptImport.pasteText')}
-                </button>
-                <button
-                  type='button'
-                  onClick={() => {
-                    setActiveTab('file');
-                    fileInputRef.current?.click();
-                  }}
-                  role='tab'
-                  aria-selected={activeTab === 'file'}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    activeTab === 'file'
-                      ? 'bg-white text-stone-900 shadow-sm'
-                      : 'text-stone-600 hover:text-stone-900'
-                  }`}
-                >
-                  <Upload className='size-3.5' aria-hidden='true' />
-                  <span>{t('scriptImport.uploadFile')}</span>
-                </button>
-              </div>
+                  <button
+                    type='button'
+                    onClick={() => setActiveTab('paste')}
+                    role='tab'
+                    aria-selected={activeTab === 'paste'}
+                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      activeTab === 'paste'
+                        ? 'bg-white text-stone-900 shadow-sm'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                  >
+                    {t('scriptImport.pasteText')}
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setActiveTab('file');
+                      fileInputRef.current?.click();
+                    }}
+                    role='tab'
+                    aria-selected={activeTab === 'file'}
+                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      activeTab === 'file'
+                        ? 'bg-white text-stone-900 shadow-sm'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                  >
+                    <Upload className='size-3.5' aria-hidden='true' />
+                    <span>{t('scriptImport.uploadFile')}</span>
+                  </button>
+                </div>
               }
             />
             <CardBody className='flex min-h-0 flex-1 flex-col gap-2 p-0'>
@@ -402,171 +420,215 @@ export const ScriptImportModal: React.FC<ScriptImportModalProps> = ({
                 className='hidden'
                 onChange={handleFileUpload}
               />
-            <label htmlFor='script-import-source' className='sr-only'>{t('scriptImport.sourceLabel')}</label>
-            <textarea
-              id='script-import-source'
-              value={inputContent}
-              onChange={(e) => {
-                setInputContent(e.target.value);
-                setConfirmReplace(false);
-              }}
-              placeholder={t('scriptImport.placeholder')}
-              className='min-h-[22rem] w-full flex-1 resize-none border-0 bg-white p-4 font-mono text-xs leading-relaxed text-stone-800 outline-none placeholder:text-stone-400 focus:ring-2 focus:ring-inset focus:ring-orange-300'
-            />
+              <label htmlFor='script-import-source' className='sr-only'>
+                {t('scriptImport.sourceLabel')}
+              </label>
+              <textarea
+                id='script-import-source'
+                value={inputContent}
+                onChange={(e) => {
+                  setInputContent(e.target.value);
+                  setConfirmReplace(false);
+                }}
+                placeholder={t('scriptImport.placeholder')}
+                className='min-h-[22rem] w-full flex-1 resize-none border-0 bg-white p-4 font-mono text-xs leading-relaxed text-stone-800 outline-none placeholder:text-stone-400 focus:ring-2 focus:ring-inset focus:ring-orange-300'
+              />
 
-            <div className='flex flex-wrap items-center justify-between gap-2 border-t border-stone-200 bg-stone-50 px-4 py-2 text-xs text-stone-500'>
-              <span>{inputContent ? t('scriptImport.inputStats', { characters: inputContent.length, lines: inputContent.split(/\r?\n/).length }) : t('scriptImport.noContent')}</span>
-              <span>{t('scriptImport.supportedFiles')}</span>
-            </div>
+              <div className='flex flex-wrap items-center justify-between gap-2 border-t border-stone-200 bg-stone-50 px-4 py-2 text-xs text-stone-500'>
+                <span>
+                  {inputContent
+                    ? t('scriptImport.inputStats', {
+                        characters: inputContent.length,
+                        lines: inputContent.split(/\r?\n/).length,
+                      })
+                    : t('scriptImport.noContent')}
+                </span>
+                <span>{t('scriptImport.supportedFiles')}</span>
+              </div>
             </CardBody>
           </Card>
 
-          <Card as='section' tone='info' className='flex min-h-[28rem] flex-col xl:h-[clamp(30rem,56dvh,36rem)]'>
+          <Card
+            as='section'
+            tone='info'
+            className='flex min-h-[28rem] flex-col xl:h-[clamp(30rem,56dvh,36rem)]'
+          >
             <CardHeader
               icon={<Sparkles aria-hidden='true' />}
               title={t('scriptImport.previewTitle')}
               subtitle={t('scriptImport.previewSubtitle')}
               actions={
-                <div className='flex items-center rounded-lg bg-stone-100 p-1' role='tablist' aria-label={t('scriptImport.previewTabsLabel')}>
-                <button
-                  type='button'
-                  onClick={() => setPreviewTab('visual')}
-                  role='tab'
-                  aria-selected={previewTab === 'visual'}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    previewTab === 'visual'
-                      ? 'bg-white text-stone-900 shadow-sm'
-                      : 'text-stone-600 hover:text-stone-900'
-                  }`}
-                  title={t('scriptImport.visualPreviewTitle')}
+                <div
+                  className='flex items-center rounded-lg bg-stone-100 p-1'
+                  role='tablist'
+                  aria-label={t('scriptImport.previewTabsLabel')}
                 >
-                  {t('scriptImport.visual')}
-                </button>
-                <button
-                  type='button'
-                  onClick={() => setPreviewTab('text')}
-                  role='tab'
-                  aria-selected={previewTab === 'text'}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    previewTab === 'text'
-                      ? 'bg-white text-stone-900 shadow-sm'
-                      : 'text-stone-600 hover:text-stone-900'
-                  }`}
-                  title={t('scriptImport.scriptPreviewTitle')}
-                >
-                  {t('scriptImport.script')}
-                </button>
-              </div>
+                  <button
+                    type='button'
+                    onClick={() => setPreviewTab('visual')}
+                    role='tab'
+                    aria-selected={previewTab === 'visual'}
+                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      previewTab === 'visual'
+                        ? 'bg-white text-stone-900 shadow-sm'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                    title={t('scriptImport.visualPreviewTitle')}
+                  >
+                    {t('scriptImport.visual')}
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => setPreviewTab('text')}
+                    role='tab'
+                    aria-selected={previewTab === 'text'}
+                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      previewTab === 'text'
+                        ? 'bg-white text-stone-900 shadow-sm'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                    title={t('scriptImport.scriptPreviewTitle')}
+                  >
+                    {t('scriptImport.script')}
+                  </button>
+                </div>
               }
             />
 
             <CardBody className='flex min-h-0 flex-1 flex-col gap-3 bg-stone-50/70 p-3'>
               {parsedResult.pagesCount > 0 && (
-                <div className='flex flex-wrap gap-2' aria-label={t('scriptImport.parseSummaryLabel')}>
-                  <Badge tone='brand' icon={<Layers aria-hidden='true' />}>{t('scriptImport.pagesCount', { count: parsedResult.pagesCount })}</Badge>
-                  <Badge tone='neutral' icon={<LayoutGrid aria-hidden='true' />}>{t('scriptImport.panelsCount', { count: parsedResult.panelsCount })}</Badge>
-                  <Badge tone='info' icon={<MessageCircle aria-hidden='true' />}>{t('scriptImport.dialoguesCount', { count: parsedResult.dialoguesCount })}</Badge>
-                  {parsedResult.sfxCount > 0 && <Badge tone='warning' icon={<Volume2 aria-hidden='true' />}>{t('scriptImport.sfxCount', { count: parsedResult.sfxCount })}</Badge>}
+                <div
+                  className='flex flex-wrap gap-2'
+                  aria-label={t('scriptImport.parseSummaryLabel')}
+                >
+                  <Badge tone='brand' icon={<Layers aria-hidden='true' />}>
+                    {t('scriptImport.pagesCount', { count: parsedResult.pagesCount })}
+                  </Badge>
+                  <Badge tone='neutral' icon={<LayoutGrid aria-hidden='true' />}>
+                    {t('scriptImport.panelsCount', { count: parsedResult.panelsCount })}
+                  </Badge>
+                  <Badge tone='info' icon={<MessageCircle aria-hidden='true' />}>
+                    {t('scriptImport.dialoguesCount', { count: parsedResult.dialoguesCount })}
+                  </Badge>
+                  {parsedResult.sfxCount > 0 && (
+                    <Badge tone='warning' icon={<Volume2 aria-hidden='true' />}>
+                      {t('scriptImport.sfxCount', { count: parsedResult.sfxCount })}
+                    </Badge>
+                  )}
                 </div>
               )}
 
-            <div className='min-h-[20rem] flex-1 overflow-y-auto rounded-lg border border-stone-200 bg-white p-3 [scrollbar-gutter:stable]'>
-              {parsedResult.blocks.length === 0 ? (
-                <div className='flex h-full flex-col items-center justify-center space-y-3 px-6 text-center text-stone-500'>
-                  <span className='grid size-12 place-items-center rounded-full bg-stone-100 text-stone-400'>
-                    <Gauge className='size-6' aria-hidden='true' />
-                  </span>
-                  <div>
-                    <p className='text-sm font-semibold text-stone-700'>{t('scriptImport.emptyPreviewTitle')}</p>
-                    <p className='mt-1 text-xs'>{t('scriptImport.emptyPreviewDesc')}</p>
+              <div className='min-h-[20rem] flex-1 overflow-y-auto rounded-lg border border-stone-200 bg-white p-3 [scrollbar-gutter:stable]'>
+                {parsedResult.blocks.length === 0 ? (
+                  <div className='flex h-full flex-col items-center justify-center space-y-3 px-6 text-center text-stone-500'>
+                    <span className='grid size-12 place-items-center rounded-full bg-stone-100 text-stone-400'>
+                      <Gauge className='size-6' aria-hidden='true' />
+                    </span>
+                    <div>
+                      <p className='text-sm font-semibold text-stone-700'>
+                        {t('scriptImport.emptyPreviewTitle')}
+                      </p>
+                      <p className='mt-1 text-xs'>{t('scriptImport.emptyPreviewDesc')}</p>
+                    </div>
                   </div>
-                </div>
-              ) : previewTab === 'visual' ? (
-                <div className='space-y-3'>
-                  {parsedResult.blocks.map((block, idx) => {
-                    if (block.type === 'page') {
-                      return (
-                        <div
-                          key={idx}
-                          className='flex items-center justify-between rounded-md bg-stone-900 px-3 py-2 text-xs font-bold tracking-wide text-white'
-                        >
-                          <span>{t('scriptImport.pageHeading', { number: block.pageNumber || '01' })}</span>
-                          <span className='font-normal text-stone-300'>{t('scriptImport.pageBreak')}</span>
-                        </div>
-                      );
-                    }
-
-                    if (block.type === 'panel') {
-                      return (
-                        <div
-                          key={idx}
-                          className='flex items-center justify-between rounded-r-md border-l-4 border-orange-500 bg-orange-50/80 p-2.5 text-xs'
-                        >
-                          <span className='font-bold text-orange-900'>
-                            {t('scriptImport.panelHeading', { number: block.panelNumber || '1.1' })}
-                            {block.cameraAngle && (
-                              <span className='ml-2 rounded bg-orange-100/70 px-2 py-0.5 text-xs font-semibold text-orange-700'>
-                                {block.cameraAngle}
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      );
-                    }
-
-                    if (block.type === 'dialogue') {
-                      return (
-                        <div
-                          key={idx}
-                          className='ml-4 p-2 bg-white border border-stone-200 rounded-lg text-xs space-y-0.5 shadow-2xs'
-                        >
+                ) : previewTab === 'visual' ? (
+                  <div className='space-y-3'>
+                    {parsedResult.blocks.map((block, idx) => {
+                      if (block.type === 'page') {
+                        return (
                           <div
-                            data-testid='dialogue-speaker'
-                            className='flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-stone-900'
+                            key={idx}
+                            className='flex items-center justify-between rounded-md bg-stone-900 px-3 py-2 text-xs font-bold tracking-wide text-white'
                           >
-                            <span className='w-1.5 h-1.5 rounded-full bg-blue-600' />
-                            <span>{block.character || t('scriptImport.characterFallback')}</span>
+                            <span>
+                              {t('scriptImport.pageHeading', { number: block.pageNumber || '01' })}
+                            </span>
+                            <span className='font-normal text-stone-300'>
+                              {t('scriptImport.pageBreak')}
+                            </span>
                           </div>
-                          <p className='text-stone-800 italic pl-3'>"{block.content}"</p>
-                        </div>
-                      );
-                    }
+                        );
+                      }
 
-                    if (block.type === 'sfx') {
+                      if (block.type === 'panel') {
+                        return (
+                          <div
+                            key={idx}
+                            className='flex items-center justify-between rounded-r-md border-l-4 border-orange-500 bg-orange-50/80 p-2.5 text-xs'
+                          >
+                            <span className='font-bold text-orange-900'>
+                              {t('scriptImport.panelHeading', {
+                                number: block.panelNumber || '1.1',
+                              })}
+                              {block.cameraAngle && (
+                                <span className='ml-2 rounded bg-orange-100/70 px-2 py-0.5 text-xs font-semibold text-orange-700'>
+                                  {block.cameraAngle}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      if (block.type === 'dialogue') {
+                        return (
+                          <div
+                            key={idx}
+                            className='ml-4 p-2 bg-white border border-stone-200 rounded-lg text-xs space-y-0.5 shadow-2xs'
+                          >
+                            <div
+                              data-testid='dialogue-speaker'
+                              className='flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-stone-900'
+                            >
+                              <span className='w-1.5 h-1.5 rounded-full bg-blue-600' />
+                              <span>{block.character || t('scriptImport.characterFallback')}</span>
+                            </div>
+                            <p className='text-stone-800 italic pl-3'>"{block.content}"</p>
+                          </div>
+                        );
+                      }
+
+                      if (block.type === 'sfx') {
+                        return (
+                          <div
+                            key={idx}
+                            className='ml-4 px-2.5 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-amber-900 tracking-wider'
+                          >
+                            {t('scriptImport.sfxPrefix')}: {block.content}
+                          </div>
+                        );
+                      }
+
+                      if (block.type === 'caption') {
+                        return (
+                          <div
+                            key={idx}
+                            className='ml-4 p-2 bg-stone-100 border border-stone-300 rounded text-xs text-stone-700 italic'
+                          >
+                            <strong className='not-italic font-bold text-stone-800'>
+                              {t('scriptImport.captionPrefix')}:
+                            </strong>{' '}
+                            {block.content}
+                          </div>
+                        );
+                      }
+
                       return (
                         <div
                           key={idx}
-                          className='ml-4 px-2.5 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-amber-900 tracking-wider'
+                          className='ml-4 text-xs text-stone-600 pl-2 border-l border-stone-300 leading-relaxed'
                         >
-                          {t('scriptImport.sfxPrefix')}: {block.content}
+                          {block.content}
                         </div>
                       );
-                    }
-
-                    if (block.type === 'caption') {
-                      return (
-                        <div
-                          key={idx}
-                          className='ml-4 p-2 bg-stone-100 border border-stone-300 rounded text-xs text-stone-700 italic'
-                        >
-                          <strong className='not-italic font-bold text-stone-800'>{t('scriptImport.captionPrefix')}:</strong> {block.content}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div key={idx} className='ml-4 text-xs text-stone-600 pl-2 border-l border-stone-300 leading-relaxed'>
-                        {block.content}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <pre className='font-mono text-xs text-stone-800 whitespace-pre-wrap leading-relaxed'>
-                  {parsedResult.formattedScript}
-                </pre>
-              )}
-            </div>
+                    })}
+                  </div>
+                ) : (
+                  <pre className='font-mono text-xs text-stone-800 whitespace-pre-wrap leading-relaxed'>
+                    {parsedResult.formattedScript}
+                  </pre>
+                )}
+              </div>
             </CardBody>
           </Card>
         </div>

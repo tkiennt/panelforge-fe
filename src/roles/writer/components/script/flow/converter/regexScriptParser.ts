@@ -136,14 +136,21 @@ const THOUGHT_VERB_REGEX =
 /**
  * Phân tích tên nhân vật dựa trên văn bản và danh sách Series Bible
  */
-export function resolveSpeaker(candidateText: string, bible?: SeriesBibleContext): { name: string; isThought?: boolean } | null {
+export function resolveSpeaker(
+  candidateText: string,
+  bible?: SeriesBibleContext,
+): { name: string; isThought?: boolean } | null {
   const characters = bible?.characters || [];
   const trimmedCandidate = candidateText.trim();
   const lower = trimmedCandidate.toLowerCase();
 
   // Kiểm tra nếu là từ khóa dẫn chuyện
   for (const nonSpeaker of NON_SPEAKER_NAMES) {
-    if (lower === nonSpeaker || lower.startsWith(`${nonSpeaker}:`) || lower.startsWith(`${nonSpeaker} `)) {
+    if (
+      lower === nonSpeaker ||
+      lower.startsWith(`${nonSpeaker}:`) ||
+      lower.startsWith(`${nonSpeaker} `)
+    ) {
       return null;
     }
   }
@@ -157,7 +164,9 @@ export function resolveSpeaker(candidateText: string, bible?: SeriesBibleContext
   }
 
   // 2. Tách tên nhân vật đứng trước động từ nói (vd: "Minh nói", "Lan hét lên", "John shouted", "Arthur said", "Minh nghĩ")
-  const beforeVerbMatch = trimmedCandidate.match(/^([A-ZÀ-Ỹ][\w\p{L}'-]+(?:\s+[A-ZÀ-Ỹ][\w\p{L}'-]+)*)\s+(?:nói|hét|bảo|thì thầm|gọi|hỏi|đáp|trả lời|nghĩ|tự nhủ|quát|said|says|shouted|shouts|whispered|whispers|asked|asks|replied|thought|yelled)\b/iu);
+  const beforeVerbMatch = trimmedCandidate.match(
+    /^([A-ZÀ-Ỹ][\w\p{L}'-]+(?:\s+[A-ZÀ-Ỹ][\w\p{L}'-]+)*)\s+(?:nói|hét|bảo|thì thầm|gọi|hỏi|đáp|trả lời|nghĩ|tự nhủ|quát|said|says|shouted|shouts|whispered|whispers|asked|asks|replied|thought|yelled)\b/iu,
+  );
   if (beforeVerbMatch) {
     const candidateName = beforeVerbMatch[1].trim();
     if (!NON_SPEAKER_NAMES.has(candidateName.toLowerCase())) {
@@ -167,7 +176,9 @@ export function resolveSpeaker(candidateText: string, bible?: SeriesBibleContext
   }
 
   // 3. Tách tên nhân vật đứng sau động từ nói (vd: "said John", "whispered Lan", "nói Minh")
-  const afterVerbMatch = trimmedCandidate.match(/\b(?:said|says|shouted|whispered|asked|replied|nói|bảo|thì thầm|hỏi|đáp)\s+([A-ZÀ-Ỹ][\w\p{L}'-]+(?:\s+[A-ZÀ-Ỹ][\w\p{L}'-]+)*)/iu);
+  const afterVerbMatch = trimmedCandidate.match(
+    /\b(?:said|says|shouted|whispered|asked|replied|nói|bảo|thì thầm|hỏi|đáp)\s+([A-ZÀ-Ỹ][\w\p{L}'-]+(?:\s+[A-ZÀ-Ỹ][\w\p{L}'-]+)*)/iu,
+  );
   if (afterVerbMatch) {
     const candidateName = afterVerbMatch[1].trim();
     if (!NON_SPEAKER_NAMES.has(candidateName.toLowerCase())) {
@@ -176,7 +187,9 @@ export function resolveSpeaker(candidateText: string, bible?: SeriesBibleContext
   }
 
   // 4. Tìm danh từ riêng viết hoa tiếng Anh / tiếng Việt (vd: Minh, Lan, Hoàng, Ken, Arthur, Lancelot)
-  const nameMatch = trimmedCandidate.match(/\b([A-ZÀ-Ỹ][\w\p{L}'-]+(?:\s+[A-ZÀ-Ỹ][\w\p{L}'-]+)*)\b/u);
+  const nameMatch = trimmedCandidate.match(
+    /\b([A-ZÀ-Ỹ][\w\p{L}'-]+(?:\s+[A-ZÀ-Ỹ][\w\p{L}'-]+)*)\b/u,
+  );
   if (nameMatch) {
     const candidate = nameMatch[1].trim();
     if (!NON_SPEAKER_NAMES.has(candidate.toLowerCase())) {
@@ -191,7 +204,10 @@ export function resolveSpeaker(candidateText: string, bible?: SeriesBibleContext
 /**
  * Trích xuất các nhịp hành động (Beats) từ đoạn văn bản thô (Tiếng Anh & Tiếng Việt)
  */
-export function extractBeatsFromParagraph(paragraph: string, bible?: SeriesBibleContext): ParsedBeat[] {
+export function extractBeatsFromParagraph(
+  paragraph: string,
+  bible?: SeriesBibleContext,
+): ParsedBeat[] {
   const trimmed = paragraph.trim();
   if (!trimmed) return [];
 
@@ -350,11 +366,7 @@ export function extractBeatsFromParagraph(paragraph: string, bible?: SeriesBible
  * Tự động nhận diện số khung hình dựa trên nhịp beats tự nhiên của văn bản.
  */
 export function convertRawTextHeuristically(request: ConvertScriptRequest): ConvertScriptResponse {
-  const {
-    inputContent,
-    seriesBibleContext,
-    startingPageNumber = 1,
-  } = request;
+  const { inputContent, seriesBibleContext, startingPageNumber = 1 } = request;
 
   const rawParagraphs = inputContent
     .split(/\n+/)

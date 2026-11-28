@@ -201,52 +201,60 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
           className='flex items-center gap-0.5 shrink-0 bg-[#FAF9F5] border border-[#E7E5E4] px-1.5 py-1 rounded text-xs text-stone-700'
           data-testid='canva-bottom-bar'
         >
-        <span className='sr-only' data-testid='canva-page-counter'>
-          {activePageNumber} / {totalPages || 1}
-        </span>
+          <span className='sr-only' data-testid='canva-page-counter'>
+            {activePageNumber} / {totalPages || 1}
+          </span>
 
-        <button
-          type='button'
-          onClick={() => onZoomChange(Math.max(0.3, Math.round((zoomScale - 0.1) * 100) / 100))}
-          className='w-5 h-5 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors font-bold text-xs cursor-pointer'
-          title={t('bottomPageStrip.zoomOutTitle')}
-          aria-label={t('bottomPageStrip.zoomOutTitle')}
-        >
-          −
-        </button>
+          <button
+            type='button'
+            onClick={() => onZoomChange(Math.max(0.3, Math.round((zoomScale - 0.1) * 100) / 100))}
+            className='w-5 h-5 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors font-bold text-xs cursor-pointer'
+            title={t('bottomPageStrip.zoomOutTitle')}
+            aria-label={t('bottomPageStrip.zoomOutTitle')}
+          >
+            −
+          </button>
 
-        <span className='font-mono text-xs font-semibold text-stone-800 px-1 min-w-[36px] text-center'>
-          {Math.round(zoomScale * 100)}%
-        </span>
+          <span className='font-mono text-xs font-semibold text-stone-800 px-1 min-w-[36px] text-center'>
+            {Math.round(zoomScale * 100)}%
+          </span>
 
-        <button
-          type='button'
-          onClick={() => onZoomChange(Math.min(2.0, Math.round((zoomScale + 0.1) * 100) / 100))}
-          className='w-5 h-5 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors font-bold text-xs cursor-pointer'
-          title={t('bottomPageStrip.zoomInTitle')}
-          aria-label={t('bottomPageStrip.zoomInTitle')}
-        >
-          +
-        </button>
+          <button
+            type='button'
+            onClick={() => onZoomChange(Math.min(2.0, Math.round((zoomScale + 0.1) * 100) / 100))}
+            className='w-5 h-5 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors font-bold text-xs cursor-pointer'
+            title={t('bottomPageStrip.zoomInTitle')}
+            aria-label={t('bottomPageStrip.zoomInTitle')}
+          >
+            +
+          </button>
 
-        {onToggleFullscreen && (
-          <>
-            <span className='w-px h-3.5 bg-stone-300 mx-0.5' aria-hidden='true' />
-            <button
-              type='button'
-              onClick={onToggleFullscreen}
-              className='w-5 h-5 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors cursor-pointer'
-              title={
-                isFullscreen ? t('bottomPageStrip.exitFullscreen') : t('bottomPageStrip.fullscreen')
-              }
-              aria-label={
-                isFullscreen ? t('bottomPageStrip.exitFullscreen') : t('bottomPageStrip.fullscreen')
-              }
-            >
-              {isFullscreen ? <Minimize2 className='w-3 h-3' /> : <Maximize2 className='w-3 h-3' />}
-            </button>
-          </>
-        )}
+          {onToggleFullscreen && (
+            <>
+              <span className='w-px h-3.5 bg-stone-300 mx-0.5' aria-hidden='true' />
+              <button
+                type='button'
+                onClick={onToggleFullscreen}
+                className='w-5 h-5 flex items-center justify-center rounded text-stone-700 hover:bg-white transition-colors cursor-pointer'
+                title={
+                  isFullscreen
+                    ? t('bottomPageStrip.exitFullscreen')
+                    : t('bottomPageStrip.fullscreen')
+                }
+                aria-label={
+                  isFullscreen
+                    ? t('bottomPageStrip.exitFullscreen')
+                    : t('bottomPageStrip.fullscreen')
+                }
+              >
+                {isFullscreen ? (
+                  <Minimize2 className='w-3 h-3' />
+                ) : (
+                  <Maximize2 className='w-3 h-3' />
+                )}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </footer>

@@ -307,7 +307,9 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-white hover:bg-stone-50 border border-[#E7E5E4] text-stone-700 text-xs font-medium active:scale-95 transition-all cursor-pointer shrink-0 whitespace-nowrap'
           >
             <BookOpen className='w-3.5 h-3.5 text-orange-600' />
-            <span className='hidden sm:inline'>{t('navigation.focus.readChapterBtn', 'Đọc demo')}</span>
+            <span className='hidden sm:inline'>
+              {t('navigation.focus.readChapterBtn', 'Đọc demo')}
+            </span>
           </Link>
         )}
 

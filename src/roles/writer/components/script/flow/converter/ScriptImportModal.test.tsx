@@ -9,7 +9,10 @@ describe('ScriptImportModal Component', () => {
     onClose: vi.fn(),
     onApplyScript: vi.fn(),
     initialStartingPageNumber: 1,
-    characters: [{ id: 'char-1', name: 'Minh' }, { id: 'char-2', name: 'Lan' }],
+    characters: [
+      { id: 'char-1', name: 'Minh' },
+      { id: 'char-2', name: 'Lan' },
+    ],
     onShowToast: vi.fn(),
   };
 
@@ -32,9 +35,7 @@ describe('ScriptImportModal Component', () => {
     fireEvent.click(sampleProseBtn);
 
     // Live preview status indicator
-    expect(
-      screen.getByText(/Sẵn sàng chèn \d+ trang · \d+ khung · \d+ câu thoại/i),
-    ).toBeDefined();
+    expect(screen.getByText(/Sẵn sàng chèn \d+ trang · \d+ khung · \d+ câu thoại/i)).toBeDefined();
 
     // Visual cards in preview
     expect(screen.getByText('TRANG 01')).toBeDefined();
@@ -67,7 +68,9 @@ describe('ScriptImportModal Component', () => {
     // SFX should be present
     expect(screen.getByText('SFX: CRASH!')).toBeDefined();
     // NARRATOR and Location must NOT be classified as dialogue speakers
-    const dialogueSpeakers = screen.queryAllByTestId('dialogue-speaker').map((el) => el.textContent?.trim());
+    const dialogueSpeakers = screen
+      .queryAllByTestId('dialogue-speaker')
+      .map((el) => el.textContent?.trim());
     expect(dialogueSpeakers).not.toContain('NARRATOR');
     expect(dialogueSpeakers).not.toContain('Location');
   });
