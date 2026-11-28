@@ -44,11 +44,10 @@ describe('SplitPanelStrip', () => {
       'split-strip-item-2',
       'split-strip-item-3',
     ]);
-    expect(screen.getByText('Kết quả tách khung')).toBeInTheDocument();
-    expect(screen.getByText('3 vùng khung')).toBeInTheDocument();
-    expect(screen.getByText('2 ảnh khung')).toBeInTheDocument();
+    expect(screen.getByText('Khung')).toBeInTheDocument();
+    expect(screen.getByText('2/3')).toBeInTheDocument();
     expect(screen.getByAltText('Ảnh khung 1')).toHaveAttribute('src', 'blob:http://localhost/a');
-    expect(screen.getByText('Chưa có ảnh khung')).toBeInTheDocument();
+    expect(screen.getAllByText('Chưa có ảnh khung')).toHaveLength(2);
     expect(screen.queryByTestId('split-strip-remove-2')).not.toBeInTheDocument();
   });
 
