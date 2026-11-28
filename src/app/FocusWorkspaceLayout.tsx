@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
+  Gauge,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -737,6 +738,11 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
         {
           section: t('navigation.sidebar.chapterProduction', 'SẢN XUẤT CHƯƠNG'),
           items: [
+            {
+              icon: Gauge,
+              label: t('navigation.menu.reviewOverview', 'Tổng quan duyệt'),
+              href: `/workspaces/${workspaceId}/series/${seriesId}/editor/dashboard`,
+            },
             {
               icon: ShieldCheck,
               label: t('navigation.menu.editorReviewDesk', 'Kiểm tra & Hiệu đính'),

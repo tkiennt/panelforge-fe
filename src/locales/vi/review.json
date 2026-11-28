@@ -971,5 +971,70 @@
       "actionFailedTitle": "Thao tác thất bại",
       "actionFailed": "Không thể thực hiện thao tác, vui lòng thử lại."
     }
+  },
+  "dashboard": {
+    "chart": {
+      "chapterTick": "Ch.{{number}}",
+      "queueByChapter": "Chờ duyệt theo chương",
+      "queue": "Chờ duyệt",
+      "decisions30d": "Lượt duyệt 30 ngày",
+      "decisions": "Lượt duyệt",
+      "stageApproved": "Khung đã duyệt theo công đoạn",
+      "approvedPanels": "Khung đã duyệt"
+    },
+    "kpi": {
+      "ariaLabel": "Số liệu duyệt",
+      "queue": "Chờ duyệt",
+      "queueHint": "{{count}} đang được duyệt",
+      "toVerify": "Chờ xác minh",
+      "openRequests": "Yêu cầu sửa mở",
+      "overdueHint": "{{count}} quá hạn",
+      "findings": "Lỗi nhất quán",
+      "blockingHint": "{{count}} chặn",
+      "firstPass": "Duyệt lần đầu",
+      "avgHours": "TB {{value}} giờ/lượt"
+    },
+    "series": {
+      "title": "Tổng quan duyệt",
+      "chaptersTitle": "Theo chương",
+      "empty": "Series chưa có chương"
+    },
+    "chapter": {
+      "title": "Tổng quan duyệt chương",
+      "back": "Tổng quan series",
+      "reviewScript": "Duyệt kịch bản",
+      "notFound": "Không tìm thấy chương trong series này",
+      "toVerifyTitle": "Chờ xác minh ({{count}})",
+      "toVerifyEmpty": "Không có yêu cầu nào chờ xác minh",
+      "verifyAction": "Xác minh",
+      "openTitle": "Yêu cầu sửa đang mở ({{count}})",
+      "openEmpty": "Không có yêu cầu sửa đang mở",
+      "findingsTitle": "Lỗi nhất quán chưa xử lý ({{count}})",
+      "findingsEmpty": "Không có lỗi nhất quán chưa xử lý",
+      "more": "+{{count}} mục khác"
+    },
+    "col": {
+      "chapter": "Chương",
+      "script": "Kịch bản",
+      "queue": "Chờ duyệt",
+      "toVerify": "Chờ xác minh",
+      "openRequests": "Yêu cầu mở",
+      "findings": "Nhất quán",
+      "decisions": "Duyệt / Trả"
+    },
+    "scriptStatus": {
+      "Draft": "Bản nháp",
+      "InReview": "Chờ duyệt",
+      "Frozen": "Đã chốt"
+    },
+    "severity": {
+      "Info": "Gợi ý",
+      "Warning": "Cảnh báo",
+      "Blocking": "Chặn"
+    },
+    "chapterNumber": "Chương {{number}}",
+    "decisionsCell": "{{approved}} / {{rejected}}",
+    "open": "Xem",
+    "openDesk": "Mở bàn duyệt"
   }
 }

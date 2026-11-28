@@ -971,5 +971,70 @@
       "actionFailedTitle": "Action failed",
       "actionFailed": "Could not complete the action. Please try again."
     }
+  },
+  "dashboard": {
+    "chart": {
+      "chapterTick": "Ch.{{number}}",
+      "queueByChapter": "Waiting by chapter",
+      "queue": "Waiting",
+      "decisions30d": "Reviews, last 30 days",
+      "decisions": "Reviews",
+      "stageApproved": "Approved panels by stage",
+      "approvedPanels": "Approved panels"
+    },
+    "kpi": {
+      "ariaLabel": "Review metrics",
+      "queue": "Waiting review",
+      "queueHint": "{{count}} in review",
+      "toVerify": "To verify",
+      "openRequests": "Open requests",
+      "overdueHint": "{{count}} overdue",
+      "findings": "Consistency issues",
+      "blockingHint": "{{count}} blocking",
+      "firstPass": "First-pass approval",
+      "avgHours": "Avg {{value}} h per review"
+    },
+    "series": {
+      "title": "Review overview",
+      "chaptersTitle": "By chapter",
+      "empty": "This series has no chapters yet"
+    },
+    "chapter": {
+      "title": "Chapter review overview",
+      "back": "Series overview",
+      "reviewScript": "Review script",
+      "notFound": "Chapter not found in this series",
+      "toVerifyTitle": "To verify ({{count}})",
+      "toVerifyEmpty": "No requests waiting for verification",
+      "verifyAction": "Verify",
+      "openTitle": "Open change requests ({{count}})",
+      "openEmpty": "No open change requests",
+      "findingsTitle": "Open consistency issues ({{count}})",
+      "findingsEmpty": "No open consistency issues",
+      "more": "+{{count}} more"
+    },
+    "col": {
+      "chapter": "Chapter",
+      "script": "Script",
+      "queue": "Waiting",
+      "toVerify": "To verify",
+      "openRequests": "Open requests",
+      "findings": "Consistency",
+      "decisions": "Approved / Returned"
+    },
+    "scriptStatus": {
+      "Draft": "Draft",
+      "InReview": "In review",
+      "Frozen": "Frozen"
+    },
+    "severity": {
+      "Info": "Info",
+      "Warning": "Warning",
+      "Blocking": "Blocking"
+    },
+    "chapterNumber": "Chapter {{number}}",
+    "decisionsCell": "{{approved}} / {{rejected}}",
+    "open": "View",
+    "openDesk": "Open review desk"
   }
 }
