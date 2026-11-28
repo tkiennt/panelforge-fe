@@ -13,8 +13,13 @@ import type { ScriptLineItem } from '../components/desk/ArtistCanvaSidebar';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
 import { findFreeBalloonSlot } from '../lib/balloonPlacement';
 import {
+  appearanceFromStyle,
   defaultAppearance,
   fitBalloonSize,
+  growBalloonToFit,
+  letteringCase,
+  resolveAppearance,
+  tailFromStyle,
   tailToward,
   withAppearance,
   type TailPoint,
@@ -206,18 +211,17 @@ export function useLetteringBalloons(
   }, [selectedPage?.id, activeLang, reloadElements]);
 
   // Balloons must sit fully inside the panel under their centre (or the nearest panel when dropped in a gutter).
-  const clampToPanel = useCallback(
-    (targetX: number, targetY: number, w: number, h: number) => {
-      const clamp = (v: number, min: number, max: number) =>
-        Math.round(Math.max(min, Math.min(max, v)));
-
+  /** Khung chứa tâm (cx, cy), không có thì khung gần nhất; trang chưa chia khung thì cả trang trừ lề. */
+  const areaAt = useCallback(
+    (cx: number, cy: number) => {
       if (pagePanels.length === 0) {
         return {
-          x: clamp(targetX, PAGE_MARGIN, Math.max(PAGE_MARGIN, pageWidth - PAGE_MARGIN - w)),
-          y: clamp(targetY, PAGE_MARGIN, Math.max(PAGE_MARGIN, pageHeight - PAGE_MARGIN - h)),
+          minX: PAGE_MARGIN,
+          minY: PAGE_MARGIN,
+          maxX: pageWidth - PAGE_MARGIN,
+          maxY: pageHeight - PAGE_MARGIN,
         };
       }
-
       const boxes = pagePanels.map((p) => {
         const b = parseBoundingBox(p.boundingBox, pageWidth, pageHeight);
         return {
@@ -227,21 +231,27 @@ export function useLetteringBalloons(
           maxY: b.pixelY + b.pixelH,
         };
       });
-      const cx = targetX + w / 2;
-      const cy = targetY + h / 2;
       const distance = (b: (typeof boxes)[number]) =>
         Math.hypot(cx - (b.minX + b.maxX) / 2, cy - (b.minY + b.maxY) / 2);
-
-      const box =
+      return (
         boxes.find((b) => cx >= b.minX && cx <= b.maxX && cy >= b.minY && cy <= b.maxY) ??
-        boxes.reduce((best, b) => (distance(b) < distance(best) ? b : best));
+        boxes.reduce((best, b) => (distance(b) < distance(best) ? b : best))
+      );
+    },
+    [pagePanels, pageWidth, pageHeight],
+  );
 
+  const clampToPanel = useCallback(
+    (targetX: number, targetY: number, w: number, h: number) => {
+      const clamp = (v: number, min: number, max: number) =>
+        Math.round(Math.max(min, Math.min(max, v)));
+      const box = areaAt(targetX + w / 2, targetY + h / 2);
       return {
         x: clamp(targetX, box.minX, Math.max(box.minX, box.maxX - w)),
         y: clamp(targetY, box.minY, Math.max(box.minY, box.maxY - h)),
       };
     },
-    [pagePanels, pageWidth, pageHeight],
+    [areaAt],
   );
 
   const updatePageElements = useCallback(
@@ -577,6 +587,91 @@ export function useLetteringBalloons(
     }
   };
 
+  /**
+   * Nới bóng `el` (đã có version mới nhất) cho vừa `text` ở cỡ chữ đã chọn, trong khung đang chứa bóng.
+   * Đầu đuôi giữ nguyên trên trang. 409 → nạp lại.
+   */
+  const growToFit = useCallback(
+    async (el: ElementSnapshotDto, text: string) => {
+      if (!selectedPage?.id || readOnly) return;
+      const pageId = selectedPage.id;
+      const shape = resolveAppearance(el.elementType, appearanceFromStyle(el.style)).shape;
+      const area = areaAt(el.x + el.width / 2, el.y + el.height / 2);
+      const next = growBalloonToFit(
+        letteringCase(text, activeLang),
+        resolveTextStyle(el),
+        shape,
+        { x: el.x, y: el.y, w: el.width, h: el.height },
+        { w: area.maxX - area.minX - 24, h: area.maxY - area.minY - 24 },
+      );
+      if (!next) return;
+      const pos = clampToPanel(next.x, next.y, next.w, next.h);
+      const savedTail = tailFromStyle(el.style);
+      const style = savedTail
+        ? withAppearance(el.style, resolveTextStyle(el), {
+            tail: { x: savedTail.x + el.x - pos.x, y: savedTail.y + el.y - pos.y },
+          })
+        : el.style;
+      updateElement(el.elementId, (item) => ({
+        ...item,
+        ...pos,
+        width: next.w,
+        height: next.h,
+        style,
+      }));
+      try {
+        const moved = await elementService.moveElement(pageId, el.elementId, {
+          newX: pos.x,
+          newY: pos.y,
+          newWidth: next.w,
+          newHeight: next.h,
+          newZIndex: el.zIndex,
+          expectedElementVersion: el.version,
+        });
+        let version = moved?.elementVersion ?? el.version;
+        if (savedTail) {
+          const styled = await elementService.updateElementStyle(pageId, el.elementId, {
+            style,
+            expectedElementVersion: version,
+          });
+          version = styled?.elementVersion ?? version;
+        }
+        updateElement(el.elementId, (item) => ({ ...item, version }));
+      } catch (err: any) {
+        reloadElements();
+        if (err?.response?.status === 409)
+          toast.info(t('lettering.balloons.reloaded'), t('lettering.balloons.reloadedElementDesc'));
+        else
+          toast.error?.(
+            t('lettering.balloons.saveStyleFailed'),
+            err?.message || t('lettering.balloons.tryAgainLater'),
+          );
+      }
+    },
+    [
+      selectedPage?.id,
+      readOnly,
+      activeLang,
+      areaAt,
+      clampToPanel,
+      updateElement,
+      reloadElements,
+      toast,
+      t,
+    ],
+  );
+
+  /** Nút "Vừa bóng": nới bóng đang chọn theo chữ của ngôn ngữ đang soạn. */
+  const fitElementToText = useCallback(
+    (elementId: string) => {
+      const el = pageElements.find((item) => item.elementId === elementId);
+      if (!el) return;
+      const text = (activeLang && el.texts?.[activeLang]) || el.content || '';
+      return growToFit(el, text);
+    },
+    [pageElements, activeLang, growToFit],
+  );
+
   const updateElementText = useCallback(
     async (elementId: string, text: string) => {
       if (!selectedPage?.id) return;
@@ -617,6 +712,10 @@ export function useLetteringBalloons(
           if (res?.elementVersion) {
             updateElement(elementId, (item) => ({ ...item, version: res.elementVersion }));
           }
+          await growToFit(
+            { ...target, content: text, version: res?.elementVersion ?? target.version },
+            text,
+          );
         } catch (err: any) {
           if (err?.response?.status === 409) {
             reloadElements();
@@ -677,6 +776,7 @@ export function useLetteringBalloons(
       readOnly,
       notifyForbidden,
       updateElement,
+      growToFit,
       reloadElements,
       toast,
       t,
@@ -707,6 +807,10 @@ export function useLetteringBalloons(
           isStale: false,
           version: res.elementVersion ?? item.version,
         }));
+        await growToFit(
+          { ...target, content: latestText, version: res.elementVersion ?? target.version },
+          latestText,
+        );
       } catch (err: any) {
         await reloadElements();
         toast.error?.(
@@ -721,6 +825,7 @@ export function useLetteringBalloons(
       notifyForbidden,
       pageElements,
       updateElement,
+      growToFit,
       reloadElements,
       toast,
       t,
@@ -1062,6 +1167,7 @@ export function useLetteringBalloons(
     syncElementText,
     updateElementStyle,
     updateElementTail,
+    fitElementToText,
     reloadElements,
     prefetchPages,
     linkedByScriptLine,
