@@ -6,12 +6,22 @@ import { AdminButton, AdminCard, AdminField } from '../../components/AdminUi';
 import { adminFieldClass } from '../../components/adminUiStyles';
 import { useLocale } from './resourceFormat';
 
-type Form = { storageGb: string; tokens: string; images: string; aiEnabled: boolean; warn: string };
+type Form = {
+  storageGb: string;
+  tokens: string;
+  images: string;
+  requests: string;
+  perMinute: string;
+  aiEnabled: boolean;
+  warn: string;
+};
 
 const toForm = (p: QuotaPolicyDto): Form => ({
   storageGb: String(Number((p.storageQuotaBytes / GB).toFixed(2))),
   tokens: String(p.monthlyTokenQuota),
   images: String(p.monthlyImageQuota),
+  requests: String(p.monthlyRequestQuota),
+  perMinute: String(p.requestsPerMinute),
   aiEnabled: p.aiEnabledByDefault,
   warn: String(p.warningThresholdPercent),
 });
@@ -74,6 +84,8 @@ export const ResourcePolicyPanel: React.FC<{ onSaved: (message: string) => void 
     const storage = Number(form.storageGb);
     const tokens = Number(form.tokens);
     const images = Number(form.images);
+    const requests = Number(form.requests);
+    const perMinute = Number(form.perMinute);
     const warn = Number(form.warn);
     const next: Record<string, string> = {};
     if (form.storageGb.trim() === '' || !Number.isFinite(storage) || storage <= 0)
@@ -82,6 +94,10 @@ export const ResourcePolicyPanel: React.FC<{ onSaved: (message: string) => void 
       next.tokens = t('admin.resources.validation.positiveInt');
     if (form.images.trim() === '' || !Number.isInteger(images) || images <= 0)
       next.images = t('admin.resources.validation.positiveInt');
+    if (form.requests.trim() === '' || !Number.isInteger(requests) || requests <= 0)
+      next.requests = t('admin.resources.validation.positiveInt');
+    if (form.perMinute.trim() === '' || !Number.isInteger(perMinute) || perMinute <= 0)
+      next.perMinute = t('admin.resources.validation.positiveInt');
     if (!Number.isInteger(warn) || warn < 1 || warn > 99)
       next.warn = t('admin.resources.validation.threshold');
     setErrors(next);
@@ -94,6 +110,8 @@ export const ResourcePolicyPanel: React.FC<{ onSaved: (message: string) => void 
         storageQuotaBytes: Math.round(storage * GB),
         monthlyTokenQuota: tokens,
         monthlyImageQuota: images,
+        monthlyRequestQuota: requests,
+        requestsPerMinute: perMinute,
         aiEnabledByDefault: form.aiEnabled,
         warningThresholdPercent: warn,
       });
@@ -185,6 +203,38 @@ export const ResourcePolicyPanel: React.FC<{ onSaved: (message: string) => void 
               value={form.images}
               onChange={(e) => set({ images: e.target.value })}
               aria-invalid={!!errors.images}
+              className={cn(adminFieldClass, 'tabular-nums')}
+            />
+          </AdminField>
+          <AdminField
+            label={t('admin.resources.policy.requests')}
+            htmlFor='pol-requests'
+            required
+            error={errors.requests}
+          >
+            <input
+              id='pol-requests'
+              type='number'
+              min='1'
+              value={form.requests}
+              onChange={(e) => set({ requests: e.target.value })}
+              aria-invalid={!!errors.requests}
+              className={cn(adminFieldClass, 'tabular-nums')}
+            />
+          </AdminField>
+          <AdminField
+            label={t('admin.resources.policy.perMinute')}
+            htmlFor='pol-per-minute'
+            required
+            error={errors.perMinute}
+          >
+            <input
+              id='pol-per-minute'
+              type='number'
+              min='1'
+              value={form.perMinute}
+              onChange={(e) => set({ perMinute: e.target.value })}
+              aria-invalid={!!errors.perMinute}
               className={cn(adminFieldClass, 'tabular-nums')}
             />
           </AdminField>

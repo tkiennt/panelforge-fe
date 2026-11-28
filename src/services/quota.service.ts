@@ -17,6 +17,9 @@ export interface QuotaPolicyDto {
   isFromSettings: boolean;
   updatedAt: string | null;
   updatedByName: string | null;
+  /** OPS-24: số lượt gọi AI mỗi tháng / mỗi phút cấp cho Studio mới. */
+  monthlyRequestQuota: number;
+  requestsPerMinute: number;
 }
 
 export interface UpdateQuotaPolicyRequest {
@@ -25,6 +28,8 @@ export interface UpdateQuotaPolicyRequest {
   monthlyImageQuota: number;
   aiEnabledByDefault: boolean;
   warningThresholdPercent: number;
+  monthlyRequestQuota: number;
+  requestsPerMinute: number;
 }
 
 export interface QuotaIncreaseRequestDto {
@@ -80,6 +85,10 @@ export interface AdminWorkspaceResourceDto {
   aiNextResetAt: string;
   pendingRequestCount: number;
   health: ResourceHealth;
+  /** OPS-24: lượt gọi AI trong tháng; null = Studio chưa có cấu hình AI. */
+  aiRequests: UsageMeter | null;
+  /** Lượt gọi AI tối đa mỗi phút, 0 = không giới hạn; null = chưa có cấu hình AI. */
+  requestsPerMinuteLimit: number | null;
 }
 
 export interface AdminResourceOverviewDto {
@@ -93,6 +102,7 @@ export interface AdminResourceOverviewDto {
   pendingRequests: number;
   warningThresholdPercent: number;
   studios: AdminWorkspaceResourceDto[];
+  totalRequestsThisMonth: number;
 }
 
 /** null = giữ nguyên, 0 = không giới hạn. reason bắt buộc (ghi Nhật ký hệ thống). */
@@ -102,6 +112,8 @@ export interface UpdateWorkspaceResourcesRequest {
   monthlyImageQuota: number | null;
   aiEnabled: boolean | null;
   reason: string;
+  monthlyRequestQuota?: number | null;
+  requestsPerMinute?: number | null;
 }
 
 export interface QuotaRequestFilter {
