@@ -51,6 +51,7 @@ import {
   FileCheck,
   HardDrive,
   Mail,
+  MailSearch,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { StudioHubTabBar } from './StudioHubTabBar';
@@ -124,6 +125,11 @@ const getRoleNavConfig = (
           icon: Mail,
           label: t('admin.nav.items.emailSettings'),
           href: '/admin?tab=email-settings',
+        },
+        {
+          icon: MailSearch,
+          label: t('admin.nav.items.emailLogs'),
+          href: '/admin?tab=email-logs',
         },
       ],
     },

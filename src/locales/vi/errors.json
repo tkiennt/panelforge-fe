@@ -270,7 +270,8 @@
       "emailSettingsLoadFailed": "Không tải được cấu hình email.",
       "emailSettingsSaveFailed": "Không lưu được cấu hình email.",
       "emailTestFailed": "Không gửi được email thử.",
-      "emailLogsLoadFailed": "Không tải được nhật ký gửi email."
+      "emailLogsLoadFailed": "Không tải được nhật ký gửi email.",
+      "emailHealthLoadFailed": "Không tải được trạng thái gửi email."
     },
     "auth": {
       "unauthorized": "Phiên đăng nhập đã hết hạn hoặc token không hợp lệ (401 Unauthorized). Vui lòng đăng nhập lại.",

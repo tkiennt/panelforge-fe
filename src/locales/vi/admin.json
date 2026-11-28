@@ -101,6 +101,7 @@
       "aiConfig": "Cấu hình AI",
       "sessionPolicy": "Chính sách phiên",
       "emailSettings": "Cấu hình email",
+      "emailLogs": "Lịch sử email",
       "audit": "Nhật ký hệ thống",
       "analytics": "Thống kê độc giả",
       "resources": "Tài nguyên & hạn mức",
@@ -928,6 +929,18 @@
       "WORKSPACE_ADDED": "Thêm vào Studio",
       "TEST": "Email thử",
       "OTHER": "Khác"
-    }
+    },
+    "filterFrom": "Từ ngày",
+    "filterTo": "Đến ngày",
+    "pageTitle": "Lịch sử email",
+    "pageDescription": "Mọi email hệ thống đã gửi (OTP xác thực, đặt lại mật khẩu, lời mời Studio, email thử) và lý do khi gửi lỗi."
+  },
+  "emailHealth": {
+    "notConfiguredTitle": "Email hệ thống chưa được cấu hình",
+    "notConfiguredBody": "Chưa có cấu hình SMTP dùng được, nên người dùng sẽ không nhận được mã xác thực, mã đặt lại mật khẩu hay lời mời Studio.",
+    "lastFailedTitle": "Gửi email đang bị lỗi",
+    "lastFailedBody": "Lần gửi gần nhất ({date}) bị lỗi. {failed}/{total} email lỗi trong {hours} giờ qua.",
+    "openSettings": "Mở Cấu hình email",
+    "openLogs": "Xem Lịch sử email"
   }
 }

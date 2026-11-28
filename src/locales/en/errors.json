@@ -270,7 +270,8 @@
       "emailSettingsLoadFailed": "Could not load email settings.",
       "emailSettingsSaveFailed": "Could not save email settings.",
       "emailTestFailed": "Could not send the test email.",
-      "emailLogsLoadFailed": "Could not load the email delivery log."
+      "emailLogsLoadFailed": "Could not load the email delivery log.",
+      "emailHealthLoadFailed": "Could not load the email status."
     },
     "auth": {
       "unauthorized": "Session expired or invalid token (401 Unauthorized). Please sign in again.",

@@ -329,6 +329,20 @@ export type EmailMailType =
 /** TanStack Query key gốc của nhật ký gửi email; gửi thử xong thì làm mới. */
 export const EMAIL_LOGS_QUERY_KEY = ['adminEmailLogs'];
 
+/** GET /api/admin/email-health — trạng thái gửi email cho thẻ cảnh báo trên Tổng quan Admin. */
+export interface AdminEmailHealthDto {
+  status: 'OK' | 'NOT_CONFIGURED' | 'LAST_SEND_FAILED';
+  isConfigured: boolean;
+  /** NOT_CONFIGURED | PASSWORD_UNREADABLE khi chưa gửi được. */
+  problem: string | null;
+  lastSentAt: string | null;
+  lastSucceeded: boolean | null;
+  lastFailureReason: EmailFailureReason | null;
+  recentTotal: number;
+  recentFailed: number;
+  windowHours: number;
+}
+
 export const EMAIL_MAIL_TYPES: EmailMailType[] = [
   'VERIFICATION',
   'PASSWORD_RESET',
@@ -376,6 +390,10 @@ export interface EmailLogsQuery {
   succeeded?: boolean;
   mailType?: EmailMailType;
   search?: string;
+  /** ISO 8601 UTC, tính cả mốc này. */
+  from?: string;
+  /** ISO 8601 UTC, tính cả mốc này. */
+  to?: string;
   page: number;
   pageSize: number;
 }
@@ -847,6 +865,18 @@ export const adminService = {
       return data;
     } catch (error: any) {
       throw new Error(extractError(error, translate('errors.services.admin.emailLogsLoadFailed')));
+    }
+  },
+
+  /** GET /api/admin/email-health */
+  getEmailHealth: async (): Promise<AdminEmailHealthDto> => {
+    try {
+      const { data } = await axiosClient.get('/admin/email-health');
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.emailHealthLoadFailed')),
+      );
     }
   },
 
