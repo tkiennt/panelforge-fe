@@ -89,11 +89,8 @@ export const PublisherRevenueView: React.FC = () => {
             label={t('revenue.total')}
             value={vnd(s.totalRevenueVnd)}
             sub={
-              (s.vipRevenueVnd ?? 0) > 0 || (s.topupRevenueVnd ?? 0) > 0
-                ? t('publisher.revenue.vipTopupBreakdown', {
-                    vip: vnd(s.vipRevenueVnd ?? 0),
-                    topup: vnd(s.topupRevenueVnd ?? 0),
-                  })
+              (s.topupRevenueVnd ?? 0) > 0
+                ? t('publisher.revenue.topupBreakdown', { topup: vnd(s.topupRevenueVnd ?? 0) })
                 : undefined
             }
             highlight

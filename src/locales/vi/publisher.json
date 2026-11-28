@@ -133,7 +133,7 @@
     "filteredBySeriesClear": "Đang lọc theo 1 bộ truyện · Xem tất cả (gồm Nạp Ví & VIP)"
   },
   "revenue": {
-    "vipTopupBreakdown": "VIP: {vip} · Nạp Ví: {topup}"
+    "topupBreakdown": "Nạp Ví: {topup}"
   },
   "scheduleModal": {
     "title": "Xuất Bản & Lên Lịch Phát Hành",
