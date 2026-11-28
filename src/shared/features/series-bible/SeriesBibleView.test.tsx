@@ -1120,9 +1120,22 @@ describe('SeriesBibleView UX/UI improvements', () => {
           category: 'Character',
           revisionId: 'rev-rw-1',
           reviewStatus: 'ReworkRequired',
+          variantLabel: 'Trưởng thành',
+          versionNumber: 2,
           reworkFeedback: 'Vẽ lại giáp vai',
           isPriorityRework: true,
           updatedAt: '2026-11-26T00:00:00Z',
+        },
+        {
+          entryId: 'entry-chr-1',
+          code: 'CHR-01',
+          name: 'Tần Mục',
+          category: 'Character',
+          revisionId: 'rev-child-1',
+          reviewStatus: 'Draft',
+          variantLabel: 'Lúc nhỏ',
+          versionNumber: 1,
+          updatedAt: '2026-11-25T00:00:00Z',
         },
       ]);
 
@@ -1132,6 +1145,9 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(screen.getByTestId('queue-priority-rework-rev-rw-1')).toHaveTextContent(
         /Ưu tiên vẽ lại/i,
       );
+      expect(screen.getAllByTestId('open-concept-entry-chr-1')).toHaveLength(1);
+      expect(screen.getByText(/Trưởng thành · v2/)).toBeInTheDocument();
+      expect(screen.getByText(/Lúc nhỏ · v1/)).toBeInTheDocument();
 
       fireEvent.click(openQueueItem);
       expect(await screen.findByTestId('pending-draft-badge-detail')).toHaveTextContent(

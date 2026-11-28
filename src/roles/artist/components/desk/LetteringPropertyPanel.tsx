@@ -11,6 +11,7 @@ import {
   FileText,
   Italic,
   Loader2,
+  Maximize2,
   MessageCircle,
   Minus,
   Plus,
@@ -30,6 +31,7 @@ import {
   resolveAppearance,
   appearanceFromStyle,
 } from '@/shared/utils/balloonRender';
+import { layoutBalloonText, letteringCase } from '@/shared/lib/lettering/balloonRender';
 import {
   MAX_TEXT_FONT_PX,
   MIN_LETTERING_FONT_PX,
@@ -66,6 +68,7 @@ export interface LetteringPropertyPanelProps {
   onReloadPage?: () => Promise<void> | void;
   keepOutCollision?: KeepOutZone | null;
   onSuggestPosition?: () => void;
+  onFitBalloon?: () => void;
 }
 
 const SECTION_TITLE = 'text-xs font-semibold text-stone-800 flex items-center gap-1.5';
@@ -101,11 +104,23 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
   onReloadPage,
   keepOutCollision = null,
   onSuggestPosition,
+  onFitBalloon,
 }) => {
   const { t } = useTranslation('artist');
   const isOriginal = !activeLang || activeLang.toLowerCase() === originalLang.toLowerCase();
   const appearance = resolveAppearance(element.elementType, appearanceFromStyle(element.style));
   const text = resolveTextStyle(element);
+  const bubbleText =
+    activeLang && element.texts?.[activeLang] != null
+      ? element.texts[activeLang]
+      : (element.content ?? '');
+  const shown = layoutBalloonText(
+    letteringCase(bubbleText, activeLang),
+    text,
+    appearance.shape,
+    element.width,
+    element.height,
+  ).fontSize;
   const linked = Boolean(element.scriptLineId);
   // Thoại hiện hành của Writer (currentLineText) — chỉ đọc
   const scriptText = element.currentLineText ?? scriptLine?.dialogueText ?? null;
@@ -587,6 +602,27 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
             >
               <Plus className='w-3.5 h-3.5' />
             </button>
+            {shown < text.fontSize && (
+              <span
+                data-testid='lettering-font-shown'
+                title={t('letteringProperty.fontShrunkTitle', { size: shown })}
+                className='h-8 px-2 inline-flex items-center rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold'
+              >
+                {shown}px
+              </span>
+            )}
+            {onFitBalloon && shown < text.fontSize && !textReadOnly && (
+              <button
+                type='button'
+                data-testid='lettering-fit-balloon'
+                aria-label={t('letteringProperty.fitBalloon')}
+                title={t('letteringProperty.fitBalloon')}
+                onClick={onFitBalloon}
+                className={ICON_BTN(false)}
+              >
+                <Maximize2 className='w-3.5 h-3.5' />
+              </button>
+            )}
             <input
               type='color'
               data-testid='lettering-color-picker'

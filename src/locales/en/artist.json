@@ -143,6 +143,8 @@
     "decreaseFontAriaLabel": "Decrease font size",
     "fontSizeAriaLabel": "Font size (px)",
     "increaseFontAriaLabel": "Increase font size",
+    "fitBalloon": "Fit balloon",
+    "fontShrunkTitle": "Auto-shrunk to {{size}}px to fit",
     "textColorAriaLabel": "Text color",
     "boldAriaLabel": "Bold",
     "italicAriaLabel": "Italic",

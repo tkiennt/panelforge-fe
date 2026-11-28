@@ -74,3 +74,69 @@ describe('AddRevisionModal – biến thể có sẵn (BIB-02, Q23)', () => {
     expect(onConfirm.mock.calls[0][0].variantLabel).toBe('Lúc nhỏ');
   });
 });
+
+describe('AddRevisionModal – tạo biến thể mới', () => {
+  it('dùng bố cục ngang và kế thừa đầy đủ dữ liệu nhân vật hiện tại', () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const currentCharacter = {
+      ...entity,
+      detailsJson: '{}',
+      attributes: {
+        age: '20',
+        artistNotes: '- Chiều cao: 170 cm\n- Màu mắt: xanh',
+      },
+    } as any;
+
+    render(
+      <AddRevisionModal
+        isOpen
+        revisionTarget={currentCharacter}
+        supersedeTarget={null}
+        existingVariants={[]}
+        isNewVariantInitial
+        isArtistConceptSubmit={false}
+        isArtistResubmit={false}
+        isArtist={false}
+        isProducer={false}
+        revisionReworkFeedback={null}
+        initialVariantLabel=''
+        initialName='AKIRA'
+        initialSubtitle=''
+        initialSummary='Tạo biến thể thiết kế mới'
+        initialDescription=''
+        initialReferenceImageUrl='/api/series/s-1/bible/assets/reference'
+        expectedVersionNumber={2}
+        savingRevision={false}
+        uploadingRevImage={false}
+        onUploadImage={vi.fn()}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.getByTestId('revision-form-layout')).toHaveClass('lg:grid-cols-12');
+    expect(screen.getByTestId('revision-name-readonly')).toHaveTextContent('AKIRA');
+    expect(screen.getByTestId('revision-age-input')).toHaveValue('20');
+    expect(screen.getByTestId('spec-fields-editor').querySelector('textarea')).toHaveValue(
+      '- Chiều cao: 170 cm\n- Màu mắt: xanh',
+    );
+    fireEvent.change(screen.getByTestId('revision-variant-label-input'), {
+      target: { value: 'Trưởng thành' },
+    });
+    fireEvent.click(screen.getByTestId('save-revision-submit-btn'));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    const payload = onSubmit.mock.calls[0][0];
+    expect(payload).toMatchObject({
+      name: 'AKIRA',
+      variantLabel: 'Trưởng thành',
+      stageName: 'Trưởng thành',
+      isNewVariant: true,
+      referenceImageUrl: '/api/series/s-1/bible/assets/reference',
+    });
+    expect(JSON.parse(payload.detailsJson)).toMatchObject({
+      age: '20',
+      artistNotes: '- Chiều cao: 170 cm\n- Màu mắt: xanh',
+    });
+  });
+});

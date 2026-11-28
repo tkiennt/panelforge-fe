@@ -3424,6 +3424,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 onChangeStyle={(patch) =>
                   balloons.updateElementStyle(selectedBalloon.elementId, patch)
                 }
+                onFitBalloon={() => void balloons.fitElementToText(selectedBalloon.elementId)}
                 lineNumber={selectedLineNumber}
                 displayNumber={
                   (selectedBalloon.readingOrder ??
