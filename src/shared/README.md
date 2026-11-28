@@ -19,6 +19,7 @@ Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng 
 - **`production-workspace/`**: Khung bàn làm việc sản xuất và trình biên tập tác vụ đa năng (`WorkspaceView.tsx`, `TaskEditorView.tsx`, `ProducerSharedHeader.tsx` hỗ trợ `mode="chapter" | "series"`).
 - **`account/`**: Quản lý tài khoản cá nhân, xác thực hai lớp và đổi mật khẩu (`ChangePasswordModal.tsx`, `TwoFactorSetupModal.tsx`).
 - **`provenance/`** (CF4): Lịch sử & nguồn gốc chương: bản duyệt (snapshot), Provenance Report (Producer/Editor), lịch sử AI và lịch sử canvas từng trang có so sánh / khôi phục cho Producer, Artist (`ChapterProvenanceModal.tsx`, `PageHistoryPanel.tsx`, `provenanceRules.ts`).
+- **`ai-agents/`**: AI nằm trong màn làm việc của từng vai trò, mọi kết quả qua Chấp nhận / Từ chối (`SuggestionCard`), quyền do Backend kiểm. `AiAssistPanel` chạy một workflow theo Scene: Writer (Script, Storyboard), Artist (mô tả vẽ ImagePrompt), Editor (báo cáo review, không truyền `suggestionKind` vì không có đề xuất). `PanelAiTools` gắn dưới dải Panel ở bàn vẽ Artist (mô tả vẽ + Thumbnail AI cho Panel đang chọn). `PublisherMetadataModal` trong menu chương của Producer (gợi ý metadata phát hành; chỉ Producer chạy được theo `AiWorkflowPolicy`). Kiểm nhất quán ảnh của Editor dùng kiểm cấp chương ở tab Kiểm tra hình ảnh.
 
 ### 2.3 UI primitives (`src/shared/ui/`)
 

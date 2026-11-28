@@ -133,32 +133,6 @@ describe('panelService', () => {
     expect(result.message).toContain('Panel panel-1 đã được xóa');
   });
 
-  it('checkImageConsistency gọi đúng POST /api/panels/{panelId}/check-image-consistency với params và trả về ImageConsistencyResultDto', async () => {
-    const mockResult = {
-      panelId: 'panel-1',
-      characterId: 'char-10',
-      characterSheetUrl: 'https://example.com/sheet.png',
-      score: 0.88,
-      threshold: 0.75,
-      passed: true,
-      summaryReason: 'Khuôn mặt và trang phục khớp.',
-      deviations: [],
-      checkedAt: '2026-10-14T20:00:00Z',
-    };
-    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockResult });
-
-    const result = await panelService.checkImageConsistency('panel-1', {
-      revisionRef: 'rev-1',
-      threshold: 0.8,
-    });
-
-    expect(axiosClient.post).toHaveBeenCalledWith('/panels/panel-1/check-image-consistency', null, {
-      params: { revisionRef: 'rev-1', threshold: 0.8 },
-    });
-    expect(result).toEqual(mockResult);
-    expect(result.passed).toBe(true);
-  });
-
   it('ném lỗi có cấu trúc khi API thất bại', async () => {
     vi.mocked(axiosClient.post).mockRejectedValueOnce({
       response: {
@@ -210,39 +184,5 @@ describe('panelService', () => {
 
     await expect(fallback).rejects.toThrow('Phần này thuộc việc của người khác / đang chờ duyệt');
     await expect(fallback).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
-  });
-
-  it('checkImageConsistency giữ nguyên thông báo 403 (chỉ Producer/Editor) và 409 (chương chỉ đọc) từ Backend', async () => {
-    vi.mocked(axiosClient.post).mockRejectedValueOnce({
-      response: {
-        status: 403,
-        data: {
-          message:
-            'Bạn không có quyền thực hiện thao tác này trong Series. Yêu cầu một trong các vai trò: Producer, Editor.',
-        },
-      },
-    });
-
-    const forbidden = panelService.checkImageConsistency('panel-1');
-    await expect(forbidden).rejects.toThrow(
-      'Bạn không có quyền thực hiện thao tác này trong Series. Yêu cầu một trong các vai trò: Producer, Editor.',
-    );
-    await expect(forbidden).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
-
-    vi.mocked(axiosClient.post).mockRejectedValueOnce({
-      response: {
-        status: 409,
-        data: {
-          code: 'CONFLICT',
-          error: 'Chapter đang ở trạng thái ChapterApproved (chỉ đọc), không chạy kiểm tra mới.',
-        },
-      },
-    });
-
-    const conflict = panelService.checkImageConsistency('panel-1');
-    await expect(conflict).rejects.toThrow(
-      'Chapter đang ở trạng thái ChapterApproved (chỉ đọc), không chạy kiểm tra mới.',
-    );
-    await expect(conflict).rejects.toMatchObject({ code: 'CONFLICT', status: 409 });
   });
 });

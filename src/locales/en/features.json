@@ -129,6 +129,8 @@
       "draftSection": "Script draft",
       "continuitySection": "Series Bible consistency check",
       "storyboardSection": "Storyboard Layout (Paneling)",
+      "artistSection": "Per-panel drawing prompts",
+      "editorSection": "Editor review report (reference only)",
       "suggestionsSection": "Suggestions",
       "techDetails": "Technical details",
       "coordinatorAgent": "Coordinator",
@@ -261,6 +263,41 @@
       "confirmRequestChanges": "Confirm Request Changes",
       "cancel": "Cancel",
       "requestChanges": "Request Changes"
+    },
+    "panelTools": {
+      "title": "AI for the selected panel",
+      "imagePrompt": "AI drawing prompt",
+      "thumbnail": "AI thumbnail",
+      "thumbnailRunning": "Generating image…",
+      "noScene": "This panel is not linked to a scene, so a drawing prompt cannot be drafted yet.",
+      "hint": "AI only suggests. The thumbnail becomes a new artwork version when you accept it; older artwork is kept.",
+      "promptTitle": "Drawing prompt for panel",
+      "promptBriefLabel": "Notes for the AI (optional)",
+      "promptBriefPlaceholder": "e.g. low camera angle, sunset light, focus on facial expression",
+      "promptRunLabel": "Draft drawing prompt",
+      "decideFailed": "Could not send the decision, please try again."
+    },
+    "editorReview": {
+      "button": "AI review",
+      "sceneLabel": "Scene",
+      "title": "AI editorial review",
+      "briefLabel": "What the AI should focus on (optional)",
+      "briefPlaceholder": "e.g. dialogue pacing, forms of address, names against the Bible",
+      "runLabel": "Run review",
+      "hint": "The report is for reference only and does not change the script. Leave comments for the Writer as usual.",
+      "noScenes": "This chapter has no scenes to review yet."
+    },
+    "metadata": {
+      "menuLabel": "Suggest release metadata (AI)",
+      "title": "Suggest release metadata",
+      "description": "AI suggests a synopsis, genre, teaser and age rating from this chapter. Accepting writes the synopsis and genre to the series; the rest is for reference when publishing.",
+      "instructionLabel": "Notes for the AI (optional)",
+      "instructionPlaceholder": "e.g. light tone, do not spoil the chapter ending",
+      "run": "Get suggestion",
+      "running": "AI is drafting…",
+      "close": "Close",
+      "decideFailed": "Could not send the decision, please try again.",
+      "accepted": "Series synopsis and genre updated."
     }
   },
   "provenance": {

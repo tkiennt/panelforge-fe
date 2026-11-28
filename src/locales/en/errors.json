@@ -184,7 +184,6 @@
       "getSuggestionsFailed": "Failed to load AI suggestions.",
       "getSceneRevisionsFailed": "Failed to load revision history.",
       "getRunHistoryFailed": "Failed to load AI run history.",
-      "compareRevisionsFailed": "Failed to compare revisions.",
       "getProvenanceReportFailed": "Failed to load Provenance Report.",
       "getScenesFailed": "Failed to load scenes.",
       "reviewFailed": "Failed to record decision."
@@ -295,7 +294,6 @@
       "assignSceneFailed": "Failed to assign scene to panel.",
       "assignScriptLinesFailed": "Failed to anchor script lines to panel.",
       "deleteFailed": "Failed to delete panel.",
-      "checkImageConsistencyFailed": "Failed to check panel image consistency.",
       "splitterUnavailable": "Panel detection service is temporarily unavailable. You can still upload artwork and try detecting later.",
       "splitArtworkFailed": "Failed to split panels and speech balloons from page artwork."
     },

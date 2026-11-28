@@ -129,6 +129,8 @@
       "draftSection": "Bản nháp script",
       "continuitySection": "Đối chiếu với Series Bible",
       "storyboardSection": "Bố cục Storyboard (Phân khung)",
+      "artistSection": "Mô tả vẽ (prompt ảnh) theo Panel",
+      "editorSection": "Báo cáo review của Editor (tham khảo)",
       "suggestionsSection": "Đề xuất",
       "techDetails": "Chi tiết kỹ thuật",
       "coordinatorAgent": "Điều phối",
@@ -261,6 +263,41 @@
       "confirmRequestChanges": "Xác nhận Yêu cầu sửa",
       "cancel": "Huỷ",
       "requestChanges": "Yêu cầu sửa"
+    },
+    "panelTools": {
+      "title": "AI cho Panel đang chọn",
+      "imagePrompt": "Mô tả vẽ bằng AI",
+      "thumbnail": "Thumbnail AI",
+      "thumbnailRunning": "Đang sinh ảnh…",
+      "noScene": "Panel chưa gắn Scene nên chưa soạn mô tả vẽ được.",
+      "hint": "AI chỉ đề xuất. Ảnh Thumbnail thành artwork mới khi bạn bấm Chấp nhận; artwork cũ giữ nguyên.",
+      "promptTitle": "Mô tả vẽ cho Panel",
+      "promptBriefLabel": "Ghi chú cho AI (tuỳ chọn)",
+      "promptBriefPlaceholder": "Ví dụ: góc máy thấp, ánh sáng hoàng hôn, nhấn vào biểu cảm nhân vật",
+      "promptRunLabel": "Soạn mô tả vẽ",
+      "decideFailed": "Không gửi được quyết định, hãy thử lại."
+    },
+    "editorReview": {
+      "button": "Review bằng AI",
+      "sceneLabel": "Scene",
+      "title": "Review biên tập bằng AI",
+      "briefLabel": "Điểm cần AI chú ý (tuỳ chọn)",
+      "briefPlaceholder": "Ví dụ: kiểm nhịp thoại, xưng hô, tên riêng so với Bible",
+      "runLabel": "Chạy review",
+      "hint": "Báo cáo chỉ để tham khảo, không thay đổi kịch bản. Bạn góp ý cho Writer như bình thường.",
+      "noScenes": "Chương chưa có Scene để review."
+    },
+    "metadata": {
+      "menuLabel": "Gợi ý metadata phát hành (AI)",
+      "title": "Gợi ý metadata phát hành",
+      "description": "AI đề xuất tóm tắt, thể loại, teaser và độ tuổi từ chương này. Chấp nhận sẽ ghi tóm tắt và thể loại vào Series; phần còn lại để tham khảo khi đăng.",
+      "instructionLabel": "Ghi chú cho AI (tuỳ chọn)",
+      "instructionPlaceholder": "Ví dụ: giọng văn nhẹ nhàng, không tiết lộ kết chương",
+      "run": "Xin gợi ý",
+      "running": "AI đang soạn…",
+      "close": "Đóng",
+      "decideFailed": "Không gửi được quyết định, hãy thử lại.",
+      "accepted": "Đã cập nhật tóm tắt và thể loại của Series."
     }
   },
   "provenance": {

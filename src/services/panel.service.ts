@@ -8,7 +8,6 @@ import {
   UpdatePanelCoordinatesRequest,
   AssignPanelSceneRequest,
   AssignPanelScriptLinesRequest,
-  ImageConsistencyResultDto,
   PanelSplitResult,
   PageLayoutDto,
 } from '../types/pipeline';
@@ -135,24 +134,6 @@ export const panelService = {
       return response.data;
     } catch (error) {
       throw extractError(error, translate('errors.services.panel.deleteFailed'));
-    }
-  },
-
-  /**
-   * CF3 (V1.2): Chạy kiểm tra nhất quán hình ảnh AI (Bước A5) giữa Artwork của Panel và Character Sheet đã khóa
-   * POST /api/panels/{panelId}/check-image-consistency?revisionRef={string?}&threshold={decimal?}
-   */
-  async checkImageConsistency(
-    panelId: string,
-    params?: { revisionRef?: string; threshold?: number },
-  ): Promise<ImageConsistencyResultDto> {
-    try {
-      const response = await axiosClient.post(`/panels/${panelId}/check-image-consistency`, null, {
-        params,
-      });
-      return response.data;
-    } catch (error) {
-      throw extractError(error, translate('errors.services.panel.checkImageConsistencyFailed'));
     }
   },
 

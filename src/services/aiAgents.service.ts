@@ -545,35 +545,6 @@ export interface AiRunHistoryFilter {
   pageSize?: number;
 }
 
-export type DiffChangeType = 'Added' | 'Removed' | 'Modified' | 'Moved';
-
-export interface RevisionDiffEntry {
-  /** Script: `line:{lineId}`; loại khác: khoá JSON hoặc `[i]`; `$` = toàn bộ. */
-  path: string;
-  changeType: DiffChangeType;
-  oldValue?: string | null;
-  newValue?: string | null;
-}
-
-export interface RevisionSideDto {
-  id: string;
-  versionNumber: number;
-  kind: ContentRevisionKind;
-  summary: string;
-  contentHash: string;
-  sourceSuggestionId?: string | null;
-  createdBy?: string | null;
-  createdAt: string;
-}
-
-export interface RevisionDiffResponse {
-  left: RevisionSideDto;
-  right: RevisionSideDto;
-  differences: RevisionDiffEntry[];
-  leftPayload?: unknown;
-  rightPayload?: unknown;
-}
-
 export type ProvenanceNodeType =
   'Run' | 'Step' | 'Suggestion' | 'Decision' | 'Revision' | 'Snapshot';
 
@@ -826,26 +797,6 @@ export const aiAgentsService = {
       return res.data;
     } catch (e) {
       throw toError(e, translate('errors.services.aiAgents.getRunHistoryFailed'));
-    }
-  },
-
-  /** CF4 / UC-18: so sánh hai revision cùng loại của một Scene (script so theo từng dòng). */
-  async compareRevisions(
-    seriesId: string,
-    sceneId: string,
-    left: string,
-    right: string,
-  ): Promise<RevisionDiffResponse> {
-    try {
-      const res = await axiosClient.get(
-        `/series/${seriesId}/ai/scenes/${sceneId}/revisions/compare`,
-        {
-          params: { left, right },
-        },
-      );
-      return res.data;
-    } catch (e) {
-      throw toError(e, translate('errors.services.aiAgents.compareRevisionsFailed'));
     }
   },
 

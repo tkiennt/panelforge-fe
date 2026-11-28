@@ -184,7 +184,6 @@
       "getSuggestionsFailed": "Không thể tải danh sách đề xuất.",
       "getSceneRevisionsFailed": "Không thể tải lịch sử revision.",
       "getRunHistoryFailed": "Không thể tải lịch sử AI.",
-      "compareRevisionsFailed": "Không thể so sánh hai revision.",
       "getProvenanceReportFailed": "Không thể tải Provenance Report.",
       "getScenesFailed": "Không thể tải danh sách Scene.",
       "reviewFailed": "Không thể ghi quyết định."
@@ -295,7 +294,6 @@
       "assignSceneFailed": "Không thể gán phân cảnh (Scene) cho panel.",
       "assignScriptLinesFailed": "Không thể neo các dòng kịch bản vào panel.",
       "deleteFailed": "Không thể xóa panel.",
-      "checkImageConsistencyFailed": "Không thể kiểm tra tính nhất quán hình ảnh cho panel.",
       "splitterUnavailable": "Dịch vụ nhận diện tạm thời chưa khả dụng. Bạn vẫn có thể tải bản vẽ và thử nhận diện lại sau.",
       "splitArtworkFailed": "Không thể tách panel và bong bóng thoại từ ảnh trang."
     },

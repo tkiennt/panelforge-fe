@@ -8,8 +8,12 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Play,
+  Sparkles,
   Users,
 } from 'lucide-react';
+import { aiAgentsService, type SceneLite } from '@/services/aiAgents.service';
+import { AiAssistPanel } from '@/shared/features/ai-agents/AiAssistPanel';
+import { toAiReadingDirection } from '@/shared/features/ai-agents/aiViewUtils';
 import { buildBibleUrl } from '@/app/routePaths';
 import { Badge } from '@/shared/ui';
 import { useTranslation } from '@/lib/i18n';
@@ -136,6 +140,29 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const role = (workspaceRole ?? '').toLowerCase();
   const isProducer = ['producer', 'owner'].includes(role);
   const isEditor = role === 'editor';
+
+  // FE #31: review biên tập bằng AI theo Scene (workflow Editor, chỉ ra báo cáo, không có Accept)
+  const { t: tf } = useTranslation('features');
+  const canAiReview = isEditor || isProducer;
+  const [aiScenes, setAiScenes] = useState<SceneLite[]>([]);
+  const [aiSceneId, setAiSceneId] = useState('');
+  const [aiReviewOpen, setAiReviewOpen] = useState(false);
+  useEffect(() => {
+    if (!chapterId || !canAiReview) return;
+    let alive = true;
+    aiAgentsService
+      .getScenesByChapter(chapterId)
+      .then((list) => {
+        if (!alive) return;
+        const sorted = [...list].sort((a, b) => a.sceneNumber - b.sceneNumber);
+        setAiScenes(sorted);
+        setAiSceneId((prev) => (sorted.some((s) => s.id === prev) ? prev : (sorted[0]?.id ?? '')));
+      })
+      .catch(() => alive && setAiScenes([]));
+    return () => {
+      alive = false;
+    };
+  }, [chapterId, canAiReview]);
 
   const loadData = useCallback(async () => {
     if (!chapterId) return;
@@ -840,32 +867,95 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                   <p className='p-4 text-xs text-stone-500'>{t('scriptReview.pushed.none')}</p>
                 )
               ) : (
-                <ChecksTab
-                  chapter={chapter}
-                  cast={cast}
-                  findings={findings}
-                  locateLabel={locateLabel}
-                  onSelectAnchor={selectAnchor}
-                  canTriage={isEditor || isProducer}
-                  canComment={canComment}
-                  isProducer={isProducer}
-                  busy={busy}
-                  onRunCheck={handleRunCheck}
-                  checkedAt={checkedAt}
-                  onTriage={handleTriage}
-                  onFindingToComment={handleFindingToComment}
-                  openComments={openComments}
-                  onOpenEntities={() => setTab('entities')}
-                  onFreeze={handleStartProduction}
-                  onUnfreeze={(reason) =>
-                    chapterAction('freeze', () => chapterService.unfreezeScript(chapterId, reason))
-                  }
-                />
+                <>
+                  {canAiReview && (
+                    <div
+                      data-testid='editor-ai-review'
+                      className='space-y-2 border-b border-stone-200 p-4'
+                    >
+                      {aiScenes.length > 0 ? (
+                        <div className='flex flex-wrap items-end gap-2'>
+                          <label className='flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium text-stone-700'>
+                            {tf('aiAgents.editorReview.sceneLabel')}
+                            <select
+                              data-testid='editor-ai-review-scene'
+                              value={aiSceneId}
+                              onChange={(e) => setAiSceneId(e.target.value)}
+                              className='rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-xs'
+                            >
+                              {aiScenes.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {`#${s.sceneNumber}${s.heading ? ` · ${s.heading}` : ''}`}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <button
+                            type='button'
+                            data-testid='editor-ai-review-open'
+                            disabled={!aiSceneId || !chapter}
+                            onClick={() => setAiReviewOpen(true)}
+                            className='inline-flex items-center gap-1 rounded-full bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-50'
+                          >
+                            <Sparkles className='h-3.5 w-3.5' aria-hidden='true' />
+                            {tf('aiAgents.editorReview.button')}
+                          </button>
+                        </div>
+                      ) : (
+                        <p className='text-xs text-stone-500'>
+                          {tf('aiAgents.editorReview.noScenes')}
+                        </p>
+                      )}
+                      <p className='text-xs text-stone-500'>{tf('aiAgents.editorReview.hint')}</p>
+                    </div>
+                  )}
+                  <ChecksTab
+                    chapter={chapter}
+                    cast={cast}
+                    findings={findings}
+                    locateLabel={locateLabel}
+                    onSelectAnchor={selectAnchor}
+                    canTriage={isEditor || isProducer}
+                    canComment={canComment}
+                    isProducer={isProducer}
+                    busy={busy}
+                    onRunCheck={handleRunCheck}
+                    checkedAt={checkedAt}
+                    onTriage={handleTriage}
+                    onFindingToComment={handleFindingToComment}
+                    openComments={openComments}
+                    onOpenEntities={() => setTab('entities')}
+                    onFreeze={handleStartProduction}
+                    onUnfreeze={(reason) =>
+                      chapterAction('freeze', () =>
+                        chapterService.unfreezeScript(chapterId, reason),
+                      )
+                    }
+                  />
+                </>
               )}
             </div>
           </aside>
         )}
       </div>
+      {aiReviewOpen && chapter && seriesId && aiSceneId && (
+        <AiAssistPanel
+          key={`editor-${aiSceneId}`}
+          seriesId={seriesId}
+          chapterId={chapterId}
+          sceneId={aiSceneId}
+          workflowType='Editor'
+          title={tf('aiAgents.editorReview.title')}
+          briefLabel={tf('aiAgents.editorReview.briefLabel')}
+          briefPlaceholder={tf('aiAgents.editorReview.briefPlaceholder')}
+          runLabel={tf('aiAgents.editorReview.runLabel')}
+          readingDirection={toAiReadingDirection(series?.readingDirection)}
+          chapterVersion={chapter.versionVector}
+          nameById={Object.fromEntries(seriesBibleEntries.map((e) => [e.id, e.name]))}
+          onClose={() => setAiReviewOpen(false)}
+          onReload={() => loadData()}
+        />
+      )}
       {startOpen && chapter && chapter.status === 'InProduction' && (
         <RefreezeScriptModal
           isOpen

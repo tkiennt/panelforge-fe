@@ -23,6 +23,7 @@ import {
   Rocket,
   Share2,
   ShieldAlert,
+  Sparkles,
   Trash2,
   Unlock,
 } from 'lucide-react';
@@ -46,6 +47,7 @@ import { ChapterAssignmentsModal } from '../modals/ChapterAssignmentsModal';
 import { ChapterEditionsModal } from '../modals/ChapterEditionsModal';
 import { PreviewLinksModal } from '../modals/PreviewLinksModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
+import { PublisherMetadataModal } from '@/shared/features/ai-agents/PublisherMetadataModal';
 import { ReasonForm } from '@/shared/components/ReasonForm';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
 import {
@@ -107,6 +109,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   workspaceRole,
 }) => {
   const { t, lang } = useTranslation('production');
+  const { t: tf } = useTranslation('features');
   const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
   const navigate = useNavigate();
   const { workspaceId = '', seriesId = '' } = useParams<{
@@ -149,6 +152,7 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
   const [assignmentsOpen, setAssignmentsOpen] = useState(false);
   const [editionsOpen, setEditionsOpen] = useState(false);
   const [provenanceOpen, setProvenanceOpen] = useState(false);
+  const [metadataOpen, setMetadataOpen] = useState(false);
   const [previewLinksOpen, setPreviewLinksOpen] = useState(false);
   const [deleteTargetChapter, setDeleteTargetChapter] = useState<ChapterDto | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -1530,6 +1534,18 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
                       <Share2 className='w-3.5 h-3.5 text-stone-500' />
                       <span>Link xem thử (Preview)</span>
                     </button>
+                    <button
+                      type='button'
+                      data-testid='chapter-tools-metadata-ai'
+                      onClick={() => {
+                        setToolsMenuOpen(false);
+                        setMetadataOpen(true);
+                      }}
+                      className='w-full px-3.5 py-2 text-left hover:bg-stone-50 flex items-center gap-2 text-stone-700 cursor-pointer'
+                    >
+                      <Sparkles className='w-3.5 h-3.5 text-violet-600' />
+                      <span>{tf('aiAgents.metadata.menuLabel')}</span>
+                    </button>
                     <div className='my-1 border-t border-stone-100' />
                     <button
                       type='button'
@@ -2038,6 +2054,20 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
               chapterTitle={chapter.title}
               viewerRole={workspaceRole}
               onClose={() => setProvenanceOpen(false)}
+            />
+          )}
+          {metadataOpen && (
+            <PublisherMetadataModal
+              seriesId={seriesId}
+              chapterId={chapter.id}
+              chapterLabel={`#${chapter.chapterNumber}${chapter.title ? ` · ${chapter.title}` : ''}`}
+              onClose={() => setMetadataOpen(false)}
+              onAccepted={() =>
+                seriesService
+                  .getSeriesById(seriesId)
+                  .then(setSeries)
+                  .catch(() => undefined)
+              }
             />
           )}
         </>

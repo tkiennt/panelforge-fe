@@ -151,8 +151,8 @@ interface Props {
   sceneId: string;
   /** Nhiệm vụ AI của panel. Bước 1 (Writer) dùng 'Script'. */
   workflowType: AiWorkflowType;
-  /** Loại đề xuất mà panel này hiển thị để quyết định. */
-  suggestionKind: AiSuggestionKind;
+  /** Loại đề xuất mà panel này hiển thị để quyết định. Bỏ trống với nhiệm vụ chỉ ra báo cáo (Editor). */
+  suggestionKind?: AiSuggestionKind;
   title: string;
   briefLabel: string;
   briefPlaceholder: string;
@@ -757,6 +757,8 @@ export const AiAssistPanel: React.FC<Props> = ({
   const draftStep = latestStep(steps, 'Writer');
   const continuityStep = latestStep(steps, 'Continuity');
   const storyboardStep = latestStep(steps, 'Storyboard');
+  const artistStep = latestStep(steps, 'Artist');
+  const editorStep = latestStep(steps, 'Editor');
   const suggestions = (run?.suggestions ?? []).filter((s) => s.kind === suggestionKind);
   const pendingScript =
     suggestions.find((s) => s.kind === 'Script' && s.status === 'Pending') ?? null;
@@ -1589,6 +1591,24 @@ export const AiAssistPanel: React.FC<Props> = ({
               nameById={nameById}
               lines={lines}
             />
+          </section>
+        )}
+
+        {artistStep && (
+          <section data-testid='ai-artist'>
+            <h3 className='mb-1.5 text-xs font-bold uppercase tracking-wide text-[#737373]'>
+              {tf('aiAgents.assist.artistSection')}
+            </h3>
+            <StepOutputView step={artistStep} allSteps={steps} nameById={nameById} lines={lines} />
+          </section>
+        )}
+
+        {editorStep && (
+          <section data-testid='ai-editor-report'>
+            <h3 className='mb-1.5 text-xs font-bold uppercase tracking-wide text-[#737373]'>
+              {tf('aiAgents.assist.editorSection')}
+            </h3>
+            <StepOutputView step={editorStep} allSteps={steps} nameById={nameById} lines={lines} />
           </section>
         )}
 

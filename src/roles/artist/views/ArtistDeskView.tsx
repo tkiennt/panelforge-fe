@@ -66,6 +66,7 @@ import {
 import { LanguageSelector } from '@/shared/components/LanguageSelector';
 import { suggestBalloonType } from '../utils/letteringScript';
 import { LetteringPropertyPanel } from '../components/desk/LetteringPropertyPanel';
+import { PanelAiTools } from '@/shared/features/ai-agents/PanelAiTools';
 import { classifyScriptLine } from '@/shared/utils/textStyle';
 import {
   DEFAULT_ARTIST_STAGES,
@@ -1947,6 +1948,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     () => (selectedPage ? panelsByPageId[selectedPage.id] || [] : []),
     [selectedPage, panelsByPageId],
   );
+  // FE #31: AI cho Panel đang chọn — chỉ Panel đã lưu (có id thật ở Backend)
+  const aiPanel = useMemo(
+    () =>
+      selectedPage && selectedPanelId
+        ? ((persistedPanelsByPageId[selectedPage.id] || []).find((p) => p.id === selectedPanelId) ??
+          null)
+        : null,
+    [selectedPage, selectedPanelId, persistedPanelsByPageId],
+  );
+  const aiNameById = useMemo(
+    () => Object.fromEntries(rawBibleEntries.map((e) => [e.id, e.name])),
+    [rawBibleEntries],
+  );
   // ART-06: khung có tranh vừa đổi dưới bóng thoại; người làm tranh/chữ xác nhận đã kiểm tra để gỡ cờ
   const balloonCheckCount = useMemo(
     () => currentPagePanels.filter((p) => p.balloonCheckRequired).length,
@@ -3545,6 +3559,27 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               onRemoveArtwork={handleRemovePanelArtwork}
             />
           )}
+
+          {aiPanel &&
+            seriesId &&
+            currentChapterId &&
+            selectedPage &&
+            (normalizedDeskRole === 'ARTIST' || normalizedDeskRole === 'PRODUCER') && (
+              <PanelAiTools
+                seriesId={seriesId}
+                chapterId={currentChapterId}
+                panelId={aiPanel.id}
+                sceneId={aiPanel.sceneId}
+                chapterVersion={chapters.find((c) => c.id === currentChapterId)?.versionVector ?? 0}
+                readingDirection={isRTL ? 'RightToLeft' : 'LeftToRight'}
+                nameById={aiNameById}
+                onReload={() =>
+                  loadPageArtworks(currentChapterId, [selectedPage], currentStageId, {
+                    [selectedPage.id]: currentPagePanels,
+                  })
+                }
+              />
+            )}
 
           <ArtistBottomPageStrip
             pages={pages}

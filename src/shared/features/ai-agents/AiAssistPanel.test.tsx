@@ -1731,3 +1731,55 @@ describe('AiAssistPanel · nâng cấp Script Writer (nhóm 1 & 2)', () => {
     expect(screen.getByTestId('ai-run-btn')).toBeDisabled();
   });
 });
+
+describe('AiAssistPanel (Editor · báo cáo review, FE #31)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    sessionStorage.clear();
+    vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([suggestion()]);
+    vi.spyOn(aiAgentsService, 'getSceneRevisions').mockResolvedValue([]);
+    vi.spyOn(aiAgentsService, 'getWorkflowAvailability').mockResolvedValue({
+      chapterId: 'c1',
+      sceneId: 'sc1',
+      workflows: [avail({ workflowType: 'Editor', resultKinds: [] })],
+    });
+  });
+
+  it('không có suggestionKind: chạy workflow Editor, hiện báo cáo và không hiện đề xuất Script của Writer', async () => {
+    const runWorkflow = vi
+      .spyOn(aiAgentsService, 'runWorkflow')
+      .mockResolvedValue({ runId: 'r1', status: 'Queued', provider: 'Mock', model: 'm' });
+    vi.spyOn(aiAgentsService, 'getRun').mockResolvedValue(
+      run({
+        workflowType: 'Editor',
+        steps: [
+          step({
+            agent: 'Editor',
+            output: {
+              schemaVersion: 1,
+              runId: 'r1',
+              verdict: 'RequestChanges',
+              summary: 'Thoại cảnh 2 quá dài',
+              checklist: [],
+              items: [],
+            },
+          }),
+        ],
+        suggestions: [suggestion()],
+      }),
+    );
+    renderPanel({ workflowType: 'Editor', suggestionKind: undefined });
+
+    await screen.findByLabelText('Brief');
+    typeBrief('Kiểm nhịp thoại');
+    await waitFor(() => expect(screen.getByTestId('ai-run-btn')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('ai-run-btn'));
+
+    expect(await screen.findByTestId('ai-editor-report')).toHaveTextContent('Thoại cảnh 2 quá dài');
+    expect(runWorkflow).toHaveBeenCalledWith(
+      's1',
+      expect.objectContaining({ workflowType: 'Editor', sceneId: 'sc1' }),
+    );
+    expect(screen.queryByTestId('ai-suggestions')).not.toBeInTheDocument();
+  });
+});
