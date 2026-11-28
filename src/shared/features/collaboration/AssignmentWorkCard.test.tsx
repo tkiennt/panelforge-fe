@@ -224,7 +224,7 @@ describe('AssignmentWorkCard: người nhận', () => {
 
     expect(await screen.findByTestId('submit-blocked-reason')).toHaveTextContent('artwork');
     expect(screen.getByRole('button', { name: 'Nộp bài' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Tải artwork lên' })).toBeInTheDocument();
+    expect(screen.getByTestId('artwork-upload-btn')).toBeInTheDocument();
   });
 
   it('chưa nạp xong chi tiết thì chưa cho nộp (tránh bật nút rồi mới tắt)', () => {
