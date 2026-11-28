@@ -2159,6 +2159,16 @@
       "open": "Mở chương",
       "chapterNumber": "Chương {number}",
       "progressAria": "Tiến độ chương {number}"
+    },
+    "workload": {
+      "title": "Tải việc ê-kíp",
+      "colName": "Tên",
+      "colRole": "Vai trò",
+      "colOpen": "Đang làm",
+      "colOverdue": "Trễ",
+      "colWaitingReview": "Chờ duyệt",
+      "colDone": "Xong",
+      "viewAll": "Xem ê-kíp & tải việc"
     }
   }
 }

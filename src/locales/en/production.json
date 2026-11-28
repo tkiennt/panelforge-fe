@@ -2159,6 +2159,16 @@
       "open": "Open chapter",
       "chapterNumber": "Chapter {number}",
       "progressAria": "Chapter {number} progress"
+    },
+    "workload": {
+      "title": "Crew workload",
+      "colName": "Name",
+      "colRole": "Role",
+      "colOpen": "Open",
+      "colOverdue": "Overdue",
+      "colWaitingReview": "Waiting review",
+      "colDone": "Done",
+      "viewAll": "View crew & workload"
     }
   }
 }
