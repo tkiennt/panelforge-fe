@@ -593,6 +593,7 @@
     "forceReleaseReviewBtn": "Force release review",
     "releaseReviewToast": "Review lock released",
     "inputOutdatedBadge": "Input changed",
+    "awaitingStageBadge": "Waiting for {stage}",
     "wholeChapter": "Whole chapter",
     "unassigned": "Unassigned",
     "loadingGate2": "Loading Gate 2 review screen...",

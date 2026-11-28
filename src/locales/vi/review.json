@@ -593,6 +593,7 @@
     "forceReleaseReviewBtn": "Gỡ khoá duyệt",
     "releaseReviewToast": "Đã nhả khoá duyệt",
     "inputOutdatedBadge": "Đầu vào đã đổi",
+    "awaitingStageBadge": "Chờ {stage}",
     "wholeChapter": "Toàn chương",
     "unassigned": "Chưa giao",
     "loadingGate2": "Đang nạp màn hình kiểm duyệt Gate 2...",

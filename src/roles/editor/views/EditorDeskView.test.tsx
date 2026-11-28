@@ -561,4 +561,41 @@ describe('EditorDeskView Component', () => {
     expect(screen.getByText('Trang 2')).toBeInTheDocument();
     expect(screen.getByText('Trang 3')).toBeInTheDocument();
   });
+
+  it('AG-P2: hiển thị badge "Chờ {stage}" và khoá nút Duyệt khi awaitingStageName khác null', async () => {
+    vi.spyOn(assignmentService, 'getEditorReviewQueue').mockResolvedValue([]);
+    vi.spyOn(assignmentService, 'getTaskGridReviewQueue').mockResolvedValue([
+      {
+        taskId: 'grid-task-awaiting-letter',
+        seriesId: 'series-001',
+        seriesTitle: 'Đại Chiến Thần Binh',
+        chapterId: 'chap-101',
+        chapterNumber: 12,
+        pipelineStageId: 'stg-color',
+        stageName: 'Color',
+        pageId: 'page-005',
+        pageNumber: 5,
+        status: 'Submitted',
+        assigneeUserId: 'usr-artist-1',
+        reviewerUserId: null,
+        isInputOutdated: false,
+        awaitingStageName: 'Letter',
+        attemptNumber: 1,
+        submittedAt: '2026-11-14T10:30:00Z',
+      },
+    ]);
+    vi.spyOn(seriesService, 'getSeriesById').mockResolvedValue({ id: 'series-001' } as any);
+
+    renderView({ currentUserId: 'usr-editor-1', workspaceRole: 'EDITOR' });
+
+    await waitFor(() => {
+      expect(screen.getByText('Trang 5')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('editor-awaiting-stage-grid-task-awaiting-letter')).toHaveTextContent(
+      'Chờ Letter',
+    );
+    expect(screen.getByTestId('editor-approve-grid-grid-task-awaiting-letter')).toBeDisabled();
+    expect(screen.getByTestId('editor-reject-toggle-grid-task-awaiting-letter')).not.toBeDisabled();
+  });
 });
