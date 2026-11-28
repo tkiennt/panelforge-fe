@@ -100,6 +100,7 @@
       "users": "Người dùng & quyền",
       "aiConfig": "Cấu hình AI",
       "sessionPolicy": "Chính sách phiên",
+      "emailSettings": "Cấu hình email",
       "audit": "Nhật ký hệ thống",
       "analytics": "Thống kê độc giả",
       "resources": "Tài nguyên & hạn mức",
@@ -844,5 +845,34 @@
     "invalid": "Giá phải là số nguyên trong khoảng cho phép.",
     "save": "Lưu giá",
     "saved": "Đã đặt giá gói mở Studio: {price}."
+  },
+  "emailSettings": {
+    "title": "Cấu hình email",
+    "description": "Tài khoản SMTP hệ thống dùng để gửi mã OTP xác thực tài khoản, đặt lại mật khẩu và lời mời vào Studio.",
+    "cardTitle": "Máy chủ gửi mail (SMTP)",
+    "cardDescription": "Mỗi lần lưu được ghi vào nhật ký hệ thống. Mật khẩu được mã hoá và không hiển thị lại.",
+    "statusConfigured": "Đang dùng cấu hình này",
+    "statusFallback": "Chưa cấu hình trong app",
+    "changed": "Lưu lần cuối {date} bởi {name}",
+    "server": "Máy chủ SMTP",
+    "serverHint": "Gmail: smtp.gmail.com",
+    "port": "Cổng",
+    "portHint": "Gmail dùng 587 (STARTTLS)",
+    "senderName": "Tên người gửi",
+    "senderEmail": "Email gửi đi",
+    "password": "Mật khẩu SMTP",
+    "passwordHint": "Với Gmail, dùng Mật khẩu ứng dụng (App Password), không dùng mật khẩu đăng nhập.",
+    "passwordKeep": "Để trống để giữ mật khẩu đã lưu.",
+    "save": "Lưu cấu hình",
+    "saved": "Đã lưu cấu hình email.",
+    "sendTest": "Gửi email thử",
+    "testSent": "Đã gửi email thử tới {email}.",
+    "errors": {
+      "server": "Nhập tên máy chủ, ví dụ smtp.gmail.com.",
+      "port": "Cổng phải từ 1 đến 65535.",
+      "senderName": "Nhập tên người gửi.",
+      "senderEmail": "Email gửi đi không hợp lệ.",
+      "passwordRequired": "Nhập mật khẩu SMTP cho lần cấu hình đầu tiên."
+    }
   }
 }

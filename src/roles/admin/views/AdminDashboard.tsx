@@ -6,6 +6,7 @@ import { AdminAuditLogView } from './AdminAuditLogView';
 import { AIConfigurationView } from './modules/AIConfigurationView';
 import { ResourcesView } from './modules/resources/ResourcesView';
 import { SessionPolicySettings } from './modules/SessionPolicySettings';
+import { EmailSettingsView } from './modules/EmailSettingsView';
 import { ReaderStatsView } from '@/shared/views/ReaderStatsView';
 import { AdminUserDetailView } from './modules/details/AdminUserDetailView';
 import { AdminStudioDetailView } from './modules/details/AdminStudioDetailView';
@@ -18,6 +19,7 @@ export type AdminTab =
   | 'ai-config'
   | 'resources'
   | 'session-policy'
+  | 'email-settings'
   | 'audit'
   | 'analytics'
   | 'system-health';
@@ -29,6 +31,7 @@ const VALID_TABS: AdminTab[] = [
   'ai-config',
   'resources',
   'session-policy',
+  'email-settings',
   'audit',
   'analytics',
   'system-health',
@@ -99,6 +102,7 @@ export const AdminDashboard: React.FC = () => {
             <ResourcesView />
           ))}
         {activeTab === 'session-policy' && <SessionPolicySettings />}
+        {activeTab === 'email-settings' && <EmailSettingsView />}
         {activeTab === 'audit' && (
           <AdminAuditLogView
             key={searchParams.get('userEmail') ?? ''}

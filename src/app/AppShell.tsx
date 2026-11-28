@@ -50,6 +50,7 @@ import {
   Plus,
   FileCheck,
   HardDrive,
+  Mail,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { StudioHubTabBar } from './StudioHubTabBar';
@@ -118,6 +119,11 @@ const getRoleNavConfig = (
           icon: Shield,
           label: t('admin.nav.items.sessionPolicy'),
           href: '/admin?tab=session-policy',
+        },
+        {
+          icon: Mail,
+          label: t('admin.nav.items.emailSettings'),
+          href: '/admin?tab=email-settings',
         },
       ],
     },

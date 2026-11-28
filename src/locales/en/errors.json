@@ -266,7 +266,10 @@
       "getWorkspacesFailed": "Failed to load Studio Workspaces.",
       "updateWorkspaceQuotaFailed": "Failed to update Workspace storage quota.",
       "studioPackageLoadFailed": "Could not load the studio package price.",
-      "studioPackageSaveFailed": "Could not save the studio package price."
+      "studioPackageSaveFailed": "Could not save the studio package price.",
+      "emailSettingsLoadFailed": "Could not load email settings.",
+      "emailSettingsSaveFailed": "Could not save email settings.",
+      "emailTestFailed": "Could not send the test email."
     },
     "auth": {
       "unauthorized": "Session expired or invalid token (401 Unauthorized). Please sign in again.",

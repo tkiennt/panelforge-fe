@@ -266,7 +266,10 @@
       "getWorkspacesFailed": "Không thể tải danh sách Studio Workspace.",
       "updateWorkspaceQuotaFailed": "Không thể cập nhật hạn mức lưu trữ (Quota) của Workspace.",
       "studioPackageLoadFailed": "Không tải được giá gói mở Studio.",
-      "studioPackageSaveFailed": "Không lưu được giá gói mở Studio."
+      "studioPackageSaveFailed": "Không lưu được giá gói mở Studio.",
+      "emailSettingsLoadFailed": "Không tải được cấu hình email.",
+      "emailSettingsSaveFailed": "Không lưu được cấu hình email.",
+      "emailTestFailed": "Không gửi được email thử."
     },
     "auth": {
       "unauthorized": "Phiên đăng nhập đã hết hạn hoặc token không hợp lệ (401 Unauthorized). Vui lòng đăng nhập lại.",

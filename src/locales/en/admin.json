@@ -100,6 +100,7 @@
       "users": "Users & Roles",
       "aiConfig": "AI Configuration",
       "sessionPolicy": "Session Policy",
+      "emailSettings": "Email settings",
       "audit": "Audit Logs",
       "analytics": "Reader Analytics",
       "resources": "Resources & quotas",
@@ -844,5 +845,34 @@
     "invalid": "The price must be a whole number within the allowed range.",
     "save": "Save price",
     "saved": "Studio package price set to {price}."
+  },
+  "emailSettings": {
+    "title": "Email settings",
+    "description": "System SMTP account used to send account verification codes, password resets and Studio invitations.",
+    "cardTitle": "Mail server (SMTP)",
+    "cardDescription": "Every save is recorded in the system log. The password is encrypted and never shown again.",
+    "statusConfigured": "In use",
+    "statusFallback": "Not configured in the app",
+    "changed": "Last saved {date} by {name}",
+    "server": "SMTP server",
+    "serverHint": "Gmail: smtp.gmail.com",
+    "port": "Port",
+    "portHint": "Gmail uses 587 (STARTTLS)",
+    "senderName": "Sender name",
+    "senderEmail": "Sender email",
+    "password": "SMTP password",
+    "passwordHint": "For Gmail, use an App Password, not your sign-in password.",
+    "passwordKeep": "Leave blank to keep the saved password.",
+    "save": "Save settings",
+    "saved": "Email settings saved.",
+    "sendTest": "Send test email",
+    "testSent": "Test email sent to {email}.",
+    "errors": {
+      "server": "Enter a server name, e.g. smtp.gmail.com.",
+      "port": "Port must be between 1 and 65535.",
+      "senderName": "Enter a sender name.",
+      "senderEmail": "Sender email is not valid.",
+      "passwordRequired": "Enter the SMTP password for the first setup."
+    }
   }
 }

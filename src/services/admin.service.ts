@@ -288,6 +288,30 @@ function extractError(error: any, defaultMsg: string): string {
   return defaultMsg;
 }
 
+/**
+ * Cấu hình SMTP gửi email hệ thống. API không bao giờ trả mật khẩu; `hasPassword` cho biết đã lưu chưa.
+ * `isConfigured = false`: chưa lưu trong app, Backend dùng EmailConfiguration của appsettings / biến môi trường.
+ */
+export interface AdminEmailSettingsDto {
+  isConfigured: boolean;
+  smtpServer: string | null;
+  smtpPort: number | null;
+  senderName: string | null;
+  senderEmail: string | null;
+  hasPassword: boolean;
+  changedAt: string | null;
+  changedByName: string | null;
+}
+
+/** `password` để trống = giữ mật khẩu đã lưu (bắt buộc ở lần lưu đầu). */
+export interface UpdateEmailSettingsRequest {
+  smtpServer: string;
+  smtpPort: number;
+  senderName: string;
+  senderEmail: string;
+  password: string | null;
+}
+
 /** Gói mở Studio (spec D11) cho Admin: giá hiện hành (null = chưa bán) và số lượt đã mua. */
 export interface AdminStudioPackageDto {
   priceVnd: number | null;
@@ -692,6 +716,42 @@ export const adminService = {
       throw new Error(
         extractError(error, translate('errors.services.admin.studioPackageSaveFailed')),
       );
+    }
+  },
+
+  /** GET /api/admin/email-settings */
+  getEmailSettings: async (): Promise<AdminEmailSettingsDto> => {
+    try {
+      const { data } = await axiosClient.get('/admin/email-settings');
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.emailSettingsLoadFailed')),
+      );
+    }
+  },
+
+  /** PUT /api/admin/email-settings — thêm một bản cấu hình mới (append-only, có audit). */
+  updateEmailSettings: async (
+    request: UpdateEmailSettingsRequest,
+  ): Promise<AdminEmailSettingsDto> => {
+    try {
+      const { data } = await axiosClient.put('/admin/email-settings', request);
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.emailSettingsSaveFailed')),
+      );
+    }
+  },
+
+  /** POST /api/admin/email-settings/test — gửi email thử tới chính Admin; 503 khi SMTP không gửi được. */
+  sendTestEmail: async (): Promise<{ sentTo: string }> => {
+    try {
+      const { data } = await axiosClient.post('/admin/email-settings/test');
+      return data;
+    } catch (error: any) {
+      throw new Error(extractError(error, translate('errors.services.admin.emailTestFailed')));
     }
   },
 
