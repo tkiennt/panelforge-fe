@@ -210,7 +210,7 @@ describe('AppShell Component', () => {
       'Tổng quan',
       'Người dùng & quyền',
       'Cấu hình AI',
-      'Lưu trữ & quota',
+      'Tài nguyên & hạn mức',
       'Chính sách phiên',
       'Nhật ký hệ thống',
       'Thống kê độc giả',
