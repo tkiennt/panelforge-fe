@@ -133,7 +133,7 @@
     "filteredBySeriesClear": "Filtered by 1 series · View all (incl. Wallet Top-up & VIP)"
   },
   "revenue": {
-    "vipTopupBreakdown": "VIP: {vip} · Wallet Top-up: {topup}"
+    "topupBreakdown": "Wallet Top-up: {topup}"
   },
   "scheduleModal": {
     "title": "Publish & Schedule Release",

@@ -327,7 +327,6 @@ export interface PublisherRevenueDto {
     chapterRevenueVnd: number;
     pendingCount: number;
     totalViews: number;
-    vipRevenueVnd?: number;
     topupRevenueVnd?: number;
   };
   series: PublisherSeriesRevenueDto[];
