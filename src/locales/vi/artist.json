@@ -1001,5 +1001,8 @@
     "empty": "Chưa có ảnh khung",
     "downloadTitle": "Tải ảnh xuống",
     "downloadAria": "Tải ảnh khung {panelNum}"
+  },
+  "changeRegion": {
+    "markAria": "Vùng sửa {num}: {text}"
   }
 }

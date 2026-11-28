@@ -51,6 +51,7 @@ import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip'
 import { PageStage } from '../components/desk/ArtistPageSidebar';
 import { ArtistCanvasViewport, type PageSketch } from '../components/desk/ArtistCanvasViewport';
 import { PanelFrameOverlay, type PanelArtworkData } from '../components/desk/PanelFrameOverlay';
+import { ChangeRequestRegionOverlay } from '../components/desk/ChangeRequestRegionOverlay';
 import { SplitPanelStrip } from '../components/desk/SplitPanelStrip';
 import { LetteringBalloonOverlay } from '../components/desk/LetteringBalloonOverlay';
 import { KeepOutZoneOverlay } from '../components/desk/KeepOutZoneOverlay';
@@ -78,7 +79,10 @@ import {
   mapBibleCategory,
   resolveStageKey,
 } from '../lib/artistDeskHelpers';
-import { resolveChangeRequestLocation } from '../utils/changeRequestLocation';
+import {
+  changeRequestMarksForPage,
+  resolveChangeRequestLocation,
+} from '../utils/changeRequestLocation';
 import { getStoredCurrentUserId } from '@/types/workspace';
 import { normalizeWorkspaceRole, resolveReworkReasonDisplay } from '@/types';
 import { useTranslation } from '@/lib/i18n';
@@ -269,6 +273,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
   // Yêu cầu chỉnh sửa công đoạn (Sidetab Change Requests)
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
+  const [focusedChangeRequestId, setFocusedChangeRequestId] = useState<string | null>(null);
   const [isLoadingChangeRequests, setIsLoadingChangeRequests] = useState(false);
   const [isResolvingChangeRequest, setIsResolvingChangeRequest] = useState(false);
 
@@ -846,6 +851,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       const loc = resolveChangeRequestLocation(cr, panelsByPageId);
       if (loc && loc.pageId) {
         setSelectedPageId(loc.pageId);
+        setFocusedChangeRequestId(cr.id);
         const pNum = loc.panelId ? panelPageMap[loc.panelId]?.panelNumber : undefined;
         toast.info(
           t('artist.deskView.navCrSuccessTitle'),
@@ -1393,6 +1399,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole'))
       : null);
   const isLettererRole = normalizedDeskRole === 'LETTERER';
+  // Yêu cầu sửa của người đang làm: mình chịu trách nhiệm, hoặc gắn ô lưới mình đang giữ
+  const myChangeRequests = useMemo(() => {
+    const me = getStoredCurrentUserId();
+    if (!me) return changeRequests;
+    const myCellIds = new Set(gridTasks.filter((t) => t.assigneeUserId === me).map((t) => t.id));
+    return changeRequests.filter(
+      (cr) =>
+        cr.responsibleUserId === me || Boolean(cr.stageTaskId && myCellIds.has(cr.stageTaskId)),
+    );
+  }, [changeRequests, gridTasks]);
   const withdrawableCell = useMemo(() => {
     if (!currentChapterId || gridTasks.length === 0) return null;
     const me = getStoredCurrentUserId();
@@ -2012,6 +2028,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return keys;
   }, [currentPageArtworks]);
   const hasCurrentPageArtwork = Object.keys(currentPageArtworks).length > 0;
+  const currentPageChangeMarks = useMemo(() => {
+    if (!selectedPage) return [];
+    const stageIds = [...artistStages.map((st) => st.id), ...gridStages.map((st) => st.id)];
+    const shownArtworkIds = Object.values(currentPageArtworks).map((a) => a.id);
+    return changeRequestMarksForPage(
+      myChangeRequests,
+      selectedPage.id,
+      panelsByPageId,
+      stageIds,
+      shownArtworkIds,
+    );
+  }, [
+    selectedPage,
+    artistStages,
+    gridStages,
+    currentPageArtworks,
+    myChangeRequests,
+    panelsByPageId,
+  ]);
   const currentTemplate = useMemo(
     () =>
       frameTemplates.find((t) => t.id === currentTemplateId) ||
@@ -3271,7 +3306,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onTabChange={(tab) => setActiveSidebarTab(tab)}
           isDrawerOpen={isSidebarDrawerOpen}
           onToggleDrawer={(open) => setIsSidebarDrawerOpen(open)}
-          changeRequests={changeRequests}
+          changeRequests={myChangeRequests}
           isLoadingChangeRequests={isLoadingChangeRequests}
           onResolveChangeRequest={handleResolveChangeRequest}
           isResolvingChangeRequest={isResolvingChangeRequest}
@@ -3474,6 +3509,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   onUploadArtwork={handleUploadPanelArtwork}
                   onRemoveArtwork={handleRemovePanelArtwork}
                   onPreviewArtwork={setPreviewArtwork}
+                />
+              )}
+              {selectedPage && (
+                <ChangeRequestRegionOverlay
+                  marks={currentPageChangeMarks}
+                  panels={currentPagePanels}
+                  pageWidth={selectedPage.widthPx || 1200}
+                  pageHeight={selectedPage.heightPx || 1800}
+                  focusedId={focusedChangeRequestId}
                 />
               )}
               {selectedPage && (activeSidebarTab === 'lettering' || keepOut.zones.length > 0) && (
