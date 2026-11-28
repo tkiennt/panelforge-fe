@@ -36,6 +36,9 @@ const HANDLES: { id: ResizeHandle; position: string; cursor: string }[] = [
 const MENU_ITEM =
   'w-full flex items-center gap-2 px-3 py-1.5 text-left text-xs text-stone-700 hover:bg-stone-100 cursor-pointer';
 
+const hasNativePopoverTarget = () =>
+  typeof HTMLButtonElement !== 'undefined' && 'popoverTargetElement' in HTMLButtonElement.prototype;
+
 /** Nhãn "Thoại N" phía trên bóng đang chọn + nút ⋮ mở menu thao tác (phóng/thu, sao chép, xóa). */
 const SelectedChrome: React.FC<{
   element: ElementSnapshotDto;
@@ -48,8 +51,59 @@ const SelectedChrome: React.FC<{
   onDelete: (id: string) => void;
 }> = ({ element, label, nearTop, nearRight, onScale, onCopy, onDelete }) => {
   const { t } = useTranslation('artist');
-  const [open, setOpen] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const id = element.elementId;
+  const popoverId = `lettering-toolbar-${id}`;
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const popoverRef = React.useRef<HTMLDivElement>(null);
+
+  const updatePosition = () => {
+    const trigger = triggerRef.current;
+    const popover = popoverRef.current;
+    if (!trigger || !popover) return;
+    const r = trigger.getBoundingClientRect();
+    const width = 160;
+    const height = 150;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+    let left = nearRight ? r.left - width : r.right - width;
+    let top = r.bottom + 4;
+
+    if (left + width > vw - 8) left = vw - width - 8;
+    if (left < 8) left = 8;
+    if (top + height > vh - 8) top = Math.max(8, r.top - height - 4);
+
+    popover.style.position = 'fixed';
+    popover.style.left = `${left}px`;
+    popover.style.top = `${top}px`;
+    popover.style.margin = '0';
+  };
+
+  const handleToggle = (e: React.SyntheticEvent) => {
+    const nativeEvent = e.nativeEvent as any;
+    const nextOpen =
+      nativeEvent?.newState !== undefined
+        ? nativeEvent.newState === 'open'
+        : Boolean(
+            popoverRef.current?.matches?.(':popover-open') ||
+            popoverRef.current?.classList.contains(':popover-open'),
+          );
+    setIsExpanded(nextOpen);
+    if (nextOpen) {
+      updatePosition();
+    }
+  };
+
+  const closeMenu = () => {
+    try {
+      popoverRef.current?.hidePopover?.();
+    } catch {
+      // ignore
+    }
+    setIsExpanded(false);
+  };
+
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
   return (
     <>
@@ -66,57 +120,81 @@ const SelectedChrome: React.FC<{
         onPointerDown={stop}
       >
         <button
+          ref={triggerRef}
           type='button'
           data-testid={`lettering-menu-${id}`}
           aria-label={t('balloonOverlay.actionsAria')}
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
+          aria-expanded={isExpanded}
+          aria-controls={popoverId}
+          popoverTarget={popoverId}
+          onClick={(e) => {
+            stop(e);
+            if (!hasNativePopoverTarget()) {
+              const pop = popoverRef.current;
+              if (!pop) return;
+              if (pop.classList.contains(':popover-open')) {
+                pop.hidePopover?.();
+                setIsExpanded(false);
+              } else {
+                updatePosition();
+                pop.showPopover?.();
+                setIsExpanded(true);
+              }
+            }
+          }}
           className='w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-stone-200 shadow-sm text-stone-600 hover:text-stone-900 cursor-pointer'
         >
           <MoreVertical className='w-4 h-4' aria-hidden='true' />
         </button>
-        {open && (
-          <div
-            data-testid={`lettering-toolbar-${id}`}
-            className={`absolute ${nearRight ? 'left-0' : 'right-0'} top-9 w-40 py-1 rounded-lg bg-white border border-stone-200 shadow-lg`}
+        <div
+          ref={popoverRef}
+          id={popoverId}
+          popover='auto'
+          data-testid={`lettering-toolbar-${id}`}
+          onToggle={handleToggle}
+          className={`w-40 py-1 rounded-lg bg-white border border-stone-200 shadow-lg ${
+            !isExpanded && !hasNativePopoverTarget() ? 'hidden' : ''
+          }`}
+        >
+          <button
+            type='button'
+            data-testid={`btn-zoom-in-${id}`}
+            className={MENU_ITEM}
+            onClick={() => onScale(id, 1.15)}
           >
-            <button
-              type='button'
-              data-testid={`btn-zoom-in-${id}`}
-              className={MENU_ITEM}
-              onClick={() => onScale(id, 1.15)}
-            >
-              <ZoomIn className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.zoomIn')}
-            </button>
-            <button
-              type='button'
-              data-testid={`btn-zoom-out-${id}`}
-              className={MENU_ITEM}
-              onClick={() => onScale(id, 0.85)}
-            >
-              <ZoomOut className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.zoomOut')}
-            </button>
-            <button
-              type='button'
-              data-testid={`btn-copy-${id}`}
-              className={MENU_ITEM}
-              onClick={() => {
-                onCopy(element);
-                setOpen(false);
-              }}
-            >
-              <Copy className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.copy')}
-            </button>
-            <button
-              type='button'
-              data-testid={`btn-delete-${id}`}
-              className={`${MENU_ITEM} text-rose-600 hover:bg-rose-50`}
-              onClick={() => onDelete(id)}
-            >
-              <Trash2 className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.delete')}
-            </button>
-          </div>
-        )}
+            <ZoomIn className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.zoomIn')}
+          </button>
+          <button
+            type='button'
+            data-testid={`btn-zoom-out-${id}`}
+            className={MENU_ITEM}
+            onClick={() => onScale(id, 0.85)}
+          >
+            <ZoomOut className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.zoomOut')}
+          </button>
+          <button
+            type='button'
+            data-testid={`btn-copy-${id}`}
+            className={MENU_ITEM}
+            onClick={() => {
+              onCopy(element);
+              closeMenu();
+            }}
+          >
+            <Copy className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.copy')}
+          </button>
+          <button
+            type='button'
+            data-testid={`btn-delete-${id}`}
+            className={`${MENU_ITEM} text-rose-600 hover:bg-rose-50`}
+            onClick={() => {
+              onDelete(id);
+              closeMenu();
+            }}
+          >
+            <Trash2 className='w-3.5 h-3.5' aria-hidden='true' /> {t('balloonOverlay.delete')}
+          </button>
+        </div>
       </div>
     </>
   );
@@ -130,6 +208,7 @@ interface LetteringBalloonOverlayProps {
   selectedId: string | null;
   activeGestureId: string | null;
   readOnly?: boolean;
+  showOrder?: boolean;
   keepOutZones?: KeepOutZone[];
   onSelect: (elementId: string) => void;
   onScale: (elementId: string, factor: number) => void;
@@ -291,6 +370,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
   selectedId,
   activeGestureId,
   readOnly = false,
+  showOrder = false,
   keepOutZones = [],
   onSelect,
   onScale,
@@ -435,7 +515,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
                 />
               )}
 
-            {!isSelected && (
+            {!isSelected && showOrder && (
               <span className='absolute -top-2 -left-2 z-20 min-w-5 h-5 px-1 rounded-full bg-stone-900 text-white font-mono text-xs font-bold flex items-center justify-center'>
                 #{b.readingOrder ?? idx + 1}
               </span>
@@ -449,7 +529,7 @@ export const LetteringBalloonOverlay: React.FC<LetteringBalloonOverlayProps> = (
                   label: keepOutCollision.label || t('balloonOverlay.keepOutDefaultLabel'),
                 })}
               >
-                <ShieldAlert className='w-2.5 h-2.5' aria-hidden='true' />{' '}
+                <ShieldAlert className='w-3 h-3' aria-hidden='true' />{' '}
                 {t('balloonOverlay.keepOutBadge')}
               </span>
             )}

@@ -756,6 +756,7 @@
     "shortDescriptionTag": "[Desc]"
   },
   "lettering": {
+    "readingOrder": "Reading order",
     "textEditor": {
       "displayContent": "Display content ({lang})",
       "fromScript": "From script",

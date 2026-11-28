@@ -756,6 +756,7 @@
     "shortDescriptionTag": "[Mô tả]"
   },
   "lettering": {
+    "readingOrder": "Thứ tự đọc",
     "textEditor": {
       "displayContent": "Nội dung hiển thị ({lang})",
       "fromScript": "Theo kịch bản",

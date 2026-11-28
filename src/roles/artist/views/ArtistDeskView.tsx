@@ -2,7 +2,15 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { chapterCastService, type ChapterCastDto } from '@/services/chapterCast.service';
 import { buildCastVariantLookup } from '@/shared/lib/castVariant';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, Flag, Loader2, RefreshCw, Send, ShieldAlert } from 'lucide-react';
+import {
+  AlertTriangle,
+  Flag,
+  ListOrdered,
+  Loader2,
+  RefreshCw,
+  Send,
+  ShieldAlert,
+} from 'lucide-react';
 import { pageService, PageDto, PageHistoryDto, isGuid } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
@@ -3028,6 +3036,24 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     originalLang,
   );
   const keepOut = useKeepOutZones(selectedPage, currentPagePanels, toast, isPageReadOnly);
+  const [showBalloonOrder, setShowBalloonOrder] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('pf.artist.lettering.showOrder') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const toggleBalloonOrder = useCallback(() => {
+    setShowBalloonOrder((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('pf.artist.lettering.showOrder', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
   const selectedBalloon =
     balloons.pageElements.find((el) => el.elementId === balloons.selectedElementId) ?? null;
   const selectedKeepOutCollision = useMemo(() => {
@@ -3577,35 +3603,54 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           letteringHeaderSlot={
             <div className='w-full flex flex-col gap-2'>
               <div className='flex items-center justify-between gap-2'>
-                <button
-                  type='button'
-                  data-testid='tool-keepout'
-                  onClick={keepOut.toggleDrawingMode}
-                  disabled={isPageReadOnly || keepOut.isSaving}
-                  aria-pressed={keepOut.isDrawingMode}
-                  title={t(
-                    'lettering.keepOut.title',
-                    'Vẽ vùng cấm chữ trên tranh (tránh mặt/tay nhân vật)',
-                  )}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                    keepOut.isDrawingMode
-                      ? 'bg-red-600 text-white border-red-700 shadow-2xs'
-                      : 'bg-white text-stone-700 border-stone-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200'
-                  }`}
-                >
-                  <ShieldAlert className='w-3.5 h-3.5' aria-hidden='true' />
-                  <span>{t('lettering.keepOut.button', 'Vùng cấm')}</span>
-                  {keepOut.zones.length > 0 && (
-                    <span
-                      data-testid='keepout-count-badge'
-                      className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                        keepOut.isDrawingMode ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'
-                      }`}
-                    >
-                      {keepOut.zones.length}
-                    </span>
-                  )}
-                </button>
+                <div className='flex items-center gap-1.5'>
+                  <button
+                    type='button'
+                    data-testid='tool-keepout'
+                    onClick={keepOut.toggleDrawingMode}
+                    disabled={isPageReadOnly || keepOut.isSaving}
+                    aria-pressed={keepOut.isDrawingMode}
+                    title={t(
+                      'lettering.keepOut.title',
+                      'Vẽ vùng cấm chữ trên tranh (tránh mặt/tay nhân vật)',
+                    )}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                      keepOut.isDrawingMode
+                        ? 'bg-red-600 text-white border-red-700 shadow-2xs'
+                        : 'bg-white text-stone-700 border-stone-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200'
+                    }`}
+                  >
+                    <ShieldAlert className='w-3.5 h-3.5' aria-hidden='true' />
+                    <span>{t('lettering.keepOut.button', 'Vùng cấm')}</span>
+                    {keepOut.zones.length > 0 && (
+                      <span
+                        data-testid='keepout-count-badge'
+                        className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                          keepOut.isDrawingMode
+                            ? 'bg-white/20 text-white'
+                            : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {keepOut.zones.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type='button'
+                    data-testid='tool-reading-order'
+                    onClick={toggleBalloonOrder}
+                    aria-pressed={showBalloonOrder}
+                    title={t('artist.lettering.readingOrder')}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
+                      showBalloonOrder
+                        ? 'bg-orange-600 text-white border-orange-700 shadow-2xs'
+                        : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50 hover:text-stone-900 hover:border-stone-300'
+                    }`}
+                  >
+                    <ListOrdered className='w-3.5 h-3.5' aria-hidden='true' />
+                    <span>{t('artist.lettering.readingOrder')}</span>
+                  </button>
+                </div>
                 <LanguageSelector
                   languages={seriesLanguages}
                   activeLang={activeLang}
@@ -3780,6 +3825,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   activeGestureId={balloons.draggingId || balloons.resizingId}
                   readOnly={isPageReadOnly}
                   keepOutZones={keepOut.zones}
+                  showOrder={showBalloonOrder}
                   onSelect={balloons.setSelectedElementId}
                   onScale={balloons.scaleElement}
                   onCopy={balloons.copyElement}

@@ -175,4 +175,19 @@ describe('useLetteringBalloons – nới bóng theo chữ', () => {
 
     expect(elementService.moveElement).not.toHaveBeenCalled();
   });
+
+  it('nhấn Escape bỏ chọn bóng đang chọn (khi không gõ trong ô nhập)', async () => {
+    const { result } = renderHook(() => useLetteringBalloons(page('p1', 1), [], 1, toast));
+    await waitFor(() => expect(result.current.pageElements).toHaveLength(1));
+
+    act(() => {
+      result.current.setSelectedElementId('el-small');
+    });
+    expect(result.current.selectedElementId).toBe('el-small');
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+    expect(result.current.selectedElementId).toBeNull();
+  });
 });
