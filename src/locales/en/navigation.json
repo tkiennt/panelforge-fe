@@ -87,7 +87,8 @@
     "crewManagement": "Crew Management",
     "productionScript": "Script",
     "readerAndReview": "Reader & Page Review",
-    "handoff": "Handoff"
+    "handoff": "Handoff",
+    "seriesOverview": "Series overview"
   },
   "header": {
     "searchPlaceholder": "Search frames, dialogues, assets...",
@@ -147,7 +148,10 @@
     "crew": "Crew",
     "profileAndSettings": "Profile & settings",
     "readOnlyBadge": "Read-only",
-    "scriptReadOnlyTooltip": "Script — read-only (view only)"
+    "scriptReadOnlyTooltip": "Script — read-only (view only)",
+    "seriesLevel": "SERIES",
+    "chapterLevel": "CHAPTER",
+    "chapterLevelNumbered": "CHAPTER {number}"
   },
   "focus": {
     "workspaceTitle": {

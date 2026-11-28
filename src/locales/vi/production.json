@@ -2125,5 +2125,33 @@
     "mainCharacter": "Nhân vật",
     "lockedStatus": "Đã khóa",
     "pendingStatus": "Chờ khóa"
+  },
+  "seriesDashboard": {
+    "eyebrow": "Series · {title}",
+    "title": "Tổng quan series",
+    "subtitle": "Tiến độ mọi chương của bộ truyện. Chọn một chương để xem chi tiết.",
+    "kpi": {
+      "ariaLabel": "Chỉ số series",
+      "chapters": "Chương",
+      "chaptersInProduction": "{count} chương đang sản xuất",
+      "avgProgress": "Hoàn thành trung bình",
+      "avgProgressNote": "Panel đã duyệt ở công đoạn cuối",
+      "overdue": "Trễ hạn",
+      "overdueNote": "Việc và yêu cầu sửa quá hạn",
+      "waitingReview": "Chờ duyệt",
+      "waitingReviewNote": "Bài nộp đang chờ kiểm duyệt"
+    },
+    "chapters": {
+      "title": "Các chương",
+      "empty": "Series chưa có chương nào.",
+      "colChapter": "Chương",
+      "colStatus": "Trạng thái",
+      "colProgress": "Hoàn thành",
+      "colOverdue": "Trễ hạn",
+      "colTarget": "Hạn phát hành",
+      "open": "Mở chương",
+      "chapterNumber": "Chương {number}",
+      "progressAria": "Tiến độ chương {number}"
+    }
   }
 }

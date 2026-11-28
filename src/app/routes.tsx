@@ -190,6 +190,11 @@ const SeriesBibleView = lazy(() =>
 const MyWorkView = lazy(() =>
   import('@/shared/features/collaboration/MyWorkView').then((m) => ({ default: m.MyWorkView })),
 );
+const SeriesDashboardView = lazy(() =>
+  import('@/roles/producer/views/SeriesDashboardView').then((m) => ({
+    default: m.SeriesDashboardView,
+  })),
+);
 const ProducerReaderStatsView = lazy(() =>
   import('@/roles/producer/views/ProducerReaderStatsView').then((m) => ({
     default: m.ProducerReaderStatsView,
@@ -575,7 +580,19 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     />
                   }
                 />
-                <Route path='dashboard' element={<Navigate to='../chapters' replace />} />
+                <Route
+                  path='dashboard'
+                  element={
+                    <RequireWorkspaceRole
+                      allowedRoles={['PRODUCER', 'ADMINISTRATOR']}
+                      currentWorkspaceRole={currentWorkspaceRole}
+                      currentRole={currentRole}
+                      activeRoles={activeProjectRoles}
+                    >
+                      <SeriesDashboardView />
+                    </RequireWorkspaceRole>
+                  }
+                />
                 <Route
                   path='chapters'
                   element={

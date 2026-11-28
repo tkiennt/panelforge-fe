@@ -49,6 +49,7 @@ import {
   Plus,
   FileCheck,
   HardDrive,
+  Gauge,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { StudioHubTabBar } from './StudioHubTabBar';
@@ -370,13 +371,42 @@ export function AppShell({
         const isReviewOrDeliveryPath =
           location.pathname.endsWith('/reader') ||
           location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'export');
+        const seriesDashboardPath = buildSeriesPath(workspaceId!, seriesId!, 'dashboard');
         return [
           {
-            section: t('navigation.sidebar.chapterManagement', 'QUẢN LÝ CHƯƠNG'),
+            section: t('navigation.sidebar.seriesLevel'),
+            items: [
+              {
+                icon: Gauge,
+                label: t('navigation.menu.seriesOverview'),
+                href: seriesDashboardPath,
+                isActive: location.pathname === seriesDashboardPath,
+              },
+              {
+                icon: BookOpen,
+                label: t('navigation.menu.readSeries', 'Đọc bộ truyện'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/read`,
+              },
+              {
+                icon: BookMarked,
+                label: t('navigation.menu.seriesBibleLibrary', 'Series Bible / Thư viện'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+              },
+              {
+                icon: Eye,
+                label: t('navigation.menu.revenueAndReads', 'Doanh thu & Lượt đọc'),
+                href: `/workspaces/${workspaceId}/series/${seriesId}/revenue`,
+              },
+            ],
+          },
+          {
+            section: chapterNumberLabel
+              ? t('navigation.sidebar.chapterLevelNumbered', { number: chapterNumberLabel })
+              : t('navigation.sidebar.chapterLevel'),
             items: [
               {
                 icon: LayoutDashboard,
-                label: t('navigation.menu.chapterOverviewShort', 'Tổng quan'),
+                label: t('navigation.menu.chapterOverview'),
                 href: buildChapterManagementUrl(workspaceId!, seriesId!, chapterId ?? undefined),
                 isActive:
                   location.pathname === buildSeriesPath(workspaceId!, seriesId!, 'chapters'),
@@ -410,26 +440,6 @@ export function AppShell({
                 label: t('navigation.menu.reviewAndDelivery', 'Kiểm duyệt & Bàn giao'),
                 href: buildSeriesExportUrl(workspaceId!, seriesId!, chapterId ?? undefined),
                 isActive: isReviewOrDeliveryPath,
-              },
-            ],
-          },
-          {
-            section: t('navigation.sections.seriesManagement', 'QUẢN LÝ SERIES'),
-            items: [
-              {
-                icon: BookOpen,
-                label: t('navigation.menu.readSeries', 'Đọc bộ truyện'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/read`,
-              },
-              {
-                icon: BookMarked,
-                label: t('navigation.menu.seriesBibleLibrary', 'Series Bible / Thư viện'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
-              },
-              {
-                icon: Eye,
-                label: t('navigation.menu.revenueAndReads', 'Doanh thu & Lượt đọc'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/revenue`,
               },
             ],
           },
@@ -1087,11 +1097,13 @@ export function AppShell({
                       type='button'
                       onClick={() =>
                         navigate(
-                          getRoleDefaultPath(
-                            currentUser.workspaceRole || currentUser.role,
-                            workspaceId,
-                            seriesId,
-                          ),
+                          effectiveRole === 'PRODUCER' || effectiveRole === 'ADMINISTRATOR'
+                            ? buildSeriesPath(workspaceId!, seriesId!, 'dashboard')
+                            : getRoleDefaultPath(
+                                currentUser.workspaceRole || currentUser.role,
+                                workspaceId,
+                                seriesId,
+                              ),
                         )
                       }
                       className={`font-semibold min-w-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer ${
