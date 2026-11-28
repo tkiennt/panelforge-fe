@@ -7,6 +7,9 @@ import { Alert, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/sha
 import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
 import { hasAnyValue, rankWithOther } from '@/shared/ui/charts/chartData';
 import { monetizationService, type WorkspaceReaderStatsDto } from '@/services/payment.service';
+import { workspaceService, type ReaderTimeseriesDto } from '@/services/workspace.service';
+import { TimeseriesPresetTabs, TrendCard } from '@/shared/ui/charts/TrendCard';
+import { rangeForPreset, type TimeseriesPreset } from '@/shared/ui/charts/timeseriesRange';
 
 const TOP_SERIES = 8;
 
@@ -52,6 +55,28 @@ export const ReaderStatsView: React.FC = () => {
       mounted = false;
     };
   }, [workspaceId, t]);
+
+  const [preset, setPreset] = useState<TimeseriesPreset>('30d');
+  const [trend, setTrend] = useState<ReaderTimeseriesDto | null>(null);
+  const [trendError, setTrendError] = useState<string | null>(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    let mounted = true;
+    setTrendLoading(true);
+    setTrendError(null);
+    workspaceService
+      .getReaderTimeseries(workspaceId, { ...rangeForPreset(preset), seriesId })
+      .then((res) => mounted && setTrend(res))
+      .catch(
+        (err) => mounted && setTrendError(getApiErrorMessage(err) || t('charts.trendLoadError')),
+      )
+      .finally(() => mounted && setTrendLoading(false));
+    return () => {
+      mounted = false;
+    };
+  }, [workspaceId, seriesId, preset, t]);
 
   const series = (data?.series ?? []).filter((s) => !seriesId || s.seriesId === seriesId);
 
@@ -112,6 +137,22 @@ export const ReaderStatsView: React.FC = () => {
               icon={<Users className='w-4 h-4 text-accent-dark' />}
               label={t('readerStats.uniqueReaders')}
               value={fmt(data.totalUniqueReaders)}
+            />
+          </div>
+
+          <div className='space-y-3'>
+            <TimeseriesPresetTabs value={preset} onChange={setPreset} />
+            <TrendCard
+              title={t('charts.viewsOverTime')}
+              points={(trend?.points ?? []).map((p) => ({
+                periodStart: p.periodStart,
+                value: p.views,
+              }))}
+              granularity={trend?.granularity ?? rangeForPreset(preset).granularity}
+              valueLabel={t('readerStats.views')}
+              formatValue={fmt}
+              loading={trendLoading}
+              error={trendError}
             />
           </div>
 

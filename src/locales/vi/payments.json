@@ -249,6 +249,18 @@
     "other": "Khác",
     "topNote": "{count} bộ truyện đứng đầu, phần còn lại gộp vào \"Khác\". Số liệu đầy đủ ở bảng bên dưới.",
     "ariaLabel": "Biểu đồ cột: {title}",
-    "chapterTick": "Ch.{number}"
+    "chapterTick": "Ch.{number}",
+    "viewsOverTime": "Lượt đọc theo thời gian",
+    "revenueOverTime": "Doanh thu theo thời gian",
+    "period": "Khoảng thời gian",
+    "preset": {
+      "7d": "7 ngày",
+      "30d": "30 ngày",
+      "90d": "90 ngày",
+      "12m": "12 tháng"
+    },
+    "trendEmpty": "Chưa có số liệu trong khoảng thời gian này.",
+    "trendLoadError": "Không tải được số liệu theo thời gian.",
+    "lineAriaLabel": "Biểu đồ đường: {title}"
   }
 }

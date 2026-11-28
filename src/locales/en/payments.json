@@ -249,6 +249,18 @@
     "other": "Other",
     "topNote": "Top {count} series; the rest are grouped into \"Other\". Full numbers are in the table below.",
     "ariaLabel": "Bar chart: {title}",
-    "chapterTick": "Ch.{number}"
+    "chapterTick": "Ch.{number}",
+    "viewsOverTime": "Reads over time",
+    "revenueOverTime": "Revenue over time",
+    "period": "Time range",
+    "preset": {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "12m": "12 months"
+    },
+    "trendEmpty": "No data in this time range yet.",
+    "trendLoadError": "Could not load the trend data.",
+    "lineAriaLabel": "Line chart: {title}"
   }
 }

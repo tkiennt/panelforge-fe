@@ -93,6 +93,34 @@ export interface WorkspaceReaderStatsDto {
   series: SeriesReaderStatsDto[];
 }
 
+/** Khớp enum TimeseriesGranularity (BE GetReaderTimeseriesQuery). */
+export type TimeseriesGranularity = 'Day' | 'Week' | 'Month';
+
+export interface ReaderTimeseriesPointDto {
+  /** Đầu kỳ (UTC, ISO); tuần bắt đầu thứ Hai. */
+  periodStart: string;
+  views: number;
+  uniqueReaders: number;
+  /** Luôn 0 ở endpoint Producer (doanh thu thuộc Publisher). */
+  revenueVnd: number;
+}
+
+export interface ReaderTimeseriesDto {
+  granularity: TimeseriesGranularity;
+  from: string;
+  to: string;
+  points: ReaderTimeseriesPointDto[];
+}
+
+export interface ReaderTimeseriesParams {
+  /** ISO, bao gồm. */
+  from: string;
+  /** ISO, không bao gồm. */
+  to: string;
+  granularity: TimeseriesGranularity;
+  seriesId?: string;
+}
+
 export interface WorkspaceMemberDto {
   userId: string;
   fullName: string;
@@ -408,6 +436,18 @@ export const workspaceService = {
         await parseErrorResponse(error, translate('errors.services.workspace.revokeSessionFailed')),
       );
     }
+  },
+
+  /** GET /api/workspaces/{id}/reader-stats/timeseries (Producer, BR-32) — lượt đọc theo ngày/tuần/tháng. */
+  getReaderTimeseries: async (
+    workspaceId: string,
+    params: ReaderTimeseriesParams,
+  ): Promise<ReaderTimeseriesDto> => {
+    const response = await axiosClient.get<ReaderTimeseriesDto>(
+      `/workspaces/${workspaceId}/reader-stats/timeseries`,
+      { params },
+    );
+    return response.data;
   },
 
   /**
