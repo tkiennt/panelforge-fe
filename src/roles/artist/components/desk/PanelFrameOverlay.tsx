@@ -29,6 +29,7 @@ interface PanelFrameOverlayProps {
   artworks: Record<string, PanelArtworkData>;
   isLayoutSaved: boolean;
   canUploadArtwork?: boolean;
+  canSelectPanel?: boolean;
   selectedPanelId?: string | null;
   onSelectPanel?: (panelId: string | null) => void;
   onUploadArtwork: (panelId: string, panelNumber: number, file: File) => void;
@@ -55,6 +56,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
   artworks,
   isLayoutSaved,
   canUploadArtwork = true,
+  canSelectPanel = true,
   selectedPanelId = null,
   onSelectPanel,
   onUploadArtwork,
@@ -86,7 +88,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
           fileInputs.current[pnl.id]?.click();
         };
 
-        const isSelected = selectedPanelId === pnl.id;
+        const isSelected = canSelectPanel && selectedPanelId === pnl.id;
         const needsBalloonCheck = Boolean(pnl.balloonCheckRequired);
 
         return (
@@ -97,6 +99,7 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
             data-balloon-check={needsBalloonCheck ? 'true' : undefined}
             onClick={(e) => {
               e.stopPropagation();
+              if (!canSelectPanel) return;
               onSelectPanel?.(isSelected ? null : pnl.id);
             }}
             className={`absolute overflow-hidden ${isInset ? 'z-30 shadow-md bg-white' : 'z-20'} ${
@@ -142,16 +145,20 @@ export const PanelFrameOverlay: React.FC<PanelFrameOverlayProps> = ({
 
             <button
               type='button'
+              disabled={!canSelectPanel}
               onClick={(e) => {
                 e.stopPropagation();
+                if (!canSelectPanel) return;
                 onSelectPanel?.(isSelected ? null : pnl.id);
               }}
               data-testid={`canvas-panel-badge-${panelNum}`}
-              title={t('panelFrame.selectPanelTitle', { panelNum })}
-              className={`absolute top-2 left-2 z-20 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center cursor-pointer transition-colors shadow-2xs ${
-                isSelected || !artwork
-                  ? 'bg-[#EA580C] text-white'
-                  : 'bg-white text-stone-900 border border-stone-200 hover:border-[#EA580C]'
+              title={canSelectPanel ? t('panelFrame.selectPanelTitle', { panelNum }) : undefined}
+              className={`absolute top-2 left-2 z-20 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center transition-colors shadow-2xs disabled:cursor-default ${
+                !canSelectPanel
+                  ? 'bg-stone-100 text-stone-500 border border-stone-200'
+                  : isSelected || !artwork
+                    ? 'bg-[#EA580C] text-white'
+                    : 'bg-white text-stone-900 border border-stone-200 hover:border-[#EA580C]'
               }`}
             >
               {panelNum}
