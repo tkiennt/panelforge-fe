@@ -22,6 +22,7 @@ import {
   POPULAR_VIETNAM_BANKS,
   type PaymentStatusFilter,
   type PaymentTransactionDto,
+  type PlatformBankAccountDto,
 } from '@/services/payment.service';
 import { useTranslation } from '@/lib/i18n';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -53,7 +54,8 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
   onShowToast,
 }) => {
   const { t, lang } = useTranslation('payments');
-  const { workspaceId = '' } = useParams<{ workspaceId: string }>();
+  // Không có workspaceId: toàn nền tảng (gồm đơn nạp Ví). Tài khoản nhận tiền luôn là của nền tảng (Q13).
+  const { workspaceId } = useParams<{ workspaceId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -62,6 +64,9 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
   const [error, setError] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [bankForm, setBankForm] = useState<BankForm>(EMPTY_BANK_FORM);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [bankConfigured, setBankConfigured] = useState(true);
+  const [bankHistory, setBankHistory] = useState<PlatformBankAccountDto[]>([]);
 
   // Danh sách giao dịch VietQR của Studio (Đối soát & Duyệt)
   const [txLoading, setTxLoading] = useState(false);
@@ -80,10 +85,10 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
   const [rejectionReason, setRejectionReason] = useState('');
 
   const fetchTransactions = useCallback(async () => {
-    if (!workspaceId || typeof paymentService.getPayments !== 'function') return;
+    if (typeof paymentService.getPayments !== 'function') return;
     setTxLoading(true);
     try {
-      const res = await paymentService.getPayments(workspaceId, {
+      const res = await paymentService.getPayments(workspaceId ?? null, {
         status: selectedStatus,
         seriesId: seriesIdFilter || undefined,
         search: searchInput.trim() || undefined,
@@ -108,10 +113,10 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
   }, [fetchTransactions]);
 
   const handleApproveTx = async (tx: PaymentTransactionDto) => {
-    if (!workspaceId || typeof paymentService.approvePayment !== 'function') return;
+    if (typeof paymentService.approvePayment !== 'function') return;
     setActionLoadingId(tx.id);
     try {
-      const res = await paymentService.approvePayment(workspaceId, tx.id);
+      const res = await paymentService.approvePayment(tx.id);
       onShowToast?.(
         t('toast.approvedTitle'),
         res?.message || t('toast.approvedDesc', { orderCode: tx.orderCode }),
@@ -128,20 +133,11 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
   };
 
   const handleRejectTx = async () => {
-    if (
-      !workspaceId ||
-      !rejectTx ||
-      !rejectionReason.trim() ||
-      typeof paymentService.rejectPayment !== 'function'
-    )
+    if (!rejectTx || !rejectionReason.trim() || typeof paymentService.rejectPayment !== 'function')
       return;
     setActionLoadingId(rejectTx.id);
     try {
-      const res = await paymentService.rejectPayment(
-        workspaceId,
-        rejectTx.id,
-        rejectionReason.trim(),
-      );
+      const res = await paymentService.rejectPayment(rejectTx.id, rejectionReason.trim());
       onShowToast?.(
         t('toast.rejectedTitle'),
         res?.message || t('toast.rejectedDesc', { orderCode: rejectTx.orderCode }),
@@ -159,18 +155,22 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
   };
 
   const fetchBankSettings = useCallback(async () => {
-    if (!workspaceId) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await paymentService.getBankSettings(workspaceId);
-      if (data?.bankBin && data?.bankAccountNo) {
+      const data = await paymentService.getPlatformBankAccount();
+      const current = data?.current;
+      setBankConfigured(current?.isConfigured ?? false);
+      setBankHistory(data?.history ?? []);
+      if (current?.isConfigured) {
         setBankForm({
-          bankBin: data.bankBin,
+          bankBin: current.bankBin,
           bankName:
-            data.bankName || POPULAR_VIETNAM_BANKS.find((b) => b.bin === data.bankBin)?.name || '',
-          bankAccountNo: data.bankAccountNo,
-          bankAccountName: data.bankAccountName || '',
+            current.bankName ||
+            POPULAR_VIETNAM_BANKS.find((b) => b.bin === current.bankBin)?.name ||
+            '',
+          bankAccountNo: current.accountNo,
+          bankAccountName: current.accountName,
         });
       } else {
         setBankForm(EMPTY_BANK_FORM);
@@ -180,7 +180,7 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, t]);
+  }, [t]);
 
   useEffect(() => {
     void fetchBankSettings();
@@ -189,24 +189,27 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
   const bankFormValid =
     bankForm.bankBin &&
     /^\d{6,19}$/.test(bankForm.bankAccountNo.trim()) &&
-    bankForm.bankAccountName.trim().length >= 3;
+    bankForm.bankAccountName.trim().length >= 3 &&
+    twoFactorCode.trim().length >= 6;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bankFormValid || !workspaceId || saving) return;
+    if (!bankFormValid || saving) return;
 
     setSaving(true);
     setError(null);
     setSavedSuccess(false);
 
     try {
-      await paymentService.updateBankSettings(workspaceId, {
+      await paymentService.updatePlatformBankAccount({
         bankBin: bankForm.bankBin,
         bankName: bankForm.bankName,
-        bankAccountNo: bankForm.bankAccountNo.trim(),
-        bankAccountName: bankForm.bankAccountName.trim(),
+        accountNo: bankForm.bankAccountNo.trim(),
+        accountName: bankForm.bankAccountName.trim(),
+        twoFactorCode: twoFactorCode.trim(),
       });
       setSavedSuccess(true);
+      await fetchBankSettings();
       onShowToast?.(
         t('toast.bankSavedTitle'),
         t('toast.bankSavedDesc', {
@@ -220,6 +223,7 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
       setError(msg);
       onShowToast?.(t('toast.bankErrorTitle'), msg, 'error');
     } finally {
+      setTwoFactorCode('');
       setSaving(false);
     }
   };
@@ -275,6 +279,13 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
               bankName: bankForm.bankName,
             })}
           </span>
+        </div>
+      )}
+
+      {!loading && !bankConfigured && (
+        <div className='flex items-center gap-2 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm'>
+          <AlertTriangle className='w-4 h-4 shrink-0' />
+          <span>{t('bank.usingDefault')}</span>
         </div>
       )}
 
@@ -378,6 +389,27 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
                 />
                 <p className='text-xs text-stone-500 mt-1'>{t('bank.accountNameHint')}</p>
               </div>
+
+              {/* Mã 2FA: đổi tài khoản nhận tiền là chuyển hướng dòng tiền */}
+              <div>
+                <label
+                  htmlFor='pf-pub-bank-2fa'
+                  className='block text-xs font-semibold text-[#555555] mb-1.5'
+                >
+                  {t('bank.twoFactorLabel')} *
+                </label>
+                <input
+                  id='pf-pub-bank-2fa'
+                  type='text'
+                  autoComplete='one-time-code'
+                  placeholder='123456'
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.slice(0, 11))}
+                  className='w-full px-3 py-2 rounded-xl border border-[#E7E7E7] text-sm font-mono tracking-wider focus:outline-none focus:border-[#F97316]'
+                  required
+                />
+                <p className='text-xs text-stone-500 mt-1'>{t('bank.twoFactorHint')}</p>
+              </div>
             </div>
 
             {/* Cột 2: Xem trước mã VietQR */}
@@ -446,6 +478,43 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
         </form>
       )}
 
+      {bankHistory.length > 0 && (
+        <div className='p-5 rounded-2xl bg-white border border-[#E7E7E7] shadow-xs space-y-3'>
+          <h2 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
+            <Clock className='w-4 h-4 text-[#F97316]' />
+            <span>{t('bank.historyTitle')}</span>
+          </h2>
+          <ul className='divide-y divide-[#F0F0F0] text-xs'>
+            {bankHistory.map((h, i) => (
+              <li
+                key={`${h.changedAt}-${h.accountNo}`}
+                className='py-2 flex flex-wrap items-center justify-between gap-2'
+              >
+                <span className='font-mono text-[#171717]'>
+                  {h.bankName} • {h.accountNo} • {h.accountName}
+                  {i === 0 && (
+                    <span className='ml-2 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-sans font-semibold'>
+                      {t('bank.historyCurrent')}
+                    </span>
+                  )}
+                </span>
+                <span className='text-[#737373]'>
+                  {t('bank.historyChangedBy', {
+                    name: h.changedByName || '—',
+                    date: h.changedAt
+                      ? new Intl.DateTimeFormat(lang, {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                        }).format(new Date(h.changedAt))
+                      : '—',
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* ─── Danh sách Giao dịch & Đối soát VietQR ─── */}
       {typeof paymentService.getPayments === 'function' && (
         <div className='pt-6 border-t border-[#E7E7E7] space-y-4'>
@@ -463,7 +532,9 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
                     </span>
                   )}
                 </h2>
-                <p className='text-xs text-[#737373]'>{t('subtitle')}</p>
+                <p className='text-xs text-[#737373]'>
+                  {workspaceId ? t('bank.scopeWorkspace') : t('bank.scopePlatform')}
+                </p>
               </div>
             </div>
 

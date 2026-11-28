@@ -132,16 +132,20 @@ export const PublisherRevenueView: React.FC = () => {
             </option>
           ))}
         </select>
-        {workspaceId && (
-          <button
-            type='button'
-            onClick={() => navigate(`/publisher/revenue/workspaces/${workspaceId}`)}
-            className='inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold cursor-pointer'
-          >
-            <span>{t('insights.transactions')}</span>
-            <ChevronRight className='w-3.5 h-3.5' />
-          </button>
-        )}
+        <button
+          type='button'
+          onClick={() =>
+            navigate(
+              workspaceId
+                ? `/publisher/revenue/workspaces/${workspaceId}`
+                : '/publisher/revenue/payments',
+            )
+          }
+          className='inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold cursor-pointer'
+        >
+          <span>{workspaceId ? t('insights.transactions') : t('bank.platformPayments')}</span>
+          <ChevronRight className='w-3.5 h-3.5' />
+        </button>
       </div>
 
       {error && (

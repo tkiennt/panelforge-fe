@@ -94,7 +94,7 @@
   "bank": {
     "notConfigured": "Payout account not configured",
     "modalTitle": "VietQR Payout Bank Account",
-    "modalSubtitle": "Mobile readers scanning the VietQR code transfer directly to this account.",
+    "modalSubtitle": "The platform bank account. Every wallet top-up and chapter unlock paid by VietQR, for every studio, goes into this account.",
     "bankLabel": "Bank",
     "accountNoLabel": "Account number",
     "accountNoInvalid": "Account number must be 6–19 digits.",
@@ -103,7 +103,16 @@
     "previewTitle": "VietQR preview",
     "previewEmpty": "Enter an account number to generate",
     "previewSample": "Sample: {amount} · note {code}",
-    "save": "Save VietQR settings"
+    "save": "Save VietQR settings",
+    "usingDefault": "No platform account saved yet: VietQR codes use the server default account (SePay:DefaultBank). Save the real account linked to SePay.",
+    "twoFactorLabel": "2FA code",
+    "twoFactorHint": "Enter the 6-digit code from your Authenticator app or a recovery code. The Publisher account must have 2FA turned on to change the payout account.",
+    "historyTitle": "Payout account history",
+    "historyCurrent": "In use",
+    "historyChangedBy": "{name} · {date}",
+    "scopePlatform": "Transactions across the platform, including wallet top-ups and chapter unlocks for every studio.",
+    "scopeWorkspace": "Chapter unlock transactions for this studio. Wallet top-ups are listed on the platform transactions page.",
+    "platformPayments": "Payout account & transactions"
   },
   "toast": {
     "loadErrorTitle": "Failed to load data",

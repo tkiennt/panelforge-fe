@@ -1,5 +1,5 @@
 // src/services/payment.service.ts
-// Hợp đồng API khớp với WorkspacePaymentsController + PaymentDtos.cs (backend .NET 9).
+// Hợp đồng API khớp với WorkspacePaymentsController, PlatformPaymentsController + PaymentDtos.cs (backend .NET 9).
 import axiosClient from '../api/axiosClient';
 import type { PagedResult } from './chapter.service';
 
@@ -50,21 +50,31 @@ export interface WorkspacePaymentsPagedResult extends PagedResult<PaymentTransac
   summary: WorkspacePaymentSummaryDto;
 }
 
-/** WorkspaceBankSettingsDto */
-export interface WorkspaceBankSettingsDto {
-  workspaceId?: string;
-  bankBin?: string | null;
-  bankName?: string | null;
-  bankAccountNo?: string | null;
-  bankAccountName?: string | null;
-}
-
-/** UpdateWorkspaceBankSettingsRequest */
-export interface UpdateWorkspaceBankSettingsRequest {
+/** PlatformBankAccountDto — tài khoản ngân hàng nền tảng nhận mọi tiền VietQR (Q13). */
+export interface PlatformBankAccountDto {
   bankBin: string;
   bankName: string;
-  bankAccountNo: string;
-  bankAccountName: string;
+  accountNo: string;
+  accountName: string;
+  /** false: chưa cấu hình, server đang dùng SePay:DefaultBank. */
+  isConfigured: boolean;
+  changedAt?: string | null;
+  changedByName?: string | null;
+}
+
+/** PlatformBankAccountResponseDto */
+export interface PlatformBankAccountResponseDto {
+  current: PlatformBankAccountDto;
+  history: PlatformBankAccountDto[];
+}
+
+/** UpdatePlatformBankAccountRequest — bắt buộc mã 2FA (TOTP 6 số hoặc mã khôi phục). */
+export interface UpdatePlatformBankAccountRequest {
+  bankBin: string;
+  bankName: string;
+  accountNo: string;
+  accountName: string;
+  twoFactorCode: string;
 }
 
 export interface GetPaymentsParams {
@@ -85,14 +95,17 @@ const EMPTY_SUMMARY: WorkspacePaymentSummaryDto = {
 };
 
 export const paymentService = {
-  /** GET /api/workspaces/{workspaceId}/payments — KPI tổng quan + danh sách giao dịch VietQR. */
+  /**
+   * KPI + danh sách giao dịch VietQR/Ví. `workspaceId = null`: toàn nền tảng (GET /api/platform/payments, gồm đơn nạp Ví);
+   * có workspaceId: GET /api/workspaces/{workspaceId}/payments.
+   */
   async getPayments(
-    workspaceId: string,
+    workspaceId: string | null,
     params?: GetPaymentsParams,
   ): Promise<WorkspacePaymentsPagedResult> {
     const query = { ...params, status: params?.status === 'All' ? undefined : params?.status };
     const res = await axiosClient.get<WorkspacePaymentsResponseDto>(
-      `/workspaces/${workspaceId}/payments`,
+      workspaceId ? `/workspaces/${workspaceId}/payments` : '/platform/payments',
       { params: query },
     );
     const page = res.data?.transactions;
@@ -106,44 +119,39 @@ export const paymentService = {
     };
   },
 
-  /** POST /workspaces/{workspaceId}/payments/{transactionId}/approve */
-  async approvePayment(workspaceId: string, transactionId: string): Promise<{ message: string }> {
+  /** POST /platform/payments/{transactionId}/approve — Publisher duyệt giao dịch của mọi Studio. */
+  async approvePayment(transactionId: string): Promise<{ message: string }> {
     const res = await axiosClient.post<{ message: string }>(
-      `/workspaces/${workspaceId}/payments/${transactionId}/approve`,
+      `/platform/payments/${transactionId}/approve`,
       {},
     );
     return res.data;
   },
 
-  /** POST /workspaces/{workspaceId}/payments/{transactionId}/reject — body: RejectPaymentRequest */
-  async rejectPayment(
-    workspaceId: string,
-    transactionId: string,
-    reason?: string,
-  ): Promise<{ message: string }> {
+  /** POST /platform/payments/{transactionId}/reject — body: RejectPaymentRequest */
+  async rejectPayment(transactionId: string, reason?: string): Promise<{ message: string }> {
     const res = await axiosClient.post<{ message: string }>(
-      `/workspaces/${workspaceId}/payments/${transactionId}/reject`,
+      `/platform/payments/${transactionId}/reject`,
       { reason: reason?.trim() || null },
     );
     return res.data;
   },
 
-  /** GET /workspaces/{workspaceId}/payments/bank-settings */
-  async getBankSettings(workspaceId: string): Promise<WorkspaceBankSettingsDto> {
-    const res = await axiosClient.get<WorkspaceBankSettingsDto>(
-      `/workspaces/${workspaceId}/payments/bank-settings`,
+  /** GET /platform/payments/bank-account — tài khoản nhận tiền đang dùng + lịch sử. */
+  async getPlatformBankAccount(): Promise<PlatformBankAccountResponseDto> {
+    const res = await axiosClient.get<PlatformBankAccountResponseDto>(
+      '/platform/payments/bank-account',
     );
     return res.data;
   },
 
-  /** PUT /workspaces/{workspaceId}/payments/bank-settings */
-  async updateBankSettings(
-    workspaceId: string,
-    settings: UpdateWorkspaceBankSettingsRequest,
-  ): Promise<WorkspaceBankSettingsDto> {
-    const res = await axiosClient.put<WorkspaceBankSettingsDto>(
-      `/workspaces/${workspaceId}/payments/bank-settings`,
-      settings,
+  /** PUT /platform/payments/bank-account — chỉ Publisher, bắt buộc mã 2FA. */
+  async updatePlatformBankAccount(
+    request: UpdatePlatformBankAccountRequest,
+  ): Promise<PlatformBankAccountDto> {
+    const res = await axiosClient.put<PlatformBankAccountDto>(
+      '/platform/payments/bank-account',
+      request,
     );
     return res.data;
   },

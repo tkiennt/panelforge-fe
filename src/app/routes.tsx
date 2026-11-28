@@ -978,12 +978,16 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 element={<PublisherSeriesDetailView onShowToast={showToast} />}
               />
               <Route path='desk' element={<PublisherDeskView onShowToast={showToast} />} />
-              {/* Doanh thu: chỉ Publisher quản lý (cấu hình ngân hàng Studio, giá theo ngôn ngữ) */}
+              {/* Doanh thu: Publisher quản lý tài khoản ngân hàng nền tảng (Q13), duyệt VietQR, giá theo ngôn ngữ */}
               <Route path='revenue' element={<PublisherRevenueView />} />
               <Route path='revenue/series/:seriesId' element={<PublisherSeriesInsightsView />} />
               <Route
                 path='revenue/series/:seriesId/chapters/:chapterId'
                 element={<PublisherChapterManageView />}
+              />
+              <Route
+                path='revenue/payments'
+                element={<PublisherBankSettingsView onShowToast={showToast} />}
               />
               <Route
                 path='revenue/workspaces/:workspaceId'

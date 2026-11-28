@@ -94,7 +94,7 @@
   "bank": {
     "notConfigured": "Chưa cấu hình tài khoản nhận tiền",
     "modalTitle": "Cấu hình Tài khoản Ngân hàng Nhận Tiền VietQR",
-    "modalSubtitle": "Độc giả Mobile quét mã VietQR sẽ chuyển khoản trực tiếp vào tài khoản này.",
+    "modalSubtitle": "Tài khoản ngân hàng của nền tảng. Mọi tiền nạp Ví và mở khóa chương qua VietQR của mọi Studio đều chuyển vào tài khoản này.",
     "bankLabel": "Ngân hàng thụ hưởng",
     "accountNoLabel": "Số tài khoản",
     "accountNoInvalid": "Số tài khoản chỉ gồm 6–19 chữ số.",
@@ -103,7 +103,16 @@
     "previewTitle": "Xem trước mã VietQR",
     "previewEmpty": "Nhập số tài khoản để tạo mã",
     "previewSample": "Mẫu: {amount} · nội dung {code}",
-    "save": "Lưu cấu hình VietQR"
+    "save": "Lưu cấu hình VietQR",
+    "usingDefault": "Chưa cấu hình tài khoản nền tảng: mã VietQR đang dùng tài khoản mặc định của máy chủ (SePay:DefaultBank). Hãy lưu tài khoản thật đã liên kết SePay.",
+    "twoFactorLabel": "Mã xác thực 2FA",
+    "twoFactorHint": "Nhập mã 6 số từ ứng dụng Authenticator hoặc một mã khôi phục. Tài khoản Publisher phải bật 2FA mới đổi được tài khoản nhận tiền.",
+    "historyTitle": "Lịch sử tài khoản nhận tiền",
+    "historyCurrent": "Đang dùng",
+    "historyChangedBy": "{name} · {date}",
+    "scopePlatform": "Giao dịch của toàn nền tảng, gồm đơn nạp Ví và mở khóa chương của mọi Studio.",
+    "scopeWorkspace": "Giao dịch mở khóa chương của Studio này. Đơn nạp Ví xem ở trang giao dịch toàn nền tảng.",
+    "platformPayments": "Tài khoản nhận tiền & giao dịch"
   },
   "toast": {
     "loadErrorTitle": "Lỗi tải dữ liệu",
