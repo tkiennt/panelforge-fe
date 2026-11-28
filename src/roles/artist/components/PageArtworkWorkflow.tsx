@@ -30,6 +30,7 @@ import { useConfirm } from '@/shared/context/ConfirmContext';
 import { cropPanelArtwork } from '../utils/cropPanelArtwork';
 import { detectPanelsFromSketchImage } from '../lib/panelDetection';
 import { useTranslation } from '@/lib/i18n';
+import { useUploadLimit } from '@/hooks/useUploadLimit';
 import {
   clampRegion,
   draftFromSplitResult,
@@ -41,8 +42,6 @@ import {
   type SplitDraft,
 } from '../utils/splitDraft';
 
-/** Giới hạn của POST /api/pages/{pageId}/split-artwork (HANDOFF 2026-10-20). */
-const SPLIT_MAX_BYTES = 20 * 1024 * 1024;
 const SPLIT_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 
 const formatBytes = (n: number) =>
@@ -320,6 +319,7 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
 }) => {
   const { t } = useTranslation('artist');
   const confirm = useConfirm();
+  const artworkLimit = useUploadLimit('artwork');
   const [rtl, setRtl] = useState(defaultRightToLeft);
   const [detecting, setDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -406,8 +406,14 @@ export const SplitReviewDialog: React.FC<DialogProps> = ({
       if (!res.ok) throw new Error(t('pageArtwork.fetchArtworkExpiredError'));
       const blob = await res.blob();
       if (!SPLIT_TYPES.includes(blob.type)) throw new Error(t('pageArtwork.unsupportedTypeError'));
-      if (blob.size > SPLIT_MAX_BYTES)
-        throw new Error(t('pageArtwork.sizeLimitError', { size: formatBytes(blob.size) }));
+      // split-artwork dùng chung giới hạn artwork do Admin đặt
+      if (blob.size > artworkLimit.maxBytes)
+        throw new Error(
+          t('pageArtwork.sizeLimitError', {
+            size: formatBytes(blob.size),
+            max: artworkLimit.maxMb,
+          }),
+        );
       const file = new File([blob], `page-${page.pageNumber}-v${artwork.versionNumber}`, {
         type: blob.type,
       });

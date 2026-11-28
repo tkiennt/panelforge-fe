@@ -169,12 +169,29 @@ axiosClient.interceptors.request.use(
   },
 );
 
+/**
+ * File vượt giới hạn upload: Backend trả FILE_TOO_LARGE (413), máy chủ web có thể trả 413 không kèm nội dung.
+ * Đổi nội dung lỗi sang câu theo ngôn ngữ đang dùng để mọi service hiển thị giống nhau.
+ */
+function localizeFileTooLarge(error: AxiosError) {
+  const response = error.response;
+  if (!response) return;
+  const data = (response.data && typeof response.data === 'object' ? response.data : {}) as Record<
+    string,
+    unknown
+  >;
+  if (response.status !== 413 && data.code !== 'FILE_TOO_LARGE') return;
+  const message = translate('errors.FILE_TOO_LARGE');
+  response.data = { ...data, code: 'FILE_TOO_LARGE', error: message, message };
+}
+
 axiosClient.interceptors.response.use(
   (response) => {
     if (SESSION_RESTORE_ENDPOINTS.test(response.config?.url ?? '')) sessionEnded = false;
     return response;
   },
   async (error: AxiosError) => {
+    localizeFileTooLarge(error);
     const original = error.config as RetriableConfig | undefined;
     if (
       error.response?.status !== 401 ||

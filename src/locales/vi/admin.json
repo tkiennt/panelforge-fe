@@ -102,7 +102,8 @@
       "sessionPolicy": "Chính sách phiên",
       "audit": "Nhật ký hệ thống",
       "analytics": "Thống kê độc giả",
-      "resources": "Tài nguyên & hạn mức"
+      "resources": "Tài nguyên & hạn mức",
+      "systemHealth": "Tình trạng hệ thống"
     }
   },
   "users": {
@@ -439,10 +440,7 @@
       "imageCredentialInvalidSuffix": " (đang tắt hoặc thiếu model ảnh)",
       "imageCredentialMissingOption": "API sinh ảnh không còn khả dụng",
       "sharedImageKeyUnavailable": "API sinh ảnh riêng đang tắt, thiếu model ảnh hoặc đã xoá — hãy chọn lại",
-      "tokenQuotaLabel": "Quota token mỗi tháng",
-      "imageQuotaLabel": "Quota sinh ảnh mỗi tháng",
-      "zeroUnlimited": "0 = không giới hạn",
-      "nonNegativeIntError": "Nhập số nguyên không âm.",
+      "quotaMovedHint": "Hạn mức token, ảnh và số lượt gọi AI của Studio đặt ở tab Tài nguyên & hạn mức.",
       "allowedModels": "Model được phép",
       "allowedModelsEmptyHint": "Chọn API ở trên để hiển thị danh sách model.",
       "allowedModelsNote": "Danh sách model lấy theo API đã chọn.",
@@ -531,7 +529,8 @@
     "type": {
       "Storage": "Storage",
       "AiTokens": "AI Token / tháng",
-      "AiImages": "Ảnh AI / tháng"
+      "AiImages": "Ảnh AI / tháng",
+      "AiRequests": "Lượt gọi AI / tháng"
     },
     "requestStatus": {
       "Pending": "Chờ duyệt",
@@ -549,6 +548,7 @@
       "colStorage": "Storage Usage",
       "colTokens": "AI Token",
       "colImages": "Ảnh AI",
+      "colRequests": "Lượt gọi AI",
       "colReset": "Reset AI",
       "colStatus": "Trạng thái",
       "colActions": "Thao tác",
@@ -556,11 +556,15 @@
       "storageAria": "Storage của {name}",
       "tokensAria": "AI Token của {name}",
       "imagesAria": "Ảnh AI của {name}",
+      "requestsAria": "Lượt gọi AI của {name}",
+      "perMinute": "Tối đa {count} lượt/phút",
+      "perMinuteUnlimited": "Không giới hạn lượt/phút",
       "pendingLink": "{count} yêu cầu chờ",
       "configure": "Cấu hình",
       "empty": "Chưa có Studio nào.",
       "noResults": "Không có Studio khớp bộ lọc.",
-      "clearFilters": "Xoá bộ lọc"
+      "clearFilters": "Xoá bộ lọc",
+      "openDetail": "Xem chi tiết Studio {name}"
     },
     "configure": {
       "title": "Cấu hình Resource Allocation",
@@ -574,6 +578,8 @@
       "aiEnabled": "Bật AI cho Studio",
       "tokenQuota": "AI Token / tháng",
       "imageQuota": "Ảnh AI / tháng",
+      "requestQuota": "Lượt gọi AI / tháng",
+      "requestsPerMinute": "Lượt gọi AI / phút",
       "reason": "Lý do điều chỉnh",
       "reasonHint": "Ghi vào Nhật ký hệ thống cùng giá trị cũ và mới.",
       "saved": "Đã cập nhật tài nguyên của {name}."
@@ -585,6 +591,8 @@
       "storage": "Storage Quota mặc định (GB)",
       "tokens": "AI Token / tháng",
       "images": "Ảnh AI / tháng",
+      "requests": "Lượt gọi AI / tháng",
+      "perMinute": "Lượt gọi AI / phút",
       "warn": "Ngưỡng cảnh báo (%)",
       "warnHint": "Studio đạt mức này được đánh dấu \"Gần hết\".",
       "aiEnabled": "Bật AI cho Studio mới",
@@ -662,6 +670,166 @@
       "deleteConfirmDescription": "Báo cáo đang có {count} file mồ côi thuộc các Studio. File đã xoá không khôi phục được.",
       "deleteConfirmNote": "Chỉ xoá file cũ hơn 7 ngày của Studio đang hoạt động. File không rõ Studio, ảnh thu nhỏ, file xuất bản và mọi bản ghi lịch sử được giữ nguyên. Sau khi xoá, bấm \"Cập nhật dung lượng\" nếu số đang ghi còn lệch.",
       "deleteConfirm": "Xoá vĩnh viễn"
+    },
+    "uploadLimits": {
+      "title": "Giới hạn kích thước file tải lên",
+      "description": "Áp ngay cho mọi Studio từ lượt tải lên tiếp theo. File đã lưu không bị ảnh hưởng.",
+      "notConfigured": "Chưa lưu giới hạn: đang dùng mặc định của máy chủ (artwork 25 MB, ảnh tham chiếu 10 MB, ảnh bìa 5 MB).",
+      "artwork": "Artwork trang / panel (MB)",
+      "artworkHint": "Gồm ảnh trang gửi đi nhận diện panel. Tối đa {max} MB.",
+      "reference": "Ảnh tham chiếu Bible (MB)",
+      "referenceHint": "Reference sheet, concept art. Tối đa {max} MB.",
+      "cover": "Ảnh bìa, avatar, banner (MB)",
+      "coverHint": "Bìa Series, Chương, Studio; avatar và banner Series. Tối đa {max} MB.",
+      "range": "Nhập số MB lớn hơn 0 và không quá {max} MB.",
+      "saved": "Đã lưu giới hạn kích thước file."
+    }
+  },
+  "details": {
+    "loading": "Đang tải…",
+    "retry": "Thử lại",
+    "refresh": "Làm mới",
+    "openAudit": "Xem nhật ký hệ thống",
+    "recentActivity": "Hoạt động gần đây",
+    "noActivity": "Chưa có hoạt động nào được ghi.",
+    "joinedAt": "Tham gia {time}",
+    "aiCallsHint": "{calls} lượt gọi · {failed} lỗi",
+    "memberStatus": {
+      "Pending": "Chờ duyệt",
+      "Active": "Đang hoạt động",
+      "Rejected": "Bị từ chối"
+    },
+    "user": {
+      "back": "Về danh sách người dùng",
+      "active": "Đang hoạt động",
+      "locked": "Đã khoá",
+      "pendingInvitation": "Chưa nhận lời mời",
+      "sessions": "Phiên đang mở",
+      "lastActive": "Hoạt động gần nhất: {time}",
+      "studios": "Studio tham gia",
+      "walletBalance": "Số dư Ví",
+      "walletHint": "Đã nạp {topUp} · mở khoá {unlocked} ấn bản",
+      "noWallet": "Chưa có Ví",
+      "aiThisMonth": "Token AI tháng này",
+      "profile": "Hồ sơ tài khoản",
+      "pendingTopUps": "Đơn nạp đang chờ duyệt",
+      "memberships": "Studio",
+      "noMemberships": "Tài khoản chưa tham gia Studio nào.",
+      "openStudio": "Mở Studio",
+      "activeSessions": "Phiên đăng nhập còn hiệu lực",
+      "colDevice": "Thiết bị",
+      "colIp": "IP",
+      "colStarted": "Bắt đầu",
+      "colLastActive": "Hoạt động gần nhất",
+      "noSessions": "Không có phiên nào đang mở.",
+      "unknownDevice": "Thiết bị không xác định"
+    },
+    "studio": {
+      "back": "Về Tài nguyên & hạn mức",
+      "owner": "Chủ Studio: {name}",
+      "configure": "Cấu hình tài nguyên",
+      "saved": "Đã lưu cấu hình tài nguyên.",
+      "resources": "Tài nguyên",
+      "storage": "Dung lượng",
+      "aiTokens": "Token AI / tháng",
+      "aiImages": "Ảnh AI / tháng",
+      "noAi": "Chưa cấu hình AI",
+      "ai30Tokens": "Token AI 30 ngày",
+      "ai30Calls": "Lượt gọi AI 30 ngày",
+      "ai30Failed": "Lượt gọi lỗi",
+      "ai30FailedRuns": "Luồng AI lỗi",
+      "settings": "Cấu hình",
+      "aiStatus": "AI",
+      "aiOn": "Đang bật",
+      "aiOff": "Đang tắt",
+      "aiProvider": "Nhà cung cấp AI",
+      "aiReset": "Bộ đếm AI về 0 lúc",
+      "sessionLifetime": "Thời hạn phiên",
+      "sessionIdle": "Hết phiên khi không hoạt động",
+      "maxSessions": "Số phiên tối đa mỗi người",
+      "defaultPolicy": "Theo mặc định",
+      "minutes": "{n} phút",
+      "createdAt": "Ngày tạo",
+      "members": "Thành viên ({n})",
+      "noMembers": "Studio chưa có thành viên.",
+      "openUser": "Xem tài khoản",
+      "series": "Bộ truyện ({n})",
+      "colTitle": "Tên",
+      "colChapters": "Số chương",
+      "colPublished": "Đã phát hành",
+      "colStatus": "Trạng thái",
+      "colCreated": "Ngày tạo",
+      "noSeries": "Studio chưa có bộ truyện nào.",
+      "completed": "Đã hoàn thành",
+      "ongoing": "Đang tiến hành",
+      "requests": "Yêu cầu tăng hạn mức gần đây",
+      "noRequests": "Studio chưa gửi yêu cầu nào.",
+      "aiRequests": "Lượt gọi AI / tháng",
+      "requestsPerMinute": "Lượt gọi AI tối đa mỗi phút"
+    }
+  },
+  "health": {
+    "title": "Tình trạng hệ thống",
+    "description": "Gọi thử cơ sở dữ liệu, kho file và dịch vụ AI, kèm các việc nền đang kẹt hoặc lỗi. Tự kiểm tra lại mỗi phút khi đang mở.",
+    "recheck": "Kiểm tra lại",
+    "checkedAt": "Kiểm tra lúc {time}",
+    "startedAt": "Máy chủ chạy từ {time}",
+    "version": "Phiên bản {version}",
+    "status": {
+      "Healthy": "Ổn định",
+      "Degraded": "Suy giảm",
+      "Down": "Không hoạt động"
+    },
+    "dependency": {
+      "database": "Cơ sở dữ liệu",
+      "storage": "Kho file",
+      "ai": "Dịch vụ AI"
+    },
+    "latency": "Thời gian phản hồi",
+    "queueDepth": "Việc trong hàng đợi",
+    "reason": {
+      "SLOW": "Phản hồi chậm hơn 1,5 giây.",
+      "TIMEOUT": "Không phản hồi trong 5 giây.",
+      "UNREACHABLE": "Không kết nối được.",
+      "SERVICE_KEY_MISSING": "Dịch vụ chạy nhưng Backend chưa có khoá dịch vụ AI, mọi việc AI sẽ bị từ chối."
+    },
+    "signalsTitle": "Việc nền",
+    "signalsDescription": "Đếm từ cơ sở dữ liệu ngay lúc kiểm tra.",
+    "noSignals": "Không đọc được cơ sở dữ liệu nên chưa đếm được việc nền.",
+    "colSignal": "Hạng mục",
+    "colCount": "Số lượng",
+    "colOldest": "Cũ nhất",
+    "colAction": "Thao tác",
+    "open": "Mở màn xử lý",
+    "signal": {
+      "aiRunsStuck": {
+        "label": "Luồng AI bị kẹt",
+        "hint": "Đang chờ hoặc đang chạy nhưng im lặng quá 15 phút."
+      },
+      "aiRunsFailed24h": {
+        "label": "Luồng AI lỗi trong 24 giờ",
+        "hint": "Luồng nhiều tác tử kết thúc lỗi hoặc bị ngắt."
+      },
+      "aiCallsFailed24h": {
+        "label": "Lượt gọi AI lỗi trong 24 giờ",
+        "hint": "Nhà cung cấp lỗi hoặc không phản hồi. Không tính hết hạn mức."
+      },
+      "exportsStuck": {
+        "label": "Xuất file bị kẹt",
+        "hint": "Đang chờ hoặc đang dựng quá 30 phút."
+      },
+      "exportsFailed24h": {
+        "label": "Xuất file lỗi trong 24 giờ",
+        "hint": "Dựng CBZ / PDF / ảnh không thành công."
+      },
+      "pendingTopUps": {
+        "label": "Đơn nạp Ví chờ duyệt",
+        "hint": "Publisher duyệt tay. Cảnh báo khi có đơn chờ quá 24 giờ."
+      },
+      "pendingQuotaRequests": {
+        "label": "Yêu cầu tăng hạn mức chờ duyệt",
+        "hint": "Cảnh báo khi có yêu cầu chờ quá 3 ngày."
+      }
     }
   },
   "studioPackage": {

@@ -527,7 +527,7 @@
     },
     "workspaceCoverPicker": {
       "invalidType": "Only PNG, JPEG, or WebP images are accepted.",
-      "fileTooLarge": "Image size {size} MB exceeds the 5 MB limit.",
+      "fileTooLarge": "Image size {size} MB exceeds the {max} MB limit.",
       "saveError": "Failed to save Studio cover image.",
       "previewFallback": "Preview (2:1 ratio)",
       "hasChanges": "Changes pending"

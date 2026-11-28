@@ -437,7 +437,7 @@
     "originalSizeTooltip": "Kích thước gốc (100%)",
     "close": "Đóng",
     "invalidFormatError": "Chỉ nhận ảnh PNG, JPEG hoặc WebP.",
-    "fileTooLargeError": "File vượt giới hạn 25 MB.",
+    "fileTooLargeError": "File vượt giới hạn {max} MB.",
     "scopePanelLower": "khung #{number}",
     "scopeFullPageLower": "cả trang",
     "uploadSuccessToast": "Đã tải artwork v{version} cho {scope}",

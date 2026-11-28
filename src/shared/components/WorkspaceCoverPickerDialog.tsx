@@ -5,6 +5,7 @@ import { WorkspaceDto } from '@/types';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { StudioCoverFallback } from '@/shared/components/StudioCoverFallback';
 import { useTranslation } from '@/lib/i18n';
+import { useUploadLimit } from '@/hooks/useUploadLimit';
 import { Alert, Modal } from '@/shared/ui';
 
 interface WorkspaceCoverPickerDialogProps {
@@ -17,7 +18,6 @@ interface WorkspaceCoverPickerDialogProps {
 
 type CoverChoice = { type: 'upload'; file: File } | { type: 'remove' } | null;
 
-const MAX_COVER_BYTES = 5 * 1024 * 1024; // 5 MB (matching Backend SetWorkspaceCoverCommandHandler.MaxBytes)
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 
 export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProps> = ({
@@ -28,6 +28,7 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
   onSuccess,
 }) => {
   const { t } = useTranslation();
+  const coverLimit = useUploadLimit('coverImage');
   const [choice, setChoice] = useState<CoverChoice>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -65,10 +66,11 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
       return;
     }
 
-    if (file.size > MAX_COVER_BYTES) {
+    if (file.size > coverLimit.maxBytes) {
       setFileError(
         t('common.components.workspaceCoverPicker.fileTooLarge', {
           size: (file.size / 1024 / 1024).toFixed(1),
+          max: coverLimit.maxMb,
         }),
       );
       return;
@@ -234,7 +236,7 @@ export const WorkspaceCoverPickerDialog: React.FC<WorkspaceCoverPickerDialogProp
                   : t('workspace.shelf.coverDropzone')}
               </p>
               <p className='text-xs text-[#78716C] leading-normal'>
-                {t('workspace.shelf.coverHint')}
+                {t('workspace.shelf.coverHint', { max: coverLimit.maxMb })}
               </p>
             </div>
           </div>

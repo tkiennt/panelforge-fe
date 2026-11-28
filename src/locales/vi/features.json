@@ -539,7 +539,7 @@
     "titleAvatar": "Đổi avatar Series",
     "titleBanner": "Đổi banner Series",
     "invalidFileType": "Chỉ nhận ảnh PNG, JPEG hoặc WebP.",
-    "fileTooLarge": "Ảnh {size} MB vượt giới hạn 5 MB.",
+    "fileTooLarge": "Ảnh {size} MB vượt giới hạn {max} MB.",
     "saveErrorFallback": "Không thể lưu ảnh.",
     "willUseDefault": "Sẽ dùng ảnh mặc định",
     "dragToMoveTitle": "Nhấn giữ chuột và kéo để di chuyển vị trí ảnh",

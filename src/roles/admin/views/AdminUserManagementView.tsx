@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 import { AdminUserTable } from './components/AdminUserTable';
 import { AdminAssignRoleModal } from './components/AdminAssignRoleModal';
-import { AdminUserDetailsModal } from './components/AdminUserDetailsModal';
 import { StudioPackagePriceCard } from './components/StudioPackagePriceCard';
 import { AdminBadge, AdminButton, AdminPageHeader, AdminToast } from './components/AdminUi';
 import { adminFieldClass, adminFocusRing, useAdminToast } from './components/adminUiStyles';
@@ -16,7 +15,10 @@ const isAdminRole = (role: string) =>
 const isProducer = (user: AdminUserItem) =>
   user.canCreateStudio === true && !isAdminRole(user.role);
 
-export const AdminUserManagementView: React.FC = () => {
+/** onOpenUser: mở trang chi tiết tài khoản (OPS-30) thay cho hộp thoại xem nhanh cũ. */
+export const AdminUserManagementView: React.FC<{ onOpenUser?: (userId: string) => void }> = ({
+  onOpenUser,
+}) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -35,7 +37,6 @@ export const AdminUserManagementView: React.FC = () => {
 
   const [assigningUser, setAssigningUser] = useState<AdminUserItem | null>(null);
   const [selectedNewRoles, setSelectedNewRoles] = useState<string[]>(['Producer']);
-  const [inspectUser, setInspectUser] = useState<AdminUserItem | null>(null);
   const { toast, show: showToast, clear: clearToast } = useAdminToast(4000);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
@@ -209,7 +210,7 @@ export const AdminUserManagementView: React.FC = () => {
         setPage={setPage}
         setAssigningUser={setAssigningUser}
         setSelectedNewRoles={setSelectedNewRoles}
-        setInspectUser={setInspectUser}
+        setInspectUser={(user) => onOpenUser?.(user.id)}
         renderProjectRoles={renderProjectRoles}
       />
 
@@ -221,14 +222,6 @@ export const AdminUserManagementView: React.FC = () => {
           onClose={() => setAssigningUser(null)}
           onSubmit={handleAssignRoleSubmit}
           isSubmitting={assignRoleMutation.isPending}
-        />
-      )}
-
-      {inspectUser && (
-        <AdminUserDetailsModal
-          user={inspectUser}
-          onClose={() => setInspectUser(null)}
-          renderProjectRoles={renderProjectRoles}
         />
       )}
     </>

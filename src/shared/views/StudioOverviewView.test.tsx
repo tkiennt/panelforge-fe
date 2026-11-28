@@ -71,6 +71,13 @@ const mockUsage = {
     percentUsed: 15,
     isUnlimited: false,
   },
+  aiRequests: {
+    used: 40,
+    quota: 200,
+    percentUsed: 20,
+    isUnlimited: false,
+  },
+  requestsPerMinuteLimit: 10,
   activeSessions: {
     used: 2,
     quota: 5,
@@ -964,6 +971,13 @@ describe('StudioOverviewView Library UX/UI', () => {
       expect(screen.getByText('Đã dùng 25%')).toBeInTheDocument();
       expect(screen.getByText('Token AI không giới hạn')).toBeInTheDocument();
       expect(screen.getByText('Đã dùng 15%')).toBeInTheDocument();
+
+      // OPS-24: lượt gọi AI theo tháng và giới hạn mỗi phút
+      const requestMeter = screen.getByTestId('ai-request-meter');
+      expect(requestMeter).toHaveTextContent('Hạn Mức Lượt Gọi AI');
+      expect(requestMeter).toHaveTextContent('40 / 200 lượt');
+      expect(requestMeter).toHaveTextContent('Đã dùng 20%');
+      expect(requestMeter).toHaveTextContent('Tối đa 10 lượt/phút');
     });
 
     it('treats quota 0 as unlimited without rendering 0% or NaN bars', async () => {

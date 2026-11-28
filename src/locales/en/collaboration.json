@@ -437,7 +437,7 @@
     "originalSizeTooltip": "Original size (100%)",
     "close": "Close",
     "invalidFormatError": "Only PNG, JPEG, or WebP images are accepted.",
-    "fileTooLargeError": "File exceeds 25 MB limit.",
+    "fileTooLargeError": "File exceeds {max} MB limit.",
     "scopePanelLower": "panel #{number}",
     "scopeFullPageLower": "full page",
     "uploadSuccessToast": "Uploaded artwork v{version} for {scope}",

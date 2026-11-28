@@ -527,7 +527,7 @@
     },
     "workspaceCoverPicker": {
       "invalidType": "Chỉ nhận ảnh PNG, JPEG hoặc WebP.",
-      "fileTooLarge": "Ảnh dung lượng {size} MB vượt quá giới hạn 5 MB.",
+      "fileTooLarge": "Ảnh dung lượng {size} MB vượt quá giới hạn {max} MB.",
       "saveError": "Lỗi khi lưu ảnh bìa Studio.",
       "previewFallback": "Xem trước (Tỷ lệ 2:1)",
       "hasChanges": "Đã có thay đổi"

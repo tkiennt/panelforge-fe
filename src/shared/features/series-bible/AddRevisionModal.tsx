@@ -15,6 +15,7 @@ import type { BibleEntity } from '@/types';
 import type { BibleEntryRevisionDto } from '@/services/bible.service';
 import type { CharacterVariant } from './BibleEntityDetailModal';
 import { useTranslation } from '@/lib/i18n';
+import { useUploadLimit } from '@/hooks/useUploadLimit';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { Alert, Modal } from '@/shared/ui';
 import { SpecFieldsEditor } from './SpecFieldsEditor';
@@ -107,6 +108,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     onConfirmArtistSubmit,
   }) => {
     const { t } = useTranslation();
+    const referenceLimit = useUploadLimit('referenceImage');
     const [variantMode, setVariantMode] = useState<'existing' | 'new'>(() => {
       if (isNewVariantInitial) return 'new';
       if (existingVariants.length > 0) return 'existing';
@@ -464,7 +466,9 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     {t('bible.addRevisionModal.heroFocusBadge')}
                   </span>
                 </div>
-                <span className='text-xs text-stone-500 font-medium'>PNG, JPG, WebP ≤ 10MB</span>
+                <span className='text-xs text-stone-500 font-medium'>
+                  {t('bible.addRevisionModal.formatsShort', { max: referenceLimit.maxMb })}
+                </span>
               </div>
 
               <input
@@ -558,7 +562,9 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         </span>
                       </p>
                       <p className='text-xs text-stone-400'>
-                        {t('bible.addRevisionModal.heroDropzoneHint')}
+                        {t('bible.addRevisionModal.heroDropzoneHint', {
+                          max: referenceLimit.maxMb,
+                        })}
                       </p>
                     </>
                   )}
@@ -847,7 +853,11 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     ) : (
                       <>
                         <Upload className='w-3.5 h-3.5 text-[#F97316]' />
-                        <span>{t('bible.addRevisionModal.uploadModelSheetBtn')}</span>
+                        <span>
+                          {t('bible.addRevisionModal.uploadModelSheetBtn', {
+                            max: referenceLimit.maxMb,
+                          })}
+                        </span>
                       </>
                     )}
                   </button>

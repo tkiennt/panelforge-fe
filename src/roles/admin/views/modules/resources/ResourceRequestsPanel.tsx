@@ -15,7 +15,7 @@ import { RequestStatusBadge } from './ResourceUi';
 import { formatAmount, useLocale } from './resourceFormat';
 
 const STATUSES: QuotaIncreaseRequestStatus[] = ['Pending', 'Approved', 'Rejected'];
-const TYPES: QuotaResourceType[] = ['Storage', 'AiTokens', 'AiImages'];
+const TYPES: QuotaResourceType[] = ['Storage', 'AiTokens', 'AiImages', 'AiRequests'];
 const COLS = 6;
 
 /** Duyệt / từ chối yêu cầu tăng tài nguyên. Từ chối bắt buộc lý do; mỗi yêu cầu chỉ xử lý một lần (server chặn 409). */

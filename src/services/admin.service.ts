@@ -256,11 +256,10 @@ export interface WorkspaceAiConfigDto {
   usedImagesCurrentMonth: number;
 }
 
+/** Hạn mức token/ảnh/lượt gọi đặt ở màn Tài nguyên (OPS-23/24); không gửi ở đây thì BE giữ nguyên. */
 export interface UpdateWorkspaceAiConfigRequest {
   isEnabled: boolean;
-  monthlyTokenQuota: number;
   allowedModels: string[];
-  monthlyImageQuota?: number;
 }
 
 export interface AdminWorkspaceDto {

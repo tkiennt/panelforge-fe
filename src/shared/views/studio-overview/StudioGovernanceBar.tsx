@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Image as ImageIcon,
+  Gauge,
   ArrowUpCircle,
 } from 'lucide-react';
 import { WorkspaceDto, WorkspaceUsageDto } from '@/services/workspace.service';
@@ -65,6 +66,14 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
       : typeof images.percentUsed === 'number' && Number.isFinite(images.percentUsed)
         ? Math.min(100, Math.max(0, Math.round(images.percentUsed)))
         : Math.min(100, Math.max(0, Math.round((images.used / images.quota) * 100)));
+
+  const requests = workspaceUsage?.aiRequests ?? null;
+  const requestsUnlimited = !!requests && (requests.isUnlimited || requests.quota <= 0);
+  const requestsPercent =
+    !requests || requestsUnlimited
+      ? 0
+      : Math.min(100, Math.max(0, Math.round(requests.percentUsed ?? 0)));
+  const perMinute = workspaceUsage?.requestsPerMinuteLimit ?? 0;
 
   return (
     <div className='pt-2 border-t border-stone-100' data-testid='studio-governance-bar'>
@@ -162,7 +171,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
 
       {/* Expanded Detailed Quota Meters */}
       {isResourcesExpanded && (
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-3.5 animate-in fade-in duration-150'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 pt-3.5 animate-in fade-in duration-150'>
           {/* 1. Storage Meter */}
           <div className='flex flex-col justify-between h-full p-4 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
             <div className='flex items-center justify-between gap-2'>
@@ -350,6 +359,75 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                 <p className='text-xs leading-relaxed text-stone-500 italic'>
                   {t('workspace.governance.imageNotEnabled')}
                 </p>
+              </div>
+            )}
+          </div>
+
+          {/* 4. AI Request Meter (OPS-24) */}
+          <div
+            className='flex flex-col justify-between h-full p-4 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'
+            data-testid='ai-request-meter'
+          >
+            <div className='flex items-center justify-between gap-2'>
+              <div className='flex items-center gap-2 text-xs font-bold text-stone-800'>
+                <Gauge className='w-4 h-4 text-blue-500 shrink-0' aria-hidden='true' />
+                <span>{t('workspace.governance.aiRequestHeading')}</span>
+              </div>
+              {requests ? (
+                <div className='font-mono text-xs font-bold text-stone-900 shrink-0'>
+                  {numberFmt.format(requests.used)} /{' '}
+                  {requestsUnlimited
+                    ? t('workspace.governance.unlimited')
+                    : t('workspace.governance.requestQuotaCount', {
+                        count: numberFmt.format(requests.quota),
+                      })}
+                </div>
+              ) : (
+                <span className='whitespace-nowrap px-2 py-0.5 text-xs font-medium rounded-full text-amber-700 bg-amber-50 border border-amber-200 font-mono shrink-0'>
+                  {t('workspace.governance.noQuota')}
+                </span>
+              )}
+            </div>
+
+            {requests ? (
+              <div className='space-y-2'>
+                {requestsUnlimited ? (
+                  <div className='flex items-center gap-1.5 text-xs text-blue-600 font-medium py-0.5'>
+                    <CheckCircle2 className='w-3.5 h-3.5' aria-hidden='true' />
+                    <span>{t('workspace.governance.unlimitedRequests')}</span>
+                  </div>
+                ) : (
+                  <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        requestsPercent >= 90
+                          ? 'bg-red-500'
+                          : requestsPercent >= 75
+                            ? 'bg-amber-500'
+                            : 'bg-blue-500'
+                      }`}
+                      style={{ width: `${requestsPercent}%` }}
+                    />
+                  </div>
+                )}
+                <div className='flex items-center justify-between gap-2 text-xs leading-relaxed text-stone-600'>
+                  <span>
+                    {requestsUnlimited
+                      ? t('workspace.governance.monthlyRequests')
+                      : t('workspace.governance.usedPercent', { percent: requestsPercent })}
+                  </span>
+                  <span className='font-mono text-stone-500 text-xs text-right'>
+                    {perMinute > 0
+                      ? t('workspace.governance.perMinuteLimit', {
+                          count: numberFmt.format(perMinute),
+                        })
+                      : t('workspace.governance.perMinuteUnlimited')}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className='pt-1 text-xs leading-relaxed text-stone-500 italic'>
+                {t('workspace.governance.contactAdminQuota')}
               </div>
             )}
           </div>

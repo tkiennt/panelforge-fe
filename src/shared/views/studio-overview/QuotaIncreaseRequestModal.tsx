@@ -24,8 +24,13 @@ const STATUS_TONE = { Pending: 'warning', Approved: 'success', Rejected: 'danger
 
 /** Mức đang cấp theo usage; null = Studio chưa được cấp AI. 0 = không giới hạn. */
 const currentQuota = (usage: WorkspaceUsageDto | null, type: QuotaResourceType): number | null => {
-  const meter =
-    type === 'Storage' ? usage?.storage : type === 'AiTokens' ? usage?.aiTokens : usage?.images;
+  const meters: Record<QuotaResourceType, WorkspaceUsageDto['images'] | undefined> = {
+    Storage: usage?.storage,
+    AiTokens: usage?.aiTokens,
+    AiImages: usage?.images,
+    AiRequests: usage?.aiRequests,
+  };
+  const meter = meters[type];
   if (!meter) return null;
   return meter.isUnlimited ? 0 : meter.quota;
 };

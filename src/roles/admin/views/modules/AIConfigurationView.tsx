@@ -1112,10 +1112,7 @@ const StudioAiConfigPanel: React.FC<{
   const [isEnabled, setIsEnabled] = useState(true);
   const [credentialId, setCredentialId] = useState('');
   const [imageCredentialId, setImageCredentialId] = useState('');
-  const [tokenQuota, setTokenQuota] = useState('0');
-  const [imageQuota, setImageQuota] = useState('0');
   const [customModels, setCustomModels] = useState<string[] | null>(null);
-  const [errors, setErrors] = useState<{ token?: string; image?: string }>({});
   const activeWorkspaceId = workspaceId || workspaces[0]?.id || '';
 
   const applyConfig = (c: WorkspaceAiConfigDto) => {
@@ -1123,10 +1120,7 @@ const StudioAiConfigPanel: React.FC<{
     setIsEnabled(c.isEnabled);
     setCredentialId(c.providerCredentialId ?? '');
     setImageCredentialId(c.imageProviderCredentialId ?? '');
-    setTokenQuota(String(c.monthlyTokenQuota ?? 0));
-    setImageQuota(String(c.monthlyImageQuota ?? 0));
     setCustomModels(null);
-    setErrors({});
   };
 
   const loadConfig = useCallback(async (id: string) => {
@@ -1283,18 +1277,9 @@ const StudioAiConfigPanel: React.FC<{
     ? (providers.find((p) => p.id === staleBoundImageId) ?? null)
     : null;
 
-  const parseQuota = (v: string) => (/^\d+$/.test(v.trim()) ? Number(v.trim()) : null);
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeWorkspaceId || saving) return;
-    const token = parseQuota(tokenQuota);
-    const image = parseQuota(imageQuota);
-    setErrors({
-      token: token === null ? t('admin.aiConfig.studio.nonNegativeIntError') : undefined,
-      image: image === null ? t('admin.aiConfig.studio.nonNegativeIntError') : undefined,
-    });
-    if (token === null || image === null) return;
 
     const prevCredId = config?.providerCredentialId ?? '';
     const credentialChanged = credentialId !== prevCredId;
@@ -1314,8 +1299,6 @@ const StudioAiConfigPanel: React.FC<{
       }
       const updated = await adminService.updateWorkspaceAiConfig(activeWorkspaceId, {
         isEnabled,
-        monthlyTokenQuota: token,
-        monthlyImageQuota: image,
         allowedModels: activeModels,
       });
       applyConfig(updated);
@@ -1512,44 +1495,7 @@ const StudioAiConfigPanel: React.FC<{
               </AdminField>
             </div>
 
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <AdminField
-                label={t('admin.aiConfig.studio.tokenQuotaLabel')}
-                htmlFor='ai-token-quota'
-                required
-                hint={t('admin.aiConfig.studio.zeroUnlimited')}
-                error={errors.token}
-              >
-                <input
-                  id='ai-token-quota'
-                  type='number'
-                  min={0}
-                  inputMode='numeric'
-                  value={tokenQuota}
-                  onChange={(e) => setTokenQuota(e.target.value)}
-                  aria-invalid={!!errors.token}
-                  className={cn(adminFieldClass, 'tabular-nums')}
-                />
-              </AdminField>
-              <AdminField
-                label={t('admin.aiConfig.studio.imageQuotaLabel')}
-                htmlFor='ai-image-quota'
-                required
-                hint={t('admin.aiConfig.studio.zeroUnlimited')}
-                error={errors.image}
-              >
-                <input
-                  id='ai-image-quota'
-                  type='number'
-                  min={0}
-                  inputMode='numeric'
-                  value={imageQuota}
-                  onChange={(e) => setImageQuota(e.target.value)}
-                  aria-invalid={!!errors.image}
-                  className={cn(adminFieldClass, 'tabular-nums')}
-                />
-              </AdminField>
-            </div>
+            <p className='text-sm text-admin-muted'>{t('admin.aiConfig.studio.quotaMovedHint')}</p>
 
             <fieldset className='min-w-0'>
               <legend className='text-sm font-semibold text-admin-ink mb-2'>

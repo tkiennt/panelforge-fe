@@ -35,10 +35,8 @@ export const SERIES_BANNER_PRESETS: SeriesImagePreset[] = PROFILE_COVER_PRESETS.
 /** Chủ thể của bộ banner mẫu nằm bên trái; ảnh tự tải lên dùng vị trí này để giữ phần trái khi cắt. */
 export const SERIES_BANNER_POSITION = '25% 35%';
 
+/** Kích thước tối đa do Admin đặt (`useUploadLimit('coverImage')`), không cố định ở đây. */
 export const SERIES_IMAGE_RULES = {
   accept: 'image/png,image/jpeg,image/webp',
-  maxBytes: 5 * 1024 * 1024,
-  get label() {
-    return translate('shared.seriesImagePresets.rulesLabel');
-  },
+  label: (maxMb: string) => translate('shared.seriesImagePresets.rulesLabel', { max: maxMb }),
 };

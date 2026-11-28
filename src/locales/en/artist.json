@@ -316,7 +316,7 @@
     "discardCancel": "Keep editing",
     "fetchArtworkExpiredError": "Could not load artwork for detection (link may have expired), please try again.",
     "unsupportedTypeError": "Detection only supports PNG, JPEG, and WEBP images.",
-    "sizeLimitError": "Image {size} exceeds the 20 MB detection limit.",
+    "sizeLimitError": "Image {size} exceeds the {max} MB artwork limit.",
     "foundPanelsNotice": "Found {count} panel(s).",
     "detectFailedError": "Detection failed.",
     "fetchArtworkError": "Could not load artwork for detection.",

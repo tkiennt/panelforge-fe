@@ -152,7 +152,7 @@
     "cozyOrange": "Warm Orange Studio"
   },
   "seriesImagePresets": {
-    "rulesLabel": "PNG, JPEG or WebP · max 5 MB"
+    "rulesLabel": "PNG, JPEG or WebP · max {max} MB"
   },
   "systemImages": {
     "coverName": "Cover {index}",

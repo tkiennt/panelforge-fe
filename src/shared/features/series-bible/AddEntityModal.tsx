@@ -13,6 +13,7 @@ import { BibleEntity, BibleCategory } from '@/types';
 import { bibleService } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { useTranslation } from '@/lib/i18n';
+import { useUploadLimit } from '@/hooks/useUploadLimit';
 import { Modal } from '@/shared/ui';
 import {
   getTempBibleCodes,
@@ -49,6 +50,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   isArtist = true,
 }) => {
   const { t } = useTranslation();
+  const referenceLimit = useUploadLimit('referenceImage');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [category, setCategory] = useState<BibleCategory>('characters');
@@ -81,11 +83,10 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       return;
     }
 
-    const maxBytes = 10 * 1024 * 1024;
-    if (file.size > maxBytes) {
+    if (file.size > referenceLimit.maxBytes) {
       onShowToast(
         t('bible.addEntityModal.sizeExceededTitle'),
-        t('bible.addEntityModal.sizeExceededDesc'),
+        t('bible.addEntityModal.sizeExceededDesc', { max: referenceLimit.maxMb }),
       );
       return;
     }
@@ -471,7 +472,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                         </span>
                       </p>
                       <p className='text-xs text-stone-500'>
-                        {t('bible.addEntityModal.dropzoneFormats')}
+                        {t('bible.addEntityModal.dropzoneFormats', { max: referenceLimit.maxMb })}
                       </p>
                     </>
                   )}

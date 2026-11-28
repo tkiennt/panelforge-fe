@@ -22,7 +22,7 @@
     "removeCover": "Quay về ảnh mặc định",
     "coverDropzone": "Kéo thả hoặc bấm để chọn ảnh",
     "chooseDifferent": "Chọn ảnh khác",
-    "coverHint": "Hỗ trợ PNG, JPEG hoặc WebP. Tối đa 5 MB.",
+    "coverHint": "Hỗ trợ PNG, JPEG hoặc WebP. Tối đa {max} MB.",
     "coverPreview": "Xem trước (Tỷ lệ 2:1)",
     "willUseDefault": "Sẽ quay về ảnh mặc định",
     "apply": "Áp dụng",
@@ -590,7 +590,14 @@
     "imageUnlimitedText": "Sinh ảnh không giới hạn",
     "unlimitedImages": "Ảnh không giới hạn",
     "imageActive": "● Đang kích hoạt",
-    "imageNotEnabled": "Pipeline sinh ảnh AI chưa bật (đã dùng: 0)."
+    "imageNotEnabled": "Pipeline sinh ảnh AI chưa bật (đã dùng: 0).",
+    "aiRequestHeading": "Hạn Mức Lượt Gọi AI",
+    "requestQuotaCount": "{count} lượt",
+    "unlimitedRequests": "Lượt gọi không giới hạn",
+    "perMinuteLimit": "Tối đa {count} lượt/phút",
+    "perMinuteUnlimited": "Không giới hạn lượt/phút",
+    "aiRequestShort": "Lượt AI:",
+    "monthlyRequests": "Lượt gọi theo tháng"
   },
   "notifications": {
     "assignmentReady": "Đến lượt bạn"
@@ -1038,14 +1045,16 @@
     "requestedLabel": {
       "Storage": "Mức muốn có (GB)",
       "AiTokens": "Token AI mỗi tháng muốn có",
-      "AiImages": "Ảnh AI mỗi tháng muốn có"
+      "AiImages": "Ảnh AI mỗi tháng muốn có",
+      "AiRequests": "Lượt gọi AI mỗi tháng muốn có"
     },
     "reasonLabel": "Lý do",
     "reasonPlaceholder": "Ví dụ: thêm 2 bộ mới, mỗi bộ khoảng 300 trang bản vẽ gốc",
     "types": {
       "Storage": "Dung lượng lưu trữ",
       "AiTokens": "Token AI / tháng",
-      "AiImages": "Ảnh AI / tháng"
+      "AiImages": "Ảnh AI / tháng",
+      "AiRequests": "Lượt gọi AI / tháng"
     },
     "unlimited": "không giới hạn",
     "unlimitedNote": "Loại này đang không giới hạn, không cần xin thêm.",

@@ -3,7 +3,12 @@ import type { QuotaResourceType } from '@/services/quota.service';
 
 const BYTES_PER_GB = 1024 * 1024 * 1024;
 
-export const QUOTA_RESOURCE_TYPES: QuotaResourceType[] = ['Storage', 'AiTokens', 'AiImages'];
+export const QUOTA_RESOURCE_TYPES: QuotaResourceType[] = [
+  'Storage',
+  'AiTokens',
+  'AiImages',
+  'AiRequests',
+];
 
 /** Giá trị đưa vào ô nhập: GB (1 chữ số thập phân) cho dung lượng, số nguyên cho token/ảnh. */
 export const toQuotaInput = (type: QuotaResourceType, value: number): string =>

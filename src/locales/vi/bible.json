@@ -239,7 +239,7 @@
     "isCrowdHelp": "Thực thể quần chúng không bắt buộc phải có Model Sheet trước khi bắt đầu sản xuất.",
     "dropzoneTitle": "Kéo thả ảnh reference sheet vào đây",
     "dropzoneBrowse": "hoặc bấm để chọn tệp",
-    "dropzoneFormats": "Định dạng PNG, JPEG, WebP dung lượng tối đa 10 MB",
+    "dropzoneFormats": "Định dạng PNG, JPEG, WebP dung lượng tối đa {max} MB",
     "dropzoneUrlPlaceholder": "Hoặc dán URL ảnh trực tiếp (https://...)",
     "galleryTitle": "Bộ Sưu Tập Phác Thảo Góc Nhìn & Biểu Cảm (Character Sheet Gallery)",
     "galleryCount": "{count} góc phác thảo",
@@ -256,7 +256,7 @@
     "invalidFormatTitle": "Định dạng ảnh không hợp lệ",
     "invalidFormatDesc": "Hệ thống chỉ nhận ảnh PNG, JPEG hoặc WebP.",
     "sizeExceededTitle": "Dung lượng ảnh vượt giới hạn",
-    "sizeExceededDesc": "Ảnh reference sheet không được vượt quá 10 MB.",
+    "sizeExceededDesc": "Ảnh reference sheet không được vượt quá {max} MB.",
     "gallerySizeExceededDesc": "Ảnh phác thảo không được vượt quá 10 MB.",
     "localSelectedTitle": "Đã chọn ảnh cục bộ",
     "uploadSuccessTitle": "Đã tải ảnh lên kho an toàn",
@@ -364,7 +364,7 @@
     "uploadingToServer": "Đang tải ảnh lên máy chủ...",
     "heroDropzonePrefix": "Kéo thả ảnh bản vẽ vào đây, hoặc",
     "heroDropzoneBrowse": "chọn tệp từ máy",
-    "heroDropzoneHint": "Hỗ trợ PNG, JPG, WebP tối đa 10MB • Hỗ trợ dán trực tiếp từ Clipboard (Ctrl + V)",
+    "heroDropzoneHint": "Hỗ trợ PNG, JPG, WebP tối đa {max} MB • Hỗ trợ dán trực tiếp từ Clipboard (Ctrl + V)",
     "designVariantTitle": "Biến thể thiết kế",
     "existingVariantTab": "Biến thể hiện có",
     "newVariantTab": "Tạo biến thể mới",
@@ -389,7 +389,7 @@
     "artistUploadOnlyHint": "Chỉ Artist được tải",
     "artistUploadOnlyNotice": "Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Model Sheet mới.",
     "uploadingImage": "Đang tải ảnh lên...",
-    "uploadModelSheetBtn": "+ Tải ảnh Model Sheet / Concept (PNG, JPEG, WebP ≤ 10MB)",
+    "uploadModelSheetBtn": "+ Tải ảnh Model Sheet / Concept (PNG, JPEG, WebP ≤ {max} MB)",
     "artworkAttached": "Đã đính kèm ảnh bản vẽ",
     "noArtworkSelected": "Chưa chọn ảnh bản vẽ",
     "btnSupersede": "Khoá & Thay thế",
@@ -399,7 +399,8 @@
     "btnCreateVariantSend": "Tạo biến thể & Gửi",
     "btnSaveVersion": "Lưu phiên bản",
     "btnSendDraft": "Gửi bản nháp",
-    "artworkReadyLabel": "Tệp hình ảnh đã sẵn sàng"
+    "artworkReadyLabel": "Tệp hình ảnh đã sẵn sàng",
+    "formatsShort": "PNG, JPG, WebP ≤ {max} MB"
   },
   "detailModal": {
     "backToBible": "Hồ sơ thiết kế",
@@ -676,7 +677,8 @@
     "cancelReplacementBtn": "Huỷ bản thay thế",
     "cancelingReplacementBtn": "Đang huỷ...",
     "cancelReplacementSuccessTitle": "Đã huỷ bản thay thế",
-    "cancelReplacementErrorTitle": "Không thể huỷ bản thay thế"
+    "cancelReplacementErrorTitle": "Không thể huỷ bản thay thế",
+    "imageTooLargeDesc": "Ảnh phải nhỏ hơn hoặc bằng {max} MB."
   },
   "view": {
     "canonHub": "Canon Hub",
@@ -929,7 +931,7 @@
     "revisionImageInvalidTitle": "Định dạng ảnh không hợp lệ",
     "revisionImageInvalidDesc": "Hệ thống chỉ nhận ảnh PNG, JPEG hoặc WebP.",
     "revisionImageSizeExceededTitle": "Dung lượng ảnh vượt giới hạn",
-    "revisionImageSizeExceededDesc": "Ảnh tối đa 10 MB.",
+    "revisionImageSizeExceededDesc": "Ảnh tối đa {max} MB.",
     "revisionImageUploadErrorTitle": "Lỗi tải ảnh tham chiếu",
     "revisionImageUploadErrorDesc": "Không thể tải ảnh reference sheet.",
     "timeJustNow": "Vừa xong",

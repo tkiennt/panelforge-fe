@@ -152,7 +152,7 @@
     "cozyOrange": "Studio cam ấm"
   },
   "seriesImagePresets": {
-    "rulesLabel": "PNG, JPEG hoặc WebP · tối đa 5 MB"
+    "rulesLabel": "PNG, JPEG hoặc WebP · tối đa {max} MB"
   },
   "systemImages": {
     "coverName": "Bìa {index}",

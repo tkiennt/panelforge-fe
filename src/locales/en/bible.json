@@ -239,7 +239,7 @@
     "isCrowdHelp": "Crowd entities do not require a Model Sheet before starting production.",
     "dropzoneTitle": "Drag and drop reference sheet image here",
     "dropzoneBrowse": "or click to browse",
-    "dropzoneFormats": "PNG, JPEG, WebP format up to 10 MB",
+    "dropzoneFormats": "PNG, JPEG, WebP format up to {max} MB",
     "dropzoneUrlPlaceholder": "Or paste direct image URL (https://...)",
     "galleryTitle": "Perspective & Expression Sketch Gallery (Character Sheet Gallery)",
     "galleryCount": "{count} sketch angles",
@@ -256,7 +256,7 @@
     "invalidFormatTitle": "Invalid Image Format",
     "invalidFormatDesc": "Only PNG, JPEG, or WebP images are supported.",
     "sizeExceededTitle": "File Size Limit Exceeded",
-    "sizeExceededDesc": "Reference sheet image cannot exceed 10 MB.",
+    "sizeExceededDesc": "Reference sheet image cannot exceed {max} MB.",
     "gallerySizeExceededDesc": "Sketch image cannot exceed 10 MB.",
     "localSelectedTitle": "Local Image Selected",
     "uploadSuccessTitle": "Uploaded to Secure Storage",
@@ -364,7 +364,7 @@
     "uploadingToServer": "Uploading image to server...",
     "heroDropzonePrefix": "Drag and drop artwork here, or",
     "heroDropzoneBrowse": "browse from device",
-    "heroDropzoneHint": "Supports PNG, JPG, WebP up to 10MB • Supports direct Clipboard paste (Ctrl + V)",
+    "heroDropzoneHint": "Supports PNG, JPG, WebP up to {max} MB • Supports direct Clipboard paste (Ctrl + V)",
     "designVariantTitle": "Design Variant",
     "existingVariantTab": "Existing Variant",
     "newVariantTab": "Create New Variant",
@@ -389,7 +389,7 @@
     "artistUploadOnlyHint": "Artist upload only",
     "artistUploadOnlyNotice": "Only Artists have permission to upload new Model Sheet images.",
     "uploadingImage": "Uploading image...",
-    "uploadModelSheetBtn": "+ Upload Model Sheet / Concept (PNG, JPEG, WebP ≤ 10MB)",
+    "uploadModelSheetBtn": "+ Upload Model Sheet / Concept (PNG, JPEG, WebP ≤ {max} MB)",
     "artworkAttached": "Artwork image attached",
     "noArtworkSelected": "No artwork image selected",
     "btnSupersede": "Lock & Supersede",
@@ -399,7 +399,8 @@
     "btnCreateVariantSend": "Create Variant & Submit",
     "btnSaveVersion": "Save Version",
     "btnSendDraft": "Submit Draft",
-    "artworkReadyLabel": "Image file ready"
+    "artworkReadyLabel": "Image file ready",
+    "formatsShort": "PNG, JPG, WebP ≤ {max} MB"
   },
   "detailModal": {
     "backToBible": "Series Bible",
@@ -676,7 +677,8 @@
     "cancelReplacementBtn": "Cancel replacement",
     "cancelingReplacementBtn": "Canceling...",
     "cancelReplacementSuccessTitle": "Replacement canceled",
-    "cancelReplacementErrorTitle": "Could not cancel replacement"
+    "cancelReplacementErrorTitle": "Could not cancel replacement",
+    "imageTooLargeDesc": "Image must be {max} MB or smaller."
   },
   "view": {
     "canonHub": "Canon Hub",
@@ -929,7 +931,7 @@
     "revisionImageInvalidTitle": "Invalid Image Format",
     "revisionImageInvalidDesc": "Only PNG, JPEG, or WebP images are accepted.",
     "revisionImageSizeExceededTitle": "Image Size Limit Exceeded",
-    "revisionImageSizeExceededDesc": "Image must not exceed 10 MB.",
+    "revisionImageSizeExceededDesc": "Image must not exceed {max} MB.",
     "revisionImageUploadErrorTitle": "Failed to Upload Reference Image",
     "revisionImageUploadErrorDesc": "Could not upload the reference sheet.",
     "timeJustNow": "Just now",

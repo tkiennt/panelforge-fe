@@ -28,12 +28,13 @@ import { HealthBadge, UsageBar } from './ResourceUi';
 import { useLocale } from './resourceFormat';
 import { ConfigureStudioModal } from './ConfigureStudioModal';
 import { ResourcePolicyPanel } from './ResourcePolicyPanel';
+import { UploadLimitsPanel } from './UploadLimitsPanel';
 import { ResourceRequestsPanel } from './ResourceRequestsPanel';
 
 type View = 'allocation' | 'policy' | 'requests' | 'reconcile';
 const VIEWS: View[] = ['allocation', 'policy', 'requests', 'reconcile'];
 type HealthFilter = 'all' | 'attention';
-const COLS = 7;
+const COLS = 8;
 
 /**
  * Admin → Tài nguyên: cấp phát Storage + AI theo Studio, chính sách mặc định, duyệt yêu cầu tăng tài nguyên.
@@ -178,7 +179,12 @@ export const ResourcesView: React.FC = () => {
         ))}
       </div>
 
-      {view === 'policy' && <ResourcePolicyPanel onSaved={(m) => showToast(m)} />}
+      {view === 'policy' && (
+        <div className='space-y-6'>
+          <ResourcePolicyPanel onSaved={(m) => showToast(m)} />
+          <UploadLimitsPanel onSaved={(m) => showToast(m)} />
+        </div>
+      )}
 
       {view === 'reconcile' && <StorageReconcileCard onApplied={load} />}
 
@@ -232,6 +238,7 @@ export const ResourcesView: React.FC = () => {
                   <th className={adminTable.th}>{t('admin.resources.allocation.colStorage')}</th>
                   <th className={adminTable.th}>{t('admin.resources.allocation.colTokens')}</th>
                   <th className={adminTable.th}>{t('admin.resources.allocation.colImages')}</th>
+                  <th className={adminTable.th}>{t('admin.resources.allocation.colRequests')}</th>
                   <th className={adminTable.th}>{t('admin.resources.allocation.colReset')}</th>
                   <th className={adminTable.th}>{t('admin.resources.allocation.colStatus')}</th>
                   <th className={`${adminTable.th} text-right`}>
@@ -284,12 +291,17 @@ export const ResourcesView: React.FC = () => {
                   studios.map((s) => (
                     <tr key={s.workspaceId} className={adminTable.tr}>
                       <td className={cn(adminTable.td, 'max-w-[260px]')}>
-                        <div
-                          className='font-semibold text-admin-ink-strong truncate'
-                          title={s.name}
+                        <button
+                          type='button'
+                          onClick={() => setParam('studio', s.workspaceId)}
+                          className={cn(
+                            'block max-w-full font-semibold text-admin-ink-strong truncate text-left hover:text-admin-accent-text hover:underline rounded',
+                            adminFocusRing,
+                          )}
+                          title={t('admin.resources.allocation.openDetail', { name: s.name })}
                         >
                           {s.name}
-                        </div>
+                        </button>
                         <div className='text-xs text-admin-muted truncate' title={s.ownerEmail}>
                           {s.ownerName || s.ownerEmail}
                         </div>
@@ -330,6 +342,27 @@ export const ResourcesView: React.FC = () => {
                             warningPercent={warn}
                             label={t('admin.resources.allocation.imagesAria', { name: s.name })}
                           />
+                        ) : (
+                          <span className='text-admin-muted text-sm'>—</span>
+                        )}
+                      </td>
+                      <td className={adminTable.td}>
+                        {s.aiEnabled && s.aiRequests ? (
+                          <>
+                            <UsageBar
+                              meter={s.aiRequests}
+                              type='AiTokens'
+                              warningPercent={warn}
+                              label={t('admin.resources.allocation.requestsAria', { name: s.name })}
+                            />
+                            <div className='mt-1 text-xs text-admin-muted tabular-nums'>
+                              {s.requestsPerMinuteLimit
+                                ? t('admin.resources.allocation.perMinute', {
+                                    count: s.requestsPerMinuteLimit,
+                                  })
+                                : t('admin.resources.allocation.perMinuteUnlimited')}
+                            </div>
+                          </>
                         ) : (
                           <span className='text-admin-muted text-sm'>—</span>
                         )}
