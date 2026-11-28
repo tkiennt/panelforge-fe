@@ -723,7 +723,22 @@
       "colStarted": "Started",
       "colLastActive": "Last active",
       "noSessions": "No open sessions.",
-      "unknownDevice": "Unknown device"
+      "unknownDevice": "Unknown device",
+      "emailUnverifiedTitle": "Email not verified",
+      "emailUnverifiedHint": "The user has not entered the OTP sent to {email}. You can resend the code, or verify the email manually once you have confirmed their identity.",
+      "emailUnverifiedInvitationHint": "This account was invited to a studio and has not accepted yet. The email is verified when the invitation is accepted, so it is not handled here.",
+      "emailUnverifiedLockedHint": "This account is locked. Unlock it before resending the verification code.",
+      "resendVerification": "Resend verification code",
+      "resendVerificationSent": "Verification code sent again to {email}.",
+      "confirmEmail": "Mark as verified",
+      "confirmEmailTitle": "Verify email manually",
+      "confirmEmailDescription": "{email} will be treated as verified and can sign in right away. This action is written to the audit log with your reason.",
+      "confirmEmailReason": "Reason",
+      "confirmEmailReasonHint": "For example: the user contacted support and account ownership was confirmed.",
+      "confirmEmailReasonRequired": "Please enter a reason.",
+      "confirmEmailSubmit": "Verify email",
+      "confirmEmailCancel": "Cancel",
+      "confirmEmailDone": "{email} is now marked as verified."
     },
     "studio": {
       "back": "Back to resources & quotas",

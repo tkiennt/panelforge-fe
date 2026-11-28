@@ -723,7 +723,22 @@
       "colStarted": "Bắt đầu",
       "colLastActive": "Hoạt động gần nhất",
       "noSessions": "Không có phiên nào đang mở.",
-      "unknownDevice": "Thiết bị không xác định"
+      "unknownDevice": "Thiết bị không xác định",
+      "emailUnverifiedTitle": "Email chưa xác thực",
+      "emailUnverifiedHint": "Người dùng chưa nhập mã OTP gửi tới {email}. Bạn có thể gửi lại mã, hoặc xác thực thủ công khi đã đối chiếu danh tính.",
+      "emailUnverifiedInvitationHint": "Tài khoản được mời vào Studio và chưa nhận lời mời. Email sẽ được xác thực khi người dùng nhận lời mời, nên không xử lý ở đây.",
+      "emailUnverifiedLockedHint": "Tài khoản đang bị khoá. Mở khoá trước khi gửi lại mã xác thực.",
+      "resendVerification": "Gửi lại mã xác thực",
+      "resendVerificationSent": "Đã gửi lại mã xác thực tới {email}.",
+      "confirmEmail": "Đánh dấu đã xác thực",
+      "confirmEmailTitle": "Xác thực email thủ công",
+      "confirmEmailDescription": "Tài khoản {email} sẽ được coi như đã xác thực email và đăng nhập được ngay. Thao tác được ghi vào nhật ký kiểm toán kèm lý do.",
+      "confirmEmailReason": "Lý do",
+      "confirmEmailReasonHint": "Ví dụ: người dùng liên hệ hỗ trợ, đã đối chiếu thông tin chủ tài khoản.",
+      "confirmEmailReasonRequired": "Vui lòng nhập lý do.",
+      "confirmEmailSubmit": "Xác thực email",
+      "confirmEmailCancel": "Huỷ",
+      "confirmEmailDone": "Đã đánh dấu email {email} là đã xác thực."
     },
     "studio": {
       "back": "Về Tài nguyên & hạn mức",
