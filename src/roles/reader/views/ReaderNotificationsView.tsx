@@ -1,0 +1,99 @@
+import React, { useEffect, useState } from 'react';
+import { workspaceService } from '@/services/workspace.service';
+import { useConfirm } from '@/shared/context/ConfirmContext';
+import { NotificationCenterView } from '@/shared/views/NotificationCenterView';
+import { PendingInvitations, type PendingInvitation } from '@/shared/views/WorkspaceShelfSections';
+import { normalizeWorkspaceRole } from '@/types';
+import { useTranslation } from '@/lib/i18n';
+
+interface ReaderNotificationsViewProps {
+  /** Độc giả vừa nhận lời mời: tài khoản thành thành viên Studio, rời khu độc giả. */
+  onJoinedStudio: (workspaceId: string) => Promise<void>;
+}
+
+/** Thông báo của độc giả, kèm lời mời vào Studio đang chờ (nhận lời mời là lối duy nhất sang Studio). */
+export const ReaderNotificationsView: React.FC<ReaderNotificationsViewProps> = ({
+  onJoinedStudio,
+}) => {
+  const { t } = useTranslation();
+  const confirm = useConfirm();
+  const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
+
+  useEffect(() => {
+    let active = true;
+    workspaceService.getPendingInvitations().then((list) => active && setInvitations(list || []));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const roleLabel = (raw: string) => {
+    const role = normalizeWorkspaceRole(raw);
+    const key = `workspace.shelf.role.${(role || 'member').toLowerCase()}`;
+    const translated = t(key);
+    return translated !== key ? translated : role || t('workspace.shelf.role.member');
+  };
+
+  const timeAgo = (date: string) => {
+    const days = Math.floor((now - new Date(date).getTime()) / 86400000);
+    if (days <= 0) return t('workspace.today');
+    if (days === 1) return t('workspace.yesterday');
+    return t('workspace.daysAgo', { count: days });
+  };
+
+  const accept = async (inv: PendingInvitation) => {
+    setBusyId(inv.workspaceId);
+    setError(null);
+    try {
+      await workspaceService.acceptInvitation(inv.workspaceId);
+      await onJoinedStudio(inv.workspaceId);
+    } catch (err) {
+      setError((err as Error)?.message || t('workspace.shelf.invitations.error'));
+      setBusyId(null);
+    }
+  };
+
+  const reject = async (inv: PendingInvitation) => {
+    const ok = await confirm({
+      title: t('workspace.shelf.invitations.rejectConfirmTitle'),
+      description: t('workspace.shelf.invitations.rejectConfirm', { name: inv.workspaceName }),
+      confirmText: t('workspace.shelf.invitations.reject'),
+      cancelText: t('workspace.shelf.cancel'),
+      variant: 'warning',
+    });
+    if (!ok) return;
+    setBusyId(inv.workspaceId);
+    setError(null);
+    try {
+      await workspaceService.rejectInvitation(inv.workspaceId);
+      setInvitations((prev) => prev.filter((i) => i.workspaceId !== inv.workspaceId));
+    } catch (err) {
+      setError((err as Error)?.message || t('workspace.shelf.invitations.error'));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <main className='w-full flex-1'>
+      {invitations.length > 0 && (
+        <div className='mx-auto max-w-4xl px-4 pt-6 sm:px-6 lg:px-8'>
+          <PendingInvitations
+            invitations={invitations}
+            busyId={busyId}
+            error={error}
+            t={t}
+            roleLabel={roleLabel}
+            timeAgo={timeAgo}
+            onAccept={(inv) => void accept(inv)}
+            onReject={(inv) => void reject(inv)}
+          />
+        </div>
+      )}
+      <NotificationCenterView />
+    </main>
+  );
+};

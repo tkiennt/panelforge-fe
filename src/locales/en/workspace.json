@@ -279,7 +279,6 @@
     "catalog": {
       "genreAll": "All",
       "detailLoadError": "Unable to load series details.",
-      "backToWorkspaces": "Back to Workspace",
       "searchPlaceholder": "Search by title, synopsis...",
       "emptyTitle": "No publicly published series yet",
       "emptyDesc": "Comic projects are currently in production at the Studio Desk. Once chapters are approved by Editors and officially published, they will appear here for readers.",
@@ -333,9 +332,17 @@
       "prevPage": "Previous page",
       "nextPage": "Next page",
       "pageOf": "Page {page} of {total}",
+      "justNow": "Just now"
+    },
+    "layout": {
+      "backToStudio": "Back to Studio",
+      "homeLink": "PanelForge home",
+      "mainNav": "Reader navigation",
+      "navCatalog": "Comics",
+      "navNotifications": "Notifications",
       "logout": "Log out",
       "login": "Log in",
-      "justNow": "Just now"
+      "pendingInvites": "{count} pending Studio invitations"
     }
   },
   "formatters": {

@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
-  ArrowLeft,
   ArrowRight,
   BookOpen,
   ChevronLeft,
   ChevronRight,
   Eye,
-  LogOut,
   RefreshCw,
   Search,
 } from 'lucide-react';
@@ -29,17 +28,8 @@ import {
   viewsInPeriod,
 } from '../components/catalogSections';
 
-interface PublicCatalogViewProps {
-  /** Người dùng Studio đã đăng nhập: quay về danh sách Workspace. */
-  onBackToWorkspaces?: () => void;
-  /** Khách chưa đăng nhập. */
-  onOpenLogin?: () => void;
-  /** Độc giả đã đăng nhập. */
-  readerName?: string;
-  onLogout?: () => void;
-}
-
 type CatalogTab = 'home' | 'updates' | 'ranking' | 'browse';
+const CATALOG_TABS: CatalogTab[] = ['home', 'updates', 'ranking', 'browse'];
 
 /** Trang chủ chỉ cần một lượt tải: backend giới hạn 50 truyện/trang, xếp theo chương mới nhất. */
 const HOME_FETCH_SIZE = 50;
@@ -59,12 +49,8 @@ const readSavedLanguage = (): string => {
   }
 };
 
-export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
-  onBackToWorkspaces,
-  onOpenLogin,
-  readerName,
-  onLogout,
-}) => {
+/** Trang chủ khu độc giả (`/catalog`); header và tài khoản do `ReaderLayout` dựng. */
+export const PublicCatalogView: React.FC = () => {
   const { t, lang } = useTranslation();
   const numberFormat = useMemo(() => new Intl.NumberFormat(lang), [lang]);
   const relativeFormat = useMemo(
@@ -76,7 +62,23 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
     [lang],
   );
 
-  const [tab, setTab] = useState<CatalogTab>('home');
+  // Tab nằm trên URL (?tab=) để logo / link chia sẻ mở đúng tab.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as CatalogTab | null;
+  const tab: CatalogTab = tabParam && CATALOG_TABS.includes(tabParam) ? tabParam : 'home';
+  const setTab = useCallback(
+    (next: CatalogTab) =>
+      setSearchParams(
+        (prev) => {
+          const params = new URLSearchParams(prev);
+          if (next === 'home') params.delete('tab');
+          else params.set('tab', next);
+          return params;
+        },
+        { replace: true },
+      ),
+    [setSearchParams],
+  );
   // Mốc "bây giờ" cho nhãn thời gian, chốt lại mỗi lần tải trang chủ để render thuần.
   const [now, setNow] = useState(() => new Date());
 
@@ -629,34 +631,17 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
   );
 
   return (
-    <div className='flex min-h-screen flex-col bg-[#FAF9F5] text-stone-900'>
-      <header className='sticky top-0 z-30 border-b border-stone-200/80 bg-white'>
-        <div className='mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6'>
-          {onBackToWorkspaces && (
-            <button
-              type='button'
-              onClick={onBackToWorkspaces}
-              className='grid size-9 shrink-0 place-items-center rounded-full border border-stone-200 text-stone-600 hover:bg-stone-50 hover:text-stone-900'
-              title={t('workspace.reader.catalog.backToWorkspaces')}
-              aria-label={t('workspace.reader.catalog.backToWorkspaces')}
-            >
-              <ArrowLeft className='w-4 h-4' />
-            </button>
-          )}
-          <button
-            type='button'
-            onClick={() => setTab('home')}
-            className='flex shrink-0 items-center gap-2'
-          >
-            <span className='grid size-8 place-items-center rounded-lg bg-stone-900 text-white'>
-              <BookOpen className='w-4 h-4' />
-            </span>
-            <span className='hidden font-serif text-lg font-bold tracking-tight sm:inline'>
-              PanelForge
-            </span>
-          </button>
-
-          <form onSubmit={submitSearch} className='relative ml-auto w-full max-w-xs' role='search'>
+    <>
+      <div className='sticky top-14 z-20 border-b border-stone-200/80 bg-white'>
+        <div className='mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 px-4 sm:px-6'>
+          <Tabs
+            items={tabs}
+            value={tab}
+            onChange={(id) => setTab(id as CatalogTab)}
+            aria-label={t('workspace.reader.catalog.tabsLabel')}
+            className='min-w-0 flex-1 border-b-0'
+          />
+          <form onSubmit={submitSearch} className='relative w-full py-2 sm:w-64' role='search'>
             <Search
               className='pointer-events-none absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-stone-400'
               aria-hidden='true'
@@ -670,46 +655,8 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
               className='w-full rounded-full border border-stone-200 bg-[#FAF9F5] py-2 pl-9 pr-3 text-xs placeholder:text-stone-400 focus:border-orange-400 focus:outline-none'
             />
           </form>
-
-          {readerName ? (
-            <div className='flex shrink-0 items-center gap-2'>
-              <span className='hidden max-w-40 truncate text-xs font-medium text-stone-700 md:inline'>
-                {readerName}
-              </span>
-              {onLogout && (
-                <button
-                  type='button'
-                  onClick={onLogout}
-                  className='grid size-9 place-items-center rounded-full border border-stone-200 text-stone-600 hover:bg-stone-50'
-                  title={t('workspace.reader.catalog.logout')}
-                  aria-label={t('workspace.reader.catalog.logout')}
-                >
-                  <LogOut className='w-4 h-4' />
-                </button>
-              )}
-            </div>
-          ) : (
-            onOpenLogin && (
-              <button
-                type='button'
-                onClick={onOpenLogin}
-                className='btn-cta-primary shrink-0 rounded-full px-4 py-2 text-xs font-semibold'
-              >
-                {t('workspace.reader.catalog.login')}
-              </button>
-            )
-          )}
         </div>
-        <div className='mx-auto max-w-7xl px-4 sm:px-6'>
-          <Tabs
-            items={tabs}
-            value={tab}
-            onChange={(id) => setTab(id as CatalogTab)}
-            aria-label={t('workspace.reader.catalog.tabsLabel')}
-            className='border-b-0'
-          />
-        </div>
-      </header>
+      </div>
 
       <main className='mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6'>
         {tab === 'home' && homeTab()}
@@ -736,6 +683,6 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
           onClose={() => setReadingChapterId(null)}
         />
       )}
-    </div>
+    </>
   );
 };

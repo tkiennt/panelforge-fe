@@ -39,7 +39,8 @@
   "systemRoles": {
     "admin": "Administrator (Admin)",
     "producer": "Producer",
-    "user": "Creator / User"
+    "user": "Creator / User",
+    "reader": "Reader"
   },
   "feedbackSuccess": "Author profile updated successfully!",
   "feedbackSavedCover": "Profile cover saved.",
@@ -213,5 +214,7 @@
     "cancel": "Cancel",
     "saving": "Saving…",
     "apply": "Apply"
-  }
+  },
+  "readerProfileTitle": "Reader profile",
+  "readerProfileSubtitle": "Manage your account details, avatar and sign-in security."
 }

@@ -279,7 +279,6 @@
     "catalog": {
       "genreAll": "Tất cả",
       "detailLoadError": "Không thể tải chi tiết bộ truyện.",
-      "backToWorkspaces": "Quay lại Workspace",
       "searchPlaceholder": "Tìm kiếm theo tên truyện, tóm tắt...",
       "emptyTitle": "Chưa có Series nào được phát hành công khai",
       "emptyDesc": "Hiện tại các dự án truyện tranh đang trong giai đoạn sản xuất tại Studio Desk. Sau khi các chương được Biên tập viên duyệt (Approved) và xuất bản chính thức (Published), chúng sẽ xuất hiện tại đây cho độc giả thưởng thức.",
@@ -333,9 +332,17 @@
       "prevPage": "Trang trước",
       "nextPage": "Trang sau",
       "pageOf": "Trang {page}/{total}",
+      "justNow": "Vừa xong"
+    },
+    "layout": {
+      "backToStudio": "Về Studio",
+      "homeLink": "Trang chủ PanelForge",
+      "mainNav": "Điều hướng độc giả",
+      "navCatalog": "Truyện",
+      "navNotifications": "Thông báo",
       "logout": "Đăng xuất",
       "login": "Đăng nhập",
-      "justNow": "Vừa xong"
+      "pendingInvites": "{count} lời mời vào Studio đang chờ"
     }
   },
   "formatters": {

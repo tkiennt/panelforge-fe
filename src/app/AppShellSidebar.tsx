@@ -68,7 +68,6 @@ export interface AppShellSidebarProps {
   } | null;
   workspaceId?: string;
   seriesId?: string;
-  isReader?: boolean;
   navSections: Array<{
     section: string;
     items: SidebarNavItem[];
@@ -168,7 +167,6 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   activeSeries,
   workspaceId,
   seriesId,
-  isReader,
   navSections,
   handleNavClick,
   renderBadge,
@@ -311,8 +309,6 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         ?.focus();
     }
   }, [userMenuOpen]);
-
-  if (isReader) return null;
 
   const closeSeriesMenu = (restoreFocus = false) => {
     safeHidePopover(seriesMenuRef.current);

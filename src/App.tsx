@@ -28,6 +28,7 @@ import { ToastItemData, ToastOptions, ToastType } from '@/shared/components/Toas
 import { useToast, ToastProvider } from '@/shared/context/ToastContext';
 import { ConfirmProvider } from '@/shared/context/ConfirmContext';
 import { authService } from './services/auth.service';
+import { useReaderAccount } from './app/readerAccount';
 import { userService } from './services/user.service';
 import { refreshAccessToken } from './api/axiosClient';
 import { startSessionKeepAlive } from './api/sessionKeepAlive';
@@ -90,6 +91,7 @@ function AppContent() {
     avatarUrl?: string | null;
   } | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const readerAccount = useReaderAccount(isAuthenticated, currentRole);
 
   useEffect(() => {
     const handleProfileUpdate = (event: Event) => {
@@ -747,7 +749,9 @@ function AppContent() {
       ? '/admin'
       : isAuthenticated && (verifiedRole === 'PUBLISHER' || currentRole === 'PUBLISHER')
         ? '/publisher/series'
-        : '/workspaces';
+        : readerAccount.isReader
+          ? '/catalog'
+          : '/workspaces';
 
   const handleApiLoginSuccess = (authResponse: any, customRedirect?: string) => {
     verifiedWorkspaceKeyRef.current = null;
@@ -807,6 +811,7 @@ function AppContent() {
     authService
       .getLandingContext()
       .then(async (landing) => {
+        readerAccount.setFromLanding(landing);
         if (landing?.suggestedLanding === 'AdminDashboard' || role === 'ADMINISTRATOR') {
           navigate('/admin');
         } else if (landing?.suggestedLanding === 'PublisherPortal' || role === 'PUBLISHER') {
@@ -868,6 +873,11 @@ function AppContent() {
         isDevMode={IS_DEV_MODE}
         onApiLoginSuccess={handleApiLoginSuccess}
         onRegisterSuccess={handleRegisterSuccess}
+        isReader={readerAccount.isReader}
+        onReaderJoinedStudio={async () => {
+          const stillReader = await readerAccount.refresh();
+          navigate(stillReader ? '/catalog' : '/workspaces');
+        }}
       />
 
       {/* Các Modals dùng chung */}

@@ -88,7 +88,6 @@ interface GlobalAppShellProps {
   children?: React.ReactNode;
   onNavigate?: (href: string) => void;
   onLogout?: () => void;
-  onLeaveFeedback?: () => void;
   onOpenTwoFactor?: () => void;
   onOpenChangePassword?: () => void;
   onOpenCommandPalette?: () => void;
@@ -239,7 +238,6 @@ export function AppShell({
   children,
   onNavigate,
   onLogout,
-  onLeaveFeedback,
   onOpenTwoFactor,
   onOpenChangePassword,
   onOpenCommandPalette,
@@ -269,11 +267,6 @@ export function AppShell({
   const chapterQuery = chapterId ? `?chapterId=${encodeURIComponent(chapterId)}` : '';
   const rawChapterNumber = chapterId?.replace(/^chapter-?/i, '').replace(/^chap-?/i, '') ?? '';
   const chapterNumberLabel = /^\d+$/.test(rawChapterNumber) ? rawChapterNumber : null;
-
-  const isReader =
-    currentUser.activeRoles?.includes('READER') ||
-    currentUser.role === 'READER' ||
-    currentUser.workspaceRole === ('READER' as any);
 
   const isPublisher =
     currentUser.role === 'PUBLISHER' || location.pathname.startsWith('/publisher');
@@ -936,7 +929,7 @@ export function AppShell({
   return (
     <div className='h-screen w-full flex overflow-hidden text-stone-900 bg-[#FAF9F5]'>
       {/* --- MOBILE DRAWER (< md) --- */}
-      {!isReader && !isStudioHome && (
+      {!isStudioHome && (
         <SidebarDrawer
           isOpen={isMobileDrawerOpen}
           onClose={() => setIsMobileDrawerOpen(false)}
@@ -948,7 +941,6 @@ export function AppShell({
             activeSeries={effectiveActiveSeries as any}
             workspaceId={workspaceId}
             seriesId={seriesId}
-            isReader={isReader}
             navSections={navSections}
             handleNavClick={handleNavClick}
             renderBadge={renderBadge}
@@ -974,14 +966,13 @@ export function AppShell({
       )}
 
       {/* --- PERMANENT SIDEBAR (>= md) --- */}
-      {!isReader && !isStudioHome && (
+      {!isStudioHome && (
         <AppShellSidebar
           currentUser={currentUser}
           activeWorkspace={activeWorkspace}
           activeSeries={effectiveActiveSeries as any}
           workspaceId={workspaceId}
           seriesId={seriesId}
-          isReader={isReader}
           navSections={navSections}
           handleNavClick={handleNavClick}
           renderBadge={renderBadge}
@@ -1021,7 +1012,7 @@ export function AppShell({
                 <div className='h-5 w-px bg-stone-200 mx-2.5' aria-hidden='true' />
               </div>
             )}
-            {!isReader && !isStudioHome && (
+            {!isStudioHome && (
               <button
                 type='button'
                 onClick={() => setIsMobileDrawerOpen(true)}
@@ -1054,15 +1045,6 @@ export function AppShell({
                   </span>
                   <span className='px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200 text-xs font-mono font-bold'>
                     PUBLISHER PORTAL
-                  </span>
-                </div>
-              </div>
-            ) : isReader ? (
-              <div className='flex items-center gap-3'>
-                <BrandMark size={28} className='shrink-0' />
-                <div>
-                  <span className='text-stone-900 font-serif font-medium text-sm'>
-                    {activeSeries?.title || 'PanelForge Studio'}
                   </span>
                 </div>
               </div>
@@ -1131,7 +1113,7 @@ export function AppShell({
             <LanguageSwitcher />
 
             {/* Chuông thông báo thật (UC-14): số chưa đọc và danh sách lấy từ Backend */}
-            {!isReader && <NotificationBell workspaceId={workspaceId} seriesId={seriesId} />}
+            <NotificationBell workspaceId={workspaceId} seriesId={seriesId} />
 
             {/* User Profile Dropdown Menu */}
             <div className='relative'>
@@ -1273,15 +1255,6 @@ export function AppShell({
                 </>
               )}
             </div>
-
-            {isReader && (
-              <button
-                onClick={onLeaveFeedback}
-                className='bg-stone-900 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-black transition-all shadow-sm'
-              >
-                Leave Feedback
-              </button>
-            )}
           </div>
         </header>
 

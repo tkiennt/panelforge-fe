@@ -17,7 +17,6 @@ export type Permission =
   | 'stage:approve';
 
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
-  READER: [],
   WRITER: ['view_pipeline', 'drag_card', 'edit_script', 'request_ai', 'script:write'],
   ARTIST: [
     'view_pipeline',

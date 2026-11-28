@@ -41,7 +41,6 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
   const defaultProps: AppShellSidebarProps = {
     currentUser: defaultUser,
     activeSeries: { title: 'Cyberpunk Red', subtitle: 'Studio' },
-    isReader: false,
     navSections: [],
     handleNavClick: vi.fn(),
     renderBadge: () => null,

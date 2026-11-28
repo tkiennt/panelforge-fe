@@ -141,7 +141,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [chapterFilter, setChapterFilter] = useState<'all' | 'inProd' | 'published'>('all');
   const [crewRoleFilter, setCrewRoleFilter] = useState<'all' | 'artist' | 'tech'>('all');
 
-  const isReaderOnly = effectiveRoles.length === 1 && effectiveRoles[0] === 'READER';
   const isProducer = useMemo(() => {
     if (normalizedWsRole) return normalizedWsRole === 'PRODUCER';
     return userRoles.some((r) => r.toUpperCase() === 'PRODUCER');
@@ -292,7 +291,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   }, [currentChapter]);
 
   // Readers access barrier
-  if (isReaderMode || isReaderOnly) {
+  if (isReaderMode) {
     return (
       <div className='w-full h-full flex flex-col items-center justify-center p-8 text-center min-h-[60vh]'>
         <div className='w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 mb-4'>

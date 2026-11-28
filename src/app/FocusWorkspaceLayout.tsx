@@ -875,7 +875,6 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
             activeSeries={effectiveActiveSeries as any}
             workspaceId={workspaceId}
             seriesId={seriesId}
-            isReader={false}
             navSections={navSections}
             handleNavClick={handleNavClick}
             renderBadge={renderBadge}
