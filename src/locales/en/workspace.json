@@ -759,7 +759,8 @@
       "errorEmptyName": "Please enter a Workspace / Studio name.",
       "errorCreateFailed": "Could not create Workspace. Please try again.",
       "successToastTitle": "Studio created successfully",
-      "successToastDesc": "Created workspace \"{name}\""
+      "successToastDesc": "Created workspace \"{name}\"",
+      "quotaNote": "Storage Quota and AI Quota are allocated by the Administrator default policy. Need more? Send a request from the Studio Resources panel."
     },
     "switcher": {
       "title": "Your Studio Workspaces",
@@ -909,5 +910,35 @@
     "overdue": "Overdue",
     "due": "Due {date}",
     "openMyWork": "My work"
+  },
+  "resourceRequest": {
+    "open": "Request more resources",
+    "title": "Resource increase request",
+    "description": "The Administrator will review and allocate more quota. No payment involved.",
+    "close": "Close",
+    "type": "Resource type",
+    "types": {
+      "Storage": "Storage",
+      "AiTokens": "AI tokens / month",
+      "AiImages": "AI images / month"
+    },
+    "current": "Using {used} / {quota}",
+    "unlimited": "This Studio has no limit for this resource.",
+    "requestedGb": "Requested limit (GB)",
+    "requestedCount": "Requested limit",
+    "reason": "Reason",
+    "submit": "Send request",
+    "sent": "Request sent. The Administrator will review it.",
+    "pendingExists": "A request for this resource type is already pending.",
+    "history": "Recent requests",
+    "status": {
+      "Pending": "Pending",
+      "Approved": "Approved",
+      "Rejected": "Rejected",
+      "Cancelled": "Cancelled"
+    },
+    "errorTooLow": "The requested limit must be higher than the current limit.",
+    "errorInteger": "Enter a whole number.",
+    "errorReason": "Please enter a reason."
   }
 }

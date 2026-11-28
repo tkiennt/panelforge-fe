@@ -371,6 +371,11 @@
     },
     "artwork": {
       "uploadFailed": "Failed to upload artwork."
+    },
+    "resource": {
+      "loadFailed": "Could not load resource data.",
+      "saveFailed": "Could not save resource changes.",
+      "submitFailed": "Could not send the resource request."
     }
   }
 }

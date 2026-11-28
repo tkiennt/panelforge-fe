@@ -34,8 +34,8 @@
         "desc": "Models, quotas, and AI usage history"
       },
       "storage": {
-        "label": "Storage & Quota",
-        "desc": "Storage usage and quotas per Studio"
+        "label": "Resources",
+        "desc": "Storage Quota, AI Quota and increase requests"
       },
       "sessionPolicy": {
         "label": "Session Policy",
@@ -48,7 +48,27 @@
       "analytics": {
         "label": "Reader Analytics",
         "desc": "Reads and readers across series"
+      },
+      "payments": {
+        "label": "Payments",
+        "desc": "SePay and each Studio's VietQR payout account"
       }
+    },
+    "resources": {
+      "storageUsed": "Storage used",
+      "tokensMonth": "AI tokens this month",
+      "imagesMonth": "{count} AI images",
+      "attention": "Studios near/over quota",
+      "pendingRequests": "Pending resource requests"
+    },
+    "attention": {
+      "title": "Requires attention",
+      "viewAll": "View resources",
+      "loading": "Loading…",
+      "none": "No Studio is near its quota and no requests are pending.",
+      "pending": "{count} resource increase requests pending",
+      "storage": "Storage",
+      "tokens": "AI"
     }
   },
   "ui": {
@@ -86,7 +106,9 @@
       "storage": "Storage & Quota",
       "sessionPolicy": "Session Policy",
       "audit": "Audit Logs",
-      "analytics": "Reader Analytics"
+      "analytics": "Reader Analytics",
+      "payments": "Payments",
+      "resources": "Resources"
     }
   },
   "users": {
@@ -526,6 +548,176 @@
       "empty": "No AI calls yet.",
       "tokensBreakdown": "{prompt} in · {completion} out",
       "unit": "calls"
+    }
+  },
+  "payments": {
+    "title": "Payment settings",
+    "description": "SePay status and each Studio's VietQR payout bank account.",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search Studio, owner or account number",
+    "system": {
+      "title": "System configuration (SePay)",
+      "description": "Read-only. Values come from server environment variables.",
+      "webhookKey": "Webhook API key",
+      "configured": "Configured",
+      "missing": "Not configured",
+      "webhookUrl": "Webhook URL (set on my.sepay.vn)",
+      "defaultBank": "Default payout account",
+      "defaultBankStatus": "Default account status",
+      "realAccount": "Real account",
+      "placeholder": "Placeholder (dev)",
+      "envHint": "Change via SePay__WebhookApiKey and SePay__DefaultBank__* (Bin, Name, AccountNo, AccountName), then restart the API. Studios without their own account are paid into the default account."
+    },
+    "table": {
+      "colStudio": "Studio",
+      "colOwner": "Owner",
+      "colBank": "Payout account",
+      "colActions": "Actions",
+      "loading": "Loading…",
+      "loadError": "Could not load payment settings.",
+      "empty": "No matching Studios.",
+      "usesDefault": "Uses default account",
+      "edit": "Edit account"
+    },
+    "modal": {
+      "title": "VietQR payout account",
+      "bank": "Bank",
+      "accountNo": "Account number",
+      "accountName": "Account holder name",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saved": "Updated the payout account of “{name}”.",
+      "saveFailed": "Could not save the bank account.",
+      "invalidAccountNo": "Account number must be 6–19 digits.",
+      "invalidAccountName": "Account holder name needs at least 3 characters.",
+      "sepayWarning": "This account must be linked to SePay, otherwise payments will not be approved automatically."
+    }
+  },
+  "resources": {
+    "title": "Resources",
+    "description": "Allocate Storage Quota and AI Quota per Studio, set the default policy and review resource increase requests. Allocation only, no purchasing.",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "unlimited": "Unlimited",
+    "aiDisabled": "AI disabled",
+    "tabsAria": "Resource sections",
+    "tabs": {
+      "allocation": "Studio allocation",
+      "policy": "Default policy",
+      "requests": "Increase requests"
+    },
+    "stats": {
+      "storageUsed": "Storage used",
+      "storageHint": "Actual stored bytes across all Studios",
+      "tokensMonth": "AI tokens this month",
+      "aiEnabledHint": "{enabled}/{total} Studios with AI enabled",
+      "attention": "Studios needing attention",
+      "attentionHint": "{near} near limit · {exhausted} exhausted",
+      "pendingRequests": "Pending requests"
+    },
+    "health": {
+      "Ok": "Normal",
+      "NearLimit": "Near limit",
+      "Exhausted": "Quota exhausted"
+    },
+    "type": {
+      "Storage": "Storage",
+      "AiTokens": "AI tokens / month",
+      "AiImages": "AI images / month"
+    },
+    "requestStatus": {
+      "Pending": "Pending",
+      "Approved": "Approved",
+      "Rejected": "Rejected",
+      "Cancelled": "Cancelled"
+    },
+    "allocation": {
+      "searchPlaceholder": "Search Studio, Producer, email",
+      "filterAria": "Filter by resource status",
+      "filterAll": "All Studios",
+      "filterAttention": "Needs attention",
+      "count": "{filtered}/{total} Studios",
+      "colStudio": "Studio",
+      "colStorage": "Storage Usage",
+      "colTokens": "AI tokens",
+      "colImages": "AI images",
+      "colReset": "AI reset",
+      "colStatus": "Status",
+      "colActions": "Actions",
+      "membersSeries": "{members} members · {series} Series",
+      "storageAria": "Storage of {name}",
+      "tokensAria": "AI tokens of {name}",
+      "imagesAria": "AI images of {name}",
+      "pendingLink": "{count} pending",
+      "configure": "Configure",
+      "empty": "No Studios yet.",
+      "noResults": "No Studios match the filters.",
+      "clearFilters": "Clear filters"
+    },
+    "configure": {
+      "title": "Configure Resource Allocation",
+      "zeroHint": "Enter 0 for unlimited.",
+      "storageLegend": "Storage Quota",
+      "aiLegend": "AI Quota",
+      "current": "Current",
+      "storageQuota": "Storage Quota (GB)",
+      "storageUsed": "In use: {used}",
+      "belowUsageWarning": "The new quota is below current usage. Existing files are kept, but the Studio cannot store new data until it cleans up or the quota is raised.",
+      "aiEnabled": "Enable AI for this Studio",
+      "tokenQuota": "AI tokens / month",
+      "imageQuota": "AI images / month",
+      "reason": "Adjustment reason",
+      "reasonHint": "Recorded in the Audit Log with the old and new values.",
+      "saved": "Updated resources of {name}."
+    },
+    "policy": {
+      "title": "Default resource policy",
+      "description": "Applies to newly created Studios. Existing Studio quotas are not changed.",
+      "notConfigured": "No policy saved yet: showing system defaults. Save to fix the policy.",
+      "storage": "Default Storage Quota (GB)",
+      "tokens": "AI tokens / month",
+      "images": "AI images / month",
+      "warn": "Warning threshold (%)",
+      "warnHint": "Studios at this level are flagged \"Near limit\".",
+      "aiEnabled": "Enable AI for new Studios",
+      "resetNote": "AI Quota resets on the 1st of every month (UTC). Storage Quota does not reset.",
+      "discard": "Discard",
+      "updatedAt": "Last updated {time}",
+      "saved": "Default resource policy saved."
+    },
+    "requests": {
+      "searchPlaceholder": "Search Studio, requester, reason",
+      "statusFilter": "Filter by status",
+      "typeFilter": "Filter by resource type",
+      "allStatuses": "All statuses",
+      "allTypes": "All types",
+      "colStudio": "Studio",
+      "colChange": "Current → Requested",
+      "colReason": "Reason",
+      "colRequested": "Requested by",
+      "colStatus": "Status",
+      "colActions": "Actions",
+      "reviewNote": "{name}: {note}",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approveTitle": "Approve resource increase",
+      "rejectTitle": "Reject resource increase",
+      "approveHint": "Approving sets the new limit for the Studio immediately and writes the Audit Log.",
+      "note": "Note",
+      "approved": "Approved the request of {name}.",
+      "rejected": "Rejected the request of {name}.",
+      "empty": "No requests.",
+      "noResults": "No requests match the search."
+    },
+    "validation": {
+      "nonNegative": "Enter a non-negative number.",
+      "nonNegativeInt": "Enter a non-negative whole number.",
+      "threshold": "Threshold must be between 1 and 99.",
+      "reasonRequired": "Please enter a reason.",
+      "rejectNoteRequired": "A reason is required to reject."
     }
   }
 }

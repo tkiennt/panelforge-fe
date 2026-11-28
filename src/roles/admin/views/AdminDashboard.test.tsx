@@ -12,6 +12,25 @@ vi.mock('@/services/admin.service', () => ({
       activeUsers: 8,
       totalWorkspaces: 2,
       totalSeries: 5,
+      totalWorkspaceMembers: 4,
+    }),
+  },
+}));
+
+vi.mock('@/services/resource.service', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/resource.service')>()),
+  resourceService: {
+    getOverview: vi.fn().mockResolvedValue({
+      totalStudios: 1,
+      totalStorageUsedBytes: 0,
+      totalTokensUsedThisMonth: 0,
+      totalImagesThisMonth: 0,
+      aiEnabledStudios: 1,
+      nearLimitStudios: 0,
+      exhaustedStudios: 0,
+      pendingRequests: 2,
+      warningThresholdPercent: 80,
+      studios: [],
     }),
   },
 }));
@@ -68,6 +87,17 @@ describe('AdminDashboard (nội dung Admin Portal trong AppShell)', () => {
   it('hiển thị Thống kê độc giả khi URL có ?tab=analytics (Row #13)', async () => {
     renderAt('/admin?tab=analytics');
     expect(await screen.findByText('Lượt đọc bộ truyện')).toBeInTheDocument();
+  });
+
+  it('Cần xử lý: yêu cầu chờ duyệt dẫn tới Tài nguyên › Yêu cầu', async () => {
+    renderAt('/admin');
+    fireEvent.click(await screen.findByText('2 yêu cầu tăng tài nguyên đang chờ duyệt'));
+    expect(screen.getByTestId('location')).toHaveTextContent('/admin?tab=resources&view=requests');
+  });
+
+  it('?tab=storage cũ chuyển sang Tài nguyên', async () => {
+    renderAt('/admin?tab=storage');
+    expect(await screen.findByRole('heading', { name: 'Tài nguyên' })).toBeInTheDocument();
   });
 
   it('tab không hợp lệ quay về Tổng quan', () => {

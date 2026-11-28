@@ -34,8 +34,8 @@
         "desc": "Model, quota và lịch sử sử dụng AI"
       },
       "storage": {
-        "label": "Lưu trữ & quota",
-        "desc": "Dung lượng và hạn mức từng Studio"
+        "label": "Tài nguyên",
+        "desc": "Storage Quota, AI Quota và yêu cầu tăng"
       },
       "sessionPolicy": {
         "label": "Chính sách phiên",
@@ -48,7 +48,27 @@
       "analytics": {
         "label": "Thống kê độc giả",
         "desc": "Lượt đọc và độc giả các bộ truyện"
+      },
+      "payments": {
+        "label": "Thanh toán",
+        "desc": "SePay, tài khoản nhận tiền VietQR từng Studio"
       }
+    },
+    "resources": {
+      "storageUsed": "Storage đã dùng",
+      "tokensMonth": "AI Token tháng này",
+      "imagesMonth": "{count} ảnh AI",
+      "attention": "Studio gần/hết quota",
+      "pendingRequests": "Yêu cầu tài nguyên chờ duyệt"
+    },
+    "attention": {
+      "title": "Cần xử lý",
+      "viewAll": "Xem tài nguyên",
+      "loading": "Đang tải…",
+      "none": "Không có Studio nào gần hết quota và không có yêu cầu chờ duyệt.",
+      "pending": "{count} yêu cầu tăng tài nguyên đang chờ duyệt",
+      "storage": "Storage",
+      "tokens": "AI"
     }
   },
   "ui": {
@@ -86,7 +106,9 @@
       "storage": "Lưu trữ & quota",
       "sessionPolicy": "Chính sách phiên",
       "audit": "Nhật ký hệ thống",
-      "analytics": "Thống kê độc giả"
+      "analytics": "Thống kê độc giả",
+      "payments": "Thanh toán",
+      "resources": "Tài nguyên"
     }
   },
   "users": {
@@ -526,6 +548,176 @@
       "empty": "Chưa có lượt gọi AI nào.",
       "tokensBreakdown": "{prompt} vào · {completion} ra",
       "unit": "lượt gọi"
+    }
+  },
+  "payments": {
+    "title": "Cấu hình thanh toán",
+    "description": "Trạng thái SePay và tài khoản ngân hàng nhận tiền VietQR của từng Studio.",
+    "refresh": "Làm mới",
+    "searchPlaceholder": "Tìm Studio, chủ sở hữu hoặc số tài khoản",
+    "system": {
+      "title": "Cấu hình hệ thống (SePay)",
+      "description": "Chỉ đọc. Giá trị lấy từ biến môi trường trên server.",
+      "webhookKey": "Webhook API key",
+      "configured": "Đã cấu hình",
+      "missing": "Chưa cấu hình",
+      "webhookUrl": "Webhook URL (khai trên my.sepay.vn)",
+      "defaultBank": "Tài khoản nhận mặc định",
+      "defaultBankStatus": "Trạng thái tài khoản mặc định",
+      "realAccount": "Tài khoản thật",
+      "placeholder": "Tài khoản giả (dev)",
+      "envHint": "Đổi bằng SePay__WebhookApiKey và SePay__DefaultBank__* (Bin, Name, AccountNo, AccountName) rồi khởi động lại API. Studio chưa khai tài khoản riêng sẽ nhận tiền vào tài khoản mặc định."
+    },
+    "table": {
+      "colStudio": "Studio",
+      "colOwner": "Chủ sở hữu",
+      "colBank": "Tài khoản nhận tiền",
+      "colActions": "Thao tác",
+      "loading": "Đang tải…",
+      "loadError": "Không tải được cấu hình thanh toán.",
+      "empty": "Không có Studio phù hợp.",
+      "usesDefault": "Dùng tài khoản mặc định",
+      "edit": "Sửa tài khoản"
+    },
+    "modal": {
+      "title": "Tài khoản nhận tiền VietQR",
+      "bank": "Ngân hàng",
+      "accountNo": "Số tài khoản",
+      "accountName": "Tên chủ tài khoản",
+      "cancel": "Hủy",
+      "save": "Lưu",
+      "saved": "Đã cập nhật tài khoản nhận tiền của “{name}”.",
+      "saveFailed": "Không lưu được tài khoản ngân hàng.",
+      "invalidAccountNo": "Số tài khoản gồm 6–19 chữ số.",
+      "invalidAccountName": "Tên chủ tài khoản tối thiểu 3 ký tự.",
+      "sepayWarning": "Tài khoản này phải được liên kết với SePay, nếu không giao dịch sẽ không được tự động duyệt."
+    }
+  },
+  "resources": {
+    "title": "Tài nguyên",
+    "description": "Cấp phát Storage Quota và AI Quota cho từng Studio, đặt chính sách mặc định và duyệt yêu cầu tăng tài nguyên. Cấp phát, không mua bán.",
+    "refresh": "Làm mới",
+    "retry": "Thử lại",
+    "loading": "Đang tải…",
+    "save": "Lưu",
+    "cancel": "Huỷ",
+    "unlimited": "Không giới hạn",
+    "aiDisabled": "AI đang tắt",
+    "tabsAria": "Các mục tài nguyên",
+    "tabs": {
+      "allocation": "Cấp phát theo Studio",
+      "policy": "Chính sách mặc định",
+      "requests": "Yêu cầu tăng"
+    },
+    "stats": {
+      "storageUsed": "Storage đã dùng",
+      "storageHint": "Tổng dung lượng thực đã lưu của mọi Studio",
+      "tokensMonth": "AI Token tháng này",
+      "aiEnabledHint": "{enabled}/{total} Studio bật AI",
+      "attention": "Studio cần chú ý",
+      "attentionHint": "{near} gần hết · {exhausted} đã hết",
+      "pendingRequests": "Yêu cầu chờ duyệt"
+    },
+    "health": {
+      "Ok": "Bình thường",
+      "NearLimit": "Gần hết",
+      "Exhausted": "Đã hết quota"
+    },
+    "type": {
+      "Storage": "Storage",
+      "AiTokens": "AI Token / tháng",
+      "AiImages": "Ảnh AI / tháng"
+    },
+    "requestStatus": {
+      "Pending": "Chờ duyệt",
+      "Approved": "Đã duyệt",
+      "Rejected": "Đã từ chối",
+      "Cancelled": "Đã huỷ"
+    },
+    "allocation": {
+      "searchPlaceholder": "Tìm Studio, Producer, email",
+      "filterAria": "Lọc theo trạng thái tài nguyên",
+      "filterAll": "Tất cả Studio",
+      "filterAttention": "Cần chú ý",
+      "count": "{filtered}/{total} Studio",
+      "colStudio": "Studio",
+      "colStorage": "Storage Usage",
+      "colTokens": "AI Token",
+      "colImages": "Ảnh AI",
+      "colReset": "Reset AI",
+      "colStatus": "Trạng thái",
+      "colActions": "Thao tác",
+      "membersSeries": "{members} thành viên · {series} Series",
+      "storageAria": "Storage của {name}",
+      "tokensAria": "AI Token của {name}",
+      "imagesAria": "Ảnh AI của {name}",
+      "pendingLink": "{count} yêu cầu chờ",
+      "configure": "Cấu hình",
+      "empty": "Chưa có Studio nào.",
+      "noResults": "Không có Studio khớp bộ lọc.",
+      "clearFilters": "Xoá bộ lọc"
+    },
+    "configure": {
+      "title": "Cấu hình Resource Allocation",
+      "zeroHint": "Nhập 0 để không giới hạn.",
+      "storageLegend": "Storage Quota",
+      "aiLegend": "AI Quota",
+      "current": "Hiện tại",
+      "storageQuota": "Storage Quota (GB)",
+      "storageUsed": "Đang dùng: {used}",
+      "belowUsageWarning": "Quota mới thấp hơn dung lượng đang dùng. File hiện có được giữ nguyên, nhưng Studio sẽ không tải thêm được dữ liệu mới cho đến khi dọn bớt hoặc được tăng quota.",
+      "aiEnabled": "Bật AI cho Studio",
+      "tokenQuota": "AI Token / tháng",
+      "imageQuota": "Ảnh AI / tháng",
+      "reason": "Lý do điều chỉnh",
+      "reasonHint": "Ghi vào Nhật ký hệ thống cùng giá trị cũ và mới.",
+      "saved": "Đã cập nhật tài nguyên của {name}."
+    },
+    "policy": {
+      "title": "Chính sách tài nguyên mặc định",
+      "description": "Áp dụng cho Studio tạo mới. Quota của Studio đã có không bị thay đổi.",
+      "notConfigured": "Chưa lưu chính sách: đang hiển thị giá trị mặc định của hệ thống. Lưu để cố định chính sách.",
+      "storage": "Storage Quota mặc định (GB)",
+      "tokens": "AI Token / tháng",
+      "images": "Ảnh AI / tháng",
+      "warn": "Ngưỡng cảnh báo (%)",
+      "warnHint": "Studio đạt mức này được đánh dấu \"Gần hết\".",
+      "aiEnabled": "Bật AI cho Studio mới",
+      "resetNote": "AI Quota reset vào ngày 1 hằng tháng (UTC). Storage Quota không reset.",
+      "discard": "Hoàn tác",
+      "updatedAt": "Cập nhật lần cuối {time}",
+      "saved": "Đã lưu chính sách tài nguyên mặc định."
+    },
+    "requests": {
+      "searchPlaceholder": "Tìm Studio, người gửi, lý do",
+      "statusFilter": "Lọc theo trạng thái",
+      "typeFilter": "Lọc theo loại tài nguyên",
+      "allStatuses": "Mọi trạng thái",
+      "allTypes": "Mọi loại",
+      "colStudio": "Studio",
+      "colChange": "Hiện tại → Yêu cầu",
+      "colReason": "Lý do",
+      "colRequested": "Người gửi",
+      "colStatus": "Trạng thái",
+      "colActions": "Thao tác",
+      "reviewNote": "{name}: {note}",
+      "approve": "Duyệt",
+      "reject": "Từ chối",
+      "approveTitle": "Duyệt yêu cầu tăng tài nguyên",
+      "rejectTitle": "Từ chối yêu cầu tăng tài nguyên",
+      "approveHint": "Duyệt sẽ đặt ngay hạn mức mới cho Studio và ghi Nhật ký hệ thống.",
+      "note": "Ghi chú",
+      "approved": "Đã duyệt yêu cầu của {name}.",
+      "rejected": "Đã từ chối yêu cầu của {name}.",
+      "empty": "Không có yêu cầu nào.",
+      "noResults": "Không có yêu cầu khớp tìm kiếm."
+    },
+    "validation": {
+      "nonNegative": "Nhập số không âm.",
+      "nonNegativeInt": "Nhập số nguyên không âm.",
+      "threshold": "Ngưỡng phải từ 1 đến 99.",
+      "reasonRequired": "Vui lòng nhập lý do.",
+      "rejectNoteRequired": "Từ chối phải ghi lý do."
     }
   }
 }

@@ -4,8 +4,9 @@ import { AdminDashboardView } from './AdminDashboardView';
 import { AdminUserManagementView } from './AdminUserManagementView';
 import { AdminAuditLogView } from './AdminAuditLogView';
 import { AIConfigurationView } from './modules/AIConfigurationView';
-import { StorageBackupSettings } from './modules/StorageBackupSettings';
+import { ResourcesView } from './modules/resources/ResourcesView';
 import { SessionPolicySettings } from './modules/SessionPolicySettings';
+import { PaymentSettings } from './modules/PaymentSettings';
 import { ReaderStatsView } from '@/shared/views/ReaderStatsView';
 
 export type AdminTab =
@@ -13,8 +14,9 @@ export type AdminTab =
   | 'users'
   | 'master-data'
   | 'ai-config'
-  | 'storage'
+  | 'resources'
   | 'session-policy'
+  | 'payments'
   | 'audit'
   | 'analytics';
 
@@ -23,8 +25,9 @@ const VALID_TABS: AdminTab[] = [
   'users',
   'master-data',
   'ai-config',
-  'storage',
+  'resources',
   'session-policy',
+  'payments',
   'audit',
   'analytics',
 ];
@@ -35,7 +38,9 @@ const VALID_TABS: AdminTab[] = [
  */
 export const AdminDashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab') as AdminTab | null;
+  // ?tab=storage (màn "Lưu trữ & quota" cũ) đã gộp vào Tài nguyên.
+  const rawTab = searchParams.get('tab');
+  const tabParam = (rawTab === 'storage' ? 'resources' : rawTab) as AdminTab | null;
   const activeTab: AdminTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'dashboard';
 
   const go = (tab: AdminTab) => {
@@ -56,14 +61,19 @@ export const AdminDashboard: React.FC = () => {
             onNavigateToSettings={() => go('ai-config')}
             onNavigateToAudit={() => go('audit')}
             onNavigateToSessionPolicy={() => go('session-policy')}
-            onNavigateToStorage={() => go('storage')}
+            onNavigateToStorage={() => go('resources')}
+            onNavigateToResources={(extra) =>
+              setSearchParams(new URLSearchParams({ tab: 'resources', ...extra }))
+            }
+            onNavigateToPayments={() => go('payments')}
             onNavigateToAnalytics={() => go('analytics')}
           />
         )}
         {activeTab === 'users' && <AdminUserManagementView />}
         {activeTab === 'ai-config' && <AIConfigurationView />}
-        {activeTab === 'storage' && <StorageBackupSettings />}
+        {activeTab === 'resources' && <ResourcesView />}
         {activeTab === 'session-policy' && <SessionPolicySettings />}
+        {activeTab === 'payments' && <PaymentSettings />}
         {activeTab === 'audit' && <AdminAuditLogView />}
         {activeTab === 'analytics' && <ReaderStatsView />}
       </div>

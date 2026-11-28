@@ -759,7 +759,8 @@
       "errorEmptyName": "Vui lòng nhập tên Workspace / Studio.",
       "errorCreateFailed": "Không thể tạo Workspace. Vui lòng thử lại.",
       "successToastTitle": "Tạo Studio thành công",
-      "successToastDesc": "Đã tạo workspace \"{name}\""
+      "successToastDesc": "Đã tạo workspace \"{name}\"",
+      "quotaNote": "Storage Quota và AI Quota được cấp theo chính sách mặc định của Administrator. Cần thêm tài nguyên? Gửi yêu cầu trong phần Tài nguyên của Studio."
     },
     "switcher": {
       "title": "Không gian Studio của bạn",
@@ -909,5 +910,35 @@
     "overdue": "Quá hạn",
     "due": "Hạn {date}",
     "openMyWork": "Việc của tôi"
+  },
+  "resourceRequest": {
+    "open": "Yêu cầu thêm tài nguyên",
+    "title": "Yêu cầu tăng tài nguyên",
+    "description": "Administrator sẽ xem xét và cấp thêm hạn mức. Không phát sinh thanh toán.",
+    "close": "Đóng",
+    "type": "Loại tài nguyên",
+    "types": {
+      "Storage": "Storage",
+      "AiTokens": "AI Token / tháng",
+      "AiImages": "Ảnh AI / tháng"
+    },
+    "current": "Đang dùng {used} / {quota}",
+    "unlimited": "Studio đang không giới hạn tài nguyên này.",
+    "requestedGb": "Mức đề nghị (GB)",
+    "requestedCount": "Mức đề nghị",
+    "reason": "Lý do",
+    "submit": "Gửi yêu cầu",
+    "sent": "Đã gửi yêu cầu. Administrator sẽ xem xét.",
+    "pendingExists": "Đã có yêu cầu chờ duyệt cho loại tài nguyên này.",
+    "history": "Yêu cầu gần đây",
+    "status": {
+      "Pending": "Chờ duyệt",
+      "Approved": "Đã duyệt",
+      "Rejected": "Đã từ chối",
+      "Cancelled": "Đã huỷ"
+    },
+    "errorTooLow": "Mức đề nghị phải lớn hơn mức hiện tại.",
+    "errorInteger": "Nhập số nguyên.",
+    "errorReason": "Vui lòng nhập lý do."
   }
 }

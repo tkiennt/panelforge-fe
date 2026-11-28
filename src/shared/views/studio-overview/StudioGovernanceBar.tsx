@@ -11,6 +11,7 @@ import {
 import { WorkspaceDto, WorkspaceUsageDto } from '@/services/workspace.service';
 import { useTranslation } from '@/lib/i18n';
 import { formatBytes, formatGb, formatTokens } from './formatters';
+import { RequestResourcesModal } from './RequestResourcesModal';
 
 export interface StudioGovernanceBarProps {
   activeWorkspace: WorkspaceDto;
@@ -28,6 +29,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
   onOpenAuditModal,
 }) => {
   const { t } = useTranslation();
+  const [requestOpen, setRequestOpen] = React.useState(false);
 
   return (
     <div className='pt-2 border-t border-stone-100'>
@@ -345,6 +347,26 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
             )}
           </div>
         </div>
+      )}
+
+      {/* Chỉ Producer tải được usage (GET /usage yêu cầu Producer) → nút chỉ hiện cho Producer. */}
+      {isResourcesExpanded && workspaceUsage && (
+        <div className='flex justify-end pt-3'>
+          <button
+            type='button'
+            onClick={() => setRequestOpen(true)}
+            className='px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer'
+          >
+            {t('workspace.resourceRequest.open')}
+          </button>
+        </div>
+      )}
+      {requestOpen && workspaceUsage && (
+        <RequestResourcesModal
+          workspaceId={activeWorkspace.id}
+          usage={workspaceUsage}
+          onClose={() => setRequestOpen(false)}
+        />
       )}
     </div>
   );

@@ -371,6 +371,11 @@
     },
     "artwork": {
       "uploadFailed": "Không thể tải artwork lên."
+    },
+    "resource": {
+      "loadFailed": "Không tải được dữ liệu tài nguyên.",
+      "saveFailed": "Không lưu được thay đổi tài nguyên.",
+      "submitFailed": "Không gửi được yêu cầu tài nguyên."
     }
   }
 }
