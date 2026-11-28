@@ -47,7 +47,17 @@
     "linkedToLine": "Đã liên kết với dòng {line}",
     "saving": "Đang lưu…",
     "unlinked": "Chưa liên kết",
-    "addEmptyBalloon": "Thêm bóng trống"
+    "addEmptyBalloon": "Thêm bóng trống",
+    "dialoguePanelCount": "{count}/{total} khung có thoại",
+    "showNonDialogue": "Hiện khung không thoại",
+    "hideNonDialogue": "Ẩn khung không thoại",
+    "nonDialoguePanelsHeader": "Khung không có thoại",
+    "visualOnly": "Chỉ có hình",
+    "panelLabel": "Khung {n}",
+    "panelSuffix": "Khung {n}",
+    "scopePage": "Trang này",
+    "scopeChapter": "Cả chương",
+    "scopeAriaLabel": "Phạm vi danh sách"
   },
   "pipelineHeader": {
     "regionAriaLabel": "Tiến độ công đoạn và bàn giao",

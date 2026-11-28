@@ -47,7 +47,17 @@
     "linkedToLine": "Linked to line {line}",
     "saving": "Saving…",
     "unlinked": "Unlinked",
-    "addEmptyBalloon": "Add empty balloon"
+    "addEmptyBalloon": "Add empty balloon",
+    "dialoguePanelCount": "{count}/{total} panels with dialogue",
+    "showNonDialogue": "Show silent panels",
+    "hideNonDialogue": "Hide silent panels",
+    "nonDialoguePanelsHeader": "Panels without dialogue",
+    "visualOnly": "Visual only",
+    "panelLabel": "Panel {n}",
+    "panelSuffix": "Panel {n}",
+    "scopePage": "This page",
+    "scopeChapter": "Whole chapter",
+    "scopeAriaLabel": "List scope"
   },
   "pipelineHeader": {
     "regionAriaLabel": "Stage progress and handoff",

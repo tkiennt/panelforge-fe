@@ -3411,8 +3411,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             {t('artist.deskView.scriptChangedBadge')}
           </span>
           <span>
-            {currentVisualImpactCell.outdatedReason ||
-              t('artist.deskView.visualImpactFallback')}
+            {currentVisualImpactCell.outdatedReason || t('artist.deskView.visualImpactFallback')}
           </span>
         </div>
       )}
@@ -3571,6 +3570,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           activeLang={activeLang}
           originalLang={originalLang}
           translationReadOnly={isTranslationMode && !isActiveEditionEditable}
+          letteringReadOnly={isPageReadOnly}
           onUpdateElementText={balloons.updateElementText}
           onUpdateElementTranslation={balloons.updateElementText}
           linkedScriptLineIds={linkedScriptLineIds}
@@ -3734,7 +3734,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   isLayoutSaved={isCurrentPageLayoutSaved}
                   mode={artworkUploadMode}
                   uploadingPanelId={uploadingPanelId}
-                  canUploadArtwork={!isLetterStage && canUploadCurrentPageArtwork && artworkUploadMode === 'panel'}
+                  canUploadArtwork={
+                    !isLetterStage && canUploadCurrentPageArtwork && artworkUploadMode === 'panel'
+                  }
                   canSelectPanel={artworkUploadMode === 'panel' && !isPageReadOnly}
                   selectedPanelId={selectedPanelId}
                   onSelectPanel={handleSelectPanelById}

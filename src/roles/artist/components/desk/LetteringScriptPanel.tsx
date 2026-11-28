@@ -6,7 +6,6 @@ import {
   CircleAlert,
   Download,
   Globe,
-  Info,
   Link2,
   Loader2,
   MessageCircle,
@@ -37,6 +36,16 @@ const Avatar: React.FC<{ line: ScriptLineItem; size?: number }> = ({ line, size 
   />
 );
 
+const ELEMENT_ICONS: Record<
+  string,
+  React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>
+> = {
+  SPEECH_BALLOON: MessageSquare,
+  THOUGHT_BALLOON: MessageCircle,
+  NARRATION_BOX: BookOpen,
+  SOUND_EFFECT: Volume2,
+};
+
 import type { ChapterPanelRef } from './ArtistScriptReader';
 
 export interface LetteringScriptPanelProps {
@@ -66,6 +75,8 @@ export interface LetteringScriptPanelProps {
   originalLang?: string;
   /** Khóa thao tác dịch/đổ bản dịch khi ấn bản ngôn ngữ không ở trạng thái cho phép sửa (vd InReview/Approved/Published). */
   translationReadOnly?: boolean;
+  /** Chế độ chỉ xem (không kéo/thêm bóng). */
+  readOnly?: boolean;
   /** Bộ chọn ngôn ngữ đang soạn (đặt ở đầu cột, không đè lên trang). */
   headerSlot?: React.ReactNode;
 }
@@ -90,8 +101,10 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   activeLang,
   originalLang = 'vi',
   translationReadOnly = false,
+  readOnly = false,
   headerSlot,
 }) => {
+  const [scope, setScope] = useState<'page' | 'chapter'>('page');
   const [expanded, setExpanded] = useState(true);
   const [linkFilter, setLinkFilter] = useState<'all' | 'unlinked' | 'linked'>('all');
   const [showAllElements, setShowAllElements] = useState(false);
@@ -148,12 +161,26 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   );
   const numberByLineId = useMemo(() => new Map(lines.map((x) => [x.line.id, x.number])), [lines]);
 
+  const hasPageNumbers = useMemo(() => lines.some((x) => x.line.pageNumber != null), [lines]);
+  const effectiveScope = hasPageNumbers ? scope : 'chapter';
+
+  const scopedLines = useMemo(() => {
+    if (effectiveScope === 'chapter') {
+      return lines;
+    }
+    return lines.filter(
+      (x) =>
+        x.line.pageNumber === activePageNumber ||
+        elements.some((el) => el.scriptLineId === x.line.id),
+    );
+  }, [effectiveScope, lines, activePageNumber, elements]);
+
   const isLinked = (lineId: string) =>
     linkedScriptLineIds
       ? linkedScriptLineIds.has(lineId)
       : elements.some((el) => el.scriptLineId === lineId);
 
-  const visibleLines = lines.filter((x) =>
+  const visibleLines = scopedLines.filter((x) =>
     linkFilter === 'all'
       ? true
       : linkFilter === 'linked'
@@ -197,8 +224,8 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
   // Các dòng có thể dịch thuộc trang hiện tại
   const currentPageLines = useMemo(() => {
-    const hasPageNumbers = lines.some((x) => x.line.pageNumber != null);
-    if (!hasPageNumbers) {
+    const hasAnyPageNumbers = lines.some((x) => x.line.pageNumber != null);
+    if (!hasAnyPageNumbers) {
       return lines;
     }
     return lines.filter(
@@ -208,13 +235,9 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
     );
   }, [lines, activePageNumber, elements]);
 
-  // Tìm bóng thoại tương ứng cho 1 dòng kịch bản (ưu tiên bóng liên kết dòng đó, nếu không có lấy bóng đang chọn)
+  // Tìm bóng thoại tương ứng cho 1 dòng kịch bản (chỉ lấy bóng liên kết dòng đó)
   const getTargetElementForLine = (lineId: string): ElementSnapshotDto | null => {
-    return (
-      elements.find((el) => el.scriptLineId === lineId) ||
-      (selectedElementId ? elements.find((el) => el.elementId === selectedElementId) : null) ||
-      null
-    );
+    return elements.find((el) => el.scriptLineId === lineId) || null;
   };
 
   // Dịch 1 dòng kịch bản
@@ -371,7 +394,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
       data-testid='canva-drawer-lettering'
       className='w-full h-full flex flex-col gap-4 p-3 overflow-y-auto custom-scrollbar bg-stone-50/60'
     >
-      {headerSlot && <div className='flex justify-end'>{headerSlot}</div>}
+      {headerSlot}
       {/* ── Script truyện ── */}
       <section className='rounded-xl border border-stone-200 bg-white shadow-2xs overflow-hidden'>
         <header className='flex items-center justify-between gap-2 px-3 py-2.5 border-b border-stone-100'>
@@ -379,12 +402,46 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
             <BookOpen className='w-4 h-4 text-stone-600' aria-hidden='true' />
             {t('artist.letteringScript.title')}
           </h3>
-          <span
-            data-testid='lettering-script-total'
-            className='px-2 py-0.5 rounded-full bg-stone-100 text-xs text-stone-600'
-          >
-            {t('artist.letteringScript.totalLines', { count: lines.length })}
-          </span>
+          <div className='flex items-center gap-1.5'>
+            <div
+              role='group'
+              aria-label={t('artist.letteringScript.scopeAriaLabel')}
+              className='flex p-0.5 rounded-lg bg-stone-100'
+            >
+              <button
+                type='button'
+                data-testid='lettering-scope-page'
+                aria-pressed={scope === 'page'}
+                onClick={() => setScope('page')}
+                className={`px-2 py-0.5 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
+                  scope === 'page'
+                    ? 'bg-white text-stone-900 shadow-2xs'
+                    : 'text-stone-500 hover:text-stone-800'
+                }`}
+              >
+                {t('artist.letteringScript.scopePage')}
+              </button>
+              <button
+                type='button'
+                data-testid='lettering-scope-chapter'
+                aria-pressed={scope === 'chapter'}
+                onClick={() => setScope('chapter')}
+                className={`px-2 py-0.5 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
+                  scope === 'chapter'
+                    ? 'bg-white text-stone-900 shadow-2xs'
+                    : 'text-stone-500 hover:text-stone-800'
+                }`}
+              >
+                {t('artist.letteringScript.scopeChapter')}
+              </button>
+            </div>
+            <span
+              data-testid='lettering-script-total'
+              className='px-2 py-0.5 rounded-full bg-stone-100 text-xs text-stone-600'
+            >
+              {t('artist.letteringScript.totalLines', { count: scopedLines.length })}
+            </span>
+          </div>
         </header>
 
         {/* Nút dịch toàn bộ thoại của trang (chỉ khi đang ở chế độ ngôn ngữ dịch) */}
@@ -469,26 +526,25 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         {expanded && (
           <div className='px-2 pb-2 space-y-2'>
             {panelStats.total > 0 && (
-              <div className='flex items-center justify-between text-2xs text-stone-500 px-1 pt-0.5'>
+              <div className='flex items-center justify-between text-xs text-stone-500 px-1 pt-0.5'>
                 <span className='font-medium'>
                   {t('artist.letteringScript.dialoguePanelCount', {
                     count: panelStats.withDialogue,
                     total: panelStats.total,
-                    defaultValue: `Hiển thị ${panelStats.withDialogue}/${panelStats.total} khung có thoại`,
                   })}
                 </span>
                 <button
                   type='button'
                   onClick={() => setShowAllPanels((prev) => !prev)}
-                  className={`text-2xs font-medium cursor-pointer underline transition-colors ${
+                  className={`text-xs font-medium cursor-pointer underline transition-colors ${
                     showAllPanels
                       ? 'text-orange-600 font-bold'
                       : 'text-stone-500 hover:text-stone-800'
                   }`}
                 >
                   {showAllPanels
-                    ? t('artist.letteringScript.hideNonDialogue', 'Ẩn khung không thoại')
-                    : t('artist.letteringScript.showNonDialogue', 'Hiện cả khung không thoại')}
+                    ? t('artist.letteringScript.hideNonDialogue')
+                    : t('artist.letteringScript.showNonDialogue')}
                 </button>
               </div>
             )}
@@ -521,7 +577,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
               ))}
             </div>
 
-            <ul className='space-y-2 max-h-[42vh] overflow-y-auto custom-scrollbar'>
+            <ul className='space-y-2' title={t('artist.letteringScript.hint')}>
               {visibleLines.length === 0 && (
                 <li className='text-xs text-stone-500 italic px-2 py-3 text-center'>
                   {t('artist.letteringScript.emptyLines')}
@@ -538,30 +594,42 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                   <li key={line.id} className='space-y-1'>
                     <div
                       role='button'
-                      tabIndex={0}
-                      draggable
+                      tabIndex={readOnly ? -1 : 0}
+                      draggable={!readOnly}
                       data-testid={`lettering-script-line-${line.id}`}
                       data-selected={selected || undefined}
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData(
-                          'application/json',
-                          JSON.stringify({ type, scriptLine: line }),
-                        );
-                        e.dataTransfer.setData('text/plain', text);
-                        e.dataTransfer.effectAllowed = 'copy';
+                      onDragStart={
+                        readOnly
+                          ? undefined
+                          : (e) => {
+                              e.dataTransfer.setData(
+                                'application/json',
+                                JSON.stringify({ type, scriptLine: line }),
+                              );
+                              e.dataTransfer.setData('text/plain', text);
+                              e.dataTransfer.effectAllowed = 'copy';
+                            }
+                      }
+                      onClick={() => {
+                        if (readOnly) return;
+                        onAddElement?.(type, line);
                       }}
-                      onClick={() => onAddElement?.(type, line)}
                       onKeyDown={(e) => {
+                        if (readOnly) return;
                         if (e.key === 'Enter' || e.key === ' ') {
                           if (e.nativeEvent?.isComposing || (e as any).keyCode === 229) return;
                           e.preventDefault();
                           onAddElement?.(type, line);
                         }
                       }}
-                      className={`flex items-center gap-2.5 p-2 rounded-xl border cursor-grab active:cursor-grabbing transition-colors ${
+                      className={`flex items-center gap-2.5 p-2 rounded-xl border transition-colors ${
+                        readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
+                      } ${
                         selected
                           ? 'border-orange-400 bg-orange-50 ring-1 ring-orange-400'
-                          : 'border-stone-200 bg-white hover:border-orange-300 hover:bg-orange-50/40'
+                          : readOnly
+                            ? 'border-stone-200 bg-white'
+                            : 'border-stone-200 bg-white hover:border-orange-300 hover:bg-orange-50/40'
                       }`}
                     >
                       <span className='w-6 h-6 rounded-full border border-stone-300 bg-white text-xs font-bold text-stone-700 flex items-center justify-center shrink-0'>
@@ -602,9 +670,13 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                             {t('artist.letteringScript.pageSuffix', {
                               page: line.pageNumber ?? '?',
                             })}
+                            {line.panelNumber != null &&
+                              ` · ${t('artist.letteringScript.panelSuffix', {
+                                n: line.panelNumber,
+                              })}`}
                           </span>
                         </p>
-                        <p className='text-[13px] text-stone-800 line-clamp-2'>{text}</p>
+                        <p className='text-sm text-stone-800 line-clamp-2'>{text}</p>
                       </div>
                       {type === 'SOUND_EFFECT' && (
                         <Volume2 className='w-4 h-4 text-stone-400 shrink-0' aria-hidden='true' />
@@ -695,7 +767,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                                 }
                               >
                                 <RefreshCw
-                                  className={`w-2.5 h-2.5 ${isTranslatingLine[line.id] ? 'animate-spin' : ''}`}
+                                  className={`w-3 h-3 ${isTranslatingLine[line.id] ? 'animate-spin' : ''}`}
                                 />
                                 <span>{t('lettering.translate.retranslate')}</span>
                               </button>
@@ -775,29 +847,22 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
             {showAllPanels && panelStats.emptyPanels.length > 0 && (
               <div className='space-y-1.5 p-2 bg-stone-50 rounded-lg border border-dashed border-stone-200 mt-2'>
-                <div className='text-3xs font-bold uppercase tracking-wider text-stone-400'>
-                  {t('artist.letteringScript.nonDialoguePanelsHeader', 'Khung không có thoại')}
+                <div className='text-xs font-bold uppercase tracking-wider text-stone-400'>
+                  {t('artist.letteringScript.nonDialoguePanelsHeader')}
                 </div>
                 {panelStats.emptyPanels.map((p) => (
                   <div
                     key={p.id}
                     className='text-xs text-stone-500 italic flex items-center justify-between'
                   >
-                    <span>Panel {p.panelNumber || 1}</span>
-                    <span className='text-3xs text-stone-400 truncate max-w-[140px]'>
-                      {p.direction
-                        ? p.direction
-                        : t('artist.letteringScript.visualOnly', 'Chỉ có hình ảnh')}
+                    <span>{t('artist.letteringScript.panelLabel', { n: p.panelNumber || 1 })}</span>
+                    <span className='text-xs text-stone-400 truncate max-w-[140px]'>
+                      {p.direction ? p.direction : t('artist.letteringScript.visualOnly')}
                     </span>
                   </div>
                 ))}
               </div>
             )}
-
-            <p className='flex items-start gap-2 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-900'>
-              <Info className='w-3.5 h-3.5 mt-0.5 shrink-0' aria-hidden='true' />
-              {t('artist.letteringScript.hint')}
-            </p>
           </div>
         )}
       </section>
@@ -844,6 +909,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
               const lineNo = el.scriptLineId ? numberByLineId.get(el.scriptLineId) : undefined;
               const selected = el.elementId === selectedElementId;
               const pending = pendingElementIds?.has(el.elementId) ?? false;
+              const ElementIcon = ELEMENT_ICONS[el.elementType] || MessageSquare;
               return (
                 <li key={el.elementId}>
                   <button
@@ -856,8 +922,8 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                         : 'border-stone-200 bg-white hover:border-stone-300'
                     }`}
                   >
-                    <span className='w-14 h-10 rounded-lg border border-stone-200 bg-stone-50 flex items-center justify-center shrink-0'>
-                      <span className='w-9 h-6 rounded-[50%] border-2 border-stone-700 bg-white' />
+                    <span className='w-14 h-10 rounded-lg border border-stone-200 bg-stone-50 flex items-center justify-center shrink-0 text-stone-600'>
+                      <ElementIcon className='w-4 h-4' aria-hidden='true' />
                     </span>
                     <span className='min-w-0 flex-1'>
                       <span className='flex items-center gap-1.5 text-xs font-bold text-stone-900'>
@@ -871,7 +937,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                             data-testid='text-stale-badge'
                             className='px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 text-xs font-semibold'
                           >
-                            Thoại lỗi thời
+                            {t('artist.letteringProperty.staleBadge')}
                           </span>
                         )}
                       </span>
@@ -930,14 +996,22 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
               <button
                 key={type}
                 type='button'
-                draggable
+                disabled={readOnly}
+                draggable={!readOnly}
                 data-testid={testId}
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('application/json', JSON.stringify({ type }));
-                  e.dataTransfer.effectAllowed = 'copy';
+                onDragStart={
+                  readOnly
+                    ? undefined
+                    : (e) => {
+                        e.dataTransfer.setData('application/json', JSON.stringify({ type }));
+                        e.dataTransfer.effectAllowed = 'copy';
+                      }
+                }
+                onClick={() => {
+                  if (readOnly) return;
+                  onAddElement?.(type);
                 }}
-                onClick={() => onAddElement?.(type)}
-                className='flex flex-col items-center gap-0.5 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-700 hover:border-orange-400 cursor-pointer'
+                className='flex flex-col items-center gap-0.5 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-700 hover:border-orange-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-stone-200'
               >
                 <Icon className='w-4 h-4' aria-hidden='true' />
                 {BALLOON_TYPE_LABELS[type]}
