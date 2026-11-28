@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AlertCircle } from 'lucide-react';
 import {
   adminService,
+  EMAIL_LOGS_QUERY_KEY,
+  EmailDeliveryError,
   type AdminEmailSettingsDto,
   type UpdateEmailSettingsRequest,
 } from '@/services/admin.service';
@@ -15,6 +18,7 @@ import {
   AdminToast,
 } from '../components/AdminUi';
 import { adminFieldClass, useAdminToast } from '../components/adminUiStyles';
+import { EmailDeliveryLogCard } from './EmailDeliveryLogCard';
 
 const QUERY_KEY = ['adminEmailSettings'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -90,10 +94,15 @@ export const EmailSettingsView: React.FC = () => {
     onError: (err: Error) => showToast(err.message, 'error'),
   });
 
+  // Lỗi gửi thử hiện ngay trong trang (không chỉ toast) để Admin đọc được phản hồi của máy chủ SMTP khi sửa cấu hình.
+  const [testFailure, setTestFailure] = useState<EmailDeliveryError | null>(null);
   const sendTest = useMutation({
     mutationFn: adminService.sendTestEmail,
+    onMutate: () => setTestFailure(null),
     onSuccess: ({ sentTo }) => showToast(t('admin.emailSettings.testSent', { email: sentTo })),
-    onError: (err: Error) => showToast(err.message, 'error'),
+    onError: (err: Error) =>
+      err instanceof EmailDeliveryError ? setTestFailure(err) : showToast(err.message, 'error'),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: EMAIL_LOGS_QUERY_KEY }),
   });
 
   const [touched, setTouched] = useState(false);
@@ -128,6 +137,25 @@ export const EmailSettingsView: React.FC = () => {
           </AdminButton>
         }
       />
+
+      {testFailure && (
+        <div
+          role='alert'
+          className='flex gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-900'
+        >
+          <AlertCircle className='w-4 h-4 mt-0.5 shrink-0 text-rose-600' aria-hidden />
+          <div className='min-w-0 space-y-1'>
+            <p className='font-semibold'>{t('admin.emailSettings.testFailedTitle')}</p>
+            <p>{t(`admin.emailSettings.reason.${testFailure.reason}`)}</p>
+            {testFailure.detail && (
+              <p className='text-xs text-rose-800 break-words'>
+                {t('admin.emailSettings.smtpReply')}{' '}
+                <code className='font-mono'>{testFailure.detail}</code>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {isError ? (
         <p className='text-sm text-red-700' role='alert'>
@@ -259,6 +287,8 @@ export const EmailSettingsView: React.FC = () => {
           </form>
         </AdminCard>
       )}
+
+      <EmailDeliveryLogCard />
     </div>
   );
 };
