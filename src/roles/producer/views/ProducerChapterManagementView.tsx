@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
-  Clock,
   Edit2,
   Globe,
   History,
@@ -50,6 +49,7 @@ import { StageProgressBars } from '../components/chapter-overview/StageProgressB
 import { ActionCenterList } from '../components/chapter-overview/ActionCenterList';
 import { ScriptSummaryCard } from '../components/chapter-overview/ScriptSummaryCard';
 import { BibleSummaryCard } from '../components/chapter-overview/BibleSummaryCard';
+import { RecentActivityCard } from '../components/chapter-overview/RecentActivityCard';
 import {
   Alert,
   Badge,
@@ -76,25 +76,11 @@ export interface ProducerChapterManagementViewProps {
   workspaceRole?: string | null;
 }
 
-const REVIEW_ACTION_LABEL_KEYS: Record<string, string> = {
-  ProducerApproved: 'producer.chapterManagement.reviewAction.ProducerApproved',
-  ChapterApproved: 'producer.chapterManagement.reviewAction.ChapterApproved',
-  ProducerHandedOff: 'producer.chapterManagement.reviewAction.ProducerHandedOff',
-  ChapterHandedOff: 'producer.chapterManagement.reviewAction.ChapterHandedOff',
-  ChapterPublished: 'producer.chapterManagement.reviewAction.ChapterPublished',
-  ScriptFrozen: 'producer.chapterManagement.reviewAction.ScriptFrozen',
-  ScriptUnfrozen: 'producer.chapterManagement.reviewAction.ScriptUnfrozen',
-  ProductionStarted: 'producer.chapterManagement.reviewAction.ProductionStarted',
-  ChangesRequested: 'producer.chapterManagement.reviewAction.ChangesRequested',
-  ChapterReopened: 'producer.chapterManagement.reviewAction.ChapterReopened',
-};
-
 export const ProducerChapterManagementView: React.FC<ProducerChapterManagementViewProps> = ({
   onShowToast,
   workspaceRole,
 }) => {
-  const { t, lang } = useTranslation('production');
-  const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
+  const { t } = useTranslation('production');
   const navigate = useNavigate();
   const { workspaceId = '', seriesId = '' } = useParams<{
     workspaceId: string;
@@ -1261,40 +1247,8 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         {/* 5. SECONDARY ZONE: Production Scope (when PreProduction) or Gate Summary (when InProduction) */}
         {isPreProduction ? productionProgressSection : readinessCenterSection}
 
-        {/* 6. RECENT ACTIVITY (Shortcuts trùng sidebar đã được loại bỏ theo §6) */}
-        <Card as='section' data-testid='overview-recent-activity'>
-          <CardHeader
-            icon={<Clock aria-hidden='true' />}
-            title={t('producer.chapterManagement.overview.recentActivityTitle')}
-          />
-          <CardBody>
-            {reviews.length === 0 ? (
-              <p className='text-xs text-stone-500'>
-                {t('producer.chapterManagement.overview.recentActivityEmpty')}
-              </p>
-            ) : (
-              <ul className='divide-y divide-stone-100 text-xs'>
-                {reviews.slice(0, 6).map((rev) => (
-                  <li key={rev.id} className='py-2.5 flex items-start justify-between gap-3'>
-                    <div className='min-w-0'>
-                      <span className='font-semibold text-stone-900'>
-                        {REVIEW_ACTION_LABEL_KEYS[rev.action]
-                          ? t(REVIEW_ACTION_LABEL_KEYS[rev.action])
-                          : rev.action}
-                      </span>
-                      {rev.comment && (
-                        <p className='text-stone-600 mt-0.5 truncate'>{rev.comment}</p>
-                      )}
-                    </div>
-                    <span className='text-xs text-stone-500 font-mono whitespace-nowrap shrink-0'>
-                      {rev.createdAt ? new Date(rev.createdAt).toLocaleString(dateLocale) : ''}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardBody>
-        </Card>
+        {/* 6. RECENT ACTIVITY */}
+        <RecentActivityCard reviews={reviews} />
       </div>
 
       {/* ── MODALS ── */}
