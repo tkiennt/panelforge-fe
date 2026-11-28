@@ -75,7 +75,6 @@ export interface LetteringScriptPanelProps {
  * và "Liên kết thoại trên trang" (bóng trên trang + trạng thái liên kết). BR-05: bóng tạo từ dòng giữ scriptLineId.
  */
 export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
-  chapterTitle,
   scriptLines,
   chapterPanels,
   activePageNumber,
@@ -138,7 +137,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   const [batchFallbackWarning, setBatchFallbackWarning] = useState<string | null>(null);
 
   // Chỉ dòng có chữ để đặt (bỏ chỉ dẫn cảnh), đánh số theo thứ tự trong kịch bản
-  const lines = useMemo(
+  const allLines = useMemo(
     () =>
       scriptLines
         .map((line) => ({ line, ...suggestBalloonType(line) }))
@@ -146,7 +145,19 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         .map((x, i) => ({ ...x, number: i + 1 })),
     [scriptLines],
   );
-  const numberByLineId = useMemo(() => new Map(lines.map((x) => [x.line.id, x.number])), [lines]);
+  const lines = useMemo(() => {
+    const hasPageAssignments = allLines.some((item) => item.line.pageNumber != null);
+    if (!hasPageAssignments) return allLines;
+    return allLines.filter(
+      (item) =>
+        item.line.pageNumber === activePageNumber ||
+        elements.some((element) => element.scriptLineId === item.line.id),
+    );
+  }, [allLines, activePageNumber, elements]);
+  const numberByLineId = useMemo(
+    () => new Map(allLines.map((x) => [x.line.id, x.number])),
+    [allLines],
+  );
 
   const isLinked = (lineId: string) =>
     linkedScriptLineIds
@@ -196,17 +207,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   const shownElements = showAllElements ? elements : elements.slice(0, 4);
 
   // Các dòng có thể dịch thuộc trang hiện tại
-  const currentPageLines = useMemo(() => {
-    const hasPageNumbers = lines.some((x) => x.line.pageNumber != null);
-    if (!hasPageNumbers) {
-      return lines;
-    }
-    return lines.filter(
-      (x) =>
-        x.line.pageNumber === activePageNumber ||
-        elements.some((el) => el.scriptLineId === x.line.id),
-    );
-  }, [lines, activePageNumber, elements]);
+  const currentPageLines = lines;
 
   // Tìm bóng thoại tương ứng cho 1 dòng kịch bản (ưu tiên bóng liên kết dòng đó, nếu không có lấy bóng đang chọn)
   const getTargetElementForLine = (lineId: string): ElementSnapshotDto | null => {
@@ -372,12 +373,12 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
       className='w-full h-full flex flex-col gap-4 p-3 overflow-y-auto custom-scrollbar bg-stone-50/60'
     >
       {headerSlot && <div className='flex justify-end'>{headerSlot}</div>}
-      {/* ── Script truyện ── */}
+      {/* Chỉ hiển thị thoại thuộc trang đang mở. */}
       <section className='rounded-xl border border-stone-200 bg-white shadow-2xs overflow-hidden'>
         <header className='flex items-center justify-between gap-2 px-3 py-2.5 border-b border-stone-100'>
           <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
             <BookOpen className='w-4 h-4 text-stone-600' aria-hidden='true' />
-            {t('artist.letteringScript.title')}
+            {t('artist.letteringScript.pageTitle', { page: activePageNumber })}
           </h3>
           <span
             data-testid='lettering-script-total'
@@ -462,14 +463,14 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
             aria-hidden='true'
           />
           <span className='truncate'>
-            {chapterTitle || t('artist.letteringScript.currentChapterFallback')}
+            {t('artist.letteringScript.pageSection', { page: activePageNumber })}
           </span>
         </button>
 
         {expanded && (
           <div className='px-2 pb-2 space-y-2'>
             {panelStats.total > 0 && (
-              <div className='flex items-center justify-between text-2xs text-stone-500 px-1 pt-0.5'>
+              <div className='flex items-center justify-between text-xs text-stone-500 px-1 pt-0.5'>
                 <span className='font-medium'>
                   {t('artist.letteringScript.dialoguePanelCount', {
                     count: panelStats.withDialogue,
@@ -480,7 +481,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                 <button
                   type='button'
                   onClick={() => setShowAllPanels((prev) => !prev)}
-                  className={`text-2xs font-medium cursor-pointer underline transition-colors ${
+                  className={`text-xs font-medium cursor-pointer underline transition-colors ${
                     showAllPanels
                       ? 'text-orange-600 font-bold'
                       : 'text-stone-500 hover:text-stone-800'
@@ -775,7 +776,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
 
             {showAllPanels && panelStats.emptyPanels.length > 0 && (
               <div className='space-y-1.5 p-2 bg-stone-50 rounded-lg border border-dashed border-stone-200 mt-2'>
-                <div className='text-3xs font-bold uppercase tracking-wider text-stone-400'>
+                <div className='text-xs font-bold uppercase tracking-wider text-stone-400'>
                   {t('artist.letteringScript.nonDialoguePanelsHeader', 'Khung không có thoại')}
                 </div>
                 {panelStats.emptyPanels.map((p) => (
@@ -784,7 +785,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
                     className='text-xs text-stone-500 italic flex items-center justify-between'
                   >
                     <span>Panel {p.panelNumber || 1}</span>
-                    <span className='text-3xs text-stone-400 truncate max-w-[140px]'>
+                    <span className='text-xs text-stone-400 truncate max-w-[140px]'>
                       {p.direction
                         ? p.direction
                         : t('artist.letteringScript.visualOnly', 'Chỉ có hình ảnh')}
