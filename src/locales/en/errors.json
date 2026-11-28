@@ -269,7 +269,9 @@
       "studioPackageSaveFailed": "Could not save the studio package price.",
       "emailSettingsLoadFailed": "Could not load email settings.",
       "emailSettingsSaveFailed": "Could not save email settings.",
-      "emailTestFailed": "Could not send the test email."
+      "emailTestFailed": "Could not send the test email.",
+      "emailSettingsHistoryFailed": "Could not load the email settings history.",
+      "emailSettingsRestoreFailed": "Could not restore the email settings."
     },
     "auth": {
       "unauthorized": "Session expired or invalid token (401 Unauthorized). Please sign in again.",

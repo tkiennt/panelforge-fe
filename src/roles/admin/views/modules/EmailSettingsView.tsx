@@ -15,6 +15,7 @@ import {
   AdminToast,
 } from '../components/AdminUi';
 import { adminFieldClass, useAdminToast } from '../components/adminUiStyles';
+import { EMAIL_SETTINGS_HISTORY_KEY, EmailSettingsHistoryCard } from './EmailSettingsHistoryCard';
 
 const QUERY_KEY = ['adminEmailSettings'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -84,6 +85,7 @@ export const EmailSettingsView: React.FC = () => {
     mutationFn: (request: UpdateEmailSettingsRequest) => adminService.updateEmailSettings(request),
     onSuccess: (next) => {
       queryClient.setQueryData(QUERY_KEY, next);
+      queryClient.invalidateQueries({ queryKey: EMAIL_SETTINGS_HISTORY_KEY });
       setDraft(null);
       showToast(t('admin.emailSettings.saved'));
     },
@@ -259,6 +261,16 @@ export const EmailSettingsView: React.FC = () => {
           </form>
         </AdminCard>
       )}
+
+      <EmailSettingsHistoryCard
+        onRestored={(next, date) => {
+          queryClient.setQueryData(QUERY_KEY, next);
+          queryClient.invalidateQueries({ queryKey: EMAIL_SETTINGS_HISTORY_KEY });
+          setDraft(null);
+          showToast(t('admin.emailSettings.history.restored', { date }));
+        }}
+        onError={(message) => showToast(message, 'error')}
+      />
     </div>
   );
 };

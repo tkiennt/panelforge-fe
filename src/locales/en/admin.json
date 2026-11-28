@@ -891,6 +891,20 @@
       "senderName": "Enter a sender name.",
       "senderEmail": "Sender email is not valid.",
       "passwordRequired": "Enter the SMTP password for the first setup."
+    },
+    "history": {
+      "title": "Settings history",
+      "description": "Most recent saves. Restoring reuses that version’s server, sender and password, and saves it as a new version.",
+      "empty": "Nothing saved yet.",
+      "current": "In use",
+      "restore": "Restore",
+      "confirmRestore": "Confirm restore",
+      "cancel": "Cancel",
+      "restored": "Restored the settings from {date}.",
+      "entry": "{sender} via {server}:{port}",
+      "by": "{date} · {name}",
+      "loading": "Loading history…",
+      "retry": "Retry"
     }
   }
 }

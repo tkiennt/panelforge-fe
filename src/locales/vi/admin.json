@@ -891,6 +891,20 @@
       "senderName": "Nhập tên người gửi.",
       "senderEmail": "Email gửi đi không hợp lệ.",
       "passwordRequired": "Nhập mật khẩu SMTP cho lần cấu hình đầu tiên."
+    },
+    "history": {
+      "title": "Lịch sử cấu hình",
+      "description": "Các lần lưu gần nhất. Khôi phục sẽ dùng lại máy chủ, email gửi đi và mật khẩu của bản đó, rồi lưu thành một bản mới.",
+      "empty": "Chưa có lần lưu nào.",
+      "current": "Đang dùng",
+      "restore": "Khôi phục",
+      "confirmRestore": "Xác nhận khôi phục",
+      "cancel": "Hủy",
+      "restored": "Đã khôi phục cấu hình ngày {date}.",
+      "entry": "{sender} qua {server}:{port}",
+      "by": "{date} · {name}",
+      "loading": "Đang tải lịch sử…",
+      "retry": "Thử lại"
     }
   }
 }

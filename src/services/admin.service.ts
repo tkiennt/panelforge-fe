@@ -303,6 +303,18 @@ export interface AdminEmailSettingsDto {
   changedByName: string | null;
 }
 
+/** Một phiên bản trong lịch sử cấu hình SMTP (append-only), không kèm mật khẩu. */
+export interface AdminEmailSettingsVersionDto {
+  id: string;
+  smtpServer: string;
+  smtpPort: number;
+  senderName: string;
+  senderEmail: string;
+  changedAt: string;
+  changedByName: string | null;
+  isCurrent: boolean;
+}
+
 /** `password` để trống = giữ mật khẩu đã lưu (bắt buộc ở lần lưu đầu). */
 export interface UpdateEmailSettingsRequest {
   smtpServer: string;
@@ -752,6 +764,30 @@ export const adminService = {
       return data;
     } catch (error: any) {
       throw new Error(extractError(error, translate('errors.services.admin.emailTestFailed')));
+    }
+  },
+
+  /** GET /api/admin/email-settings/history — các phiên bản cấu hình SMTP, mới nhất trước. */
+  getEmailSettingsHistory: async (): Promise<AdminEmailSettingsVersionDto[]> => {
+    try {
+      const { data } = await axiosClient.get('/admin/email-settings/history');
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.emailSettingsHistoryFailed')),
+      );
+    }
+  },
+
+  /** POST /api/admin/email-settings/history/{id}/restore — dùng lại phiên bản cũ (thêm bản mới, có audit). */
+  restoreEmailSettings: async (versionId: string): Promise<AdminEmailSettingsDto> => {
+    try {
+      const { data } = await axiosClient.post(`/admin/email-settings/history/${versionId}/restore`);
+      return data;
+    } catch (error: any) {
+      throw new Error(
+        extractError(error, translate('errors.services.admin.emailSettingsRestoreFailed')),
+      );
     }
   },
 
