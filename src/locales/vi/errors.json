@@ -64,6 +64,7 @@
       "getVisualReportFailed": "Không thể nạp báo cáo nhất quán hình ảnh",
       "runVisualCheckFailed": "Không thể chạy kiểm tra nhất quán hình ảnh",
       "getEditorReviewQueueFailed": "Không thể nạp hàng đợi thẩm định Editor",
+      "getSeriesReviewStatsFailed": "Không thể nạp tổng quan duyệt",
       "getTaskGridFailed": "Không thể tải lưới công việc của chương",
       "generateTaskGridFailed": "Không thể sinh ô công việc cho chương",
       "getAutoAssignPlanFailed": "Không thể tải kế hoạch giao tự động",

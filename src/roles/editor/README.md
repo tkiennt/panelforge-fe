@@ -6,12 +6,14 @@ Biên tập viên kiểm soát chất lượng tại các cổng duyệt (CF3): 
 
 ## 2. Route & Màn hình
 
-| Route (dưới `/workspaces/:workspaceId/series/:seriesId`) | View               | Việc                                                                                                                                             |
-| -------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `editor/desk`                                            | `EditorDeskView`   | Hàng đợi bài chờ duyệt của cả Series, lọc Gate 1 / Gate 2                                                                                        |
-| `chapters/:chapterId/script/review?assignmentId=`        | `ScriptReviewView` | Duyệt kịch bản: nhận xét theo dòng/phân cảnh                                                                                                     |
-| `chapters/:chapterId/review/:taskId`                     | `ReviewView`       | Duyệt tranh của một việc Page/Panel; việc Review cả chương chuyển sang `ChapterReviewView`                                                       |
-| `editor/bible`                                           | `BibleReviewView`  | Duyệt thiết kế Series Bible: Artist nộp concept → Editor xác nhận (`WriterEndorsed`) hoặc yêu cầu vẽ lại (`ReworkRequired`); Producer khoá canon |
+| Route (dưới `/workspaces/:workspaceId/series/:seriesId`) | View                         | Việc                                                                                                                                                        |
+| -------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `editor/dashboard`                                       | `EditorSeriesDashboardView`  | Tổng quan duyệt cả Series: chờ duyệt, chờ xác minh, yêu cầu sửa mở, lỗi nhất quán, tỉ lệ duyệt lần đầu theo chương (`GET /series/{id}/editor/review-stats`) |
+| `editor/dashboard/:chapterId`                            | `EditorChapterDashboardView` | Tổng quan duyệt một chương: yêu cầu sửa chờ xác minh / còn mở, lỗi nhất quán chưa xử lý                                                                     |
+| `editor/desk`                                            | `EditorDeskView`             | Hàng đợi bài chờ duyệt của cả Series, lọc Gate 1 / Gate 2                                                                                                   |
+| `chapters/:chapterId/script/review?assignmentId=`        | `ScriptReviewView`           | Duyệt kịch bản: nhận xét theo dòng/phân cảnh                                                                                                                |
+| `chapters/:chapterId/review/:taskId`                     | `ReviewView`                 | Duyệt tranh của một việc Page/Panel; việc Review cả chương chuyển sang `ChapterReviewView`                                                                  |
+| `editor/bible`                                           | `BibleReviewView`            | Duyệt thiết kế Series Bible: Artist nộp concept → Editor xác nhận (`WriterEndorsed`) hoặc yêu cầu vẽ lại (`ReworkRequired`); Producer khoá canon            |
 
 ## 3. Bố cục chung của màn duyệt
 

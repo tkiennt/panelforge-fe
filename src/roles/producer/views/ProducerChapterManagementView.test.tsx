@@ -515,8 +515,20 @@ describe('ProducerChapterManagementView (Unified Chapter Production Hub)', () =>
     expect(await screen.findByTestId('action-production-overdue')).toBeInTheDocument();
     expect(screen.getByTestId('action-production-rework')).toBeInTheDocument();
     expect(screen.getByTestId('action-production-submitted')).toBeInTheDocument();
+    // 4th action is initially collapsed (>3 items)
+    expect(screen.queryByTestId('action-production-unassigned')).not.toBeInTheDocument();
+    const showMoreBtn = screen.getByRole('button', { name: /Xem thêm/i });
+    expect(showMoreBtn).toBeInTheDocument();
+    fireEvent.click(showMoreBtn);
     expect(screen.getByTestId('action-production-unassigned')).toBeInTheDocument();
     expect(screen.queryByText('Không có việc cần xử lý ngay.')).not.toBeInTheDocument();
+
+    // Clicking Thu gọn collapses it back to 3 items
+    const collapseBtn = screen.getByRole('button', { name: /Thu gọn/i });
+    expect(collapseBtn).toBeInTheDocument();
+    fireEvent.click(collapseBtn);
+    expect(screen.queryByTestId('action-production-unassigned')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Xem thêm/i })).toBeInTheDocument();
   });
 
   it('P1-4: shows descriptive empty state instead of 0/0 (0%) and 0/0 bắt buộc when totals are zero', async () => {

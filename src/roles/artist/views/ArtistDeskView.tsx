@@ -1167,6 +1167,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     setIsSubmittingStage(true);
     try {
       let handledViaGrid = false;
+      let submittedPageViaGrid = false;
       if (typeof assignmentService?.getTaskGrid === 'function') {
         const grid = await assignmentService.getTaskGrid(currentChapterId).catch(() => null);
         const latestGridTasks = (grid?.tasks ?? []).filter((t) => t.status !== 'Cancelled');
@@ -1197,6 +1198,33 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             );
             return;
           }
+          submittedPageViaGrid = Boolean(targetCell.pageId);
+
+          const requiresCompletePageArtwork = ['pencil', 'ink', 'color'].includes(currentStage.key);
+          if (requiresCompletePageArtwork && targetCell.pageId && selectedPageId) {
+            const pagePanels = panelsByPageId[selectedPageId] ?? [];
+            const pageArtworks = panelArtworksByPageId[selectedPageId] ?? {};
+            if (pagePanels.length === 0) {
+              toast.warning(
+                t('artist.deskView.submitPageMissingPanelsTitle'),
+                t('artist.deskView.submitPageNoPanelsDesc', {
+                  page: selectedPage?.pageNumber ?? 1,
+                }),
+              );
+              return;
+            }
+            const missingPanelCount = pagePanels.filter((panel) => !pageArtworks[panel.id]).length;
+            if (missingPanelCount > 0) {
+              toast.warning(
+                t('artist.deskView.submitPageMissingPanelsTitle'),
+                t('artist.deskView.submitPageMissingPanelsDesc', {
+                  page: selectedPage?.pageNumber ?? 1,
+                  count: missingPanelCount,
+                }),
+              );
+              return;
+            }
+          }
 
           try {
             if (
@@ -1215,18 +1243,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               }
             }
             if (typeof assignmentService.submitStageTasks === 'function') {
-              const lotInProgress = targetCell.lotId
-                ? latestGridTasks.filter(
-                    (t) =>
-                      t.pipelineStageId === currentStage.id &&
-                      t.lotId === targetCell.lotId &&
-                      (!me || !t.assigneeUserId || t.assigneeUserId === me) &&
-                      !t.isInputOutdated &&
-                      (t.id === targetCell.id || t.status === 'InProgress'),
-                  )
-                : [targetCell];
-              const taskIdsToSubmit =
-                lotInProgress.length > 0 ? lotInProgress.map((c) => c.id) : [targetCell.id];
+              // A lot may contain multiple pages; only submit the page currently being edited.
+              const taskIdsToSubmit = [targetCell.id];
               const submittedCells = await assignmentService.submitStageTasks(
                 currentChapterId,
                 taskIdsToSubmit,
@@ -1360,6 +1378,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         }
       }
 
+      if (handledViaGrid && submittedPageViaGrid) {
+        toast.success(
+          t('artist.deskView.submitPageSuccessTitle', {
+            page: selectedPage?.pageNumber ?? 1,
+          }),
+          t('artist.deskView.submitPageSuccessDesc'),
+        );
+        return;
+      }
+
       if (currentStageIndex < artistStages.length - 1) {
         const nextIdx = currentStageIndex + 1;
         setCurrentStageIndex(nextIdx);
@@ -1390,6 +1418,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     assignmentIdFromUrl,
     chapterAssignments,
     scriptCoverage,
+    panelsByPageId,
+    panelArtworksByPageId,
+    selectedPage,
     toast,
     t,
   ]);
@@ -3056,6 +3087,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   }, []);
   const selectedBalloon =
     balloons.pageElements.find((el) => el.elementId === balloons.selectedElementId) ?? null;
+
+  useEffect(() => {
+    if (selectedBalloon && activeSidebarTab === 'lettering') {
+      setIsSidebarDrawerOpen(false);
+    }
+  }, [selectedBalloon, activeSidebarTab]);
   const selectedKeepOutCollision = useMemo(() => {
     if (!selectedBalloon || keepOut.zones.length === 0) return null;
     return findKeepOutCollision(
@@ -3558,7 +3595,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           layoutLocked={isInkOrColorStage || isLetterStage}
           canEditPages={!isLetterStage}
           activeTab={activeSidebarTab}
-          onTabChange={(tab) => setActiveSidebarTab(tab)}
+          onTabChange={(tab) => {
+            setActiveSidebarTab(tab);
+            balloons.setSelectedElementId(null);
+          }}
           isDrawerOpen={isSidebarDrawerOpen}
           onToggleDrawer={(open) => setIsSidebarDrawerOpen(open)}
           changeRequests={myChangeRequests}
@@ -3769,7 +3809,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               }}
               onSaveLayout={handleSaveLayout}
             >
-              {currentPagePanels.length > 0 && (
+              {currentPagePanels.length > 0 && artworkUploadMode === 'panel' && (
                 <PanelFrameOverlay
                   panels={currentPagePanels}
                   pageWidth={selectedPage?.widthPx || 1200}
@@ -3840,6 +3880,28 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 />
               )}
             </ArtistCanvasViewport>
+            {!isLetterStage &&
+              currentPagePanels.length > 0 &&
+              activeSidebarTab !== 'lettering' &&
+              !selectedBalloon && (
+                <SplitPanelStrip
+                  panels={currentPagePanels}
+                  artworks={currentPageArtworks}
+                  canEdit={canUploadCurrentPageArtwork}
+                  canSave={!isCurrentPageLayoutSaved || hasPendingCurrentPageArtwork}
+                  isSaving={isApplyingTemplate}
+                  saveLabel={t(
+                    isInkOrColorStage
+                      ? 'artist.layoutToolbar.saveImages'
+                      : 'artist.layoutToolbar.saveLayout',
+                  )}
+                  selectedPanelId={selectedPanelId}
+                  onSelectPanel={handleSelectPanelById}
+                  onPreviewArtwork={setPreviewArtwork}
+                  onRemoveArtwork={handleRemovePanelArtwork}
+                  onSave={handleSaveLayout}
+                />
+              )}
             {selectedBalloon && (
               <LetteringPropertyPanel
                 element={selectedBalloon}
@@ -3865,10 +3927,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                     ? () => balloons.deleteElement(selectedBalloon.elementId)
                     : undefined
                 }
-                onViewScript={() => {
-                  setActiveSidebarTab('script');
-                  setIsSidebarDrawerOpen(true);
-                }}
                 onClose={() => balloons.setSelectedElementId(null)}
                 seriesId={seriesId}
                 pageId={selectedPage?.id}
@@ -3884,18 +3942,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               />
             )}
           </div>
-
-          {!isLetterStage && currentPagePanels.length > 0 && artworkUploadMode === 'panel' && (
-            <SplitPanelStrip
-              panels={currentPagePanels}
-              artworks={currentPageArtworks}
-              canEdit={canUploadCurrentPageArtwork}
-              selectedPanelId={selectedPanelId}
-              onSelectPanel={handleSelectPanelById}
-              onPreviewArtwork={setPreviewArtwork}
-              onRemoveArtwork={handleRemovePanelArtwork}
-            />
-          )}
 
           <ArtistBottomPageStrip
             pages={pages}

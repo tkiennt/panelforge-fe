@@ -26,6 +26,8 @@
   },
   "letteringScript": {
     "title": "Script truyện",
+    "pageTitle": "Thoại trang {page}",
+    "pageSection": "Nội dung trang {page}",
     "totalLines": "Tổng: {count} dòng",
     "currentChapterFallback": "Chương hiện tại",
     "filterAriaLabel": "Lọc theo trạng thái liên kết",
@@ -423,6 +425,11 @@
     "cannotSubmitStageTitle": "Không thể nộp công đoạn",
     "noAssignmentForStageDesc": "Bạn chưa có phân công phù hợp cho công đoạn \"{stage}\" trong chương này.",
     "submitStageErrorTitle": "Không nộp được công đoạn",
+    "submitPageMissingPanelsTitle": "Trang chưa đủ khung để nộp",
+    "submitPageMissingPanelsDesc": "Trang {page} còn thiếu ảnh ở {count} khung. Hãy hoàn tất và lưu tất cả khung trước khi nộp.",
+    "submitPageNoPanelsDesc": "Trang {page} chưa có khung. Hãy tách khung và lưu trước khi nộp.",
+    "submitPageSuccessTitle": "Đã nộp trang {page}",
+    "submitPageSuccessDesc": "Trang đã được gửi duyệt độc lập; các trang còn lại vẫn có thể tiếp tục chỉnh sửa.",
     "handoffSuccessTitle": "Chuyển công đoạn thành công",
     "handoffSuccessDesc": "Đã hoàn tất \"{from}\" và chuyển sang \"{to}\".",
     "stageCompleteTitle": "Hoàn tất bản vẽ",
@@ -954,7 +961,9 @@
     "saveFailed": "Lưu vùng cấm chữ thất bại."
   },
   "splitStrip": {
-    "title": "Kết quả tách khung",
+    "title": "Khung",
+    "previewHint": "Xem trước và lưu các khung của trang",
+    "panelTitle": "Khung {panelNum}",
     "regionsCount": "{count} vùng khung",
     "imagesCount": "{count} ảnh khung",
     "selectAria": "Chọn khung {panelNum}",

@@ -86,7 +86,6 @@ export interface LetteringScriptPanelProps {
  * và "Liên kết thoại trên trang" (bóng trên trang + trạng thái liên kết). BR-05: bóng tạo từ dòng giữ scriptLineId.
  */
 export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
-  chapterTitle,
   scriptLines,
   chapterPanels,
   activePageNumber,
@@ -151,7 +150,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   const [batchFallbackWarning, setBatchFallbackWarning] = useState<string | null>(null);
 
   // Chỉ dòng có chữ để đặt (bỏ chỉ dẫn cảnh), đánh số theo thứ tự trong kịch bản
-  const lines = useMemo(
+  const allLines = useMemo(
     () =>
       scriptLines
         .map((line) => ({ line, ...suggestBalloonType(line) }))
@@ -159,21 +158,23 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         .map((x, i) => ({ ...x, number: i + 1 })),
     [scriptLines],
   );
-  const numberByLineId = useMemo(() => new Map(lines.map((x) => [x.line.id, x.number])), [lines]);
-
-  const hasPageNumbers = useMemo(() => lines.some((x) => x.line.pageNumber != null), [lines]);
-  const effectiveScope = hasPageNumbers ? scope : 'chapter';
-
-  const scopedLines = useMemo(() => {
-    if (effectiveScope === 'chapter') {
-      return lines;
-    }
-    return lines.filter(
-      (x) =>
-        x.line.pageNumber === activePageNumber ||
-        elements.some((el) => el.scriptLineId === x.line.id),
+  const lines = useMemo(() => {
+    const hasPageAssignments = allLines.some((item) => item.line.pageNumber != null);
+    if (!hasPageAssignments) return allLines;
+    return allLines.filter(
+      (item) =>
+        item.line.pageNumber === activePageNumber ||
+        elements.some((element) => element.scriptLineId === item.line.id),
     );
-  }, [effectiveScope, lines, activePageNumber, elements]);
+  }, [allLines, activePageNumber, elements]);
+  const numberByLineId = useMemo(
+    () => new Map(allLines.map((x) => [x.line.id, x.number])),
+    [allLines],
+  );
+
+  const hasPageNumbers = useMemo(() => allLines.some((x) => x.line.pageNumber != null), [allLines]);
+  const effectiveScope = hasPageNumbers ? scope : 'chapter';
+  const scopedLines = effectiveScope === 'chapter' ? allLines : lines;
 
   const isLinked = (lineId: string) =>
     linkedScriptLineIds
@@ -223,17 +224,7 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
   const shownElements = showAllElements ? elements : elements.slice(0, 4);
 
   // Các dòng có thể dịch thuộc trang hiện tại
-  const currentPageLines = useMemo(() => {
-    const hasAnyPageNumbers = lines.some((x) => x.line.pageNumber != null);
-    if (!hasAnyPageNumbers) {
-      return lines;
-    }
-    return lines.filter(
-      (x) =>
-        x.line.pageNumber === activePageNumber ||
-        elements.some((el) => el.scriptLineId === x.line.id),
-    );
-  }, [lines, activePageNumber, elements]);
+  const currentPageLines = lines;
 
   // Tìm bóng thoại tương ứng cho 1 dòng kịch bản (chỉ lấy bóng liên kết dòng đó)
   const getTargetElementForLine = (lineId: string): ElementSnapshotDto | null => {
@@ -400,7 +391,9 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
         <header className='flex items-center justify-between gap-2 px-3 py-2.5 border-b border-stone-100'>
           <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
             <BookOpen className='w-4 h-4 text-stone-600' aria-hidden='true' />
-            {t('artist.letteringScript.title')}
+            {effectiveScope === 'page'
+              ? t('artist.letteringScript.pageTitle', { page: activePageNumber })
+              : t('artist.letteringScript.title')}
           </h3>
           <div className='flex items-center gap-1.5'>
             <div
@@ -519,7 +512,9 @@ export const LetteringScriptPanel: React.FC<LetteringScriptPanelProps> = ({
             aria-hidden='true'
           />
           <span className='truncate'>
-            {chapterTitle || t('artist.letteringScript.currentChapterFallback')}
+            {effectiveScope === 'page'
+              ? t('artist.letteringScript.pageSection', { page: activePageNumber })
+              : t('artist.letteringScript.currentChapterFallback')}
           </span>
         </button>
 

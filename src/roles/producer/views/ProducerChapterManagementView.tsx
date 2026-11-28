@@ -8,16 +8,12 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
-  Clock,
   Edit2,
-  FileText,
   Globe,
   History,
   LayoutGrid,
   Lock,
-  MessageSquare,
   MoreHorizontal,
-  Palette,
   Plus,
   RefreshCw,
   Rocket,
@@ -48,6 +44,12 @@ import { PreviewLinksModal } from '../modals/PreviewLinksModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { ReasonForm } from '@/shared/components/ReasonForm';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
+import { ProductionMetricsList } from '../components/chapter-overview/ProductionMetricsList';
+import { StageProgressBars } from '../components/chapter-overview/StageProgressBars';
+import { ActionCenterList } from '../components/chapter-overview/ActionCenterList';
+import { ScriptSummaryCard } from '../components/chapter-overview/ScriptSummaryCard';
+import { BibleSummaryCard } from '../components/chapter-overview/BibleSummaryCard';
+import { RecentActivityCard } from '../components/chapter-overview/RecentActivityCard';
 import {
   Alert,
   Badge,
@@ -67,47 +69,18 @@ import {
   notifyChapterHubChanged,
   useChapterReadiness,
 } from '@/shared/features/production-workspace/useChapterProductionHub';
-import {
-  buildBibleUrl,
-  buildProductionWorkspaceUrl,
-  buildScriptReviewUrl,
-  buildSeriesExportUrl,
-} from '@/app/routePaths';
+import { buildProductionWorkspaceUrl, buildSeriesExportUrl } from '@/app/routePaths';
 
 export interface ProducerChapterManagementViewProps {
   onShowToast?: (title: string, desc: string) => void;
   workspaceRole?: string | null;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  Character: 'Nhân vật',
-  Location: 'Bối cảnh',
-  Prop: 'Đạo cụ',
-  Costume: 'Trang phục',
-  Term: 'Thuật ngữ',
-  Rule: 'Quy tắc',
-  Event: 'Sự kiện',
-};
-
-const REVIEW_ACTION_LABEL_KEYS: Record<string, string> = {
-  ProducerApproved: 'producer.chapterManagement.reviewAction.ProducerApproved',
-  ChapterApproved: 'producer.chapterManagement.reviewAction.ChapterApproved',
-  ProducerHandedOff: 'producer.chapterManagement.reviewAction.ProducerHandedOff',
-  ChapterHandedOff: 'producer.chapterManagement.reviewAction.ChapterHandedOff',
-  ChapterPublished: 'producer.chapterManagement.reviewAction.ChapterPublished',
-  ScriptFrozen: 'producer.chapterManagement.reviewAction.ScriptFrozen',
-  ScriptUnfrozen: 'producer.chapterManagement.reviewAction.ScriptUnfrozen',
-  ProductionStarted: 'producer.chapterManagement.reviewAction.ProductionStarted',
-  ChangesRequested: 'producer.chapterManagement.reviewAction.ChangesRequested',
-  ChapterReopened: 'producer.chapterManagement.reviewAction.ChapterReopened',
-};
-
 export const ProducerChapterManagementView: React.FC<ProducerChapterManagementViewProps> = ({
   onShowToast,
   workspaceRole,
 }) => {
-  const { t, lang } = useTranslation('production');
-  const dateLocale = lang === 'en' ? 'en-US' : 'vi-VN';
+  const { t } = useTranslation('production');
   const navigate = useNavigate();
   const { workspaceId = '', seriesId = '' } = useParams<{
     workspaceId: string;
@@ -795,15 +768,6 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
       : 0;
 
   const isLoadingMetrics = loadingReadiness && !serverReadiness;
-  const totalTasks = readiness?.production.totalTasks ?? 0;
-  const approvedTasks = readiness?.production.approvedTasks ?? 0;
-  const taskPct = totalTasks > 0 ? (readiness?.production.taskProgressPercent ?? 0) : 0;
-  const totalPages = readiness?.production.totalPages ?? 0;
-  const completedPages = readiness?.production.completedPages ?? 0;
-  const pagePct = totalPages > 0 ? (readiness?.production.pageProgressPercent ?? 0) : 0;
-  const totalPanels = readiness?.production.totalPanels ?? 0;
-  const approvedPanels = readiness?.production.approvedPanels ?? 0;
-  const panelPct = totalPanels > 0 ? (readiness?.production.panelProgressPercent ?? 0) : 0;
 
   // Reusable Production Progress Section (placed high when InProduction, lower when PreProduction)
   const productionProgressSection = (
@@ -882,168 +846,11 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
         ) : (
           <div className='space-y-4'>
             {/* 3 Strictly Separated Progress Metrics */}
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch'>
-              <div
-                data-testid='metric-task-progress'
-                className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between gap-2'
-              >
-                <div className='flex items-center justify-between gap-2 text-xs'>
-                  <span className='font-semibold text-stone-700'>
-                    {t('producer.chapterManagement.overview.approvedTasks')}
-                  </span>
-                  {totalTasks > 0 ? (
-                    <span className='font-mono font-bold text-stone-900 tabular-nums'>
-                      {approvedTasks}/{totalTasks} ({taskPct}%)
-                    </span>
-                  ) : (
-                    <span className='font-medium text-stone-500'>
-                      {t('producer.chapterManagement.overview.emptyTasks')}
-                    </span>
-                  )}
-                </div>
-                <ProgressBar
-                  value={totalTasks > 0 ? approvedTasks : 0}
-                  max={totalTasks}
-                  tone={totalTasks > 0 ? 'brand' : 'neutral'}
-                  label={t('producer.chapterManagement.overview.approvedTasks')}
-                />
-                {totalTasks > 0 ? (
-                  <div className='flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-stone-500'>
-                    <span>
-                      {t('producer.chapterManagement.overview.pendingReviewCount', {
-                        count: readiness?.production.submittedTasks ?? 0,
-                      })}
-                    </span>
-                    <span>·</span>
-                    <span>
-                      {t('producer.chapterManagement.overview.inProgressCount', {
-                        count: readiness?.production.inProgressTasks ?? 0,
-                      })}
-                    </span>
-                    {(readiness?.production.reworkTasks ?? 0) > 0 && (
-                      <>
-                        <span>·</span>
-                        <span className='text-rose-700 font-semibold'>
-                          {t('producer.chapterManagement.overview.reworkCount', {
-                            count: readiness?.production.reworkTasks ?? 0,
-                          })}
-                        </span>
-                      </>
-                    )}
-                    {(readiness?.production.overdueTasks ?? 0) > 0 && (
-                      <>
-                        <span>·</span>
-                        <span className='text-rose-700 font-semibold'>
-                          {t('producer.chapterManagement.overview.overdueCount', {
-                            count: readiness?.production.overdueTasks ?? 0,
-                          })}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className='text-xs text-stone-500'>
-                    {t('producer.chapterManagement.overview.emptyTasksHint')}
-                  </div>
-                )}
-              </div>
-
-              <div
-                data-testid='metric-page-progress'
-                className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between gap-2'
-              >
-                <div className='flex items-center justify-between gap-2 text-xs'>
-                  <span className='font-semibold text-stone-700'>
-                    {t('producer.chapterManagement.overview.completedPages')}
-                  </span>
-                  {totalPages > 0 ? (
-                    <span className='font-mono font-bold text-stone-900 tabular-nums'>
-                      {completedPages}/{totalPages} ({pagePct}%)
-                    </span>
-                  ) : (
-                    <span className='font-medium text-stone-500'>
-                      {t('producer.chapterManagement.overview.emptyPages')}
-                    </span>
-                  )}
-                </div>
-                <ProgressBar
-                  value={totalPages > 0 ? completedPages : 0}
-                  max={totalPages}
-                  tone={totalPages > 0 ? 'success' : 'neutral'}
-                  label={t('producer.chapterManagement.overview.completedPages')}
-                />
-                <div className='text-xs text-stone-500'>
-                  {t('producer.chapterManagement.overview.completedPagesHint')}
-                </div>
-              </div>
-
-              <div
-                data-testid='metric-panel-progress'
-                className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3.5 flex flex-col justify-between gap-2'
-              >
-                <div className='flex items-center justify-between gap-2 text-xs'>
-                  <span className='font-semibold text-stone-700'>
-                    {t('producer.chapterManagement.overview.completedPanels')}
-                  </span>
-                  {totalPanels > 0 ? (
-                    <span className='font-mono font-bold text-stone-900 tabular-nums'>
-                      {approvedPanels}/{totalPanels} ({panelPct}%)
-                    </span>
-                  ) : (
-                    <span className='font-medium text-stone-500'>
-                      {t('producer.chapterManagement.overview.emptyPanels')}
-                    </span>
-                  )}
-                </div>
-                <ProgressBar
-                  value={totalPanels > 0 ? approvedPanels : 0}
-                  max={totalPanels}
-                  tone={totalPanels > 0 ? 'info' : 'neutral'}
-                  label={t('producer.chapterManagement.overview.completedPanels')}
-                />
-                <div className='text-xs text-stone-500'>
-                  {t('producer.chapterManagement.overview.completedPanelsHint')}
-                </div>
-              </div>
-            </div>
+            <ProductionMetricsList production={readiness?.production ?? null} />
 
             {/* Per-stage breakdown */}
             {(readiness?.production.stages?.length ?? 0) > 0 && (
-              <div className='grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1'>
-                {readiness!.production.stages.map((st) => (
-                  <div
-                    key={st.stageId}
-                    className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] px-3 py-2.5 text-xs space-y-1.5'
-                  >
-                    <div className='flex items-center justify-between gap-2 font-semibold text-stone-800'>
-                      <span className='truncate'>{st.stageName}</span>
-                      {st.totalTasks > 0 ? (
-                        <span className='font-mono text-xs text-stone-600 tabular-nums shrink-0'>
-                          {st.approvedTasks}/{st.totalTasks}
-                        </span>
-                      ) : (
-                        <span className='text-xs font-medium text-stone-500 shrink-0'>
-                          {t('producer.chapterManagement.overview.emptyTasks')}
-                        </span>
-                      )}
-                    </div>
-                    <ProgressBar
-                      value={st.totalTasks > 0 ? st.approvedTasks : 0}
-                      max={st.totalTasks}
-                      tone={st.totalTasks > 0 ? 'brand' : 'neutral'}
-                      label={st.stageName}
-                      className='h-1.5'
-                    />
-                    {st.submittedTasks > 0 && (
-                      <div className='text-xs text-amber-800 font-medium'>
-                        {t('producer.chapterManagement.overview.stageSubmittedCount', {
-                          count: st.submittedTasks,
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <StageProgressBars stages={readiness!.production.stages} />
             )}
           </div>
         )}
@@ -1227,205 +1034,15 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
     );
 
   // Action Center (Blockers + Warnings + Production tasks needing attention)
-  const blockerCount = readiness?.blockers.length ?? 0;
-  const warningCount = readiness?.warnings.length ?? 0;
-  const productionActionItems: Array<{
-    key: 'overdue' | 'rework' | 'submitted' | 'unassigned';
-    tone: 'danger' | 'warning';
-    tag: string;
-    message: string;
-  }> = [];
-  if (readiness?.production) {
-    if ((readiness.production.overdueTasks ?? 0) > 0) {
-      productionActionItems.push({
-        key: 'overdue',
-        tone: 'danger',
-        tag: t('producer.chapterManagement.overview.overdueTag'),
-        message: t('producer.chapterManagement.overview.actionOverdueDesc', {
-          count: readiness.production.overdueTasks,
-        }),
-      });
-    }
-    if ((readiness.production.reworkTasks ?? 0) > 0) {
-      productionActionItems.push({
-        key: 'rework',
-        tone: 'danger',
-        tag: t('producer.chapterManagement.overview.reworkTag'),
-        message: t('producer.chapterManagement.overview.actionReworkDesc', {
-          count: readiness.production.reworkTasks,
-        }),
-      });
-    }
-    if ((readiness.production.submittedTasks ?? 0) > 0) {
-      productionActionItems.push({
-        key: 'submitted',
-        tone: 'warning',
-        tag: t('producer.chapterManagement.overview.submittedTag'),
-        message: t('producer.chapterManagement.overview.actionSubmittedDesc', {
-          count: readiness.production.submittedTasks,
-        }),
-      });
-    }
-    if ((readiness.production.unassignedTasks ?? 0) > 0) {
-      productionActionItems.push({
-        key: 'unassigned',
-        tone: 'warning',
-        tag: t('producer.chapterManagement.overview.unassignedTag'),
-        message: t('producer.chapterManagement.overview.actionUnassignedDesc', {
-          count: readiness.production.unassignedTasks,
-        }),
-      });
-    }
-  }
-  const hasDangerProductionAction = productionActionItems.some((item) => item.tone === 'danger');
-  const totalActionCount = blockerCount + warningCount + productionActionItems.length;
-
-  const actionCenterSection =
-    totalActionCount === 0 ? (
-      <div
-        data-testid='overview-action-center'
-        className='rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3 text-xs text-emerald-800 flex items-center gap-2'
-      >
-        <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' aria-hidden='true' />
-        <span className='font-medium'>
-          {isPreProduction
-            ? t('producer.chapterManagement.overview.noBlockersPreProd')
-            : t('producer.chapterManagement.overview.noPendingActions')}
-        </span>
-      </div>
-    ) : (
-      <Card
-        as='section'
-        tone={blockerCount > 0 || hasDangerProductionAction ? 'danger' : 'warning'}
-        data-testid='overview-action-center'
-      >
-        <CardHeader
-          icon={<AlertTriangle aria-hidden='true' />}
-          title={t('producer.chapterManagement.overview.actionCenterTitle')}
-          actions={
-            <div className='flex flex-wrap items-center gap-1.5'>
-              {blockerCount > 0 && (
-                <Badge tone='danger'>
-                  {t('producer.chapterManagement.overview.blockerCountBadge', {
-                    count: blockerCount,
-                  })}
-                </Badge>
-              )}
-              {warningCount > 0 && (
-                <Badge tone='warning'>
-                  {t('producer.chapterManagement.overview.warningCountBadge', {
-                    count: warningCount,
-                  })}
-                </Badge>
-              )}
-              {productionActionItems.length > 0 && (
-                <Badge tone={hasDangerProductionAction ? 'danger' : 'warning'}>
-                  {t('producer.chapterManagement.overview.productionActionsCountBadge', {
-                    count: productionActionItems.length,
-                  })}
-                </Badge>
-              )}
-            </div>
-          }
-        />
-        <CardBody className='space-y-2'>
-          {(readiness?.blockers ?? []).map((issue, idx) => (
-            <div
-              key={`${issue.code}-${issue.resourceId || idx}`}
-              data-testid={`action-blocker-${issue.code}`}
-              className='rounded-lg border border-rose-200/80 bg-rose-50/40 px-3.5 py-2.5 flex items-center justify-between gap-3'
-            >
-              <div className='flex items-center gap-2.5 min-w-0'>
-                <Badge tone='danger'>{t('producer.chapterManagement.overview.blockerTag')}</Badge>
-                <p className='text-xs text-stone-800 min-w-0'>{issue.message}</p>
-              </div>
-              {chapter && (
-                <Button
-                  variant='danger'
-                  size='sm'
-                  onClick={() =>
-                    navigate(
-                      buildReadinessResolutionUrl(
-                        workspaceId,
-                        seriesId,
-                        chapter.id,
-                        issue.resolutionTarget,
-                      ),
-                    )
-                  }
-                >
-                  {t('producer.chapterManagement.overview.openResolveBtn')}
-                </Button>
-              )}
-            </div>
-          ))}
-
-          {productionActionItems.map((item) => (
-            <div
-              key={`prod-${item.key}`}
-              data-testid={`action-production-${item.key}`}
-              className={`rounded-lg border px-3.5 py-2.5 flex items-center justify-between gap-3 ${
-                item.tone === 'danger'
-                  ? 'border-rose-200/80 bg-rose-50/40'
-                  : 'border-amber-200/80 bg-amber-50/40'
-              }`}
-            >
-              <div className='flex items-center gap-2.5 min-w-0'>
-                <Badge tone={item.tone}>{item.tag}</Badge>
-                <p className='text-xs text-stone-800 min-w-0'>{item.message}</p>
-              </div>
-              {chapter && (
-                <Button
-                  variant={item.tone === 'danger' ? 'danger' : 'warning'}
-                  size='sm'
-                  onClick={() =>
-                    navigate(
-                      buildProductionWorkspaceUrl(workspaceId, seriesId, {
-                        chapterId: chapter.id,
-                        tab: 'progress',
-                      }),
-                    )
-                  }
-                >
-                  {t('producer.chapterManagement.overview.openProdBoard')}
-                </Button>
-              )}
-            </div>
-          ))}
-
-          {(readiness?.warnings ?? []).map((issue, idx) => (
-            <div
-              key={`${issue.code}-${issue.resourceId || idx}`}
-              data-testid={`action-warning-${issue.code}`}
-              className='rounded-lg border border-amber-200/80 bg-amber-50/40 px-3.5 py-2.5 flex items-center justify-between gap-3'
-            >
-              <div className='flex items-center gap-2.5 min-w-0'>
-                <Badge tone='warning'>{t('producer.chapterManagement.overview.warningTag')}</Badge>
-                <p className='text-xs text-stone-800 min-w-0'>{issue.message}</p>
-              </div>
-              {chapter && (
-                <Button
-                  variant='warning'
-                  size='sm'
-                  onClick={() =>
-                    navigate(
-                      buildReadinessResolutionUrl(
-                        workspaceId,
-                        seriesId,
-                        chapter.id,
-                        issue.resolutionTarget,
-                      ),
-                    )
-                  }
-                >
-                  {t('producer.chapterManagement.overview.viewDetails')}
-                </Button>
-              )}
-            </div>
-          ))}
-        </CardBody>
-      </Card>
-    );
+  const actionCenterSection = (
+    <ActionCenterList
+      workspaceId={workspaceId}
+      seriesId={seriesId}
+      chapter={chapter}
+      readiness={readiness}
+      isPreProduction={isPreProduction}
+    />
+  );
 
   return (
     <div
@@ -1612,277 +1229,26 @@ export const ProducerChapterManagementView: React.FC<ProducerChapterManagementVi
 
         {/* 4. TWO-COLUMN SUMMARY: SCRIPT SUMMARY + CHAPTER REFERENCES */}
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 items-start'>
-          {/* SCRIPT SUMMARY CARD */}
-          <Card as='section' data-testid='overview-script-summary'>
-            <CardHeader
-              icon={<FileText aria-hidden='true' />}
-              title={t('producer.chapterManagement.overview.scriptSummaryTitle')}
-              actions={
-                <StatusBadge
-                  kind='script'
-                  status={readiness?.script.scriptStatus || chapter?.scriptStatus || 'Draft'}
-                />
-              }
-            />
-            <CardBody className='space-y-3.5'>
-              {/* Version Context: Latest vs Approved vs Production */}
-              <div className='grid grid-cols-3 gap-2.5'>
-                <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
-                  <div className='text-xs text-stone-500'>
-                    {t('producer.chapterManagement.overview.latestVersion')}
-                  </div>
-                  <div className='text-sm font-bold font-mono text-stone-900 mt-0.5'>
-                    {readiness?.script.latestVersionNumber
-                      ? `v${readiness.script.latestVersionNumber}`
-                      : t('producer.chapterManagement.overview.notSaved')}
-                  </div>
-                </div>
-                <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
-                  <div className='text-xs text-stone-500'>
-                    {t('producer.chapterManagement.overview.submittedVersion')}
-                  </div>
-                  <div className='text-sm font-bold font-mono text-stone-900 mt-0.5'>
-                    {readiness?.script.approvedVersionNumber
-                      ? `v${readiness.script.approvedVersionNumber}`
-                      : '—'}
-                  </div>
-                </div>
-                <div className='rounded-lg border border-stone-200/80 bg-[#FAF9F5] p-3'>
-                  <div className='text-xs text-stone-500'>
-                    {t('producer.chapterManagement.overview.productionVersion')}
-                  </div>
-                  <div className='text-sm font-bold font-mono text-accent-dark mt-0.5'>
-                    {readiness?.script.productionVersionNumber
-                      ? `v${readiness.script.productionVersionNumber}`
-                      : t('producer.chapterManagement.overview.notFrozen')}
-                  </div>
-                </div>
-              </div>
-
-              {/* Structural & Review Counters */}
-              <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs'>
-                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
-                  <div className='text-stone-500'>
-                    {t('producer.chapterManagement.overview.scenesLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-stone-900 mt-0.5'>
-                    {readiness?.script.sceneCount ?? 0}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
-                  <div className='text-stone-500'>
-                    {t('producer.chapterManagement.overview.pagesPanelsLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-stone-900 mt-0.5'>
-                    {readiness?.script.pageCount ?? 0} / {readiness?.script.panelCount ?? 0}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
-                  <div className='text-stone-500'>
-                    {t('producer.chapterManagement.overview.openCommentsLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-stone-900 mt-0.5 flex items-center gap-1'>
-                    <MessageSquare className='w-3.5 h-3.5 text-stone-400' aria-hidden='true' />
-                    {readiness?.script.unresolvedCommentsCount ?? 0}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
-                  <div className='text-stone-500'>
-                    {t('producer.chapterManagement.overview.consistencyAlertsLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-stone-900 mt-0.5'>
-                    {readiness?.script.openFindingsCount ?? 0}
-                  </div>
-                </div>
-              </div>
-
-              <div className='pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2'>
-                <span className='text-xs text-stone-500'>
-                  {readiness?.script.lastUpdatedAt
-                    ? t('producer.chapterManagement.overview.updatedAt', {
-                        date: new Date(readiness.script.lastUpdatedAt).toLocaleString(dateLocale),
-                      })
-                    : ''}
-                </span>
-                {chapter && (
-                  <Button
-                    variant='secondary'
-                    size='sm'
-                    data-testid='open-script-workspace-btn'
-                    trailingIcon={<ArrowRight aria-hidden='true' />}
-                    onClick={() =>
-                      navigate(buildScriptReviewUrl(workspaceId, seriesId, chapter.id))
-                    }
-                  >
-                    {t('producer.chapterManagement.overview.openScriptBtn')}
-                  </Button>
-                )}
-              </div>
-            </CardBody>
-          </Card>
-
-          {/* CHAPTER-SCOPED SERIES BIBLE SUMMARY CARD */}
-          <Card as='section' tone='ai' data-testid='overview-bible-summary'>
-            <CardHeader
-              icon={<Palette aria-hidden='true' />}
-              title={t('producer.chapterManagement.overview.bibleSummaryTitle')}
-              actions={
-                (readiness?.bible.requiredTotal ?? 0) > 0 ? (
-                  <span className='text-xs font-mono font-bold text-stone-800'>
-                    {t('producer.chapterManagement.overview.bibleRequiredCount', {
-                      ready: readiness?.bible.readyCount ?? 0,
-                      total: readiness?.bible.requiredTotal ?? 0,
-                    })}
-                  </span>
-                ) : (
-                  <span className='text-xs font-medium text-stone-500'>
-                    {t('producer.chapterManagement.overview.bibleNoRequired')}
-                  </span>
-                )
-              }
-            />
-            <CardBody className='space-y-3.5'>
-              <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs'>
-                <div className='rounded-lg bg-emerald-50/60 px-3 py-2 border border-emerald-200/60'>
-                  <div className='text-emerald-700'>
-                    {t('producer.chapterManagement.overview.bibleLockedLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-emerald-900 mt-0.5'>
-                    {readiness?.bible.readyCount ?? 0}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-amber-50/60 px-3 py-2 border border-amber-200/60'>
-                  <div className='text-amber-800'>
-                    {t('producer.chapterManagement.overview.bibleMissingLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-amber-900 mt-0.5'>
-                    {(readiness?.bible.missingArtCount ?? 0) +
-                      (readiness?.bible.missingDefinitionCount ?? 0)}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-blue-50/60 px-3 py-2 border border-blue-200/60'>
-                  <div className='text-blue-800'>
-                    {t('producer.chapterManagement.overview.biblePendingLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-blue-900 mt-0.5'>
-                    {readiness?.bible.pendingApprovalCount ?? 0}
-                  </div>
-                </div>
-                <div className='rounded-lg bg-[#FAF9F5] px-3 py-2 border border-stone-200/70'>
-                  <div className='text-stone-600'>
-                    {t('producer.chapterManagement.overview.bibleCrowdLabel')}
-                  </div>
-                  <div className='font-mono font-bold text-stone-800 mt-0.5'>
-                    {readiness?.bible.crowdOptionalCount ?? 0}
-                  </div>
-                </div>
-              </div>
-
-              {/* Category breakdown pills */}
-              {(readiness?.bible.byCategory?.length ?? 0) > 0 && (
-                <div className='flex flex-wrap gap-1.5'>
-                  {readiness!.bible.byCategory.map((cat) => (
-                    <Badge key={cat.category} tone='neutral'>
-                      {CATEGORY_LABELS[cat.category] || cat.category}:{' '}
-                      {cat.required > 0
-                        ? `${cat.ready}/${cat.required}`
-                        : t('producer.chapterManagement.overview.bibleNoRequiredShort')}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
-              {/* Quick contextual links for missing required references */}
-              {missingBibleEntities.length > 0 && chapter && (
-                <div className='space-y-1.5 pt-1'>
-                  <div className='text-xs font-semibold text-stone-500 uppercase tracking-wide'>
-                    {t('producer.chapterManagement.overview.bibleNeedsLockHeading')}
-                  </div>
-                  <div className='flex flex-wrap gap-1.5'>
-                    {missingBibleEntities.slice(0, 6).map((ent) => (
-                      <button
-                        key={ent.bibleEntryId}
-                        type='button'
-                        onClick={() =>
-                          navigate(
-                            `${buildScriptReviewUrl(workspaceId, seriesId, chapter.id)}?tab=entities&entityId=${encodeURIComponent(ent.bibleEntryId)}`,
-                          )
-                        }
-                        className='inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-50 border border-rose-200 text-xs font-medium text-rose-800 hover:bg-rose-100 cursor-pointer'
-                      >
-                        <span>{ent.name}</span>
-                        <ArrowRight className='w-3 h-3' />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className='pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2'>
-                <button
-                  type='button'
-                  onClick={() => navigate(buildBibleUrl(workspaceId, seriesId))}
-                  className='text-xs font-semibold text-stone-600 hover:text-stone-900 cursor-pointer'
-                >
-                  {t('producer.chapterManagement.overview.seriesBibleLibraryLink')}
-                </button>
-                {chapter && (
-                  <Button
-                    variant='secondary'
-                    size='sm'
-                    data-testid='open-chapter-references-btn'
-                    trailingIcon={<ArrowRight aria-hidden='true' />}
-                    onClick={() =>
-                      navigate(
-                        `${buildScriptReviewUrl(workspaceId, seriesId, chapter.id)}?tab=entities`,
-                      )
-                    }
-                  >
-                    {t('producer.chapterManagement.overview.viewChapterReferencesBtn')}
-                  </Button>
-                )}
-              </div>
-            </CardBody>
-          </Card>
+          <ScriptSummaryCard
+            chapter={chapter}
+            readiness={readiness}
+            workspaceId={workspaceId}
+            seriesId={seriesId}
+          />
+          <BibleSummaryCard
+            chapter={chapter}
+            readiness={readiness}
+            missingBibleEntities={missingBibleEntities}
+            workspaceId={workspaceId}
+            seriesId={seriesId}
+          />
         </div>
 
         {/* 5. SECONDARY ZONE: Production Scope (when PreProduction) or Gate Summary (when InProduction) */}
         {isPreProduction ? productionProgressSection : readinessCenterSection}
 
-        {/* 6. RECENT ACTIVITY (Shortcuts trùng sidebar đã được loại bỏ theo §6) */}
-        <Card as='section' data-testid='overview-recent-activity'>
-          <CardHeader
-            icon={<Clock aria-hidden='true' />}
-            title={t('producer.chapterManagement.overview.recentActivityTitle')}
-          />
-          <CardBody>
-            {reviews.length === 0 ? (
-              <p className='text-xs text-stone-500'>
-                {t('producer.chapterManagement.overview.recentActivityEmpty')}
-              </p>
-            ) : (
-              <ul className='divide-y divide-stone-100 text-xs'>
-                {reviews.slice(0, 6).map((rev) => (
-                  <li key={rev.id} className='py-2.5 flex items-start justify-between gap-3'>
-                    <div className='min-w-0'>
-                      <span className='font-semibold text-stone-900'>
-                        {REVIEW_ACTION_LABEL_KEYS[rev.action]
-                          ? t(REVIEW_ACTION_LABEL_KEYS[rev.action])
-                          : rev.action}
-                      </span>
-                      {rev.comment && (
-                        <p className='text-stone-600 mt-0.5 truncate'>{rev.comment}</p>
-                      )}
-                    </div>
-                    <span className='text-xs text-stone-500 font-mono whitespace-nowrap shrink-0'>
-                      {rev.createdAt ? new Date(rev.createdAt).toLocaleString(dateLocale) : ''}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardBody>
-        </Card>
+        {/* 6. RECENT ACTIVITY */}
+        <RecentActivityCard reviews={reviews} />
       </div>
 
       {/* ── MODALS ── */}

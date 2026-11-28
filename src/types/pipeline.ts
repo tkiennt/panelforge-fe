@@ -666,6 +666,42 @@ export interface PageVisualContinuityDto {
 
 export type EditorQualityGate = 'all' | 'gate1' | 'gate2';
 
+/** GET /api/series/{seriesId}/editor/review-stats — một chương (BE ChapterReviewStatsDto). */
+export interface ChapterReviewStatsDto {
+  chapterId: string;
+  chapterNumber: number;
+  title?: string | null;
+  status: string;
+  scriptStatus: 'Draft' | 'InReview' | 'Frozen' | string;
+  waitingReview: number;
+  inReview: number;
+  openChangeRequests: number;
+  resolvedChangeRequests: number;
+  verifiedChangeRequests: number;
+  overdueChangeRequests: number;
+  openFindings: number;
+  blockingFindings: number;
+  approved: number;
+  rejected: number;
+  firstPassApproved: number;
+}
+
+export interface ReviewDecisionPointDto {
+  date: string;
+  approved: number;
+  rejected: number;
+}
+
+/** GET /api/series/{seriesId}/editor/review-stats (BE SeriesReviewStatsDto). */
+export interface SeriesReviewStatsDto {
+  seriesId: string;
+  generatedAt: string;
+  chapters: ChapterReviewStatsDto[];
+  /** 30 ngày gần nhất (UTC), cũ → mới. */
+  decisions: ReviewDecisionPointDto[];
+  avgReviewHours?: number | null;
+}
+
 export interface EditorReviewQueueItemDto {
   assignmentId: string;
   chapterId: string;

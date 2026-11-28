@@ -26,6 +26,8 @@
   },
   "letteringScript": {
     "title": "Comic Script",
+    "pageTitle": "Page {page} dialogue",
+    "pageSection": "Page {page} content",
     "totalLines": "Total: {count} lines",
     "currentChapterFallback": "Current chapter",
     "filterAriaLabel": "Filter by link status",
@@ -423,6 +425,11 @@
     "cannotSubmitStageTitle": "Cannot submit stage",
     "noAssignmentForStageDesc": "You do not have a matching assignment for stage \"{stage}\" in this chapter.",
     "submitStageErrorTitle": "Failed to submit stage",
+    "submitPageMissingPanelsTitle": "Page panels are incomplete",
+    "submitPageMissingPanelsDesc": "Page {page} is missing artwork in {count} panels. Complete and save every panel before submitting.",
+    "submitPageNoPanelsDesc": "Page {page} has no panels. Split and save the panels before submitting.",
+    "submitPageSuccessTitle": "Page {page} submitted",
+    "submitPageSuccessDesc": "This page was sent for review independently; the remaining pages can still be edited.",
     "handoffSuccessTitle": "Stage handed off",
     "handoffSuccessDesc": "Completed \"{from}\" and moved to \"{to}\".",
     "stageCompleteTitle": "Artwork completed",
@@ -954,7 +961,9 @@
     "saveFailed": "Failed to save keep-out zones."
   },
   "splitStrip": {
-    "title": "Extracted panels",
+    "title": "Panels",
+    "previewHint": "Preview and save this page's panels",
+    "panelTitle": "Panel {panelNum}",
     "regionsCount": "{count} panel regions",
     "imagesCount": "{count} panel images",
     "selectAria": "Select panel {panelNum}",

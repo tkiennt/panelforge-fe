@@ -234,9 +234,9 @@ export const LetteringPropertyPanel: React.FC<LetteringPropertyPanelProps> = ({
     <aside
       data-testid='lettering-property-panel'
       aria-label={t('letteringProperty.panelAriaLabel')}
-      className='w-80 shrink-0 h-full overflow-y-auto custom-scrollbar p-3'
+      className='w-72 shrink-0 h-full overflow-y-auto custom-scrollbar border-l border-stone-200 bg-stone-50/60 p-2'
     >
-      <div className='rounded-2xl border border-stone-200 bg-white shadow-sm p-4 space-y-5'>
+      <div className='rounded-xl border border-stone-200 bg-white shadow-sm p-3 space-y-4'>
         <header className='flex items-center justify-between'>
           <h3 className='text-sm font-bold text-stone-900 flex items-center gap-2'>
             <MessageCircle className='w-4 h-4' aria-hidden='true' />

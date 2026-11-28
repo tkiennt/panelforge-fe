@@ -82,6 +82,15 @@ describe('LetteringScriptPanel – Script truyện & Liên kết thoại (BR-05)
     expect(screen.queryByTestId('lettering-script-line-l-sfx')).not.toBeInTheDocument();
   });
 
+  it('chỉ hiển thị dòng có chữ của trang hiện tại và giữ số thứ tự toàn chương', () => {
+    renderPanel();
+    expect(screen.getByTestId('lettering-script-total')).toHaveTextContent('Tổng: 2 dòng');
+    expect(screen.queryByTestId('lettering-script-line-l-dir')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('lettering-script-line-l-sfx')).not.toBeInTheDocument();
+    expect(screen.getByTestId('lettering-script-line-l-narr')).toHaveTextContent('2');
+    expect(screen.getByText('Thoại trang 1')).toBeInTheDocument();
+  });
+
   it('bấm dòng tạo bóng đúng loại, gắn dòng kịch bản', () => {
     const onAdd = vi.fn();
     renderPanel({ onAddElement: onAdd });

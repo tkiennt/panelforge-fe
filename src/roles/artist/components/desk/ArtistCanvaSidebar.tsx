@@ -802,7 +802,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         aria-label={t('canvaSidebar.drawerAria', { tool: toolLabels[activeTab] })}
         className={`bg-white text-stone-900 border-r border-[#E7E5E4] flex flex-col h-full overflow-hidden transition-all duration-200 ease-out motion-reduce:transition-none shrink-0 ${
           isDrawerOpen
-            ? `${activeTab === 'script' ? '' : 'w-[340px]'} opacity-100`
+            ? `${activeTab === 'script' ? '' : activeTab === 'lettering' ? 'w-[300px]' : 'w-[340px]'} opacity-100`
             : 'w-0 opacity-0 pointer-events-none border-r-0'
         }`}
         style={isDrawerOpen && activeTab === 'script' ? { width: scriptDrawerWidth } : undefined}
