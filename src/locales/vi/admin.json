@@ -557,14 +557,14 @@
     },
     "reconcile": {
       "title": "Đối soát dung lượng",
-      "description": "Quét kho file, tính lại dung lượng từng Studio từ những file còn được dùng và liệt kê file mồ côi. Không xoá file nào.",
+      "description": "Quét kho file, tính lại dung lượng từng Studio từ những file còn được dùng và liệt kê file mồ côi. Quét chỉ đọc; ghi số mới hay xoá file đều phải xác nhận.",
       "scan": "Quét kho",
       "rescan": "Quét lại",
       "apply": "Cập nhật dung lượng",
       "idle": "Chưa quét. Bấm \"Quét kho\" để xem số liệu; bước này chỉ đọc, chưa ghi gì.",
-      "scanned": "Đã quét {{files}} file, tổng {{size}} lúc {{time}}.",
+      "scanned": "Đã quét {files} file, tổng {size} lúc {time}.",
       "applied": "Đã cập nhật dung lượng",
-      "unattributed": "{{count}} file ({{size}}) không thuộc Studio nào còn tồn tại.",
+      "unattributed": "{count} file ({size}) không thuộc Studio nào còn tồn tại.",
       "colStudio": "Studio",
       "colRecorded": "Đang ghi",
       "colComputed": "Tính lại",
@@ -572,12 +572,20 @@
       "colMissing": "Thiếu file",
       "colDerived": "Ảnh thu nhỏ & file xuất",
       "allMatch": "Dung lượng mọi Studio khớp với kho, không có file mồ côi.",
-      "filesAndSize": "{{count}} file · {{size}}",
-      "samplesTitle": "Danh sách file mồ côi ({{count}})",
+      "filesAndSize": "{count} file · {size}",
+      "samplesTitle": "Danh sách file mồ côi ({count})",
       "samplesTruncated": "Chỉ hiện 200 file đầu tiên.",
       "confirmTitle": "Cập nhật dung lượng đã tính lại?",
-      "confirmDescription": "{{count}} Studio sẽ được ghi dung lượng mới theo file còn được dùng.",
-      "confirmNote": "File mồ côi vẫn nằm trong kho và không bị xoá. Hệ thống quét lại một lần trước khi ghi; nếu có Studio vừa tải file lên, hãy chạy lại."
+      "confirmDescription": "{count} Studio sẽ được ghi dung lượng mới theo file còn được dùng.",
+      "confirmNote": "File mồ côi vẫn nằm trong kho và không bị xoá. Hệ thống quét lại một lần trước khi ghi; nếu có Studio vừa tải file lên, hãy chạy lại.",
+      "delete": "Xoá file mồ côi",
+      "deleted": "Đã xoá {count} file ({size}).",
+      "deletedSkipped": "Giữ lại {recent} file mới hơn {days} ngày, {unattributed} file không rõ Studio, {referenced} file vừa được dùng lại.",
+      "deletedFailed": "{count} file xoá lỗi, hãy chạy lại.",
+      "deleteConfirmTitle": "Xoá file mồ côi khỏi kho?",
+      "deleteConfirmDescription": "Báo cáo đang có {count} file mồ côi thuộc các Studio. File đã xoá không khôi phục được.",
+      "deleteConfirmNote": "Chỉ xoá file cũ hơn 7 ngày của Studio đang hoạt động. File không rõ Studio, ảnh thu nhỏ, file xuất bản và mọi bản ghi lịch sử được giữ nguyên. Sau khi xoá, bấm \"Cập nhật dung lượng\" nếu số đang ghi còn lệch.",
+      "deleteConfirm": "Xoá vĩnh viễn"
     }
   }
 }

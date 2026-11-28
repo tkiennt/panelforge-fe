@@ -381,7 +381,8 @@
       "reviewFailed": "Không xử lý được yêu cầu.",
       "loadResourcesFailed": "Không tải được mức dùng của các Studio.",
       "saveResourcesFailed": "Không cập nhật được hạn mức.",
-      "reconcileFailed": "Không đối soát được dung lượng. Thử lại sau."
+      "reconcileFailed": "Không đối soát được dung lượng. Thử lại sau.",
+      "deleteOrphansFailed": "Không xoá được file mồ côi. Thử lại sau."
     }
   }
 }

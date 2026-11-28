@@ -5,7 +5,7 @@ import { StorageReconcileCard } from './StorageReconcileCard';
 import { quotaService, type StorageReconcileReportDto } from '@/services/quota.service';
 
 vi.mock('@/services/quota.service', () => ({
-  quotaService: { reconcileStorage: vi.fn() },
+  quotaService: { reconcileStorage: vi.fn(), deleteOrphanFiles: vi.fn() },
 }));
 
 const report = (applied: boolean): StorageReconcileReportDto => ({
@@ -37,12 +37,22 @@ const report = (applied: boolean): StorageReconcileReportDto => ({
   ],
   unattributedFiles: 0,
   unattributedBytes: 0,
-  orphanSamples: [{ key: 'covers/abc/old', sizeBytes: 512, workspaceId: 'ws-1' }],
+  orphanSamples: [
+    {
+      key: 'covers/abc/old',
+      sizeBytes: 512,
+      workspaceId: 'ws-1',
+      lastModifiedUtc: '2026-11-01T00:00:00Z',
+    },
+  ],
   orphanSamplesTruncated: false,
 });
 
 describe('StorageReconcileCard (OPS-22)', () => {
-  beforeEach(() => vi.mocked(quotaService.reconcileStorage).mockReset());
+  beforeEach(() => {
+    vi.mocked(quotaService.reconcileStorage).mockReset();
+    vi.mocked(quotaService.deleteOrphanFiles).mockReset();
+  });
 
   it('scans read-only first and lists only studios that need attention', async () => {
     vi.mocked(quotaService.reconcileStorage).mockResolvedValueOnce(report(false));
@@ -73,5 +83,31 @@ describe('StorageReconcileCard (OPS-22)', () => {
     await waitFor(() => expect(onApplied).toHaveBeenCalled());
     expect(quotaService.reconcileStorage).toHaveBeenLastCalledWith(true);
     expect(screen.getByText('Đã cập nhật dung lượng')).toBeInTheDocument();
+  });
+
+  it('deletes orphan files only after confirmation, then rescans', async () => {
+    vi.mocked(quotaService.reconcileStorage)
+      .mockResolvedValueOnce(report(false))
+      .mockResolvedValueOnce(report(false));
+    vi.mocked(quotaService.deleteOrphanFiles).mockResolvedValueOnce({
+      deletedFiles: 2,
+      deletedBytes: 1024,
+      skippedRecentFiles: 0,
+      skippedUnattributedFiles: 0,
+      skippedReferencedFiles: 0,
+      failedFiles: 0,
+      minAgeDays: 7,
+    });
+    render(<StorageReconcileCard onApplied={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quét kho' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Xoá file mồ côi' }));
+    expect(quotaService.deleteOrphanFiles).not.toHaveBeenCalled();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Xoá vĩnh viễn' }));
+
+    expect(await screen.findByText(/Đã xoá 2 file/)).toBeInTheDocument();
+    expect(quotaService.deleteOrphanFiles).toHaveBeenCalledTimes(1);
+    expect(quotaService.reconcileStorage).toHaveBeenCalledTimes(2);
   });
 });

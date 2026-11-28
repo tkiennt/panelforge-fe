@@ -557,14 +557,14 @@
     },
     "reconcile": {
       "title": "Storage reconciliation",
-      "description": "Scan file storage, recalculate each studio's usage from files still in use, and list orphan files. No files are deleted.",
+      "description": "Scan file storage, recalculate each studio's usage from files still in use, and list orphan files. Scanning only reads; updating usage or deleting files needs confirmation.",
       "scan": "Scan storage",
       "rescan": "Scan again",
       "apply": "Update usage",
       "idle": "Not scanned yet. Select \"Scan storage\" to see the numbers; this step only reads.",
-      "scanned": "Scanned {{files}} files, {{size}} in total, at {{time}}.",
+      "scanned": "Scanned {files} files, {size} in total, at {time}.",
       "applied": "Usage updated",
-      "unattributed": "{{count}} files ({{size}}) belong to no existing studio.",
+      "unattributed": "{count} files ({size}) belong to no existing studio.",
       "colStudio": "Studio",
       "colRecorded": "Recorded",
       "colComputed": "Recalculated",
@@ -572,12 +572,20 @@
       "colMissing": "Missing files",
       "colDerived": "Thumbnails & exports",
       "allMatch": "Every studio's usage matches storage, and there are no orphan files.",
-      "filesAndSize": "{{count}} files · {{size}}",
-      "samplesTitle": "Orphan files ({{count}})",
+      "filesAndSize": "{count} files · {size}",
+      "samplesTitle": "Orphan files ({count})",
       "samplesTruncated": "Only the first 200 files are shown.",
       "confirmTitle": "Update recalculated usage?",
-      "confirmDescription": "{{count}} studios will get new usage based on files still in use.",
-      "confirmNote": "Orphan files stay in storage and are not deleted. Storage is scanned once more before saving; if a studio uploads during that time, run it again."
+      "confirmDescription": "{count} studios will get new usage based on files still in use.",
+      "confirmNote": "Orphan files stay in storage and are not deleted. Storage is scanned once more before saving; if a studio uploads during that time, run it again.",
+      "delete": "Delete orphan files",
+      "deleted": "Deleted {count} files ({size}).",
+      "deletedSkipped": "Kept {recent} files newer than {days} days, {unattributed} files with no known studio, {referenced} files that were just reused.",
+      "deletedFailed": "{count} files failed to delete; run it again.",
+      "deleteConfirmTitle": "Delete orphan files from storage?",
+      "deleteConfirmDescription": "The report shows {count} orphan files that belong to studios. Deleted files cannot be recovered.",
+      "deleteConfirmNote": "Only files older than 7 days that belong to active studios are deleted. Files with no known studio, thumbnails, exports and all history records are kept. After deleting, select \"Update usage\" if recorded usage still differs.",
+      "deleteConfirm": "Delete permanently"
     }
   }
 }

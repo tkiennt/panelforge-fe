@@ -90,6 +90,18 @@ export interface StorageOrphanFileDto {
   key: string;
   sizeBytes: number;
   workspaceId: string | null;
+  lastModifiedUtc: string;
+}
+
+/** Kết quả xoá file mồ côi: chỉ file cũ hơn minAgeDays của Studio đang hoạt động bị xoá. */
+export interface DeleteOrphanFilesResultDto {
+  deletedFiles: number;
+  deletedBytes: number;
+  skippedRecentFiles: number;
+  skippedUnattributedFiles: number;
+  skippedReferencedFiles: number;
+  failedFiles: number;
+  minAgeDays: number;
 }
 
 export interface StorageReconcileReportDto {
@@ -165,5 +177,10 @@ export const quotaService = {
     call<StorageReconcileReportDto>(
       () => axiosClient.post('/Admin/storage/reconcile', null, { params: { apply } }),
       'errors.services.quota.reconcileFailed',
+    ),
+  deleteOrphanFiles: () =>
+    call<DeleteOrphanFilesResultDto>(
+      () => axiosClient.post('/Admin/storage/orphans/delete'),
+      'errors.services.quota.deleteOrphansFailed',
     ),
 };
