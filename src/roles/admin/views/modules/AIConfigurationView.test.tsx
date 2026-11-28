@@ -834,4 +834,84 @@ describe('AIConfigurationView', () => {
     ).toBeInTheDocument();
     expect(adminService.getAiProviderModels).not.toHaveBeenCalled();
   });
+
+  it('hiển thị biểu đồ tỷ lệ dùng quota AI theo top 10 Studio trong tab Báo cáo sử dụng', async () => {
+    vi.mocked(adminService.getAiUsage).mockResolvedValue([
+      {
+        workspaceId: 'ws-1',
+        workspaceName: 'Studio Moonlight',
+        monthlyTokenQuota: 1000,
+        usedTokensCurrentMonth: 750,
+        usagePercent: 75,
+        isEnabled: true,
+        periodFrom: '',
+        periodTo: '',
+        callCount: 10,
+        succeededCount: 10,
+        failedCount: 0,
+        blockedCount: 0,
+        totalTokens: 750,
+        totalCostUsd: 0.05,
+        byFeature: [],
+      },
+    ]);
+    vi.mocked(adminService.getAiUsageRecords).mockResolvedValue({
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 25,
+    });
+
+    render(<AIConfigurationView />);
+
+    fireEvent.click(screen.getByRole('tab', { name: /Báo cáo sử dụng|Usage reports/i }));
+
+    expect(
+      await screen.findByText(/Tỷ lệ sử dụng quota AI theo Studio|AI quota usage by Studio/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /10 Studio dùng nhiều nhất trong kỳ|Top 10 studios with highest usage in period/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('ẩn biểu đồ khi không có số liệu tỷ lệ sử dụng quota AI (> 0)', async () => {
+    vi.mocked(adminService.getAiUsage).mockResolvedValue([
+      {
+        workspaceId: 'ws-1',
+        workspaceName: 'Studio Moonlight',
+        monthlyTokenQuota: 1000,
+        usedTokensCurrentMonth: 0,
+        usagePercent: 0,
+        isEnabled: true,
+        periodFrom: '',
+        periodTo: '',
+        callCount: 0,
+        succeededCount: 0,
+        failedCount: 0,
+        blockedCount: 0,
+        totalTokens: 0,
+        totalCostUsd: 0,
+        byFeature: [],
+      },
+    ]);
+    vi.mocked(adminService.getAiUsageRecords).mockResolvedValue({
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 25,
+    });
+
+    render(<AIConfigurationView />);
+
+    fireEvent.click(screen.getByRole('tab', { name: /Báo cáo sử dụng|Usage reports/i }));
+
+    await waitFor(() => {
+      expect(adminService.getAiUsage).toHaveBeenCalled();
+    });
+    expect(
+      screen.queryByText(/Tỷ lệ sử dụng quota AI theo Studio|AI quota usage by Studio/i),
+    ).not.toBeInTheDocument();
+  });
 });

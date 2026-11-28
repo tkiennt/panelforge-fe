@@ -5,6 +5,14 @@ import { useTranslation } from '@/lib/i18n';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { monetizationService, type PublisherRevenueDto } from '@/services/payment.service';
 import { publisherService } from '@/services/publisher.service';
+import { Card, CardBody, CardHeader } from '@/shared/ui';
+import { StatBarChart } from '@/shared/ui/charts/StatBarChart';
+import { hasAnyValue, rankWithOther } from '@/shared/ui/charts/chartData';
+import type { ReaderTimeseriesDto } from '@/services/workspace.service';
+import { TimeseriesPresetTabs, TrendCard } from '@/shared/ui/charts/TrendCard';
+import { rangeForPreset, type TimeseriesPreset } from '@/shared/ui/charts/timeseriesRange';
+
+const TOP_SERIES = 8;
 
 interface WorkspaceOption {
   id: string;
@@ -54,7 +62,40 @@ export const PublisherRevenueView: React.FC = () => {
     };
   }, [workspaceId, search, t]);
 
+  const [preset, setPreset] = useState<TimeseriesPreset>('30d');
+  const [trend, setTrend] = useState<ReaderTimeseriesDto | null>(null);
+  const [trendError, setTrendError] = useState<string | null>(null);
+  const [trendLoading, setTrendLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    setTrendLoading(true);
+    setTrendError(null);
+    monetizationService
+      .getRevenueTimeseries({ ...rangeForPreset(preset), workspaceId: workspaceId || undefined })
+      .then((res) => mounted && setTrend(res))
+      .catch(
+        (err) => mounted && setTrendError(getApiErrorMessage(err) || t('charts.trendLoadError')),
+      )
+      .finally(() => mounted && setTrendLoading(false));
+    return () => {
+      mounted = false;
+    };
+  }, [workspaceId, preset, t]);
+
+  const trendPoints = trend?.points ?? [];
+  const trendGranularity = trend?.granularity ?? rangeForPreset(preset).granularity;
+
   const s = data?.summary;
+  const revenueBySeries = rankWithOther(
+    (data?.series ?? []).map((r) => ({
+      key: r.seriesId,
+      label: r.seriesTitle,
+      value: r.totalRevenueVnd,
+    })),
+    TOP_SERIES,
+    t('charts.other'),
+  );
 
   return (
     <div className='p-6 max-w-7xl mx-auto space-y-6'>
@@ -149,6 +190,52 @@ export const PublisherRevenueView: React.FC = () => {
           <AlertTriangle className='w-4 h-4' />
           {error}
         </div>
+      )}
+
+      <div className='space-y-3'>
+        <TimeseriesPresetTabs value={preset} onChange={setPreset} />
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+          <TrendCard
+            title={t('charts.viewsOverTime')}
+            points={trendPoints.map((p) => ({ periodStart: p.periodStart, value: p.views }))}
+            granularity={trendGranularity}
+            valueLabel={t('revenue.views')}
+            formatValue={fmt}
+            loading={trendLoading}
+            error={trendError}
+          />
+          <TrendCard
+            title={t('charts.revenueOverTime')}
+            points={trendPoints.map((p) => ({ periodStart: p.periodStart, value: p.revenueVnd }))}
+            granularity={trendGranularity}
+            valueLabel={t('revenue.chapterRevenue')}
+            formatValue={fmt}
+            loading={trendLoading}
+            error={trendError}
+          />
+        </div>
+      </div>
+
+      {!loading && hasAnyValue(revenueBySeries) && (
+        <Card>
+          <CardHeader
+            title={t('charts.revenueBySeries')}
+            subtitle={
+              (data?.series.length ?? 0) > TOP_SERIES
+                ? t('charts.topNote', { count: TOP_SERIES })
+                : undefined
+            }
+          />
+          <CardBody>
+            <StatBarChart
+              data={revenueBySeries}
+              variant='ranked'
+              valueLabel={t('revenue.total')}
+              formatValue={fmt}
+              ariaLabel={t('charts.ariaLabel', { title: t('charts.revenueBySeries') })}
+            />
+          </CardBody>
+        </Card>
       )}
 
       {loading ? (

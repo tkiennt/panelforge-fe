@@ -1,6 +1,11 @@
 {
   "title": "Artwork Review",
   "subtitle": "Compare artwork diffs, verify AI consistency, and handle submissions",
+  "charts": {
+    "queueByStage": "Review queue by stage",
+    "submissions": "Submissions",
+    "ariaLabel": "Bar chart: {title}"
+  },
   "submission": {
     "title": "Submission",
     "status": {

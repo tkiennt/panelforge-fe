@@ -525,7 +525,11 @@
       "noResults": "No calls match the filters.",
       "empty": "No AI calls yet.",
       "tokensBreakdown": "{prompt} in · {completion} out",
-      "unit": "calls"
+      "unit": "calls",
+      "quotaChartTitle": "AI quota usage by Studio",
+      "quotaChartSubtitle": "Top 10 studios with highest usage in period",
+      "quotaChartValueLabel": "Usage rate",
+      "quotaChartAriaLabel": "Chart of AI quota usage by top 10 studios"
     }
   }
 }

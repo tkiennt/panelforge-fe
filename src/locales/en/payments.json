@@ -237,5 +237,30 @@
     "publish": "Publish {lang} edition",
     "publishBlocked": "Set pricing before publishing.",
     "publishWithChapterHint": "The original edition is released with the chapter: use \"Publish chapter\" on the Publisher desk so it appears in the Catalog."
+  },
+  "charts": {
+    "viewsBySeries": "Reads by series",
+    "viewsByChapter": "Reads by chapter",
+    "viewsByChapterOf": "Reads by chapter · {title}",
+    "revenueBySeries": "Revenue by series",
+    "revenueByChapter": "Revenue by chapter",
+    "rpmByChapter": "Revenue per 1,000 reads (RPM)",
+    "viewsByLanguage": "Reads by language edition",
+    "other": "Other",
+    "topNote": "Top {count} series; the rest are grouped into \"Other\". Full numbers are in the table below.",
+    "ariaLabel": "Bar chart: {title}",
+    "chapterTick": "Ch.{number}",
+    "viewsOverTime": "Reads over time",
+    "revenueOverTime": "Revenue over time",
+    "period": "Time range",
+    "preset": {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "12m": "12 months"
+    },
+    "trendEmpty": "No data in this time range yet.",
+    "trendLoadError": "Could not load the trend data.",
+    "lineAriaLabel": "Line chart: {title}"
   }
 }

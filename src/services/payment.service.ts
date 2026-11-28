@@ -2,6 +2,7 @@
 // Hợp đồng API khớp với WorkspacePaymentsController + PaymentDtos.cs (backend .NET 9).
 import axiosClient from '../api/axiosClient';
 import type { PagedResult } from './chapter.service';
+import type { ReaderTimeseriesDto, ReaderTimeseriesParams } from './workspace.service';
 
 /** WorkspacePaymentsSummaryDto */
 export interface WorkspacePaymentSummaryDto {
@@ -396,6 +397,16 @@ export const monetizationService = {
     search?: string;
   }): Promise<PublisherRevenueDto> {
     const res = await axiosClient.get<PublisherRevenueDto>('/publisher/revenue', { params });
+    return res.data;
+  },
+
+  /** GET /api/publisher/revenue/timeseries (Publisher/Admin, BR-32) — lượt đọc và doanh thu theo kỳ. */
+  async getRevenueTimeseries(
+    params: ReaderTimeseriesParams & { workspaceId?: string },
+  ): Promise<ReaderTimeseriesDto> {
+    const res = await axiosClient.get<ReaderTimeseriesDto>('/publisher/revenue/timeseries', {
+      params,
+    });
     return res.data;
   },
 

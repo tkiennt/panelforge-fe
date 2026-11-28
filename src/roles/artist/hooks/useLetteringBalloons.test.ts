@@ -11,6 +11,9 @@ vi.mock('@/services/element.service', async (orig) => {
     elementService: {
       getPageSnapshot: vi.fn(),
       addElement: vi.fn().mockResolvedValue({}),
+      updateElementText: vi.fn(),
+      moveElement: vi.fn(),
+      updateElementStyle: vi.fn(),
     },
   };
 });
@@ -120,5 +123,56 @@ describe('useLetteringBalloons – đặt bóng từ script (BR-05)', () => {
 
     const [a, b] = vi.mocked(elementService.addElement).mock.calls.map((c) => c[1]);
     expect({ x: a.x, y: a.y }).not.toEqual({ x: b.x, y: b.y });
+  });
+});
+
+describe('useLetteringBalloons – nới bóng theo chữ', () => {
+  const small: ElementSnapshotDto = {
+    elementId: 'el-small',
+    elementType: 'SPEECH_BALLOON',
+    x: 500,
+    y: 800,
+    width: 160,
+    height: 90,
+    zIndex: 1,
+    content: 'Hi',
+    version: 3,
+    isRemoved: false,
+  };
+
+  beforeEach(() => {
+    vi.mocked(elementService.getPageSnapshot).mockResolvedValue({ elements: [small] } as never);
+    vi.mocked(elementService.updateElementText).mockResolvedValue({ elementVersion: 4 } as never);
+    vi.mocked(elementService.moveElement)
+      .mockReset()
+      .mockResolvedValue({ elementVersion: 5 } as never);
+  });
+
+  it('sửa chữ dài hơn bóng: nới bóng quanh tâm, gửi version mới nhất', async () => {
+    const { result } = renderHook(() => useLetteringBalloons(page('p1', 1), [], 1, toast));
+    await waitFor(() => expect(result.current.pageElements).toHaveLength(1));
+
+    const long =
+      'Tôi đã nói với cậu rồi, chúng ta không thể quay lại nơi đó thêm một lần nào nữa đâu!';
+    await act(async () => {
+      await result.current.updateElementText('el-small', long);
+    });
+
+    const req = vi.mocked(elementService.moveElement).mock.calls[0][2];
+    expect(req.expectedElementVersion).toBe(4);
+    expect(req.newWidth).toBeGreaterThan(160);
+    expect(req.newX! + req.newWidth! / 2).toBeCloseTo(580, -1);
+    expect(result.current.pageElements[0].version).toBe(5);
+  });
+
+  it('chữ vẫn vừa: không đổi kích thước bóng', async () => {
+    const { result } = renderHook(() => useLetteringBalloons(page('p1', 1), [], 1, toast));
+    await waitFor(() => expect(result.current.pageElements).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.updateElementText('el-small', 'Ừ.');
+    });
+
+    expect(elementService.moveElement).not.toHaveBeenCalled();
   });
 });

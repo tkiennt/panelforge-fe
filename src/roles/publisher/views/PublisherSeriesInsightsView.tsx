@@ -12,6 +12,26 @@ import {
 import { LanguageFilter, StatCards } from '../components/MonetizationWidgets';
 import { useMoney } from '../components/useMoney';
 import { formatContentLanguageName } from '@/shared/lib/multilingual';
+import { Card, CardBody, CardHeader } from '@/shared/ui';
+import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
+import { hasAnyValue } from '@/shared/ui/charts/chartData';
+import { calculateRpm } from '../lib/rpm';
+
+const ChartCard: React.FC<{
+  title: string;
+  data: StatBarDatum[];
+  valueLabel: string;
+  formatValue: (n: number) => string;
+  variant?: 'ranked' | 'sequence';
+  ariaLabel: string;
+}> = ({ title, ...chart }) => (
+  <Card>
+    <CardHeader title={title} />
+    <CardBody>
+      <StatBarChart {...chart} />
+    </CardBody>
+  </Card>
+);
 
 /**
  * Publisher → General → chọn bộ truyện: dashboard tổng (lượt xem, lượt mua, đánh giá, doanh thu) lọc theo ngôn ngữ,
@@ -110,6 +130,79 @@ export const PublisherSeriesInsightsView: React.FC = () => {
         data && (
           <>
             <StatCards stats={data.totals} />
+
+            {(() => {
+              const chapters = [...data.chapters].sort((a, b) => a.chapterNumber - b.chapterNumber);
+              const tick = (n: number) => t('charts.chapterTick', { number: n });
+              const views = chapters.map((c) => ({
+                key: c.chapterId,
+                label: tick(c.chapterNumber),
+                value: c.stats.views,
+              }));
+              const revenue = chapters.map((c) => ({
+                key: c.chapterId,
+                label: tick(c.chapterNumber),
+                value: c.stats.revenueVnd,
+              }));
+              const rpm = chapters.map((c) => ({
+                key: c.chapterId,
+                label: tick(c.chapterNumber),
+                value: calculateRpm(c.stats.revenueVnd, c.stats.views),
+              }));
+              const byLanguage = data.byLanguage.map((l) => ({
+                key: l.language,
+                label: formatContentLanguageName(l.language, uiLang),
+                value: l.stats.views,
+              }));
+              const aria = (title: string) => t('charts.ariaLabel', { title });
+              const showViews = hasAnyValue(views);
+              const showRevenue = hasAnyValue(revenue);
+              const showRpm = hasAnyValue(rpm);
+              const showLanguages = !language && byLanguage.length > 1 && hasAnyValue(byLanguage);
+              if (!showViews && !showRevenue && !showRpm && !showLanguages) return null;
+              return (
+                <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+                  {showViews && (
+                    <ChartCard
+                      title={t('charts.viewsByChapter')}
+                      data={views}
+                      valueLabel={t('insights.views')}
+                      formatValue={num}
+                      ariaLabel={aria(t('charts.viewsByChapter'))}
+                    />
+                  )}
+                  {showRevenue && (
+                    <ChartCard
+                      title={t('charts.revenueByChapter')}
+                      data={revenue}
+                      valueLabel={t('insights.revenue')}
+                      formatValue={num}
+                      ariaLabel={aria(t('charts.revenueByChapter'))}
+                    />
+                  )}
+                  {showRpm && (
+                    <ChartCard
+                      title={t('charts.rpmByChapter')}
+                      data={rpm}
+                      variant='sequence'
+                      valueLabel={t('charts.rpmByChapter')}
+                      formatValue={num}
+                      ariaLabel={aria(t('charts.rpmByChapter'))}
+                    />
+                  )}
+                  {showLanguages && (
+                    <ChartCard
+                      title={t('charts.viewsByLanguage')}
+                      data={byLanguage}
+                      variant='ranked'
+                      valueLabel={t('insights.views')}
+                      formatValue={num}
+                      ariaLabel={aria(t('charts.viewsByLanguage'))}
+                    />
+                  )}
+                </div>
+              );
+            })()}
 
             {!language && (
               <section>

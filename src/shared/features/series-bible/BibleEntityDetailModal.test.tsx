@@ -288,6 +288,21 @@ describe('BibleEntityDetailModal UX/UI', () => {
     // Must not duplicate with fallback 'Giai đoạn khởi đầu'
     expect(screen.queryByText('Giai đoạn khởi đầu')).not.toBeInTheDocument();
   });
+
+  it('keeps all character eras available in one Artist workbench', () => {
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        isProducer={false}
+        isArtist
+        rawEntry={mockRawEntry}
+      />,
+    );
+
+    expect(screen.getByTestId('variant-selector')).toBeInTheDocument();
+    expect(screen.getByText('Các era / biến thể của nhân vật')).toBeInTheDocument();
+  });
+
   it('disables rework button when revision is CanonLocked', () => {
     const rawWithLocked: BibleEntryDto = {
       ...mockRawEntry,
@@ -516,7 +531,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     // Column 1: variant selector
     expect(screen.getByTestId('variant-selector')).toBeInTheDocument();
-    expect(screen.getByText('Biến thể thiết kế')).toBeInTheDocument();
+    expect(screen.getByText('Các era / biến thể của nhân vật')).toBeInTheDocument();
 
     // Column 2: Hero Artwork Canvas
     expect(screen.getByTestId('auth-image')).toBeInTheDocument();
@@ -617,6 +632,25 @@ describe('BibleEntityDetailModal UX/UI', () => {
       expect(screen.queryByText('Turnaround trước / nghiêng / sau')).not.toBeInTheDocument();
       expect(screen.getByTestId('bible-workbench-primary')).toHaveClass('order-1');
       expect(screen.getByTestId('bible-workbench-sidebar')).toHaveClass('order-2');
+    });
+
+    it('keeps controls compact and exposes the desktop viewport workspace', () => {
+      render(<BibleEntityDetailModal {...defaultProps} />);
+
+      expect(screen.getByTestId('bible-control-deck')).toHaveClass('rounded-t-xl');
+      expect(screen.getByTestId('variant-selector')).toHaveClass('-mt-3', 'rounded-b-xl');
+      expect(screen.getByTestId('detail-status-workflow-banner')).toHaveClass('px-3', 'py-2');
+      expect(screen.getByTestId('bible-workbench-primary')).toHaveClass(
+        'xl:grid-rows-[auto_minmax(0,1fr)]',
+      );
+      expect(screen.getByTestId('bible-workbench-sidebar')).toHaveClass(
+        'xl:grid-rows-[minmax(0,0.65fr)_minmax(0,1.35fr)]',
+      );
+
+      const comments = screen.getByTestId('concept-comments-section');
+      expect(comments).toHaveClass('xl:absolute', 'xl:w-64');
+      fireEvent.click(screen.getByRole('button', { name: /Nhận xét/i }));
+      expect(comments).toHaveFocus();
     });
 
     it('shows a compact handoff for Artist on a Draft visual entry', () => {

@@ -47,6 +47,8 @@ import {
   CountChip,
   Skeleton,
 } from '@/shared/ui';
+import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
+import { hasAnyValue } from '@/shared/ui/charts/chartData';
 
 export interface EditorDeskViewProps {
   currentUserId?: string | null;
@@ -76,6 +78,50 @@ const inferGateFromStage = (stageName: string): 'gate1' | 'gate2' => {
   }
   return 'gate2';
 };
+
+/**
+ * Đếm số lượng bài nộp theo stageSlug (nhãn stageName), sắp theo stageOrder ascending (AG-3).
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function buildReviewQueueByStage(
+  items: Array<{
+    stageSlug?: string | null;
+    stageName?: string | null;
+    stageOrder?: number | null;
+  }>,
+): StatBarDatum[] {
+  const stageMap = new Map<string, { key: string; label: string; order: number; count: number }>();
+
+  for (const item of items) {
+    const slug = item.stageSlug?.trim();
+    if (!slug) continue;
+    const existing = stageMap.get(slug);
+    if (existing) {
+      existing.count += 1;
+      if (!existing.label && item.stageName?.trim()) {
+        existing.label = item.stageName.trim();
+      }
+      if (existing.order === 0 && typeof item.stageOrder === 'number' && item.stageOrder > 0) {
+        existing.order = item.stageOrder;
+      }
+    } else {
+      stageMap.set(slug, {
+        key: slug,
+        label: item.stageName?.trim() || slug,
+        order: typeof item.stageOrder === 'number' ? item.stageOrder : 0,
+        count: 1,
+      });
+    }
+  }
+
+  return Array.from(stageMap.values())
+    .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
+    .map(({ key, label, count }) => ({
+      key,
+      label,
+      value: count,
+    }));
+}
 
 export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
   currentUserId,
@@ -404,6 +450,8 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     };
   }, [queueItems]);
 
+  const queueByStage = useMemo(() => buildReviewQueueByStage(queueItems), [queueItems]);
+
   // Filtered Items (Client-side search and optional chapter filter)
   const filteredItems = useMemo(() => {
     let result = queueItems;
@@ -585,6 +633,22 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
             </div>
           </div>
         </Card>
+
+        {/* Review Queue by Stage Bar Chart (AG-3) */}
+        {!loading && hasAnyValue(queueByStage) && (
+          <Card>
+            <CardHeader title={t('charts.queueByStage')} />
+            <CardBody>
+              <StatBarChart
+                data={queueByStage}
+                variant='sequence'
+                valueLabel={t('charts.submissions')}
+                formatValue={(n) => n.toString()}
+                ariaLabel={t('charts.ariaLabel', { title: t('charts.queueByStage') })}
+              />
+            </CardBody>
+          </Card>
+        )}
 
         {/* Zero-Scrollbar Underline Gate Tabs + Inline Controls (matches SeriesFilterBar) */}
         <div className='flex flex-wrap items-end justify-between gap-x-4 gap-y-2.5 border-b border-stone-200/80'>

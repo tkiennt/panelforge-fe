@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -34,7 +34,7 @@ interface ArtistBibleOverviewProps {
     drafts: number;
     total: number;
   };
-  onOpenEntity: (entity: BibleEntity) => void;
+  onOpenEntity: (entity: BibleEntity, revisionId?: string) => void;
 }
 
 const categoryIcon = (category: BibleEntity['category']) => {
@@ -60,6 +60,23 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
     t(`bible.view.${copyKey}.${key}`, values);
   // UIQ-11m: hồ sơ thiết kế liệt kê mọi thực thể, kể cả mục đang phối hợp với Artist (trước đây bị loại ra).
   const referenceEntities = filteredEntities;
+  const groupedQueue = useMemo(() => {
+    const groups = new Map<string, BibleDesignQueueItemDto[]>();
+    designQueue.forEach((item) => {
+      const current = groups.get(item.entryId) ?? [];
+      current.push(item);
+      groups.set(item.entryId, current);
+    });
+
+    return Array.from(groups.entries()).map(([entryId, items]) => ({
+      entryId,
+      items: [...items].sort((a, b) => {
+        const aUrgent = a.isPriorityRework || a.reviewStatus === 'ReworkRequired' ? 1 : 0;
+        const bUrgent = b.isPriorityRework || b.reviewStatus === 'ReworkRequired' ? 1 : 0;
+        return bUrgent - aUrgent;
+      }),
+    }));
+  }, [designQueue]);
 
   const statusLabel = (status?: BibleReviewStatus | null) => {
     if (status === 'CanonLocked') return t('bible.view.cardCanonLocked');
@@ -74,7 +91,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
         <section className='grid grid-cols-1 gap-3 sm:grid-cols-3' aria-label={copy('summaryAria')}>
           <div className='rounded-lg border border-stone-200 bg-white px-4 py-3'>
             <div className='text-xl font-bold tabular-nums text-stone-900'>
-              {designQueue.length}
+              {groupedQueue.length}
             </div>
             <div className='mt-1 text-xs font-medium text-stone-600'>{copy('todoMetric')}</div>
           </div>
@@ -119,20 +136,22 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
         </div>
 
         <div className='space-y-2 p-3'>
-          {designQueue.length === 0 ? (
+          {groupedQueue.length === 0 ? (
             <div className='flex flex-col items-center justify-center rounded-xl border border-dashed border-stone-300 bg-stone-50 px-6 py-10 text-center'>
               <CheckCircle2 className='h-8 w-8 text-emerald-600' />
               <h3 className='mt-3 text-base font-bold text-stone-900'>{copy('queueEmptyTitle')}</h3>
               <p className='mt-1 max-w-md text-sm text-stone-500'>{copy('queueEmptyBody')}</p>
             </div>
           ) : (
-            designQueue.map((item) => {
-              const entity = entities.find((candidate) => candidate.id === item.entryId);
-              const needsRework = item.isPriorityRework || item.reviewStatus === 'ReworkRequired';
-              const queueKey = item.revisionId || item.entryId;
+            groupedQueue.map(({ entryId, items }) => {
+              const primaryItem = items[0];
+              const entity = entities.find((candidate) => candidate.id === entryId);
+              const needsRework = items.some(
+                (item) => item.isPriorityRework || item.reviewStatus === 'ReworkRequired',
+              );
               return (
                 <article
-                  key={queueKey}
+                  key={entryId}
                   className={`rounded-lg border px-3 py-2.5 ${needsRework ? 'border-rose-200 bg-rose-50/40' : 'border-stone-200 bg-white'}`}
                 >
                   <div className='flex flex-col gap-3 lg:flex-row lg:items-center'>
@@ -140,7 +159,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                       {entity?.imageUrl ? (
                         <AuthenticatedImage
                           src={entity.imageUrl}
-                          alt={item.name}
+                          alt={primaryItem.name}
                           className='h-full w-full object-cover'
                         />
                       ) : (
@@ -149,7 +168,7 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                     </div>
                     <div className='min-w-0 flex-1'>
                       <div className='flex flex-wrap items-center gap-2'>
-                        <h3 className='text-base font-bold text-stone-900'>{item.name}</h3>
+                        <h3 className='text-base font-bold text-stone-900'>{primaryItem.name}</h3>
                         {entity && (
                           <span className='rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-600'>
                             {t(`bible.categories.${entity.category}`, String(entity.category))}
@@ -158,30 +177,41 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                         {needsRework && (
                           <span
                             className='inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700'
-                            data-testid={`queue-priority-rework-${queueKey}`}
+                            data-testid={`queue-priority-rework-${primaryItem.revisionId || entryId}`}
                           >
                             <AlertTriangle className='h-3.5 w-3.5' />
                             {t('bible.view.queuePriorityRework')}
                           </span>
                         )}
                       </div>
-                      <div className='mt-1 flex flex-wrap items-center gap-2 text-xs text-stone-600'>
-                        <span>
-                          {copy('variantLabel', {
-                            variant: item.variantLabel || copy('defaultVariant'),
-                          })}
-                        </span>
-                        {item.waitingChapterNumbers?.length ? (
+                      <div
+                        className='mt-2 flex flex-wrap items-center gap-1.5 text-xs text-stone-600'
+                        aria-label={t('bible.detailModal.characterErasTitle')}
+                      >
+                        {items.map((item) => (
+                          <span
+                            key={item.revisionId}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold ${
+                              item.isPriorityRework || item.reviewStatus === 'ReworkRequired'
+                                ? 'border-rose-200 bg-rose-50 text-rose-700'
+                                : 'border-stone-200 bg-stone-50 text-stone-700'
+                            }`}
+                          >
+                            {item.variantLabel || item.stageName || copy('defaultVariant')}
+                            {item.versionNumber ? ` · v${item.versionNumber}` : ''}
+                          </span>
+                        ))}
+                        {primaryItem.waitingChapterNumbers?.length ? (
                           <span className='rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-semibold text-amber-800'>
                             {t('bible.view.queueWaitingChapters', {
-                              chapters: item.waitingChapterNumbers.join(', '),
+                              chapters: primaryItem.waitingChapterNumbers.join(', '),
                             })}
                           </span>
                         ) : null}
                       </div>
-                      {item.reworkFeedback && (
+                      {primaryItem.reworkFeedback && (
                         <p className='mt-2 line-clamp-2 text-sm leading-relaxed text-rose-800'>
-                          {copy('feedbackPrefix')} “{item.reworkFeedback}”
+                          {copy('feedbackPrefix')} “{primaryItem.reworkFeedback}”
                         </p>
                       )}
                     </div>
@@ -189,9 +219,9 @@ export const ArtistBibleOverview: React.FC<ArtistBibleOverviewProps> = ({
                       {entity && (
                         <button
                           type='button'
-                          onClick={() => onOpenEntity(entity)}
+                          onClick={() => onOpenEntity(entity, primaryItem.revisionId)}
                           className='inline-flex items-center justify-center gap-1.5 rounded-full bg-orange-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-orange-700'
-                          data-testid={`open-concept-${item.entryId}`}
+                          data-testid={`open-concept-${entryId}`}
                         >
                           <BookOpen className='h-4 w-4' />
                           {copy('openBrief')}

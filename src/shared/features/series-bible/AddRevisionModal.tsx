@@ -162,6 +162,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         setAgeValue(
           parseBibleDetails(
             supersedeTarget?.snapshotJson || (revisionTarget as any)?.detailsJson || '{}',
+            revisionTarget?.attributes,
           ).age ||
             revisionTarget?.age ||
             '',
@@ -193,7 +194,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
             supersedeTarget?.snapshotJson ||
             (revisionTarget as any).detailsJson ||
             JSON.stringify(revisionTarget.attributes || {});
-          const parsed = parseBibleDetails(rawDetails);
+          const parsed = parseBibleDetails(rawDetails, revisionTarget.attributes);
           const combinedAttrs: Record<string, any> = {
             ...initialAttrs,
             artistNotes:
@@ -261,6 +262,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         : t('bible.addRevisionModal.descVariant', {
             variant: variantLabel || t('bible.addRevisionModal.unlabeledVariant'),
           });
+    const isWideVariantForm = variantMode === 'new' && !isArtistConceptSubmit;
 
     const handleSubmit = () => {
       const updatedAttrs = mergeSpecAttributes(
@@ -273,7 +275,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         supersedeTarget?.snapshotJson ||
         (revisionTarget as any).detailsJson ||
         JSON.stringify(revisionTarget.attributes || {});
-      const parsedDetails = parseBibleDetails(rawDetails);
+      const parsedDetails = parseBibleDetails(rawDetails, revisionTarget.attributes);
       const effectiveNotes =
         specValues.artistNotes?.trim() ||
         parsedDetails.artistNotes ||
@@ -329,7 +331,7 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         isOpen={isOpen}
         title={modalTitle}
         description={modalDescription}
-        size={isArtistConceptSubmit ? 'lg' : 'md'}
+        size={isWideVariantForm ? 'xl' : isArtistConceptSubmit ? 'lg' : 'md'}
         closeLabel={t('common.actions.close')}
         onClose={onClose}
         data-child-modal='true'
@@ -567,294 +569,329 @@ export const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
             </div>
           )}
 
-          {/* ================= DESIGN VARIANT ================= */}
           <div
-            className='bg-[#FAF8F5] border border-[#E7E5E4] rounded-2xl p-4 space-y-3'
-            data-testid='variant-config-block'
+            className={
+              isWideVariantForm ? 'grid gap-4 lg:grid-cols-12 lg:items-start' : 'space-y-4'
+            }
+            data-testid='revision-form-layout'
           >
-            <div className='flex items-center justify-between gap-2 flex-wrap'>
-              <div className='flex items-center gap-2'>
-                <Layers className='w-4 h-4 text-[#EA580C]' />
-                <span className='text-xs font-bold text-stone-900'>
-                  {t('bible.addRevisionModal.designVariantTitle')}
-                </span>
+            {/* ================= DESIGN VARIANT ================= */}
+            <div
+              className={`bg-[#FAF8F5] border border-[#E7E5E4] rounded-2xl p-4 space-y-3 ${
+                isWideVariantForm ? 'lg:col-span-5 lg:row-start-1' : ''
+              }`}
+              data-testid='variant-config-block'
+            >
+              <div className='flex items-center justify-between gap-2 flex-wrap'>
+                <div className='flex items-center gap-2'>
+                  <Layers className='w-4 h-4 text-[#EA580C]' />
+                  <span className='text-xs font-bold text-stone-900'>
+                    {t('bible.addRevisionModal.designVariantTitle')}
+                  </span>
+                </div>
+                {!supersedeTarget && !isNewVariantInitial && existingVariants.length > 0 && (
+                  <div className='inline-flex rounded-xl bg-stone-200/70 p-0.5 text-xs font-medium'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setVariantMode('existing');
+                        const variant =
+                          existingVariants.find(
+                            (item) => item.variantKey === selectedExistingVariantKey,
+                          ) || existingVariants[0];
+                        setSelectedExistingVariantKey(variant.variantKey);
+                        setVariantLabel(variant.variantLabel);
+                      }}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        variantMode === 'existing'
+                          ? 'bg-white text-stone-900 shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                      data-testid='switch-to-existing-variant'
+                    >
+                      {t('bible.addRevisionModal.existingVariantTab')}
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setVariantMode('new');
+                        setVariantLabel('');
+                      }}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        variantMode === 'new'
+                          ? 'bg-[#EA580C] text-white shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                      data-testid='switch-to-new-variant'
+                    >
+                      {t('bible.addRevisionModal.newVariantTab')}
+                    </button>
+                  </div>
+                )}
               </div>
-              {!supersedeTarget && !isNewVariantInitial && existingVariants.length > 0 && (
-                <div className='inline-flex rounded-xl bg-stone-200/70 p-0.5 text-xs font-medium'>
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setVariantMode('existing');
-                      const variant =
-                        existingVariants.find(
-                          (item) => item.variantKey === selectedExistingVariantKey,
-                        ) || existingVariants[0];
-                      setSelectedExistingVariantKey(variant.variantKey);
-                      setVariantLabel(variant.variantLabel);
-                    }}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      variantMode === 'existing'
-                        ? 'bg-white text-stone-900 shadow-2xs'
-                        : 'text-stone-600 hover:text-stone-900'
-                    }`}
-                    data-testid='switch-to-existing-variant'
+
+              {variantMode === 'existing' && existingVariants.length > 0 && !supersedeTarget ? (
+                <div className='space-y-2 pt-1'>
+                  <label
+                    htmlFor='existing-variant-select'
+                    className='block text-xs font-semibold text-stone-700'
                   >
-                    {t('bible.addRevisionModal.existingVariantTab')}
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setVariantMode('new');
-                      setVariantLabel('');
+                    {t('bible.addRevisionModal.selectVariantLabel')}
+                  </label>
+                  <select
+                    id='existing-variant-select'
+                    value={selectedExistingVariantKey}
+                    onChange={(e) => {
+                      setSelectedExistingVariantKey(e.target.value);
+                      const variant = existingVariants.find(
+                        (item) => item.variantKey === e.target.value,
+                      );
+                      if (variant) setVariantLabel(variant.variantLabel);
                     }}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      variantMode === 'new'
-                        ? 'bg-[#EA580C] text-white shadow-2xs'
-                        : 'text-stone-600 hover:text-stone-900'
-                    }`}
-                    data-testid='switch-to-new-variant'
+                    className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-[#F97316] cursor-pointer'
+                    data-testid='existing-variant-select'
                   >
-                    {t('bible.addRevisionModal.newVariantTab')}
-                  </button>
+                    {existingVariants.map((variant) => (
+                      <option key={variant.variantKey} value={variant.variantKey}>
+                        {variant.variantLabel}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className='space-y-1 pt-1'>
+                  <label
+                    htmlFor='revision-variant-label'
+                    className='text-xs font-semibold text-stone-800'
+                  >
+                    {t('bible.addRevisionModal.newVariantLabel')}{' '}
+                    <span className='text-red-500' aria-hidden='true'>
+                      *
+                    </span>
+                  </label>
+                  <input
+                    id='revision-variant-label'
+                    type='text'
+                    maxLength={100}
+                    placeholder={t('bible.addRevisionModal.newVariantPlaceholder')}
+                    value={variantLabel}
+                    onChange={(e) => setVariantLabel(e.target.value)}
+                    className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
+                    data-testid='revision-variant-label-input'
+                    required
+                    aria-required='true'
+                  />
+                  <p className='text-xs text-stone-500'>
+                    {t('bible.addRevisionModal.newVariantHelp')}
+                  </p>
                 </div>
               )}
             </div>
 
-            {variantMode === 'existing' && existingVariants.length > 0 && !supersedeTarget ? (
-              <div className='space-y-2 pt-1'>
-                <label
-                  htmlFor='existing-variant-select'
-                  className='block text-xs font-semibold text-stone-700'
-                >
-                  {t('bible.addRevisionModal.selectVariantLabel')}
-                </label>
-                <select
-                  id='existing-variant-select'
-                  value={selectedExistingVariantKey}
-                  onChange={(e) => {
-                    setSelectedExistingVariantKey(e.target.value);
-                    const variant = existingVariants.find(
-                      (item) => item.variantKey === e.target.value,
-                    );
-                    if (variant) setVariantLabel(variant.variantLabel);
-                  }}
-                  className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-[#F97316] cursor-pointer'
-                  data-testid='existing-variant-select'
-                >
-                  {existingVariants.map((variant) => (
-                    <option key={variant.variantKey} value={variant.variantKey}>
-                      {variant.variantLabel}
-                    </option>
-                  ))}
-                </select>
+            {/* ================= SUMMARY / REVISION NOTE ================= */}
+            <div className={isWideVariantForm ? 'lg:col-span-5 lg:row-start-2' : ''}>
+              <label
+                htmlFor='revision-summary-input'
+                className='block text-xs font-semibold text-stone-800 mb-1'
+              >
+                {supersedeTarget
+                  ? t('bible.addRevisionModal.summaryLabelSupersede')
+                  : isArtistConceptSubmit
+                    ? t('bible.addRevisionModal.summaryLabelArtist')
+                    : t('bible.addRevisionModal.summaryLabelDefault')}
+              </label>
+              <input
+                id='revision-summary-input'
+                type='text'
+                maxLength={supersedeTarget ? 400 : undefined}
+                placeholder={
+                  isArtistConceptSubmit
+                    ? t('bible.addRevisionModal.summaryPlaceholderArtist')
+                    : t('bible.addRevisionModal.summaryPlaceholderDefault')
+                }
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                data-testid='revision-summary-input'
+                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
+                required
+                aria-required='true'
+              />
+            </div>
+
+            {/* Artist đọc đúng cùng một bản Character Notes & Design Brief của Writer. */}
+            {isArtistConceptSubmit ? (
+              <div className='rounded-2xl border border-stone-200 bg-white p-4'>
+                <div className='mb-2 flex items-center gap-2'>
+                  <FileText className='h-4 w-4 text-stone-500' aria-hidden='true' />
+                  <h3 className='text-xs font-bold text-stone-800'>
+                    {t('bible.spec.fields.artistNotes.label')}
+                  </h3>
+                </div>
+                <p className='whitespace-pre-line text-sm leading-relaxed text-stone-700'>
+                  {specValues.artistNotes || description || t('bible.detailModal.noSpecValue')}
+                </p>
               </div>
             ) : (
-              <div className='space-y-1 pt-1'>
-                <label
-                  htmlFor='revision-variant-label'
-                  className='text-xs font-semibold text-stone-800'
+              <div
+                className={
+                  isWideVariantForm
+                    ? 'space-y-3 lg:col-span-7 lg:row-span-2 lg:row-start-1'
+                    : 'space-y-4'
+                }
+              >
+                <div
+                  className={
+                    isWideVariantForm ? 'grid grid-cols-1 gap-3 sm:grid-cols-2' : 'space-y-4'
+                  }
                 >
-                  {t('bible.addRevisionModal.newVariantLabel')}{' '}
-                  <span className='text-red-500'>*</span>
-                </label>
-                <input
-                  id='revision-variant-label'
-                  type='text'
-                  maxLength={100}
-                  placeholder={t('bible.addRevisionModal.newVariantPlaceholder')}
-                  value={variantLabel}
-                  onChange={(e) => setVariantLabel(e.target.value)}
-                  className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
-                  data-testid='revision-variant-label-input'
-                  required
+                  <div>
+                    <label
+                      htmlFor='revision-name-input'
+                      className='block text-xs font-semibold text-stone-800 mb-1'
+                    >
+                      {t('bible.addRevisionModal.entryNameLabel')}
+                    </label>
+                    {!revisionTarget.isLocked &&
+                    !isArtistConceptSubmit &&
+                    !supersedeTarget &&
+                    variantMode !== 'new' ? (
+                      <input
+                        id='revision-name-input'
+                        type='text'
+                        value={entryName}
+                        onChange={(e) => setEntryName(e.target.value)}
+                        data-testid='revision-name-input'
+                        className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-[#F97316]'
+                      />
+                    ) : (
+                      <div
+                        id='revision-name-input'
+                        className='w-full px-3 py-2 bg-stone-100 border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-700'
+                        data-testid='revision-name-readonly'
+                      >
+                        {revisionTarget.name}
+                      </div>
+                    )}
+                  </div>
+
+                  {specCategory === 'character' && (
+                    <div>
+                      <label
+                        htmlFor='revision-age-input'
+                        className='block text-xs font-semibold text-stone-800 mb-1'
+                      >
+                        {t('bible.spec.fields.age.label')}
+                      </label>
+                      <input
+                        id='revision-age-input'
+                        type='text'
+                        value={ageValue}
+                        onChange={(e) => setAgeValue(e.target.value)}
+                        placeholder={t('bible.spec.fields.age.placeholder')}
+                        data-testid='revision-age-input'
+                        className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-[#F97316]'
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Một editor ghi chú tự do duy nhất; parser vẫn giữ dữ liệu legacy. */}
+                <SpecFieldsEditor
+                  category={specCategory}
+                  values={specValues}
+                  onChange={(key, value) => setSpecValues((prev) => ({ ...prev, [key]: value }))}
                 />
-                <p className='text-xs text-stone-500'>
-                  {t('bible.addRevisionModal.newVariantHelp')}
-                </p>
+
+                {/* Upload reference sheet image for Producer/Writer */}
+                <div>
+                  <div className='flex items-center justify-between mb-1'>
+                    <label className='text-xs font-semibold text-stone-800'>
+                      {t('bible.addRevisionModal.moodboardLabel')}
+                    </label>
+                    <span className='text-xs text-stone-400 font-normal'>
+                      {isArtist
+                        ? t('bible.addRevisionModal.forArtistHint')
+                        : t('bible.addRevisionModal.artistUploadOnlyHint')}
+                    </span>
+                  </div>
+                  <input
+                    type='file'
+                    ref={revFileInputRef}
+                    accept='image/png,image/jpeg,image/webp'
+                    className='hidden'
+                    onChange={async (e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const uploadedUrl = await onUploadImage(e.target.files[0]);
+                        if (uploadedUrl) setReferenceImageUrl(uploadedUrl);
+                      }
+                    }}
+                  />
+                  {referenceImageUrl ? (
+                    <div className='p-2.5 bg-[#FAF8F4] border border-[#E7E7E7] rounded-xl flex items-center justify-between gap-3'>
+                      <div className='flex items-center gap-2.5 min-w-0'>
+                        <div className='w-12 h-12 rounded-lg overflow-hidden border border-stone-200 bg-stone-900 shrink-0 relative'>
+                          <AuthenticatedImage
+                            src={referenceImageUrl}
+                            alt={name || 'Reference Sheet'}
+                            className='w-full h-full object-cover'
+                          />
+                        </div>
+                        <div className='min-w-0'>
+                          <span className='text-xs text-stone-500 block'>
+                            {t(
+                              'bible.addRevisionModal.artworkReadyLabel',
+                              'Tệp hình ảnh đã sẵn sàng',
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      <div className='flex items-center gap-1 shrink-0'>
+                        <button
+                          type='button'
+                          onClick={() => revFileInputRef.current?.click()}
+                          className='px-2 py-1 text-xs font-semibold rounded bg-white border border-[#E7E7E7] hover:bg-stone-50 text-stone-700'
+                        >
+                          {t('bible.addEntityModal.changeImage')}
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => setReferenceImageUrl('')}
+                          className='p-1 text-red-600 hover:bg-red-50 rounded'
+                          title={t('bible.addRevisionModal.removeImageBtn')}
+                        >
+                          <Trash2 className='w-3.5 h-3.5' />
+                        </button>
+                      </div>
+                    </div>
+                  ) : !isArtist ? (
+                    <div className='p-3 rounded-xl border border-dashed border-stone-200 bg-stone-50 text-center text-xs text-stone-500 flex items-center justify-center gap-2'>
+                      <Lock className='w-3.5 h-3.5 text-stone-400' />
+                      <span>{t('bible.addRevisionModal.artistUploadOnlyNotice')}</span>
+                    </div>
+                  ) : (
+                    <button
+                      type='button'
+                      onClick={() => revFileInputRef.current?.click()}
+                      disabled={uploadingRevImage}
+                      className='w-full p-3 rounded-xl border border-dashed border-stone-300 hover:border-[#F97316] bg-[#FAF8F5] text-center text-xs text-stone-600 hover:text-stone-900 flex items-center justify-center gap-2 cursor-pointer transition-colors'
+                    >
+                      {uploadingRevImage ? (
+                        <>
+                          <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
+                          <span>{t('bible.addRevisionModal.uploadingImage')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className='w-3.5 h-3.5 text-[#F97316]' />
+                          <span>{t('bible.addRevisionModal.uploadModelSheetBtn')}</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
-
-          {/* ================= SUMMARY / REVISION NOTE ================= */}
-          <div>
-            <label className='block text-xs font-semibold text-stone-800 mb-1'>
-              {supersedeTarget
-                ? t('bible.addRevisionModal.summaryLabelSupersede')
-                : isArtistConceptSubmit
-                  ? t('bible.addRevisionModal.summaryLabelArtist')
-                  : t('bible.addRevisionModal.summaryLabelDefault')}
-            </label>
-            <input
-              type='text'
-              maxLength={supersedeTarget ? 400 : undefined}
-              placeholder={
-                isArtistConceptSubmit
-                  ? t('bible.addRevisionModal.summaryPlaceholderArtist')
-                  : t('bible.addRevisionModal.summaryPlaceholderDefault')
-              }
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              data-testid='revision-summary-input'
-              className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-stone-900 focus:outline-none focus:border-[#F97316]'
-            />
-          </div>
-
-          {/* Artist đọc đúng cùng một bản Character Notes & Design Brief của Writer. */}
-          {isArtistConceptSubmit ? (
-            <div className='rounded-2xl border border-stone-200 bg-white p-4'>
-              <div className='mb-2 flex items-center gap-2'>
-                <FileText className='h-4 w-4 text-stone-500' aria-hidden='true' />
-                <h3 className='text-xs font-bold text-stone-800'>
-                  {t('bible.spec.fields.artistNotes.label')}
-                </h3>
-              </div>
-              <p className='whitespace-pre-line text-sm leading-relaxed text-stone-700'>
-                {specValues.artistNotes || description || t('bible.detailModal.noSpecValue')}
-              </p>
-            </div>
-          ) : (
-            <>
-              <div>
-                <label className='block text-xs font-semibold text-stone-800 mb-1'>
-                  {t('bible.addRevisionModal.entryNameLabel')}
-                </label>
-                {!revisionTarget.isLocked &&
-                !isArtistConceptSubmit &&
-                !supersedeTarget &&
-                variantMode !== 'new' ? (
-                  <input
-                    type='text'
-                    value={entryName}
-                    onChange={(e) => setEntryName(e.target.value)}
-                    data-testid='revision-name-input'
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-[#F97316]'
-                  />
-                ) : (
-                  <div
-                    className='w-full px-3 py-2 bg-stone-100 border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-700'
-                    data-testid='revision-name-readonly'
-                  >
-                    {revisionTarget.name}
-                  </div>
-                )}
-              </div>
-
-              {specCategory === 'character' && (
-                <div>
-                  <label
-                    htmlFor='revision-age-input'
-                    className='block text-xs font-semibold text-stone-800 mb-1'
-                  >
-                    {t('bible.spec.fields.age.label')}
-                  </label>
-                  <input
-                    id='revision-age-input'
-                    type='text'
-                    value={ageValue}
-                    onChange={(e) => setAgeValue(e.target.value)}
-                    placeholder={t('bible.spec.fields.age.placeholder')}
-                    data-testid='revision-age-input'
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-[#F97316]'
-                  />
-                </div>
-              )}
-
-              {/* Một editor ghi chú tự do duy nhất; parser vẫn giữ dữ liệu legacy. */}
-              <SpecFieldsEditor
-                category={specCategory}
-                values={specValues}
-                onChange={(key, value) => setSpecValues((prev) => ({ ...prev, [key]: value }))}
-              />
-
-              {/* Upload reference sheet image for Producer/Writer */}
-              <div>
-                <div className='flex items-center justify-between mb-1'>
-                  <label className='text-xs font-semibold text-stone-800'>
-                    {t('bible.addRevisionModal.moodboardLabel')}
-                  </label>
-                  <span className='text-xs text-stone-400 font-normal'>
-                    {isArtist
-                      ? t('bible.addRevisionModal.forArtistHint')
-                      : t('bible.addRevisionModal.artistUploadOnlyHint')}
-                  </span>
-                </div>
-                <input
-                  type='file'
-                  ref={revFileInputRef}
-                  accept='image/png,image/jpeg,image/webp'
-                  className='hidden'
-                  onChange={async (e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      const uploadedUrl = await onUploadImage(e.target.files[0]);
-                      if (uploadedUrl) setReferenceImageUrl(uploadedUrl);
-                    }
-                  }}
-                />
-                {referenceImageUrl ? (
-                  <div className='p-2.5 bg-[#FAF8F4] border border-[#E7E7E7] rounded-xl flex items-center justify-between gap-3'>
-                    <div className='flex items-center gap-2.5 min-w-0'>
-                      <div className='w-12 h-12 rounded-lg overflow-hidden border border-stone-200 bg-stone-900 shrink-0 relative'>
-                        <AuthenticatedImage
-                          src={referenceImageUrl}
-                          alt={name || 'Reference Sheet'}
-                          className='w-full h-full object-cover'
-                        />
-                      </div>
-                      <div className='min-w-0'>
-                        <span className='text-xs text-stone-500 block'>
-                          {t(
-                            'bible.addRevisionModal.artworkReadyLabel',
-                            'Tệp hình ảnh đã sẵn sàng',
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                    <div className='flex items-center gap-1 shrink-0'>
-                      <button
-                        type='button'
-                        onClick={() => revFileInputRef.current?.click()}
-                        className='px-2 py-1 text-xs font-semibold rounded bg-white border border-[#E7E7E7] hover:bg-stone-50 text-stone-700'
-                      >
-                        {t('bible.addEntityModal.changeImage')}
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => setReferenceImageUrl('')}
-                        className='p-1 text-red-600 hover:bg-red-50 rounded'
-                        title={t('bible.addRevisionModal.removeImageBtn')}
-                      >
-                        <Trash2 className='w-3.5 h-3.5' />
-                      </button>
-                    </div>
-                  </div>
-                ) : !isArtist ? (
-                  <div className='p-3 rounded-xl border border-dashed border-stone-200 bg-stone-50 text-center text-xs text-stone-500 flex items-center justify-center gap-2'>
-                    <Lock className='w-3.5 h-3.5 text-stone-400' />
-                    <span>{t('bible.addRevisionModal.artistUploadOnlyNotice')}</span>
-                  </div>
-                ) : (
-                  <button
-                    type='button'
-                    onClick={() => revFileInputRef.current?.click()}
-                    disabled={uploadingRevImage}
-                    className='w-full p-3 rounded-xl border border-dashed border-stone-300 hover:border-[#F97316] bg-[#FAF8F5] text-center text-xs text-stone-600 hover:text-stone-900 flex items-center justify-center gap-2 cursor-pointer transition-colors'
-                  >
-                    {uploadingRevImage ? (
-                      <>
-                        <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
-                        <span>{t('bible.addRevisionModal.uploadingImage')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className='w-3.5 h-3.5 text-[#F97316]' />
-                        <span>{t('bible.addRevisionModal.uploadModelSheetBtn')}</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </>
-          )}
         </div>
       </Modal>
     );

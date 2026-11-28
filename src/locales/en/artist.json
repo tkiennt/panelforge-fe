@@ -143,6 +143,8 @@
     "decreaseFontAriaLabel": "Decrease font size",
     "fontSizeAriaLabel": "Font size (px)",
     "increaseFontAriaLabel": "Increase font size",
+    "fitBalloon": "Fit balloon",
+    "fontShrunkTitle": "Auto-shrunk to {{size}}px to fit",
     "textColorAriaLabel": "Text color",
     "boldAriaLabel": "Bold",
     "italicAriaLabel": "Italic",
@@ -511,7 +513,16 @@
     "startCellErrorTitle": "Could not start",
     "uploadPendingDesc": "Added {file} to Panel #{panel}. It will be uploaded when you save the layout.",
     "pendingUploadFailedTitle": "{count} panel image(s) could not be uploaded",
-    "pendingUploadFailedDesc": "The images stay on their panels; add them again to retry the upload."
+    "pendingUploadFailedDesc": "The images stay on their panels; add them again to retry the upload.",
+    "balloonCheckBanner": "Artwork changed: {count} panel(s) need a balloon position check.",
+    "balloonCheckAck": "Checked",
+    "balloonCheckAckSuccess": "Balloon positions confirmed",
+    "balloonCheckAckError": "Could not confirm, try again later.",
+    "rollbackPencilButton": "Back to Pencil",
+    "rollbackPencilTitle": "Reopen Pencil for this page?",
+    "rollbackPencilReasonLabel": "Reason",
+    "rollbackPencilSuccess": "Pencil reopened for fixes",
+    "rollbackPencilError": "Could not go back to Pencil."
   },
   "canvaSidebar": {
     "narrationFlashback": "Flashback",
@@ -788,7 +799,8 @@
     "removeTitle": "Remove artwork",
     "removeAria": "Remove artwork in panel {panelNum}",
     "uploadPanel": "+ Upload Panel #{panelNum}",
-    "dropOrClick": "Drag & drop or click to select"
+    "dropOrClick": "Drag & drop or click to select",
+    "balloonCheckTitle": "Check balloon fit (artwork changed)"
   },
   "inkBar": {
     "stageBadgeTitle": "Ink Stage: Upload Line-art",

@@ -525,7 +525,11 @@
       "noResults": "Không có lượt gọi phù hợp bộ lọc.",
       "empty": "Chưa có lượt gọi AI nào.",
       "tokensBreakdown": "{prompt} vào · {completion} ra",
-      "unit": "lượt gọi"
+      "unit": "lượt gọi",
+      "quotaChartTitle": "Tỷ lệ sử dụng quota AI theo Studio",
+      "quotaChartSubtitle": "10 Studio dùng nhiều nhất trong kỳ",
+      "quotaChartValueLabel": "Tỷ lệ sử dụng",
+      "quotaChartAriaLabel": "Biểu đồ tỷ lệ sử dụng quota AI của 10 Studio dùng nhiều nhất"
     }
   }
 }

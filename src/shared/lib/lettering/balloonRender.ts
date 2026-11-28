@@ -452,6 +452,34 @@ export function fitBalloonSize(
   return { w: maxW, h: Math.max(bounds.minH, h) };
 }
 
+/** "Vừa bóng": nới bóng quanh tâm để chữ vừa ở cỡ đã chọn, không nhỏ hơn bóng cũ, không quá `max`. null = đã vừa. */
+export function growBalloonToFit(
+  text: string,
+  style: TextStyleDto,
+  shape: BalloonShape,
+  box: Rect,
+  max: { w: number; h: number },
+  measure: Measure = defaultMeasure,
+): Rect | null {
+  if (!layoutText(text, style, shape, box.w, box.h, measure).overflow) return null;
+  const maxW = Math.max(box.w, Math.round(max.w));
+  const maxH = Math.max(box.h, Math.round(max.h));
+  let size = { w: maxW, h: Math.max(box.h, fitBoxHeight(text, style, shape, maxW, measure, maxH)) };
+  for (let w = box.w; w < maxW; w += 20) {
+    const h = Math.max(box.h, fitBoxHeight(text, style, shape, w, measure, maxH));
+    if (h < maxH && (h <= box.h || h <= w * 0.8)) {
+      size = { w, h };
+      break;
+    }
+  }
+  if (size.w === box.w && size.h === box.h) return null;
+  return {
+    x: Math.round(box.x - (size.w - box.w) / 2),
+    y: Math.round(box.y - (size.h - box.h) / 2),
+    ...size,
+  };
+}
+
 /**
  * Đuôi hướng về `target` (toạ độ trang — vd. tâm khung, nơi nhân vật thường đứng), thò ra khỏi viền tối đa `length` px.
  * `target` nằm trong bóng thì giữ đuôi mặc định. Kết quả theo toạ độ nội bộ của bóng như `tailX/tailY`.

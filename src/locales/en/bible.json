@@ -592,6 +592,7 @@
     "readOnlyNotice": "Read-only mode",
     "sameCategoryTitle": "Same Category · {count}",
     "variantsTitle": "Design Variants",
+    "characterErasTitle": "Character eras / variants",
     "variantCount": "{count} variants",
     "scriptAppearancesTitle": "In Script · {count} scenes",
     "gate1Warning": "Unsatisfied chapters will be blocked at Gate 1 upon script signoff (BR-21).",
