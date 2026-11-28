@@ -145,7 +145,8 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
-    expect(screen.getByText('Tổng quan')).toBeInTheDocument();
+    expect(screen.getByText('Tổng quan series')).toBeInTheDocument();
+    expect(screen.getByText('Tổng quan chương')).toBeInTheDocument();
     expect(screen.getByText('Tiền sản xuất')).toBeInTheDocument();
     expect(screen.getByText('Sản xuất')).toBeInTheDocument();
     expect(screen.getByText('Kiểm duyệt & Bàn giao')).toBeInTheDocument();

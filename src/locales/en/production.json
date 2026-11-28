@@ -2125,5 +2125,33 @@
     "mainCharacter": "Character",
     "lockedStatus": "Locked",
     "pendingStatus": "Pending lock"
+  },
+  "seriesDashboard": {
+    "eyebrow": "Series · {title}",
+    "title": "Series overview",
+    "subtitle": "Progress of every chapter in this series. Pick a chapter for details.",
+    "kpi": {
+      "ariaLabel": "Series metrics",
+      "chapters": "Chapters",
+      "chaptersInProduction": "{count} in production",
+      "avgProgress": "Average completion",
+      "avgProgressNote": "Panels approved at the final stage",
+      "overdue": "Overdue",
+      "overdueNote": "Overdue tasks and change requests",
+      "waitingReview": "Waiting review",
+      "waitingReviewNote": "Submissions waiting for review"
+    },
+    "chapters": {
+      "title": "Chapters",
+      "empty": "This series has no chapters yet.",
+      "colChapter": "Chapter",
+      "colStatus": "Status",
+      "colProgress": "Completion",
+      "colOverdue": "Overdue",
+      "colTarget": "Target release",
+      "open": "Open chapter",
+      "chapterNumber": "Chapter {number}",
+      "progressAria": "Chapter {number} progress"
+    }
   }
 }
