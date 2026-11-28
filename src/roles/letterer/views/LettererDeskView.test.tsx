@@ -270,7 +270,13 @@ describe('LettererDeskView', () => {
         snapshotCallsBeforeAccept,
       );
     });
-    expect(await screen.findByDisplayValue('Không thể đứng nhìn!')).toBeInTheDocument();
+    // Script-linked balloons in the original language have no text input; the
+    // reloaded content shows on the balloon itself.
+    await waitFor(() => {
+      expect(screen.getByTestId('lettering-element-el-bubble-1')).toHaveTextContent(
+        'Không thể đứng nhìn!',
+      );
+    });
   });
 
   it('ẩn nút "Rút gọn bằng AI" khi người dùng không phải Letterer (ví dụ ARTIST)', async () => {
