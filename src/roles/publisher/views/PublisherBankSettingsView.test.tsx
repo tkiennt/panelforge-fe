@@ -135,5 +135,7 @@ describe('PublisherBankSettingsView (Q13: tài khoản ngân hàng nền tảng)
     await waitFor(() =>
       expect(paymentService.getPayments).toHaveBeenCalledWith('ws-1', expect.anything()),
     );
+    expect(await screen.findByTestId('kpi-unlock-revenue')).toBeInTheDocument();
+    expect(screen.queryByTestId('kpi-total-topups')).not.toBeInTheDocument();
   });
 });

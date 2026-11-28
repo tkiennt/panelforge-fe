@@ -567,7 +567,7 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
             </div>
           </div>
 
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+          <div className={`grid grid-cols-1 gap-3 ${workspaceId ? '' : 'sm:grid-cols-2'}`}>
             <div className='p-4 rounded-2xl bg-white border border-[#E7E7E7]'>
               <p className='text-xs font-semibold text-[#737373]'>{t('kpi.unlockRevenue')}</p>
               <p
@@ -578,16 +578,19 @@ export const PublisherBankSettingsView: React.FC<PublisherBankSettingsViewProps>
               </p>
               <p className='text-[11px] text-[#737373] mt-0.5'>{t('kpi.unlockRevenueSub')}</p>
             </div>
-            <div className='p-4 rounded-2xl bg-white border border-[#E7E7E7]'>
-              <p className='text-xs font-semibold text-[#737373]'>{t('kpi.totalTopups')}</p>
-              <p
-                data-testid='kpi-total-topups'
-                className='text-lg font-bold text-[#171717] mt-1 tabular-nums'
-              >
-                {`${new Intl.NumberFormat(lang === 'en' ? 'en-US' : 'vi-VN').format(totalTopupsVnd)} VND`}
-              </p>
-              <p className='text-[11px] text-[#737373] mt-0.5'>{t('kpi.totalTopupsSub')}</p>
-            </div>
+            {/* Q13: tiền nạp Ví thuộc nền tảng, chỉ hiện ở trang toàn nền tảng */}
+            {!workspaceId && (
+              <div className='p-4 rounded-2xl bg-white border border-[#E7E7E7]'>
+                <p className='text-xs font-semibold text-[#737373]'>{t('kpi.totalTopups')}</p>
+                <p
+                  data-testid='kpi-total-topups'
+                  className='text-lg font-bold text-[#171717] mt-1 tabular-nums'
+                >
+                  {`${new Intl.NumberFormat(lang === 'en' ? 'en-US' : 'vi-VN').format(totalTopupsVnd)} VND`}
+                </p>
+                <p className='text-[11px] text-[#737373] mt-0.5'>{t('kpi.totalTopupsSub')}</p>
+              </div>
+            )}
           </div>
 
           <div className='flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-[#E7E7E7]'>
