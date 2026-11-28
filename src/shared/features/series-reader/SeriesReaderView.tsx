@@ -63,6 +63,14 @@ export const SeriesReaderView: React.FC<SeriesReaderViewProps> = ({
   const isProducer = ['producer', 'owner', 'admin', 'administrator'].includes(
     (workspaceRole ?? '').toLowerCase(),
   );
+  // Khớp PageCommentsController: Producer/Editor/Writer xem và tạo góp ý;
+  // đóng / mở lại / chuyển rework chỉ Producer/Editor. Vai trò khác gọi sẽ nhận 403.
+  const canViewComments = ['producer', 'owner', 'editor', 'writer'].includes(
+    (workspaceRole ?? '').toLowerCase(),
+  );
+  const canModerateComments = ['producer', 'owner', 'editor'].includes(
+    (workspaceRole ?? '').toLowerCase(),
+  );
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -126,7 +134,9 @@ export const SeriesReaderView: React.FC<SeriesReaderViewProps> = ({
       const [seriesRes, chaptersRes, commentsRes, membersRes] = await Promise.all([
         seriesService.getSeriesById(seriesId).catch(() => null),
         chapterService.getChaptersBySeries(seriesId, 1, 200),
-        pageCommentService.listBySeries(seriesId).catch(() => [] as PageCommentDto[]),
+        canViewComments
+          ? pageCommentService.listBySeries(seriesId).catch(() => [] as PageCommentDto[])
+          : Promise.resolve([] as PageCommentDto[]),
         workspaceId
           ? workspaceService.getMembers(workspaceId).catch(() => [])
           : Promise.resolve([]),
@@ -175,7 +185,7 @@ export const SeriesReaderView: React.FC<SeriesReaderViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [seriesId, workspaceId, loadChapter]);
+  }, [seriesId, workspaceId, loadChapter, canViewComments]);
 
   useEffect(() => {
     void loadInitialData();
@@ -510,6 +520,7 @@ export const SeriesReaderView: React.FC<SeriesReaderViewProps> = ({
     statusFilter: commentStatusFilter,
     scopeFilter: commentScopeFilter,
     isProducer,
+    canModerate: canModerateComments,
     draftTarget,
     draftMessage,
     submittingComment,

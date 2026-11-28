@@ -35,6 +35,8 @@ export interface CommentPanelContentProps {
   statusFilter: PageCommentStatus;
   scopeFilter: CommentScopeFilter;
   isProducer: boolean;
+  /** Đóng / mở lại / chuyển rework góp ý: chỉ Producer/Editor (Writer chỉ xem và tạo). */
+  canModerate?: boolean;
   draftTarget: DraftPinTarget | null;
   draftMessage: string;
   submittingComment: boolean;
@@ -61,6 +63,7 @@ export const CommentPanelContent: React.FC<CommentPanelContentProps> = ({
   statusFilter,
   scopeFilter,
   isProducer,
+  canModerate = true,
   draftTarget,
   draftMessage,
   submittingComment,
@@ -249,107 +252,109 @@ export const CommentPanelContent: React.FC<CommentPanelContentProps> = ({
                 )}
 
                 {/* Actions */}
-                <div
-                  className='pt-1.5 border-t border-stone-100 space-y-2'
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {comment.status === 'Open' && resolvingId === comment.id ? (
-                    <div className='space-y-1.5'>
-                      <input
-                        type='text'
-                        value={resolutionNote}
-                        onChange={(e) => setResolutionNote(e.target.value)}
-                        placeholder={t('seriesReader.comments.resolveNotePlaceholder')}
-                        className='w-full rounded-lg border border-stone-300 px-2.5 py-1.5 text-xs text-stone-900 focus:border-orange-500 focus:outline-none'
-                      />
-                      <div className='flex items-center justify-end gap-1.5'>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          onClick={() => {
-                            setResolvingId(null);
-                            setResolutionNote('');
-                          }}
-                        >
-                          {t('seriesReader.cancel')}
-                        </Button>
-                        <Button
-                          variant='primary'
-                          size='sm'
-                          loading={isBusy}
-                          onClick={async () => {
-                            await onResolveComment(comment, resolutionNote.trim() || undefined);
-                            setResolvingId(null);
-                            setResolutionNote('');
-                          }}
-                        >
-                          {t('seriesReader.comments.confirmResolve')}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : comment.status === 'Open' ? (
-                    <div className='space-y-1.5'>
-                      <div className='flex flex-wrap items-center gap-1.5'>
-                        <Button
-                          variant='secondary'
-                          size='sm'
-                          leadingIcon={<CheckCircle2 aria-hidden='true' />}
-                          disabled={isBusy}
-                          onClick={() => {
-                            setResolvingId(comment.id);
-                            setResolutionNote('');
-                          }}
-                        >
-                          {t('seriesReader.comments.resolveBtn')}
-                        </Button>
-
-                        {isProducer && (
-                          <Button
-                            variant='secondary'
-                            size='sm'
-                            leadingIcon={<Wrench aria-hidden='true' />}
-                            disabled={isBusy || !isInProduction}
-                            title={
-                              !isInProduction
-                                ? t('seriesReader.comments.reopenChapterFirst')
-                                : undefined
-                            }
-                            data-testid={`convert-rework-btn-${comment.id}`}
-                            onClick={() => onRequestRework(comment)}
-                          >
-                            {t('seriesReader.comments.convertToReworkBtn')}
-                          </Button>
-                        )}
-                      </div>
-
-                      {isProducer && !isInProduction && chapter && (
-                        <div className='flex items-center justify-between gap-2 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-xs text-amber-900'>
-                          <span>{t('seriesReader.comments.reopenChapterFirst')}</span>
+                {canModerate && (
+                  <div
+                    className='pt-1.5 border-t border-stone-100 space-y-2'
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {comment.status === 'Open' && resolvingId === comment.id ? (
+                      <div className='space-y-1.5'>
+                        <input
+                          type='text'
+                          value={resolutionNote}
+                          onChange={(e) => setResolutionNote(e.target.value)}
+                          placeholder={t('seriesReader.comments.resolveNotePlaceholder')}
+                          className='w-full rounded-lg border border-stone-300 px-2.5 py-1.5 text-xs text-stone-900 focus:border-orange-500 focus:outline-none'
+                        />
+                        <div className='flex items-center justify-end gap-1.5'>
                           <Button
                             variant='ghost'
                             size='sm'
-                            leadingIcon={<Unlock aria-hidden='true' />}
-                            onClick={() => onRequestReopenChapter(chapter)}
-                            data-testid={`reopen-chapter-btn-${chapter.id}`}
+                            onClick={() => {
+                              setResolvingId(null);
+                              setResolutionNote('');
+                            }}
                           >
-                            {t('seriesReader.comments.reopenChapterBtn')}
+                            {t('seriesReader.cancel')}
+                          </Button>
+                          <Button
+                            variant='primary'
+                            size='sm'
+                            loading={isBusy}
+                            onClick={async () => {
+                              await onResolveComment(comment, resolutionNote.trim() || undefined);
+                              setResolvingId(null);
+                              setResolutionNote('');
+                            }}
+                          >
+                            {t('seriesReader.comments.confirmResolve')}
                           </Button>
                         </div>
-                      )}
-                    </div>
-                  ) : comment.status === 'Resolved' ? (
-                    <Button
-                      variant='secondary'
-                      size='sm'
-                      leadingIcon={<RotateCcw aria-hidden='true' />}
-                      disabled={isBusy}
-                      loading={isBusy}
-                      onClick={() => void onReopenComment(comment)}
-                    >
-                      {t('seriesReader.comments.reopenBtn')}
-                    </Button>
-                  ) : null}
-                </div>
+                      </div>
+                    ) : comment.status === 'Open' ? (
+                      <div className='space-y-1.5'>
+                        <div className='flex flex-wrap items-center gap-1.5'>
+                          <Button
+                            variant='secondary'
+                            size='sm'
+                            leadingIcon={<CheckCircle2 aria-hidden='true' />}
+                            disabled={isBusy}
+                            onClick={() => {
+                              setResolvingId(comment.id);
+                              setResolutionNote('');
+                            }}
+                          >
+                            {t('seriesReader.comments.resolveBtn')}
+                          </Button>
+
+                          {isProducer && (
+                            <Button
+                              variant='secondary'
+                              size='sm'
+                              leadingIcon={<Wrench aria-hidden='true' />}
+                              disabled={isBusy || !isInProduction}
+                              title={
+                                !isInProduction
+                                  ? t('seriesReader.comments.reopenChapterFirst')
+                                  : undefined
+                              }
+                              data-testid={`convert-rework-btn-${comment.id}`}
+                              onClick={() => onRequestRework(comment)}
+                            >
+                              {t('seriesReader.comments.convertToReworkBtn')}
+                            </Button>
+                          )}
+                        </div>
+
+                        {isProducer && !isInProduction && chapter && (
+                          <div className='flex items-center justify-between gap-2 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-xs text-amber-900'>
+                            <span>{t('seriesReader.comments.reopenChapterFirst')}</span>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              leadingIcon={<Unlock aria-hidden='true' />}
+                              onClick={() => onRequestReopenChapter(chapter)}
+                              data-testid={`reopen-chapter-btn-${chapter.id}`}
+                            >
+                              {t('seriesReader.comments.reopenChapterBtn')}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : comment.status === 'Resolved' ? (
+                      <Button
+                        variant='secondary'
+                        size='sm'
+                        leadingIcon={<RotateCcw aria-hidden='true' />}
+                        disabled={isBusy}
+                        loading={isBusy}
+                        onClick={() => void onReopenComment(comment)}
+                      >
+                        {t('seriesReader.comments.reopenBtn')}
+                      </Button>
+                    ) : null}
+                  </div>
+                )}
               </article>
             );
           })
