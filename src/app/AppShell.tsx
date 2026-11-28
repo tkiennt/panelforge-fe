@@ -1014,9 +1014,6 @@ export function AppShell({
                   <span className='font-serif text-lg font-medium tracking-tight text-stone-900'>
                     {t('workspace.studioHub.brand')}
                   </span>
-                  <span className='hidden sm:inline-flex text-[11px] font-bold tracking-wider uppercase bg-kraft text-sienna px-1.5 py-0.5 rounded'>
-                    {t('workspace.studioHub.studioBadge')}
-                  </span>
                 </button>
                 <div className='h-5 w-px bg-stone-200 mx-2.5' aria-hidden='true' />
               </div>

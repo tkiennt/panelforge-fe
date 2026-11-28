@@ -642,7 +642,6 @@
   },
   "studioHub": {
     "brand": "PanelForge",
-    "studioBadge": "STUDIO",
     "workspaces": "Workspaces",
     "tabs": {
       "series": "Danh sách Series",
