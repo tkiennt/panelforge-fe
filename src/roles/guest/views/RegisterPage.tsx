@@ -140,6 +140,9 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
       const landing = await authService.getLandingContext();
       if (landing?.suggestedLanding === 'AdminDashboard' || role === 'ADMINISTRATOR') {
         navigate('/admin');
+      } else if (landing?.suggestedLanding === 'PublicCatalog') {
+        // Độc giả (không thuộc Studio nào, không được tạo Studio) vào thẳng thư viện truyện.
+        navigate('/catalog');
       } else {
         navigate('/workspaces');
       }

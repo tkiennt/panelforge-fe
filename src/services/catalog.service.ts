@@ -12,6 +12,13 @@ export interface PublicSeriesDto {
   studioName: string;
   publishedChapterCount: number;
   latestPublishedAt?: string | null;
+  coverUrl?: string | null;
+  isCompleted?: boolean;
+  createdAt?: string | null;
+  viewCount?: number;
+  viewsLast1Day?: number;
+  viewsLast7Days?: number;
+  viewsLast30Days?: number;
 }
 
 export interface PublicChapterLanguageDto {
@@ -44,6 +51,11 @@ export interface PublicSeriesDetailDto {
   studioName: string;
   language?: string;
   chapters: PublicChapterDto[];
+  coverUrl?: string | null;
+  isCompleted?: boolean;
+  viewCount?: number;
+  ratingAverage?: number;
+  ratingCount?: number;
 }
 
 export interface PublicPageReadDto {

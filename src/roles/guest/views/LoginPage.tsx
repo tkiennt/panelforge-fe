@@ -112,6 +112,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         navigate('/admin');
       } else if (landing?.suggestedLanding === 'PublisherPortal' || role === 'PUBLISHER') {
         navigate('/publisher/series');
+      } else if (landing?.suggestedLanding === 'PublicCatalog') {
+        // Độc giả (không thuộc Studio nào, không được tạo Studio) vào thẳng thư viện truyện.
+        navigate('/catalog');
       } else {
         // Spec §5.3 Bước 2: sau đăng nhập luôn vào màn chọn Studio, không tự vào studio gần nhất.
         navigate('/workspaces');
