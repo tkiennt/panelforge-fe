@@ -1002,10 +1002,11 @@
       "empty": "Series chưa có chương"
     },
     "chapter": {
-      "title": "Tổng quan duyệt chương",
-      "back": "Tổng quan series",
       "reviewScript": "Duyệt kịch bản",
-      "notFound": "Không tìm thấy chương trong series này",
+      "openDeskChapter": "Mở bàn duyệt chương này",
+      "close": "Đóng",
+      "productionProgress": "{approved}/{total} việc đã duyệt · {inProgress} đang làm · {rework} làm lại · {overdue} trễ",
+      "productionProgressLabel": "Tiến độ sản xuất",
       "toVerifyTitle": "Chờ xác minh ({count})",
       "toVerifyEmpty": "Không có yêu cầu nào chờ xác minh",
       "verifyAction": "Xác minh",

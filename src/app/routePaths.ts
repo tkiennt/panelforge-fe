@@ -68,7 +68,7 @@ export const buildEditorDeskUrl = (
   return buildSeriesPath(workspaceId, seriesId, `editor/desk${qStr ? `?${qStr}` : ''}`);
 };
 
-/** Tổng quan duyệt của Editor: cấp Series (không có chapterId) hoặc cấp chương. */
+/** Tổng quan duyệt của Editor: cấp Series (không có chapterId) hoặc cấp chương (?chapter=<id>). */
 export const buildEditorDashboardUrl = (
   workspaceId: string,
   seriesId: string,
@@ -77,7 +77,7 @@ export const buildEditorDashboardUrl = (
   buildSeriesPath(
     workspaceId,
     seriesId,
-    chapterId ? `editor/dashboard/${encodeURIComponent(chapterId)}` : 'editor/dashboard',
+    chapterId ? `editor/dashboard?chapter=${encodeURIComponent(chapterId)}` : 'editor/dashboard',
   );
 
 export const buildProductionWorkspaceUrl = (

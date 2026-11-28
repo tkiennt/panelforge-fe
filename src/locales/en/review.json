@@ -1002,10 +1002,11 @@
       "empty": "This series has no chapters yet"
     },
     "chapter": {
-      "title": "Chapter review overview",
-      "back": "Series overview",
       "reviewScript": "Review script",
-      "notFound": "Chapter not found in this series",
+      "openDeskChapter": "Open review desk for this chapter",
+      "close": "Close",
+      "productionProgress": "{approved}/{total} tasks approved · {inProgress} in progress · {rework} rework · {overdue} overdue",
+      "productionProgressLabel": "Production progress",
       "toVerifyTitle": "To verify ({count})",
       "toVerifyEmpty": "No requests waiting for verification",
       "verifyAction": "Verify",

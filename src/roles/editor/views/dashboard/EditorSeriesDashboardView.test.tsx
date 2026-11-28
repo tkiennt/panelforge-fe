@@ -5,11 +5,22 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { EditorSeriesDashboardView } from './EditorSeriesDashboardView';
 import { sumReviewStats } from './reviewStats';
 import { assignmentService } from '@/services/assignment.service';
+import { pipelineService } from '@/services/pipeline.service';
 import { seriesService } from '@/services/series.service';
 import type { ChapterReviewStatsDto } from '@/types';
 
 vi.mock('@/services/assignment.service', () => ({
-  assignmentService: { getSeriesReviewStats: vi.fn() },
+  assignmentService: {
+    getSeriesReviewStats: vi.fn(),
+    getChangeRequests: vi.fn(),
+    getConsistencyFindings: vi.fn(),
+    getStageProgress: vi.fn(),
+  },
+}));
+vi.mock('@/services/pipeline.service', () => ({
+  pipelineService: {
+    getPipelineStages: vi.fn(),
+  },
 }));
 vi.mock('@/services/series.service', () => ({
   seriesService: { getSeriesById: vi.fn() },
@@ -100,6 +111,10 @@ describe('EditorSeriesDashboardView', () => {
       decisions: [],
       avgReviewHours: null,
     });
+    vi.mocked(assignmentService.getChangeRequests).mockResolvedValue([]);
+    vi.mocked(assignmentService.getConsistencyFindings).mockResolvedValue([]);
+    vi.mocked(assignmentService.getStageProgress).mockResolvedValue([]);
+    vi.mocked(pipelineService.getPipelineStages).mockResolvedValue([]);
   });
 
   it('shows totals and sets search params when chapter detail button is clicked', async () => {
@@ -211,5 +226,29 @@ describe('EditorSeriesDashboardView', () => {
 
     expect(screen.getByTestId('editor-dash-kpi-scripts').textContent).toContain('1');
     expect(screen.getByTestId('editor-dash-kpi-bible').textContent).toContain('3');
+  });
+
+  it('opens drawer when ?chapter=id is in URL and displays chapter detail', async () => {
+    render(
+      <MemoryRouter initialEntries={['/workspaces/w1/series/s1/editor/dashboard?chapter=c2']}>
+        <LocationConsumer />
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/editor/dashboard'
+            element={<EditorSeriesDashboardView />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+    expect(screen.getByText('Chương 2 - Tập 2')).toBeTruthy();
+    expect(screen.getByText('Duyệt kịch bản')).toBeTruthy();
+    expect(screen.getByText('Mở bàn duyệt chương này')).toBeTruthy();
+    expect(await screen.findByTestId('editor-chapter-detail')).toBeTruthy();
+
+    const closeBtn = screen.getByRole('button', { name: 'Đóng' });
+    fireEvent.click(closeBtn);
+    expect(screen.getByTestId('current-search').textContent).toBe('');
   });
 });

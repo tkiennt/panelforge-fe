@@ -8,17 +8,19 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Drawer,
   EmptyState,
   PageHeader,
   ProgressBar,
 } from '@/shared/ui';
 import { assignmentService } from '@/services/assignment.service';
 import { seriesService, type SeriesDetailDto } from '@/services/series.service';
-import { buildEditorDeskUrl } from '@/app/routePaths';
+import { buildEditorDeskUrl, buildScriptReviewUrl } from '@/app/routePaths';
 import type { ChapterReviewStatsDto, SeriesReviewStatsDto } from '@/types';
 import { StatBarChart, type StatBarDatum } from '@/shared/ui/charts/StatBarChart';
 import { ReviewKpiStrip } from './ReviewKpiStrip';
 import { sumReviewStats } from './reviewStats';
+import { EditorChapterDetail } from './EditorChapterDetail';
 
 const SCRIPT_TONE: Record<string, 'neutral' | 'warning' | 'success'> = {
   Draft: 'neutral',
@@ -33,7 +35,7 @@ const SCRIPT_TONE: Record<string, 'neutral' | 'warning' | 'success'> = {
 export const EditorSeriesDashboardView: React.FC = () => {
   const { t, lang } = useTranslation('review');
   const { workspaceId = '', seriesId = '' } = useParams();
-  const [, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [stats, setStats] = useState<SeriesReviewStatsDto | null>(null);
   const [series, setSeries] = useState<SeriesDetailDto | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +103,25 @@ export const EditorSeriesDashboardView: React.FC = () => {
       return next;
     });
   };
+
+  const handleCloseDrawer = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('chapter');
+      return next;
+    });
+  };
+
+  const chapterParam = searchParams.get('chapter');
+  const selectedChapter = chapterParam
+    ? chapters.find((c) => c.chapterId === chapterParam)
+    : undefined;
+
+  const drawerTitle = selectedChapter
+    ? selectedChapter.title
+      ? `${t('dashboard.chapterNumber', { number: selectedChapter.chapterNumber })} - ${selectedChapter.title}`
+      : t('dashboard.chapterNumber', { number: selectedChapter.chapterNumber })
+    : '';
 
   const statusClusters: string[] = [];
   if (totals.productionPercent !== null) {
@@ -347,6 +368,43 @@ export const EditorSeriesDashboardView: React.FC = () => {
             </CardBody>
           </Card>
         </>
+      )}
+
+      {selectedChapter && (
+        <Drawer
+          isOpen={Boolean(selectedChapter)}
+          placement='right'
+          size='lg'
+          title={drawerTitle}
+          closeLabel={t('dashboard.chapter.close')}
+          onClose={handleCloseDrawer}
+        >
+          <div className='flex items-center justify-end gap-3 px-5 py-3 border-b border-stone-200/60 bg-stone-50/50'>
+            {selectedChapter.scriptStatus === 'InReview' && (
+              <Link
+                to={buildScriptReviewUrl(workspaceId, seriesId, selectedChapter.chapterId)}
+                className='focus-ring text-xs font-semibold text-orange-700 hover:text-orange-800 whitespace-nowrap'
+              >
+                {t('dashboard.chapter.reviewScript')}
+              </Link>
+            )}
+            <Link
+              to={buildEditorDeskUrl(workspaceId, seriesId, {
+                chapterId: selectedChapter.chapterId,
+              })}
+              className='focus-ring btn-cta-primary text-xs px-3 py-1.5 rounded-lg'
+            >
+              {t('dashboard.chapter.openDeskChapter')}
+            </Link>
+          </div>
+          <div className='p-5'>
+            <EditorChapterDetail
+              workspaceId={workspaceId}
+              seriesId={seriesId}
+              row={selectedChapter}
+            />
+          </div>
+        </Drawer>
       )}
     </div>
   );
