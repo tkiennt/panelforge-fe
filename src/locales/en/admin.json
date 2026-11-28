@@ -83,7 +83,7 @@
       "dashboard": "Overview",
       "users": "Users & Roles",
       "aiConfig": "AI Configuration",
-      "storage": "Storage & Quota",
+      "storage": "Resources & Quotas",
       "sessionPolicy": "Session Policy",
       "audit": "Audit Logs",
       "analytics": "Reader Analytics"
@@ -235,53 +235,6 @@
       "description": "Description",
       "changesData": "Change data",
       "noChanges": "This record has no change data."
-    }
-  },
-  "storageBackup": {
-    "title": "Storage & Quota",
-    "description": "Storage usage and quotas for each Studio.",
-    "refresh": "Refresh",
-    "stats": {
-      "studios": "Studios",
-      "usedStorage": "Storage used",
-      "totalQuota": "Total allocated quota"
-    },
-    "searchPlaceholder": "Search Studio or owner",
-    "searchAriaLabel": "Search Studio",
-    "studioCount": "{filtered} / {total} Studios",
-    "unlimited": "Unlimited",
-    "unlimitedLower": "unlimited",
-    "table": {
-      "colStudio": "Studio",
-      "colOwner": "Owner",
-      "colMembers": "Members",
-      "colSeries": "Series",
-      "colStorage": "Storage",
-      "colActions": "Actions",
-      "loading": "Loading Studios…",
-      "loadError": "Failed to load Studios.",
-      "retry": "Retry",
-      "empty": "No Studios yet.",
-      "noResults": "No matching Studios.",
-      "clearSearch": "Clear search",
-      "createdAt": "Created {date}",
-      "progressAria": "{name}: {percent}% used",
-      "percentUsed": "{percent}% used",
-      "almostFull": " · almost full",
-      "editQuota": "Edit quota"
-    },
-    "modal": {
-      "title": "Edit Storage Quota",
-      "usedSuffix": "used",
-      "cancel": "Cancel",
-      "save": "Save quota",
-      "newQuotaLabel": "New quota (GB)",
-      "newQuotaHint": "Enter 0 for unlimited.",
-      "presetsAria": "Suggested values",
-      "overUsedWarning": "Quota is lower than currently used storage. The Studio will not be able to upload more files until space is freed or more quota is granted.",
-      "invalidQuota": "Enter a storage value of 0 GB or higher.",
-      "updateSuccess": "Updated quota for \"{name}\" to {value}.",
-      "updateFailed": "Failed to update quota."
     }
   },
   "sessionPolicy": {
@@ -526,6 +479,81 @@
       "empty": "No AI calls yet.",
       "tokensBreakdown": "{prompt} in · {completion} out",
       "unit": "calls"
+    }
+  },
+  "resources": {
+    "title": "Resources & Quotas",
+    "description": "Grants for new studios, pending quota increase requests and each studio's usage.",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "unlimited": "Unlimited",
+    "cancel": "Cancel",
+    "save": "Save",
+    "types": {
+      "Storage": "Storage",
+      "AiTokens": "AI tokens / month",
+      "AiImages": "AI images / month"
+    },
+    "inputLabels": {
+      "Storage": "Storage (GB)",
+      "AiTokens": "AI tokens per month",
+      "AiImages": "AI images per month"
+    },
+    "requests": {
+      "title": "Pending quota increase requests",
+      "description": "Producers send these from the studio resource bar. Approving changes the quota immediately and notifies the Producer.",
+      "colStudio": "Studio",
+      "colType": "Type",
+      "colChange": "Current → Requested",
+      "colReason": "Reason",
+      "colRequester": "Requested by",
+      "colActions": "Actions",
+      "empty": "No pending requests.",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "review": {
+      "approveTitle": "Approve quota increase",
+      "rejectTitle": "Reject request",
+      "summary": "Currently {current}, requested {requested}.",
+      "grantedHint": "Amount to grant. It can be lower than requested.",
+      "noteLabel": "Note to the Producer",
+      "invalidGranted": "Enter an amount greater than 0.",
+      "noteRequired": "A rejection reason is required.",
+      "approved": "Approved the request from “{name}”.",
+      "rejected": "Rejected the request from “{name}”."
+    },
+    "policy": {
+      "title": "Quotas for new studios",
+      "description": "Applies to studios created from now on. Existing studios keep their current grants.",
+      "edit": "Edit policy",
+      "modalTitle": "Edit quotas for new studios",
+      "hint": "Every value must be greater than 0. To remove a limit, edit that studio directly.",
+      "invalid": "Enter all three values, each greater than 0.",
+      "saved": "Quota policy saved.",
+      "fromSettings": "No policy saved yet: using the server configuration values.",
+      "updatedBy": "Last changed by {name} at {date}."
+    },
+    "table": {
+      "title": "Usage by studio",
+      "searchPlaceholder": "Search studio or owner",
+      "colStudio": "Studio",
+      "colPending": "Pending",
+      "colActions": "Actions",
+      "empty": "No studios yet.",
+      "noResults": "No matching studios.",
+      "clearSearch": "Clear search",
+      "noAiConfig": "AI not granted",
+      "aiOff": "AI is off",
+      "pendingCount": "{count} request(s)",
+      "edit": "Edit quotas",
+      "progressAria": "{label}: {percent}% used"
+    },
+    "edit": {
+      "title": "Edit quotas for “{name}”",
+      "hint": "Enter 0 for unlimited. A quota below current usage blocks further use.",
+      "invalid": "Enter all three values, each 0 or more.",
+      "saved": "Updated quotas for “{name}”."
     }
   }
 }

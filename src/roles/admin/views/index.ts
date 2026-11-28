@@ -4,4 +4,4 @@ export { AdminDashboardView } from './AdminDashboardView';
 export { AdminUserManagementView } from './AdminUserManagementView';
 export { AdminAuditLogView } from './AdminAuditLogView';
 export { AIConfigurationView } from './modules/AIConfigurationView';
-export { StorageBackupSettings } from './modules/StorageBackupSettings';
+export { AdminResourcesView } from './modules/AdminResourcesView';

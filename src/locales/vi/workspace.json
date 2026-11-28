@@ -911,5 +911,42 @@
     "overdue": "Quá hạn",
     "due": "Hạn {date}",
     "openMyWork": "Việc của tôi"
+  },
+  "quota": {
+    "requestButton": "Xin tăng hạn mức",
+    "modalTitle": "Xin tăng hạn mức",
+    "modalDescription": "Admin nền tảng xem xét và duyệt. Bạn nhận thông báo khi có kết quả.",
+    "typeLabel": "Loại hạn mức",
+    "current": "Đang cấp: {value}",
+    "requestedLabel": {
+      "Storage": "Mức muốn có (GB)",
+      "AiTokens": "Token AI mỗi tháng muốn có",
+      "AiImages": "Ảnh AI mỗi tháng muốn có"
+    },
+    "reasonLabel": "Lý do",
+    "reasonPlaceholder": "Ví dụ: thêm 2 bộ mới, mỗi bộ khoảng 300 trang bản vẽ gốc",
+    "types": {
+      "Storage": "Dung lượng lưu trữ",
+      "AiTokens": "Token AI / tháng",
+      "AiImages": "Ảnh AI / tháng"
+    },
+    "unlimited": "không giới hạn",
+    "unlimitedNote": "Loại này đang không giới hạn, không cần xin thêm.",
+    "pendingNote": "Đã có yêu cầu loại này đang chờ Admin duyệt.",
+    "invalidAmount": "Mức muốn có phải lớn hơn mức đang cấp.",
+    "reasonRequired": "Cần ghi lý do.",
+    "submit": "Gửi yêu cầu",
+    "cancel": "Hủy",
+    "close": "Đóng",
+    "submitted": "Đã gửi yêu cầu. Admin sẽ xem xét.",
+    "historyTitle": "Yêu cầu gần đây",
+    "historyEmpty": "Chưa gửi yêu cầu nào.",
+    "status": {
+      "Pending": "Chờ duyệt",
+      "Approved": "Đã duyệt",
+      "Rejected": "Bị từ chối"
+    },
+    "granted": "Đã cấp {value}",
+    "adminNote": "Admin: {note}"
   }
 }

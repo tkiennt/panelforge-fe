@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Image as ImageIcon,
+  ArrowUpCircle,
 } from 'lucide-react';
 import { WorkspaceDto, WorkspaceUsageDto } from '@/services/workspace.service';
 import { useTranslation } from '@/lib/i18n';
@@ -18,6 +19,8 @@ export interface StudioGovernanceBarProps {
   isResourcesExpanded: boolean;
   onToggleResourcesExpanded: () => void;
   onOpenAuditModal: () => void;
+  /** OPS-21: có thì hiện nút "Xin tăng hạn mức" (chỉ Producer). */
+  onRequestQuotaIncrease?: () => void;
 }
 
 export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
@@ -26,6 +29,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
   isResourcesExpanded,
   onToggleResourcesExpanded,
   onOpenAuditModal,
+  onRequestQuotaIncrease,
 }) => {
   const { t } = useTranslation();
 
@@ -98,6 +102,16 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
         </div>
 
         <div className='flex items-center gap-2 self-end md:self-auto shrink-0'>
+          {onRequestQuotaIncrease && (
+            <button
+              type='button'
+              onClick={onRequestQuotaIncrease}
+              className='px-2.5 py-1 text-xs font-semibold text-orange-700 hover:text-orange-800 hover:bg-orange-50 border border-orange-200 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer'
+            >
+              <ArrowUpCircle className='w-3.5 h-3.5' />
+              <span>{t('workspace.quota.requestButton')}</span>
+            </button>
+          )}
           <button
             type='button'
             onClick={onOpenAuditModal}

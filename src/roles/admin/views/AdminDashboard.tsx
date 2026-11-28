@@ -4,7 +4,7 @@ import { AdminDashboardView } from './AdminDashboardView';
 import { AdminUserManagementView } from './AdminUserManagementView';
 import { AdminAuditLogView } from './AdminAuditLogView';
 import { AIConfigurationView } from './modules/AIConfigurationView';
-import { StorageBackupSettings } from './modules/StorageBackupSettings';
+import { AdminResourcesView } from './modules/AdminResourcesView';
 import { SessionPolicySettings } from './modules/SessionPolicySettings';
 import { ReaderStatsView } from '@/shared/views/ReaderStatsView';
 
@@ -62,7 +62,7 @@ export const AdminDashboard: React.FC = () => {
         )}
         {activeTab === 'users' && <AdminUserManagementView />}
         {activeTab === 'ai-config' && <AIConfigurationView />}
-        {activeTab === 'storage' && <StorageBackupSettings />}
+        {activeTab === 'storage' && <AdminResourcesView />}
         {activeTab === 'session-policy' && <SessionPolicySettings />}
         {activeTab === 'audit' && <AdminAuditLogView />}
         {activeTab === 'analytics' && <ReaderStatsView />}

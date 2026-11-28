@@ -372,6 +372,15 @@
     },
     "artwork": {
       "uploadFailed": "Không thể tải artwork lên."
+    },
+    "quota": {
+      "loadRequestsFailed": "Không tải được yêu cầu tăng hạn mức.",
+      "submitFailed": "Không gửi được yêu cầu tăng hạn mức.",
+      "loadPolicyFailed": "Không tải được chính sách hạn mức.",
+      "savePolicyFailed": "Không lưu được chính sách hạn mức.",
+      "reviewFailed": "Không xử lý được yêu cầu.",
+      "loadResourcesFailed": "Không tải được mức dùng của các Studio.",
+      "saveResourcesFailed": "Không cập nhật được hạn mức."
     }
   }
 }

@@ -372,6 +372,15 @@
     },
     "artwork": {
       "uploadFailed": "Failed to upload artwork."
+    },
+    "quota": {
+      "loadRequestsFailed": "Could not load quota increase requests.",
+      "submitFailed": "Could not send the quota increase request.",
+      "loadPolicyFailed": "Could not load the quota policy.",
+      "savePolicyFailed": "Could not save the quota policy.",
+      "reviewFailed": "Could not process the request.",
+      "loadResourcesFailed": "Could not load studio usage.",
+      "saveResourcesFailed": "Could not update the quotas."
     }
   }
 }

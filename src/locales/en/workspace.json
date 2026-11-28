@@ -911,5 +911,42 @@
     "overdue": "Overdue",
     "due": "Due {date}",
     "openMyWork": "My work"
+  },
+  "quota": {
+    "requestButton": "Request more quota",
+    "modalTitle": "Request a quota increase",
+    "modalDescription": "A platform Admin reviews the request. You get a notification with the result.",
+    "typeLabel": "Quota type",
+    "current": "Current grant: {value}",
+    "requestedLabel": {
+      "Storage": "Requested amount (GB)",
+      "AiTokens": "Requested AI tokens per month",
+      "AiImages": "Requested AI images per month"
+    },
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "For example: two new series, about 300 original art pages each",
+    "types": {
+      "Storage": "Storage",
+      "AiTokens": "AI tokens / month",
+      "AiImages": "AI images / month"
+    },
+    "unlimited": "unlimited",
+    "unlimitedNote": "This quota is unlimited, no request needed.",
+    "pendingNote": "A request of this type is already waiting for Admin review.",
+    "invalidAmount": "The requested amount must be greater than the current grant.",
+    "reasonRequired": "A reason is required.",
+    "submit": "Send request",
+    "cancel": "Cancel",
+    "close": "Close",
+    "submitted": "Request sent. An Admin will review it.",
+    "historyTitle": "Recent requests",
+    "historyEmpty": "No requests yet.",
+    "status": {
+      "Pending": "Pending",
+      "Approved": "Approved",
+      "Rejected": "Rejected"
+    },
+    "granted": "Granted {value}",
+    "adminNote": "Admin: {note}"
   }
 }

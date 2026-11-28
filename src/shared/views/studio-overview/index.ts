@@ -1,5 +1,6 @@
 export * from './formatters';
 export * from './StudioGovernanceBar';
+export * from './QuotaIncreaseRequestModal';
 export * from './SeriesFilterBar';
 export * from './SeriesCardItem';
 export * from './MembersTabContent';
