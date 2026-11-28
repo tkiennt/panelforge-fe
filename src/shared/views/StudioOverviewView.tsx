@@ -36,6 +36,7 @@ import { normalizeWorkspaceRole } from '@/types/auth';
 import { readCachedWorkspace, writeCachedWorkspace } from '@/types/workspace';
 import { formatBytes } from './studio-overview/formatters';
 import { StudioGovernanceBar } from './studio-overview/StudioGovernanceBar';
+import { QuotaIncreaseRequestModal } from './studio-overview/QuotaIncreaseRequestModal';
 import { SeriesFilterBar, type SeriesStatusFilter } from './studio-overview/SeriesFilterBar';
 import { SeriesShelf } from './studio-overview/SeriesShelf';
 import { MembersTabContent } from './studio-overview/MembersTabContent';
@@ -158,6 +159,7 @@ export const StudioOverviewView: React.FC = () => {
 
   // Workspace Usage (NFR Resource Governance - Storage & AI Tokens)
   const [workspaceUsage, setWorkspaceUsage] = useState<WorkspaceUsageDto | null>(null);
+  const [quotaRequestOpen, setQuotaRequestOpen] = useState(false);
   const [isResourcesExpanded, setIsResourcesExpanded] = useState(false);
   const [readerStats, setReaderStats] = useState<WorkspaceReaderStatsDto | null>(null);
 
@@ -895,6 +897,16 @@ export const StudioOverviewView: React.FC = () => {
             isResourcesExpanded={isResourcesExpanded}
             onToggleResourcesExpanded={() => setIsResourcesExpanded((prev) => !prev)}
             onOpenAuditModal={() => setAuditModalOpen(true)}
+            onRequestQuotaIncrease={isProducer ? () => setQuotaRequestOpen(true) : undefined}
+          />
+        )}
+
+        {activeWorkspace && isProducer && (
+          <QuotaIncreaseRequestModal
+            isOpen={quotaRequestOpen}
+            workspaceId={activeWorkspace.id}
+            workspaceUsage={workspaceUsage}
+            onClose={() => setQuotaRequestOpen(false)}
           />
         )}
 
