@@ -81,6 +81,8 @@ describe('ArtistCanvasViewport', () => {
       />,
     );
 
-    expect(screen.queryByRole('button', { name: /chọn khung mẫu|choose template/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /chọn khung mẫu|choose template/i }),
+    ).not.toBeInTheDocument();
   });
 });
